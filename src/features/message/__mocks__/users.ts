@@ -1,0 +1,42 @@
+export const mockMessageUsers = [
+  {
+    id: 'user-2',
+    username: 'sarah_wilson',
+    name: 'Sarah Wilson',
+    avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b47c?w=150&h=150&fit=crop&crop=face',
+    isOnline: true,
+    lastSeen: new Date('2024-01-20T10:40:00'),
+  },
+  {
+    id: 'user-3',
+    username: 'mike_chen',
+    name: 'Mike Chen',
+    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face',
+    isOnline: false,
+    lastSeen: new Date('2024-01-20T09:30:00'),
+  },
+  {
+    id: 'user-4',
+    username: 'emma_davis',
+    name: 'Emma Davis',
+    avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop&crop=face',
+    isOnline: true,
+    lastSeen: new Date('2024-01-20T10:45:00'),
+  },
+  {
+    id: 'user-5',
+    username: 'alex_torres',
+    name: 'Alex Torres',
+    avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face',
+    isOnline: false,
+    lastSeen: new Date('2024-01-19T18:20:00'),
+  },
+  {
+    id: 'user-6',
+    username: 'lisa_park',
+    name: 'Lisa Park',
+    avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&h=150&fit=crop&crop=face',
+    isOnline: true,
+    lastSeen: new Date('2024-01-20T10:50:00'),
+  },
+];
