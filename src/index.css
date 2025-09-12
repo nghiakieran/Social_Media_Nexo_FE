@@ -146,4 +146,24 @@
   .violation-badge {
     @apply absolute top-2 right-2 bg-red-500 text-white text-xs px-2 py-1 rounded-full font-medium;
   }
+  
+  .scrollbar-thin {
+    scrollbar-width: thin;
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  .scrollbar-thumb-border::-webkit-scrollbar-thumb {
+    @apply bg-border rounded-full;
+  }
+  
+  .scrollbar-track-muted::-webkit-scrollbar-track {
+    @apply bg-muted;
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    @apply bg-muted-foreground;
+  }
 }

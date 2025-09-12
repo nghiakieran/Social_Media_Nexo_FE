@@ -16,9 +16,7 @@ export const Header = () => {
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
         {/* Logo */}
         <div className="flex items-center gap-8">
-          <h1 className="text-2xl font-bold bg-gradient-instagram bg-clip-text text-transparent">
-            Social Media Nexo
-          </h1>
+          <h1 className="text-2xl font-bold bg-gradient-instagram bg-clip-text text-transparent">Nexo</h1>
           
           {/* Search */}
           <div className="hidden md:block relative w-64">

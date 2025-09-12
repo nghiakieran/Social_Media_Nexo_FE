@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect } from 'react';
 import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -120,19 +121,14 @@ export const FeedPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="max-w-md mx-auto bg-background">
-        {/* Create Post Button */}
-        <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-md border-b border-border p-4">
-          <Button
-            onClick={() => setShowComposer(true)}
-            className="w-full gap-2"
-            variant="outline"
-          >
-            <Plus className="w-4 h-4" />
-            Tạo bài viết mới
-          </Button>
-        </div>
+    <div className="w-full min-h-screen bg-background">
+      {/* Create Post Button */}
+      <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-md border-b border-border p-4">
+        <Button onClick={() => setShowComposer(true)} className="w-full gap-2" variant="outline">
+          <Plus className="w-4 h-4" />
+          Tạo bài viết mới
+        </Button>
+      </div>
 
         {/* Post Composer */}
         {showComposer && (
@@ -200,7 +196,6 @@ export const FeedPage = () => {
             onReport={handleReport}
           />
         )}
-      </div>
     </div>
   );
 };

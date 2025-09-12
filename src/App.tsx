@@ -44,6 +44,11 @@ import { ChatPage } from "./features/message/pages/ChatPage";
 import { ExplorePage } from "./features/explore/pages/ExplorePage";
 import { SearchPage } from "./features/explore/pages/SearchPage";
 
+// Profile Pages
+import { ProfilePage } from "./features/profile/pages/ProfilePage";
+import { EditProfilePage } from "./features/profile/pages/EditProfilePage";
+import { AccountSettingsPage } from "./features/profile/pages/AccountSettingsPage";
+
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -71,11 +76,11 @@ const App = () => (
                 <Route path="reels/create" element={<ReelCreatePage />} />
                 <Route path="live" element={<LiveStudioPage />} />
                 <Route path="notes/create" element={<NoteCreatePage />} />
-                <Route path="profile" element={<div className="p-6">Hồ sơ (Coming soon)</div>} />
-                <Route path="edit-profile" element={<div className="p-6">Chỉnh sửa hồ sơ (Coming soon)</div>} />
-                <Route path="account/settings" element={<div className="p-6">Cài đặt tài khoản (Coming soon)</div>} />
-                <Route path=":username" element={<div className="p-6">Trang cá nhân (Coming soon)</div>} />
-                <Route path="settings" element={<div className="p-6">Cài đặt (Coming soon)</div>} />
+                <Route path="profile" element={<ProfilePage />} />
+                <Route path="edit-profile" element={<EditProfilePage />} />
+                <Route path="account/settings" element={<AccountSettingsPage />} />
+                <Route path=":username" element={<ProfilePage />} />
+                <Route path="settings" element={<AccountSettingsPage />} />
                 
                 {/* AI Features */}
                 <Route path="people/suggestions" element={<PeopleSuggestions />} />

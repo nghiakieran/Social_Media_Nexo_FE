@@ -32,7 +32,7 @@ const mlFeatures = [
 
 export const Sidebar = () => {
   return (
-    <aside className="hidden lg:flex w-64 flex-col border-r border-border bg-background/50 backdrop-blur-sm">
+    <aside className="hidden lg:flex w-64 flex-col border-r border-border bg-background/50 backdrop-blur-sm h-[calc(100vh-4rem)] sticky top-16">
       <nav className="flex-1 p-4">
         <ul className="space-y-2">
           {navigation.map((item) => (

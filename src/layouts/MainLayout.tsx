@@ -13,6 +13,7 @@ import {
   removeReaction,
   Message,
 } from '@/features/message/messageSlice';
+import { Suggestions } from '@/components/common/Suggestions';
 
 export const MainLayout = () => {
   const location = useLocation();
@@ -43,8 +44,17 @@ export const MainLayout = () => {
       <Header />
       <div className="flex">
         <Sidebar />
-        <main className="flex-1 min-h-[calc(100vh-64px)]">
-          <Outlet />
+        <main className="flex-1 flex justify-center min-h-[calc(100vh-64px)]">
+          <div className="w-full max-w-lg xl:max-w-xl 2xl:max-w-2xl">
+            <Outlet />
+          </div>
+          {location.pathname === '/' && (
+            <div className="hidden xl:block xl:w-80 2xl:w-96">
+              <div className="sticky top-20 pt-8">
+                <Suggestions />
+              </div>
+            </div>
+          )}
         </main>
       </div>
 
