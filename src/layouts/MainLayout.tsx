@@ -1,5 +1,4 @@
 import { Outlet, useLocation } from 'react-router-dom';
-import { Header } from '@/components/common/Header';
 import { Sidebar } from '@/components/common/Sidebar';
 import { FloatingMessageTab } from '@/features/message/components/FloatingMessageTab';
 import { FloatingChatWindow } from '@/features/message/components/FloatingChatWindow';
@@ -41,16 +40,15 @@ export const MainLayout = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header />
       <div className="flex">
         <Sidebar />
-        <main className="flex-1 flex justify-center min-h-[calc(100vh-64px)]">
+        <main className="flex-1 flex justify-center min-h-screen pt-16 pb-16 lg:pt-0 lg:pb-0">
           <div className="w-full max-w-lg xl:max-w-xl 2xl:max-w-2xl">
             <Outlet />
           </div>
           {location.pathname === '/' && (
             <div className="hidden xl:block xl:w-80 2xl:w-96">
-              <div className="sticky top-20 pt-8">
+              <div className="sticky top-4 pt-8">
                 <Suggestions />
               </div>
             </div>
@@ -58,9 +56,11 @@ export const MainLayout = () => {
         </main>
       </div>
 
-      {/* Floating Message Tab - Only show on non-message pages */}
+      {/* Floating Message Tab - Only show on desktop and non-message pages */}
       {!location.pathname.includes('/messages') && (
-        <FloatingMessageTab />
+        <div className="hidden lg:block">
+          <FloatingMessageTab />
+        </div>
       )}
 
       {/* Floating Chat Windows */}

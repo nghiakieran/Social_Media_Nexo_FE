@@ -232,7 +232,7 @@ export const Suggestions = () => {
   const [hoveredUser, setHoveredUser] = useState<string | null>(null)
   const [showAllSuggestions, setShowAllSuggestions] = useState(false)
 
-  const displayedSuggestions = mockSuggestions.slice(0, 4)
+  const displayedSuggestions = mockSuggestions.slice(0, 5)
 
   const handleSeeAll = () => {
     setShowAllSuggestions(true)
@@ -244,7 +244,7 @@ export const Suggestions = () => {
 
   return (
     <>
-      <div className="fixed right-4 top-20 w-[22rem] h-[calc(100vh-6rem)] overflow-y-auto p-4 space-y-6 bg-background border-l border-border/30">
+      <div className="fixed right-4 top-4 w-[22rem] h-[calc(100vh)] overflow-y-auto p-4 space-y-6 bg-background border-l border-border/30">
         {/* Current User Profile */}
         <div className="flex items-center justify-between p-3 rounded-xl bg-gradient-to-r from-muted/50 to-background border border-border/50 shadow-glow">
           <div className="flex items-center gap-3">

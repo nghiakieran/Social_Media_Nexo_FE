@@ -8,6 +8,7 @@ interface Story {
   hasNewStory: boolean
   isViewed: boolean
   isOwnStory?: boolean
+  isCloseFriend?: boolean
 }
 
 interface StoriesProps {
@@ -36,7 +37,9 @@ export function Stories({ stories, onStoryClick }: StoriesProps) {
                 className={cn(
                   "w-20 h-20 rounded-full p-0.5 transition-all duration-200",
                   story.hasNewStory && !story.isViewed
-                    ? "bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-500" // Bright gradient for unviewed
+                    ? story.isCloseFriend
+                      ? "bg-gradient-to-tr from-green-400 via-blue-500 to-purple-500" // Special gradient for close friends
+                      : "bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-500" // Bright gradient for unviewed
                     : story.isViewed
                     ? "bg-gray-400" // Gray for viewed stories
                     : "bg-muted", // Default muted color
@@ -62,13 +65,25 @@ export function Stories({ stories, onStoryClick }: StoriesProps) {
 
               {/* New Story Indicator Dot */}
               {story.hasNewStory && !story.isViewed && (
-                <div className="absolute -top-1 -right-1 w-4 h-4 bg-gradient-to-r from-yellow-400 to-pink-500 rounded-full border-2 border-background animate-pulse" />
+                <div className={cn(
+                  "absolute -top-1 -right-1 w-4 h-4 rounded-full border-2 border-background animate-pulse",
+                  story.isCloseFriend
+                    ? "bg-gradient-to-r from-green-400 to-blue-500" // Special gradient for close friends
+                    : "bg-gradient-to-r from-yellow-400 to-pink-500" // Default gradient
+                )} />
               )}
 
               {/* Own Story Indicator */}
               {story.isOwnStory && (
                 <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-blue-500 rounded-full border-2 border-background flex items-center justify-center">
                   <span className="text-white text-xs font-bold">+</span>
+                </div>
+              )}
+
+              {/* Close Friend Indicator */}
+              {story.isCloseFriend && !story.isOwnStory && (
+                <div className="absolute -bottom-1 -left-1 w-5 h-5 bg-gradient-to-r from-green-400 to-blue-500 rounded-full border-2 border-background flex items-center justify-center">
+                  <span className="text-white text-xs font-bold">♥</span>
                 </div>
               )}
             </div>

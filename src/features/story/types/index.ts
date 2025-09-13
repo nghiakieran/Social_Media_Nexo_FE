@@ -15,6 +15,7 @@ export interface Story {
   isViewed?: boolean
   isOwnStory?: boolean
   viewerCount?: number
+  isCloseFriend?: boolean
 }
 
 export interface StoryViewerProps {

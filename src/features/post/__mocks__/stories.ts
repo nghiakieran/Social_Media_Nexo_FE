@@ -8,6 +8,7 @@ export interface StoryData {
   timeAgo: string
   isOwnStory?: boolean
   viewerCount?: number
+  isCloseFriend?: boolean
   content: Array<{
     id: string
     type: "image" | "video"
@@ -51,6 +52,7 @@ export const mockStoriesData: StoryData[] = [
     timeAgo: "4h",
     isOwnStory: false,
     viewerCount: 0,
+    isCloseFriend: true,
     content: [
       {
         id: "content_2_1",
@@ -99,6 +101,7 @@ export const mockStoriesData: StoryData[] = [
     timeAgo: "1d",
     isOwnStory: false,
     viewerCount: 0,
+    isCloseFriend: true,
     content: [
       {
         id: "content_4_1",
@@ -177,6 +180,7 @@ export const mockStories = mockStoriesData.map(story => ({
   profileImage: story.profileImage,
   hasNewStory: story.hasNewStory,
   isViewed: story.isViewed,
-  isOwnStory: story.isOwnStory
+  isOwnStory: story.isOwnStory,
+  isCloseFriend: story.isCloseFriend
 }))
 

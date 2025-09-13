@@ -21,6 +21,8 @@ export const StoryThumbnail = memo(({ story, onClick, style, zIndex }: StoryThum
           "w-full h-full rounded-xl overflow-hidden relative group",
           story.isViewed 
             ? "ring-2 ring-gray-400" // Viewed stories have gray ring
+            : story.isCloseFriend
+            ? "ring-2 ring-green-400" // Close friends have green ring
             : "ring-2 ring-yellow-400" // Unviewed stories have bright ring
         )}
       >
@@ -39,13 +41,21 @@ export const StoryThumbnail = memo(({ story, onClick, style, zIndex }: StoryThum
         )} />
         <div className="absolute bottom-4 left-4 right-4">
           <div className="flex items-center space-x-3 mb-2">
-            <img
-              src={story.profileImage || "/placeholder.svg"}
-              alt="Profile"
-              className="w-12 h-12 rounded-full border-2 border-white/30"
-              crossOrigin="anonymous"
-              loading="lazy"
-            />
+            <div className="relative">
+              <img
+                src={story.profileImage || "/placeholder.svg"}
+                alt="Profile"
+                className="w-12 h-12 rounded-full border-2 border-white/30"
+                crossOrigin="anonymous"
+                loading="lazy"
+              />
+              {/* Close Friend Indicator */}
+              {story.isCloseFriend && (
+                <div className="absolute -top-1 -right-1 w-4 h-4 bg-gradient-to-r from-green-400 to-blue-500 rounded-full border-2 border-white flex items-center justify-center">
+                  <span className="text-white text-xs font-bold">♥</span>
+                </div>
+              )}
+            </div>
           </div>
           <div className="text-white text-sm font-medium truncate">
             {story.username}
