@@ -6,7 +6,10 @@ import { PostComposer } from '../components/PostComposer';
 import { PostCard } from '../components/PostCard';
 import { EditPostDialog } from '../components/EditPostDialog';
 import { ReportPostDialog } from '../components/ReportPostDialog';
+import { Stories } from '@/components/common/Stories';
+import { StoryViewer } from '@/features/story/components';
 import { mockPosts } from '../__mocks__/posts';
+import { mockStories, mockStoriesData } from '../__mocks__/stories';
 import { useToast } from '@/hooks/use-toast';
 
 interface MediaItem {
@@ -21,6 +24,8 @@ export const FeedPage = () => {
   const [showComposer, setShowComposer] = useState(false);
   const [editingPost, setEditingPost] = useState<any>(null);
   const [reportingPost, setReportingPost] = useState<string | null>(null);
+  const [showStoryViewer, setShowStoryViewer] = useState(false);
+  const [currentStoryIndex, setCurrentStoryIndex] = useState(0);
   const { toast } = useToast();
 
   const handleCreatePost = async (postData: any) => {
@@ -120,6 +125,14 @@ export const FeedPage = () => {
     setReportingPost(null);
   };
 
+  const handleStoryClick = (story: any) => {
+    const storyIndex = mockStories.findIndex(s => s.id === story.id);
+    if (storyIndex !== -1) {
+      setCurrentStoryIndex(storyIndex);
+      setShowStoryViewer(true);
+    }
+  };
+
   return (
     <div className="w-full min-h-screen bg-background">
       {/* Create Post Button */}
@@ -129,6 +142,9 @@ export const FeedPage = () => {
           Tạo bài viết mới
         </Button>
       </div>
+
+      {/* Stories */}
+      <Stories stories={mockStories} onStoryClick={handleStoryClick} />
 
         {/* Post Composer */}
         {showComposer && (
@@ -194,6 +210,16 @@ export const FeedPage = () => {
             onClose={() => setReportingPost(null)}
             postId={reportingPost}
             onReport={handleReport}
+          />
+        )}
+
+        {/* Story Viewer */}
+        {showStoryViewer && (
+          <StoryViewer
+            isOpen={showStoryViewer}
+            onClose={() => setShowStoryViewer(false)}
+            stories={mockStoriesData}
+            initialStoryIndex={currentStoryIndex}
           />
         )}
     </div>
