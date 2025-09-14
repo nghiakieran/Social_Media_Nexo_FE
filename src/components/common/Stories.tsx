@@ -1,5 +1,6 @@
-import { useState } from "react"
+import { useState, useRef, useEffect } from "react"
 import { cn } from "@/lib/utils"
+import { ChevronLeft, ChevronRight } from "lucide-react"
 
 interface Story {
   id: string
@@ -18,10 +19,63 @@ interface StoriesProps {
 
 export function Stories({ stories, onStoryClick }: StoriesProps) {
   const [hoveredStory, setHoveredStory] = useState<string | null>(null)
+  const [canScrollLeft, setCanScrollLeft] = useState(false)
+  const [canScrollRight, setCanScrollRight] = useState(true)
+  const scrollContainerRef = useRef<HTMLDivElement>(null)
+
+  const checkScrollPosition = () => {
+    if (scrollContainerRef.current) {
+      const { scrollLeft, scrollWidth, clientWidth } = scrollContainerRef.current
+      setCanScrollLeft(scrollLeft > 0)
+      setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 1)
+    }
+  }
+
+  const scrollLeft = () => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollBy({ left: -200, behavior: 'smooth' })
+    }
+  }
+
+  const scrollRight = () => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollBy({ left: 200, behavior: 'smooth' })
+    }
+  }
+
+  useEffect(() => {
+    checkScrollPosition()
+  }, [stories])
 
   return (
-    <div className="w-full overflow-hidden bg-background py-4">
-      <div className="flex gap-4 overflow-x-auto px-4 scrollbar-hide">
+    <div className="w-full overflow-hidden bg-background py-4 relative">
+      {/* Left Navigation Arrow */}
+      {canScrollLeft && (
+        <button
+          onClick={scrollLeft}
+          className="absolute left-2 top-[58px] -translate-y-1/2 z-10 p-2 bg-white/90 hover:bg-white shadow-lg rounded-full transition-all duration-200"
+          aria-label="Cuộn trái"
+        >
+          <ChevronLeft className="w-5 h-5 text-gray-700" />
+        </button>
+      )}
+
+      {/* Right Navigation Arrow */}
+      {canScrollRight && (
+        <button
+          onClick={scrollRight}
+          className="absolute right-2 top-[58px] -translate-y-1/2 z-10 p-2 bg-white/90 hover:bg-white shadow-lg rounded-full transition-all duration-200"
+          aria-label="Cuộn phải"
+        >
+          <ChevronRight className="w-5 h-5 text-gray-700" />
+        </button>
+      )}
+
+      <div 
+        ref={scrollContainerRef}
+        className="flex gap-4 overflow-x-auto px-4 scrollbar-hide"
+        onScroll={checkScrollPosition}
+      >
         {stories.map((story) => (
           <div
             key={story.id}

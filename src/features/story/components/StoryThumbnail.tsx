@@ -40,7 +40,7 @@ export const StoryThumbnail = memo(({ story, onClick, style, zIndex }: StoryThum
             : "bg-black/10 group-hover:bg-black/5" // Unviewed stories are brighter
         )} />
         <div className="absolute bottom-4 left-4 right-4">
-          <div className="flex items-center space-x-3 mb-2">
+          <div className="flex justify-center items-center space-x-3 mb-2">
             <div className="relative">
               <img
                 src={story.profileImage || "/placeholder.svg"}

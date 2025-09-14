@@ -314,7 +314,7 @@ export const StoryViewer = memo(({
               showReactions={showReactions}
               showQuickReply={showQuickReply}
               isOwnStory={currentStory.isOwnStory}
-              showViewerList={showViewerList}
+              isCloseFriend={currentStory.isCloseFriend}
               onReplyChange={setReplyText}
               onSendReply={handleSendReply}
               onLike={handleLike}
@@ -326,28 +326,30 @@ export const StoryViewer = memo(({
             />
 
             {/* Navigation arrows - desktop only */}
-            <div className="hidden lg:block absolute left-0 top-1/2 -translate-y-1/2 z-30">
+            <div className="hidden lg:block absolute left-4 top-1/2 -translate-y-1/2 z-30">
               {currentStoryIndex > 0 && (
                 <button
                   onClick={(e) => {
                     e.stopPropagation()
                     handlePrevious()
                   }}
-                  className="p-2.5 text-white/60 hover:text-white transition-all duration-200 bg-black/30 backdrop-blur-sm rounded-full"
+                  className="p-3 text-white/80 hover:text-white transition-all duration-200 bg-black/40 backdrop-blur-sm rounded-full hover:bg-black/60 shadow-lg"
+                  aria-label="Quay lại"
                 >
                   <ChevronLeft className="w-6 h-6" />
                 </button>
               )}
             </div>
 
-            <div className="hidden lg:block absolute right-0 top-1/2 -translate-y-1/2 z-30">
+            <div className="hidden lg:block absolute right-4 top-1/2 -translate-y-1/2 z-30">
               {currentStoryIndex < stories.length - 1 && (
                 <button
                   onClick={(e) => {
                     e.stopPropagation()
                     handleNext()
                   }}
-                  className="p-2.5 text-white/60 hover:text-white transition-all duration-200 bg-black/30 backdrop-blur-sm rounded-full"
+                  className="p-3 text-white/80 hover:text-white transition-all duration-200 bg-black/40 backdrop-blur-sm rounded-full hover:bg-black/60 shadow-lg"
+                  aria-label="Tiếp"
                 >
                   <ChevronRight className="w-6 h-6" />
                 </button>
