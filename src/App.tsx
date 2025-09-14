@@ -25,7 +25,6 @@ import TwoFactorPage from "./features/auth/pages/TwoFactorPage";
 // Post Pages
 import { FeedPage } from "./features/post/pages/FeedPage";
 import { CreatePostPage } from "./features/post/pages/CreatePostPage";
-import { StoryPage } from "./features/post/pages/StoryPage";
 import { ReelCreatePage } from "./features/post/pages/ReelCreatePage";
 import { LiveStudioPage } from "./features/post/pages/LiveStudioPage";
 import { NoteCreatePage } from "./features/post/pages/NoteCreatePage";
@@ -72,7 +71,6 @@ const App = () => (
                 <Route path="friends" element={<FriendsPage />} />
                 <Route path="suggested" element={<SuggestedPage />} />
                 <Route path="create" element={<CreatePostPage />} />
-                <Route path="story" element={<StoryPage />} />
                 <Route path="reels/create" element={<ReelCreatePage />} />
                 <Route path="live" element={<LiveStudioPage />} />
                 <Route path="notes/create" element={<NoteCreatePage />} />

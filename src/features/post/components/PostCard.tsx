@@ -10,7 +10,8 @@ import {
   Lock,
   AlertTriangle,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Smile
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -28,6 +29,9 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { CommentDialog } from './CommentDialog';
+import { ShareDialog } from './ShareDialog';
+import { EmojiPicker } from '@/components/common/EmojiPicker';
 import { useToast } from '@/hooks/use-toast';
 
 interface MediaItem {
@@ -59,6 +63,18 @@ interface Post {
   violationType?: string;
 }
 
+interface Comment {
+  id: string;
+  userId: string;
+  userName: string;
+  userAvatar: string;
+  content: string;
+  likesCount: number;
+  isLiked: boolean;
+  createdAt: string;
+  replies?: Comment[];
+}
+
 interface PostCardProps {
   post: Post;
   onLike: (postId: string) => void;
@@ -66,6 +82,13 @@ interface PostCardProps {
   onEdit: (postId: string) => void;
   onDelete: (postId: string) => void;
   onReport: (postId: string) => void;
+  onShare?: (postId: string, userIds: string[], message: string) => void;
+  onOpenShareDialog?: () => void;
+  isShareDialogOpen?: boolean;
+  comments?: Comment[];
+  onAddComment?: (postId: string, content: string) => void;
+  onLikeComment?: (commentId: string) => void;
+  onReplyComment?: (commentId: string, content: string) => void;
 }
 
 export const PostCard = ({ 
@@ -74,9 +97,20 @@ export const PostCard = ({
   onBookmark, 
   onEdit, 
   onDelete, 
-  onReport 
+  onReport,
+  onShare,
+  onOpenShareDialog,
+  isShareDialogOpen = false,
+  comments = [],
+  onAddComment,
+  onLikeComment,
+  onReplyComment
 }: PostCardProps) => {
   const [currentMediaIndex, setCurrentMediaIndex] = useState(0);
+  const [showReactions, setShowReactions] = useState(false);
+  const [showCommentDialog, setShowCommentDialog] = useState(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [emojiPickerPosition, setEmojiPickerPosition] = useState<{ top: number; left?: number; right?: number } | null>(null);
   const { toast } = useToast();
 
   const privacyIcons = {
@@ -93,6 +127,71 @@ export const PostCard = ({
       title: `${action} thành công!`,
       duration: 2000,
     });
+  };
+
+  const handleCommentClick = () => {
+    setShowCommentDialog(true);
+  };
+
+  const handleShareClick = () => {
+    if (onOpenShareDialog) {
+      onOpenShareDialog();
+    }
+  };
+
+  const handleReactionToggle = (emoji: string) => {
+    toast({
+      title: `${emoji} Phản ứng!`,
+      duration: 1500,
+    });
+  };
+
+  const handleOpenEmojiPicker = (event: React.MouseEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
+    
+    const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
+    const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+    const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
+    
+    // Position like Instagram - fixed position
+    const position = {
+      top: 350, // Fixed top position
+      right: 310 // Fixed right position
+    };
+    
+    setEmojiPickerPosition(position);
+    setShowEmojiPicker(true);
+  };
+
+  const handleEmojiSelect = (emoji: string) => {
+    setShowEmojiPicker(false);
+    toast({
+      title: `${emoji} Phản ứng!`,
+      description: "Phản ứng của bạn đã được ghi nhận.",
+    });
+  };
+
+  const handleCloseEmojiPicker = () => {
+    setShowEmojiPicker(false);
+  };
+
+  const handleAddComment = (content: string) => {
+    if (onAddComment) {
+      onAddComment(post.id, content);
+    }
+  };
+
+  const handleLikeComment = (commentId: string) => {
+    if (onLikeComment) {
+      onLikeComment(commentId);
+    }
+  };
+
+  const handleReplyComment = (commentId: string, content: string) => {
+    if (onReplyComment) {
+      onReplyComment(commentId, content);
+    }
   };
 
   const formatTimeAgo = (dateString: string) => {
@@ -282,10 +381,20 @@ export const PostCard = ({
               >
                 <Heart className={`w-5 h-5 ${post.isLiked ? 'fill-current' : ''}`} />
               </Button>
-              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="h-8 w-8 p-0"
+                onClick={handleCommentClick}
+              >
                 <MessageCircle className="w-5 h-5" />
               </Button>
-              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="h-8 w-8 p-0"
+                onClick={handleShareClick}
+              >
                 <Send className="w-5 h-5" />
               </Button>
             </div>
@@ -308,16 +417,54 @@ export const PostCard = ({
             </div>
           )}
 
+          {/* Emoji Reaction Button */}
+          <div className="mb-3 flex justify-center">
+            <button
+              onClick={handleOpenEmojiPicker}
+              className="text-gray-500 hover:text-gray-700 transition-colors p-2 rounded-full hover:bg-gray-100"
+              title="Thêm phản ứng"
+            >
+              <Smile className="w-6 h-6" />
+            </button>
+          </div>
+
           {/* Comments Count */}
           {post.commentsCount > 0 && (
             <div className="mb-2">
-              <button className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+              <button 
+                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                onClick={handleCommentClick}
+              >
                 Xem tất cả {post.commentsCount} bình luận
               </button>
             </div>
           )}
         </div>
       </CardContent>
+
+      {/* Comment Dialog */}
+      <CommentDialog
+        isOpen={showCommentDialog}
+        onClose={() => setShowCommentDialog(false)}
+        post={post}
+        comments={comments}
+        onAddComment={handleAddComment}
+        onLikeComment={handleLikeComment}
+        onReplyComment={handleReplyComment}
+        onLikePost={onLike}
+        onShare={onShare}
+        isPostLiked={post.isLiked}
+        onOpenShareDialog={onOpenShareDialog}
+        isShareDialogOpen={isShareDialogOpen}
+      />
+
+      {/* Emoji Picker */}
+      <EmojiPicker
+        isOpen={showEmojiPicker}
+        onClose={handleCloseEmojiPicker}
+        onEmojiSelect={handleEmojiSelect}
+        position={emojiPickerPosition}
+      />
     </Card>
   );
 };
