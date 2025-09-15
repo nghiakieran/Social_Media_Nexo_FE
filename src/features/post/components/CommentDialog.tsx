@@ -89,9 +89,109 @@ export const CommentDialog = ({
   const [showActionMenu, setShowActionMenu] = useState(false);
   const [actionMenuPosition, setActionMenuPosition] = useState<{ top: number; left?: number; right?: number } | null>(null);
   const [currentCommentForAction, setCurrentCommentForAction] = useState<string | null>(null);
+  const [expandedReplies, setExpandedReplies] = useState<Record<string, boolean>>({});
+  const [likedById, setLikedById] = useState<Record<string, boolean>>({});
+  const [likesCountById, setLikesCountById] = useState<Record<string, number>>({});
+  const [showLikesDialog, setShowLikesDialog] = useState<null | { targetId: string; targetType: 'post' | 'comment' | 'reply' }>(null);
+  const [hoveredItemId, setHoveredItemId] = useState<string | null>(null);
+
+  const renderReplyItem = (reply: Comment, parentCommentId: string, level: number = 1) => {
+    return (
+      <div
+        key={reply.id}
+        className="group/reply flex items-start gap-3"
+        onMouseEnter={() => setHoveredItemId(reply.id)}
+        onMouseLeave={() => setHoveredItemId(null)}
+      >
+        <div className="relative">
+          <Avatar className="w-6 h-6">
+            <AvatarImage src={reply.userAvatar} alt={reply.userName} />
+            <AvatarFallback>{reply.userName?.charAt(0) || 'U'}</AvatarFallback>
+          </Avatar>
+        </div>
+        <div className="flex-1">
+          <div className="flex items-center gap-2 mb-1">
+            <span className="font-semibold text-xs">{reply.userName}</span>
+          </div>
+          <p className="text-xs leading-relaxed mb-2">{reply.content}</p>
+          <div className="flex items-center gap-4">
+            <span className="text-[11px] text-gray-500">{formatTimeAgo(reply.createdAt)}</span>
+            {getLikesCount(reply.id, reply.likesCount) > 0 && (
+              <span className="text-[11px] text-gray-500">{getLikesCount(reply.id, reply.likesCount)} lượt thích</span>
+            )}
+            <button
+              onClick={() => setReplyingTo(parentCommentId)}
+              className="text-[11px] text-gray-500 hover:text-gray-600 transition-colors"
+              type="button"
+            >
+              Trả lời
+            </button>
+            <button
+              onClick={(e) => handleOpenActionMenu(reply.id, e)}
+              className={cn(
+                "inline-flex items-center justify-center w-5 h-5 p-1 ml-1 transition-opacity",
+                hoveredItemId === reply.id ? "opacity-100" : "opacity-0"
+              )}
+              aria-label="Tùy chọn"
+              type="button"
+            >
+              <MoreHorizontal className="w-3 h-3 text-gray-500 hover:text-gray-700" />
+            </button>
+          </div>
+          {reply.replies && reply.replies.length > 0 && (
+            <div className="mt-2 ml-4 border-l-2 border-gray-200 dark:border-gray-700 pl-4 space-y-3">
+              {reply.replies.map((child) => renderReplyItem(child, parentCommentId, level + 1))}
+            </div>
+          )}
+        </div>
+        <button
+          onClick={(e) => { e.stopPropagation(); handleToggleLike(reply.id); }}
+          className={cn("text-gray-400 hover:text-red-500 transition-colors")}
+          aria-label="Thích trả lời"
+          type="button"
+        >
+          <Heart className={cn("w-3 h-3", getIsLiked(reply.id, reply.isLiked) && "fill-red-500 text-red-500")} />
+        </button>
+      </div>
+    );
+  };
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    // initialize or merge optimistic like maps from incoming comments
+    const incomingLiked: Record<string, boolean> = {};
+    const incomingCounts: Record<string, number> = {};
+    const walk = (items: Comment[]) => {
+      for (const c of items) {
+        incomingLiked[c.id] = c.isLiked;
+        incomingCounts[c.id] = c.likesCount;
+        if (c.replies && c.replies.length) walk(c.replies);
+      }
+    };
+    walk(comments);
+    setLikedById(prev => ({ ...incomingLiked, ...prev }));
+    setLikesCountById(prev => ({ ...incomingCounts, ...prev }));
+  }, [comments]);
+
+  const getIsLiked = (id: string, fallback?: boolean) => {
+    return likedById[id] ?? fallback ?? false;
+  };
+  const getLikesCount = (id: string, fallback?: number) => {
+    return likesCountById[id] ?? fallback ?? 0;
+  };
+
+  const handleToggleLike = (id: string) => {
+    setLikedById(prev => ({ ...prev, [id]: !prev[id] }));
+    setLikesCountById(prev => ({ ...prev, [id]: (prev[id] ?? 0) + (likedById[id] ? -1 : 1) }));
+    onLikeComment(id);
+  };
+
+  const openLikesDialog = (targetId: string, targetType: 'post' | 'comment' | 'reply') => {
+    setShowLikesDialog({ targetId, targetType });
+  };
+  const closeLikesDialog = () => setShowLikesDialog(null);
 
   useEffect(() => {
     if (isOpen && textareaRef.current) {
@@ -235,6 +335,10 @@ export const CommentDialog = ({
     setCurrentCommentForAction(null);
   };
 
+  const toggleReplies = (commentId: string) => {
+    setExpandedReplies(prev => ({ ...prev, [commentId]: !prev[commentId] }));
+  };
+
   const handleCommentAction = (action: string) => {
     if (!currentCommentForAction) return;
     
@@ -315,7 +419,7 @@ export const CommentDialog = ({
           <div className="flex-1 overflow-y-auto">
             <div className="p-4 space-y-4">
               {comments.map((comment) => (
-                <div key={comment.id}>
+                <div key={comment.id} className="group/comment">
                   <div className="flex items-start gap-3">
                     <Avatar className="w-8 h-8">
                       <AvatarImage src={comment.userAvatar} alt={comment.userName} />
@@ -328,60 +432,90 @@ export const CommentDialog = ({
                       </div>
                       <p className="text-sm leading-relaxed mb-2">{comment.content}</p>
                       <div className="flex items-center gap-4">
-                        <button
-                          onClick={() => onLikeComment(comment.id)}
-                          className={cn(
-                            "text-xs hover:text-gray-600 transition-colors",
-                            comment.isLiked ? "text-red-500" : "text-gray-500"
-                          )}
-                        >
-                          {comment.isLiked ? "Liked" : "Like"}
-                        </button>
+                        {comment.likesCount > 0 && (
+                          <span className="text-xs text-gray-500">{comment.likesCount} lượt thích</span>
+                        )}
                         <button
                           onClick={() => setReplyingTo(comment.id)}
                           className="text-xs text-gray-500 hover:text-gray-600 transition-colors"
                         >
-                          Reply
+                          Trả lời
+                        </button>
+                        <button
+                          onClick={(e) => handleOpenActionMenu(comment.id, e)}
+                          className="opacity-0 group-hover/comment:opacity-100 transition-opacity text-gray-500 hover:text-gray-700 p-1 ml-2"
+                          aria-label="Tùy chọn"
+                        >
+                          <MoreHorizontal className="w-4 h-4" />
                         </button>
                       </div>
                     </div>
+                    <button
+                      onClick={() => onLikeComment(comment.id)}
+                      className={cn("text-gray-400 hover:text-red-500 transition-colors")}
+                      aria-label="Thích bình luận"
+                    >
+                      <Heart className={cn("w-4 h-4", comment.isLiked && "fill-red-500 text-red-500")} />
+                    </button>
                   </div>
-                  
-                  {/* Replies for mobile */}
+                  {/* Replies for mobile with toggle */}
                   {comment.replies && comment.replies.length > 0 && (
-                    <div className="mt-3 ml-11 border-l-2 border-gray-200 dark:border-gray-700 pl-4 space-y-3">
-                      {comment.replies.map((reply) => (
-                        <div key={reply.id} className="flex items-start gap-3">
-                          <Avatar className="w-6 h-6">
-                            <AvatarImage src={reply.userAvatar} alt={reply.userName} />
-                            <AvatarFallback>{reply.userName?.charAt(0) || 'U'}</AvatarFallback>
-                          </Avatar>
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-1">
-                              <span className="font-semibold text-xs">{reply.userName}</span>
-                              <span className="text-xs text-gray-500">{formatTimeAgo(reply.createdAt)}</span>
-                            </div>
-                            <p className="text-xs leading-relaxed mb-2">{reply.content}</p>
-                            <div className="flex items-center gap-4">
-                              <button
-                                onClick={() => onLikeComment(reply.id)}
-                                className={cn(
-                                  "text-xs hover:text-gray-600 transition-colors",
-                                  reply.isLiked ? "text-red-500" : "text-gray-500"
-                                )}
-                              >
-                                {reply.isLiked ? "Liked" : "Like"}
-                              </button>
-                              <button
-                                onClick={() => setReplyingTo(comment.id)}
-                                className="text-xs text-gray-500 hover:text-gray-600 transition-colors"
-                              >
-                                Reply
-                              </button>
-                            </div>
+                    <div className="mt-2 ml-11">
+                      {!expandedReplies[comment.id] ? (
+                        <button
+                          type="button"
+                          onClick={() => setExpandedReplies(prev => ({ ...prev, [comment.id]: true }))}
+                          className="text-xs text-gray-500 hover:text-gray-700"
+                        >
+                          Xem câu trả lời ({comment.replies.length})
+                        </button>
+                      ) : (
+                        <>
+                          <div className="mt-2 border-l-2 border-gray-200 dark:border-gray-700 pl-4 space-y-3">
+                            {comment.replies.map((reply) => (
+                              <div key={reply.id} className="group flex items-start gap-3">
+                                <Avatar className="w-6 h-6">
+                                  <AvatarImage src={reply.userAvatar} alt={reply.userName} />
+                                  <AvatarFallback>{reply.userName?.charAt(0) || 'U'}</AvatarFallback>
+                                </Avatar>
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <span className="font-semibold text-xs">{reply.userName}</span>
+                                  </div>
+                                  <p className="text-xs leading-relaxed mb-2">{reply.content}</p>
+                                  <div className="flex items-center gap-4">
+                                    <span className="text-[11px] text-gray-500">{formatTimeAgo(reply.createdAt)}</span>
+                                    {getLikesCount(reply.id, reply.likesCount) > 0 && (
+                                      <span className="text-[11px] text-gray-500">{getLikesCount(reply.id, reply.likesCount)} lượt thích</span>
+                                    )}
+                                    <button
+                                      onClick={() => setReplyingTo(reply.id)}
+                                      className="text-[11px] text-gray-500 hover:text-gray-600 transition-colors"
+                                    >
+                                      Trả lời
+                                    </button>
+                                  </div>
+                                </div>
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); handleToggleLike(reply.id); }}
+                                  className={cn("text-gray-400 hover:text-red-500 transition-colors")}
+                                  aria-label="Thích trả lời"
+                                  type="button"
+                                >
+                                  <Heart className={cn("w-3 h-3", getIsLiked(reply.id, reply.isLiked) && "fill-red-500 text-red-500")} />
+                                </button>
+                              </div>
+                            ))}
                           </div>
-                        </div>
-                      ))}
+                          <button
+                            type="button"
+                            onClick={() => setExpandedReplies(prev => ({ ...prev, [comment.id]: false }))}
+                            className="text-xs text-gray-500 hover:text-gray-700 mt-2"
+                          >
+                            Ẩn câu trả lời
+                          </button>
+                        </>
+                      )}
                     </div>
                   )}
                 </div>
@@ -563,7 +697,22 @@ export const CommentDialog = ({
           <div className="flex-1 overflow-y-auto">
             <ul className="p-4 space-y-4">
               {comments.map((comment) => (
-                <li key={comment.id} className="flex items-start gap-3">
+                <li
+                  key={comment.id}
+                  className="flex items-start gap-3"
+                  onMouseEnter={(e) => {
+                    const target = e.currentTarget as HTMLElement;
+                    // tránh nhảy UI: chỉ set state nếu khác id hiện tại
+                    if (hoveredItemId !== comment.id) setHoveredItemId(comment.id);
+                    // khóa layout để tránh reflow làm shift
+                    target.style.minHeight = target.getBoundingClientRect().height + 'px';
+                  }}
+                  onMouseLeave={(e) => {
+                    const target = e.currentTarget as HTMLElement;
+                    target.style.minHeight = '';
+                    if (hoveredItemId === comment.id) setHoveredItemId(null);
+                  }}
+                >
                   <div className="relative">
                     <Avatar className="w-8 h-8">
                       <AvatarImage src={comment.userAvatar} alt={comment.userName} />
@@ -576,22 +725,33 @@ export const CommentDialog = ({
                     </div>
                     <p className="text-sm leading-relaxed mb-2">{comment.content}</p>
                     <div className="flex items-center gap-4">
-                      <button
-                        onClick={() => onLikeComment(comment.id)}
-                        className={cn(
-                          "text-xs hover:text-gray-600 transition-colors",
-                          comment.isLiked ? "text-red-500" : "text-gray-500"
-                        )}
-                      >
-                        {comment.isLiked ? "Đã thích" : "Thích"}
-                      </button>
+                      <span className="text-xs text-gray-500">{formatTimeAgo(comment.createdAt)}</span>
+                      {getLikesCount(comment.id, comment.likesCount) > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => openLikesDialog(comment.id, 'comment')}
+                          className="text-xs text-gray-500 hover:underline"
+                        >
+                          {getLikesCount(comment.id, comment.likesCount)} lượt thích
+                        </button>
+                      )}
                       <button
                         onClick={() => setReplyingTo(comment.id)}
                         className="text-xs text-gray-500 hover:text-gray-600 transition-colors"
                       >
                         Trả lời
                       </button>
-                      <span className="text-xs text-gray-500">{formatTimeAgo(comment.createdAt)}</span>
+                      <button
+                        onClick={(e) => handleOpenActionMenu(comment.id, e)}
+                        className={cn(
+                          "inline-flex items-center justify-center w-6 h-6 p-1 ml-2 transition-opacity",
+                          hoveredItemId === comment.id ? "opacity-100" : "opacity-0"
+                        )}
+                        aria-label="Tùy chọn"
+                        type="button"
+                      >
+                        <MoreHorizontal className="w-4 h-4 text-gray-500 hover:text-gray-700" />
+                      </button>
                     </div>
                     
                     {/* Emoji Reactions */}
@@ -615,13 +775,8 @@ export const CommentDialog = ({
                       </div>
                     )}
                     
-                    {(comment.likesCount > 0 || (comment.emojiReactions && comment.emojiReactions.some(r => r.count > 0))) && (
+                    {(comment.emojiReactions && comment.emojiReactions.some(r => r.count > 0)) && (
                       <div className="flex items-center gap-2 mt-2">
-                        {comment.likesCount > 0 && (
-                          <p className="text-xs text-gray-500">
-                            {comment.likesCount} lượt thích
-                          </p>
-                        )}
                         {comment.emojiReactions && comment.emojiReactions.some(r => r.count > 0) && (
                           <div className="flex items-center gap-1">
                             {comment.emojiReactions
@@ -637,58 +792,41 @@ export const CommentDialog = ({
                         )}
                       </div>
                     )}
-                    
-                    {/* Replies */}
+                    {/* Replies toggle and list */}
                     {comment.replies && comment.replies.length > 0 && (
-                      <div className="mt-3 ml-4 border-l-2 border-gray-200 dark:border-gray-700 pl-4 space-y-3">
-                        {comment.replies.map((reply) => (
-                          <div key={reply.id} className="flex items-start gap-3">
-                            <div className="relative">
-                              <Avatar className="w-6 h-6">
-                                <AvatarImage src={reply.userAvatar} alt={reply.userName} />
-                                <AvatarFallback>{reply.userName?.charAt(0) || 'U'}</AvatarFallback>
-                              </Avatar>
+                      <div className="mt-2">
+                        {!expandedReplies[comment.id] ? (
+                          <button
+                            type="button"
+                            onClick={() => toggleReplies(comment.id)}
+                            className="text-xs text-gray-500 hover:text-gray-700"
+                          >
+                            Xem câu trả lời ({comment.replies.length})
+                          </button>
+                        ) : (
+                          <>
+                            <div className="mt-2 ml-4 border-l-2 border-gray-200 dark:border-gray-700 pl-4 space-y-3">
+                              {comment.replies.map((reply) => renderReplyItem(reply, comment.id))}
                             </div>
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2 mb-1">
-                                <span className="font-semibold text-xs">{reply.userName}</span>
-                                <span className="text-xs text-gray-500">{formatTimeAgo(reply.createdAt)}</span>
-                              </div>
-                              <p className="text-xs leading-relaxed mb-2">{reply.content}</p>
-                              <div className="flex items-center gap-4">
-                                <button
-                                  onClick={() => onLikeComment(reply.id)}
-                                  className={cn(
-                                    "text-xs hover:text-gray-600 transition-colors",
-                                    reply.isLiked ? "text-red-500" : "text-gray-500"
-                                  )}
-                                >
-                                  {reply.isLiked ? "Đã thích" : "Thích"}
-                                </button>
-                                <button
-                                  onClick={() => setReplyingTo(comment.id)}
-                                  className="text-xs text-gray-500 hover:text-gray-600 transition-colors"
-                                >
-                                  Trả lời
-                                </button>
-                              </div>
-                            </div>
-                            <button 
-                              onClick={(e) => handleOpenActionMenu(reply.id, e)}
-                              className="text-gray-500 hover:text-gray-600 transition-colors p-1"
+                            <button
+                              type="button"
+                              onClick={() => toggleReplies(comment.id)}
+                              className="text-xs text-gray-500 hover:text-gray-700 mt-2"
                             >
-                              <MoreHorizontal className="w-3 h-3" />
+                              Ẩn câu trả lời
                             </button>
-                          </div>
-                        ))}
+                          </>
+                        )}
                       </div>
                     )}
                   </div>
-                  <button 
-                    onClick={(e) => handleOpenActionMenu(comment.id, e)}
-                    className="text-gray-500 hover:text-gray-600 transition-colors p-1"
+                  <button
+                    onClick={(e) => { e.stopPropagation(); handleToggleLike(comment.id); }}
+                    className={cn("text-gray-400 hover:text-red-500 transition-colors")}
+                    aria-label="Thích bình luận"
+                    type="button"
                   >
-                    <MoreHorizontal className="w-4 h-4" />
+                    <Heart className={cn("w-4 h-4", getIsLiked(comment.id, comment.isLiked) && "fill-red-500 text-red-500")} />
                   </button>
                 </li>
               ))}
