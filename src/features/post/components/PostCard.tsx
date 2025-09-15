@@ -18,12 +18,6 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
@@ -33,6 +27,8 @@ import { CommentDialog } from './CommentDialog';
 import { ShareDialog } from './ShareDialog';
 import { EmojiPicker } from '@/components/common/EmojiPicker';
 import { useToast } from '@/hooks/use-toast';
+import { LikesDialog } from './LikesDialog';
+import { ActionMenu } from '@/components/common/ActionMenu';
 
 interface MediaItem {
   id: string;
@@ -112,6 +108,11 @@ export const PostCard = ({
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [emojiPickerPosition, setEmojiPickerPosition] = useState<{ top: number; left?: number; right?: number } | null>(null);
   const { toast } = useToast();
+  const [showLikesDialog, setShowLikesDialog] = useState(false);
+  const [inlineComment, setInlineComment] = useState('');
+  const [showActionMenu, setShowActionMenu] = useState(false);
+  const [actionMenuPosition, setActionMenuPosition] = useState<{ top: number; left?: number; right?: number } | null>(null);
+  const [isAuthorFollowed, setIsAuthorFollowed] = useState(false);
 
   const privacyIcons = {
     public: Globe,
@@ -194,6 +195,54 @@ export const PostCard = ({
     }
   };
 
+  const handleOpenLikesDialog = () => {
+    setShowLikesDialog(true);
+  };
+
+  const handleCloseLikesDialog = () => {
+    setShowLikesDialog(false);
+  };
+
+  const handleSubmitInlineComment = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!inlineComment.trim()) return;
+    if (onAddComment) {
+      onAddComment(post.id, inlineComment.trim());
+    }
+    setInlineComment('');
+  };
+
+  const handleOpenActionMenu = () => {
+    setActionMenuPosition({ top: window.innerHeight / 2, left: window.innerWidth / 2 });
+    setShowActionMenu(true);
+  };
+
+  const handleCloseActionMenu = () => setShowActionMenu(false);
+
+  const handlePostAction = (action: string) => {
+    switch (action) {
+      case 'report':
+        onReport(post.id);
+        break;
+      case 'goToPost':
+        // In a real app navigate to post detail
+        break;
+      case 'share':
+        if (onOpenShareDialog) onOpenShareDialog();
+        break;
+      case 'copyLink':
+        navigator.clipboard?.writeText(window.location.href).catch(() => {});
+        break;
+      case 'embed':
+        break;
+      case 'aboutAccount':
+        break;
+      default:
+        break;
+    }
+    handleCloseActionMenu();
+  };
+
   const formatTimeAgo = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
@@ -226,33 +275,27 @@ export const PostCard = ({
               <AvatarImage src={post.userAvatar} alt={post.userName} />
               <AvatarFallback>{post.userName?.charAt(0) || 'U'}</AvatarFallback>
             </Avatar>
-            <div className="flex items-center gap-2">
-              <span className="font-semibold text-sm">{post.userName}</span>
-              <PrivacyIcon className="w-3 h-3 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground">
-                {formatTimeAgo(post.createdAt)}
-              </span>
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <span className="font-semibold text-foreground text-sm">{post.userName}</span>
+              <span className="text-muted-foreground">•</span>
+              <span>{formatTimeAgo(post.createdAt)}</span>
             </div>
           </div>
           
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                <MoreHorizontal className="w-4 h-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => onEdit(post.id)}>
-                Chỉnh sửa
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onDelete(post.id)} className="text-destructive">
-                Xóa bài viết
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onReport(post.id)}>
-                Báo cáo
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <div className="flex items-center gap-2">
+            {!isAuthorFollowed && (
+              <button
+                type="button"
+                className="px-3 py-1.5 rounded-lg text-sm font-semibold text-white bg-gradient-instagram hover:opacity-90 active:opacity-85 shadow-glow transition-all"
+                onClick={() => setIsAuthorFollowed(true)}
+              >
+                Theo dõi
+              </button>
+            )}
+            <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={handleOpenActionMenu} aria-label="Lựa chọn khác">
+              <MoreHorizontal className="w-4 h-4" />
+            </Button>
+          </div>
         </div>
 
         {/* Content */}
@@ -269,25 +312,6 @@ export const PostCard = ({
                 )
               )}
             </p>
-          </div>
-        )}
-
-        {/* Tagged Users */}
-        {post.taggedUsers.length > 0 && (
-          <div className="px-4 pb-3">
-            <div className="flex items-center gap-1 text-xs text-muted-foreground">
-              <Users className="w-3 h-3" />
-              <span>với {post.taggedUsers.join(', ')}</span>
-            </div>
-          </div>
-        )}
-
-        {/* Location */}
-        {post.location && (
-          <div className="px-4 pb-3">
-            <div className="flex items-center gap-1 text-xs text-muted-foreground">
-              <span>tại {post.location}</span>
-            </div>
           </div>
         )}
 
@@ -371,61 +395,58 @@ export const PostCard = ({
 
         {/* Actions */}
         <div className="p-4">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-4">
-              <Button
-                variant="ghost"
-                size="sm"
-                className={`h-8 w-8 p-0 ${post.isLiked ? 'text-red-500' : ''}`}
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-3">
+              <button
+                className={`h-9 w-9 inline-flex items-center justify-center select-none touch-manipulation transition-all duration-150 ${post.isLiked ? 'text-red-500' : 'text-foreground hover:opacity-80 active:opacity-60'}`}
                 onClick={() => handleAction('Like', onLike)}
+                aria-label="Thích bài viết"
+                type="button"
               >
-                <Heart className={`w-5 h-5 ${post.isLiked ? 'fill-current' : ''}`} />
-              </Button>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="h-8 w-8 p-0"
+                <Heart className={`w-6 h-6 transition-transform ${post.isLiked ? 'fill-current scale-105' : ''}`} />
+              </button>
+              <button 
+                className="h-9 w-9 inline-flex items-center justify-center select-none touch-manipulation text-foreground hover:opacity-80 active:opacity-60 transition-opacity"
                 onClick={handleCommentClick}
+                aria-label="Bình luận"
+                type="button"
               >
-                <MessageCircle className="w-5 h-5" />
-              </Button>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="h-8 w-8 p-0"
+                <MessageCircle className="w-6 h-6" />
+              </button>
+              <button 
+                className="h-9 w-9 inline-flex items-center justify-center select-none touch-manipulation text-foreground hover:opacity-80 active:opacity-60 transition-opacity"
                 onClick={handleShareClick}
+                aria-label="Chia sẻ"
+                type="button"
               >
-                <Send className="w-5 h-5" />
-              </Button>
+                <Send className="w-6 h-6" />
+              </button>
             </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              className={`h-8 w-8 p-0 ${post.isBookmarked ? 'text-primary' : ''}`}
+            <button
+              className={`h-9 w-9 inline-flex items-center justify-center select-none touch-manipulation transition-opacity ${post.isBookmarked ? 'text-foreground' : 'text-foreground hover:opacity-80 active:opacity-60'}`}
               onClick={() => handleAction('Bookmark', onBookmark)}
+              aria-label="Lưu bài viết"
+              type="button"
             >
-              <Bookmark className={`w-5 h-5 ${post.isBookmarked ? 'fill-current' : ''}`} />
-            </Button>
+              <Bookmark className={`w-6 h-6 ${post.isBookmarked ? 'fill-current' : ''}`} />
+            </button>
           </div>
 
-          {/* Likes Count */}
+          {/* Likes summary like Instagram */}
           {post.likesCount > 0 && (
-            <div className="mb-2">
-              <span className="font-semibold text-sm">
-                {post.likesCount.toLocaleString()} lượt thích
+            <button type="button" onClick={handleOpenLikesDialog} className="mt-1 text-left text-sm w-full">
+              <span className="font-medium hover:underline">
+                {comments[0]?.userName || 'someone'}
               </span>
-            </div>
+              <span className="text-gray-600 dark:text-gray-300"> và </span>
+              <span className="font-medium hover:underline">những người khác</span>
+              <span className="text-gray-600 dark:text-gray-300"> đã thích</span>
+            </button>
           )}
 
-          {/* Emoji Reaction Button */}
-          <div className="mb-3 flex justify-center">
-            <button
-              onClick={handleOpenEmojiPicker}
-              className="text-gray-500 hover:text-gray-700 transition-colors p-2 rounded-full hover:bg-gray-100"
-              title="Thêm phản ứng"
-            >
-              <Smile className="w-6 h-6" />
-            </button>
+          {/* Post time under summary */}
+          <div className="mt-1 mb-2 text-[12px] text-gray-500">
+            <time>{formatTimeAgo(post.createdAt)} trước</time>
           </div>
 
           {/* Comments Count */}
@@ -435,10 +456,56 @@ export const PostCard = ({
                 className="text-sm text-muted-foreground hover:text-foreground transition-colors"
                 onClick={handleCommentClick}
               >
-                Xem tất cả {post.commentsCount} bình luận
+                Xem tất cả {post.commentsCount.toLocaleString('vi-VN')} bình luận
               </button>
             </div>
           )}
+
+          {/* Comments Preview (latest 2) */}
+          {comments && comments.length > 0 && (
+            <ul className="mb-2 space-y-1">
+              {comments.slice(-2).map((c) => (
+                <li key={c.id} className="text-sm">
+                  <button
+                    type="button"
+                    className="font-medium mr-2 hover:underline"
+                    onClick={handleCommentClick}
+                  >
+                    {c.userName}
+                  </button>
+                  <span className="align-middle break-words">{c.content}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+
+          {/* Inline comment input */}
+          <form onSubmit={handleSubmitInlineComment} className="mt-2 flex items-center gap-3">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                setShowEmojiPicker(true);
+              }}
+              className="text-gray-500 hover:text-gray-700"
+              aria-label="Biểu tượng cảm xúc"
+            >
+              <Smile className="w-5 h-5" />
+            </button>
+            <input
+              value={inlineComment}
+              onChange={(e) => setInlineComment(e.target.value)}
+              placeholder="Bình luận..."
+              className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+            />
+            <button
+              type="submit"
+              disabled={!inlineComment.trim()}
+              className={`text-sm font-semibold ${inlineComment.trim() ? 'text-blue-500 hover:text-blue-600' : 'text-gray-400 cursor-default'}`}
+            >
+              Đăng
+            </button>
+          </form>
         </div>
       </CardContent>
 
@@ -460,11 +527,39 @@ export const PostCard = ({
         onToggleFollowAuthor={(userId, next) => {}}
       />
 
+      {/* Likes Dialog */}
+      <LikesDialog
+        isOpen={showLikesDialog}
+        onClose={handleCloseLikesDialog}
+        title="Lượt thích"
+        infoText={undefined}
+        users={(comments.slice(0, 10).map((c) => ({ id: c.id, name: c.userName, avatar: c.userAvatar, subtitle: undefined, isVerified: false, isFollowing: false })))}
+      />
+
+      {/* Action Menu */}
+      <ActionMenu
+        isOpen={showActionMenu}
+        onClose={handleCloseActionMenu}
+        position={actionMenuPosition}
+        items={[
+          { label: 'Báo cáo', action: () => handlePostAction('report'), isDestructive: true },
+          { label: 'Đi đến bài viết', action: () => handlePostAction('goToPost') },
+          { label: 'Chia sẻ lên...', action: () => handlePostAction('share') },
+          { label: 'Sao chép liên kết', action: () => handlePostAction('copyLink') },
+          { label: 'Nhúng', action: () => handlePostAction('embed') },
+          { label: 'Giới thiệu về tài khoản này', action: () => handlePostAction('aboutAccount') },
+          { label: 'Hủy', action: handleCloseActionMenu }
+        ]}
+      />
+
       {/* Emoji Picker */}
       <EmojiPicker
         isOpen={showEmojiPicker}
-        onClose={handleCloseEmojiPicker}
-        onEmojiSelect={handleEmojiSelect}
+        onClose={() => setShowEmojiPicker(false)}
+        onEmojiSelect={(emoji) => {
+          setInlineComment((prev) => prev + emoji);
+          setShowEmojiPicker(false);
+        }}
         position={emojiPickerPosition}
       />
     </Card>

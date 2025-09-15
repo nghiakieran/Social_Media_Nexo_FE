@@ -41,6 +41,16 @@ export const LikesDialog = ({ isOpen, onClose, title = 'Lượt thích', infoTex
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
+  // Prevent background scroll when dialog is open
+  useEffect(() => {
+    if (!isOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = previousOverflow || 'unset';
+    };
+  }, [isOpen]);
+
   const handleToggle = (id: string) => {
     setFollowMap(prev => {
       const next = !prev[id];
@@ -52,12 +62,12 @@ export const LikesDialog = ({ isOpen, onClose, title = 'Lượt thích', infoTex
 
   if (!isOpen) return null;
 
-  // Mobile version - Instagram style
+  // Mobile version - align with CommentDialog safe areas (show app header/bottom nav)
   if (isMobile) {
     return (
-      <div className="fixed inset-0 bg-white dark:bg-gray-900 z-[60] flex flex-col min-h-0 h-full overflow-hidden">
+      <div className="fixed inset-x-0 top-[58px] bottom-20 bg-white dark:bg-gray-900 z-[40] flex flex-col overflow-hidden" role="dialog" aria-modal="true">
         {/* Mobile Header - matching CommentDialog */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 pt-16">
+        <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
           <Button
             variant="ghost"
             size="sm"
@@ -76,9 +86,9 @@ export const LikesDialog = ({ isOpen, onClose, title = 'Lượt thích', infoTex
           </div>
         )}
 
-        {/* Comments List - matching CommentDialog scroll behavior */}
+        {/* List - matching CommentDialog scroll behavior */}
         <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain [-webkit-overflow-scrolling:touch]">
-          <div className="p-4 space-y-4 pb-24">
+          <div className="p-4 space-y-4">
             {(users.length ? users : Array.from({ length: 14 }).map((_, i) => ({ 
               id: String(i), 
               name: `user_${i+1}`, 
