@@ -456,6 +456,8 @@ export const PostCard = ({
         isPostLiked={post.isLiked}
         onOpenShareDialog={onOpenShareDialog}
         isShareDialogOpen={isShareDialogOpen}
+        isAuthorFollowed={false}
+        onToggleFollowAuthor={(userId, next) => {}}
       />
 
       {/* Emoji Picker */}

@@ -62,6 +62,8 @@ interface CommentDialogProps {
   isPostLiked: boolean;
   onAddEmojiReaction?: (commentId: string, emoji: string) => void;
   onAddPostEmojiReaction?: (postId: string, emoji: string) => void;
+  isAuthorFollowed?: boolean;
+  onToggleFollowAuthor?: (userId: string, nextIsFollowing: boolean) => void;
 }
 
 export const CommentDialog = ({
@@ -78,7 +80,9 @@ export const CommentDialog = ({
   isShareDialogOpen = false,
   isPostLiked,
   onAddEmojiReaction,
-  onAddPostEmojiReaction
+  onAddPostEmojiReaction,
+  isAuthorFollowed,
+  onToggleFollowAuthor
 }: CommentDialogProps) => {
   const [isMobile, setIsMobile] = useState(false);
   const [newComment, setNewComment] = useState('');
@@ -393,7 +397,7 @@ export const CommentDialog = ({
           >
             <ArrowLeft className="w-4 h-4" />
           </Button>
-          <h1 className="font-semibold text-lg">Comments</h1>
+          <h1 className="font-semibold text-lg">Bình luận</h1>
           <div className="w-8"></div>
         </div>
 
@@ -409,18 +413,6 @@ export const CommentDialog = ({
                 <span className="font-semibold text-sm">{post.userName}</span>
               </div>
               <p className="text-sm leading-relaxed">{post.content}</p>
-              <div className="flex items-center gap-4 mt-2">
-                <button
-                  onClick={() => onLikePost(post.id)}
-                  className={cn(
-                    "text-sm hover:text-gray-600 transition-colors",
-                    isPostLiked ? "text-red-500" : "text-gray-500"
-                  )}
-                >
-                  {isPostLiked ? "Liked" : "Like"}
-                </button>
-                <span className="text-xs text-gray-500">{formatTimeAgo(post.createdAt)}</span>
-              </div>
             </div>
           </div>
         </div>
@@ -442,8 +434,14 @@ export const CommentDialog = ({
                       </div>
                       <p className="text-sm leading-relaxed mb-2">{comment.content}</p>
                       <div className="flex items-center gap-4">
-                        {comment.likesCount > 0 && (
-                          <span className="text-xs text-gray-500">{comment.likesCount} lượt thích</span>
+                        {getLikesCount(comment.id, comment.likesCount) > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => openLikesDialog(comment.id, 'comment')}
+                            className="text-xs text-gray-500 hover:underline"
+                          >
+                            {getLikesCount(comment.id, comment.likesCount)} lượt thích
+                          </button>
                         )}
                         <button
                           onClick={() => setReplyingTo(comment.id)}
@@ -453,7 +451,7 @@ export const CommentDialog = ({
                         </button>
                         <button
                           onClick={(e) => handleOpenActionMenu(comment.id, e)}
-                          className="opacity-0 group-hover/comment:opacity-100 transition-opacity text-gray-500 hover:text-gray-700 p-1 ml-2"
+                          className="text-gray-500 hover:text-gray-700 p-1 ml-2"
                           aria-label="Tùy chọn"
                         >
                           <MoreHorizontal className="w-4 h-4" />
@@ -461,11 +459,12 @@ export const CommentDialog = ({
                       </div>
                     </div>
                     <button
-                      onClick={() => onLikeComment(comment.id)}
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); handleToggleLike(comment.id); }}
                       className={cn("text-gray-400 hover:text-red-500 transition-colors")}
                       aria-label="Thích bình luận"
                     >
-                      <Heart className={cn("w-4 h-4", comment.isLiked && "fill-red-500 text-red-500")} />
+                      <Heart className={cn("w-4 h-4", getIsLiked(comment.id, comment.isLiked) && "fill-red-500 text-red-500")} />
                     </button>
                   </div>
                   {/* Replies for mobile with toggle */}
@@ -496,10 +495,16 @@ export const CommentDialog = ({
                                   <div className="flex items-center gap-4">
                                     <span className="text-[11px] text-gray-500">{formatTimeAgo(reply.createdAt)}</span>
                                     {getLikesCount(reply.id, reply.likesCount) > 0 && (
-                                      <span className="text-[11px] text-gray-500">{getLikesCount(reply.id, reply.likesCount)} lượt thích</span>
+                                      <button
+                                        type="button"
+                                        onClick={() => openLikesDialog(reply.id, 'reply')}
+                                        className="text-[11px] text-gray-500 hover:underline"
+                                      >
+                                        {getLikesCount(reply.id, reply.likesCount)} lượt thích
+                                      </button>
                                     )}
                                     <button
-                                      onClick={() => setReplyingTo(reply.id)}
+                                      onClick={() => setReplyingTo(comment.id)}
                                       className="text-[11px] text-gray-500 hover:text-gray-600 transition-colors"
                                     >
                                       Trả lời
@@ -585,6 +590,9 @@ export const CommentDialog = ({
               </form>
             )}
           </div>
+
+          {/* Likes Dialog for mobile */}
+          <LikesDialog isOpen={!!showLikesDialog} onClose={closeLikesDialog} />
       </div>
     );
   }
@@ -641,6 +649,21 @@ export const CommentDialog = ({
                   </Avatar>
                 </div>
                 <h3 className="font-semibold text-sm">{post.userName}</h3>
+                {typeof isAuthorFollowed !== 'undefined' && !isAuthorFollowed && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className={`font-bold text-sm px-4 py-2 rounded-lg transition-all duration-300 text-blue-500 hover:text-white hover:bg-gradient-instagram hover:opacity-90 hover:scale-110 hover:shadow-glow`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (onToggleFollowAuthor) {
+                        onToggleFollowAuthor(post.userId, true);
+                      }
+                    }}
+                  >
+                    Theo dõi
+                  </Button>
+                )}
               </div>
               <div className="flex items-center gap-2">
                 <button 
@@ -981,48 +1004,17 @@ export const CommentDialog = ({
         onClose={handleCloseActionMenu}
         position={actionMenuPosition}
         items={currentCommentForAction === 'post' ? [
-          {
-            label: 'Unfollow',
-            action: () => handleCommentAction('unfollow')
-          },
-          {
-            label: 'Add to favorites',
-            action: () => handleCommentAction('favorite')
-          },
-          {
-            label: 'Go to post',
-            action: () => handleCommentAction('goToPost')
-          },
-          {
-            label: 'Share to...',
-            action: () => handleCommentAction('share')
-          },
-          {
-            label: 'Copy link',
-            action: () => handleCommentAction('copyLink')
-          },
-          {
-            label: 'Embed',
-            action: () => handleCommentAction('embed')
-          },
-          {
-            label: 'About this account',
-            action: () => handleCommentAction('aboutAccount')
-          },
-          {
-            label: 'Cancel',
-            action: handleCloseActionMenu
-          }
+          { label: 'Báo cáo', action: () => handleCommentAction('report'), isDestructive: true },
+          { label: 'Đi đến bài viết', action: () => handleCommentAction('goToPost') },
+          { label: 'Chia sẻ lên...', action: () => handleCommentAction('share') },
+          { label: 'Sao chép liên kết', action: () => handleCommentAction('copyLink') },
+          { label: 'Nhúng', action: () => handleCommentAction('embed') },
+          { label: 'Giới thiệu về tài khoản này', action: () => handleCommentAction('aboutAccount') },
+          { label: 'Hủy', action: handleCloseActionMenu }
         ] : [
-          {
-            label: 'Report',
-            action: () => handleCommentAction('report'),
-            isDestructive: true
-          },
-          {
-            label: 'Cancel',
-            action: handleCloseActionMenu
-          }
+          { label: 'Báo cáo', action: () => handleCommentAction('report'), isDestructive: true },
+          { label: 'Không quan tâm', action: () => handleCommentAction('notInterested') },
+          { label: 'Hủy', action: handleCloseActionMenu }
         ]}
       />
 

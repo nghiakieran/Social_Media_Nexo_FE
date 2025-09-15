@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { ArrowLeft } from 'lucide-react';
 
 interface LikeUserItem {
   id: string;
@@ -22,11 +23,23 @@ interface LikesDialogProps {
 
 export const LikesDialog = ({ isOpen, onClose, title = 'Lượt thích', infoText, users = [], onToggleFollow }: LikesDialogProps) => {
   const [followMap, setFollowMap] = useState<Record<string, boolean>>({});
+  const [isMobile, setIsMobile] = useState(false);
+  
   useEffect(() => {
     const next: Record<string, boolean> = {};
     for (const u of users) next[u.id] = !!u.isFollowing;
     setFollowMap(next);
   }, [users]);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   const handleToggle = (id: string) => {
     setFollowMap(prev => {
@@ -39,6 +52,78 @@ export const LikesDialog = ({ isOpen, onClose, title = 'Lượt thích', infoTex
 
   if (!isOpen) return null;
 
+  // Mobile version - Instagram style
+  if (isMobile) {
+    return (
+      <div className="fixed inset-0 bg-white dark:bg-gray-900 z-[60] flex flex-col min-h-0 h-full overflow-hidden">
+        {/* Mobile Header - matching CommentDialog */}
+        <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 pt-16">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onClose}
+            className="h-8 w-8 p-0"
+          >
+            <ArrowLeft className="w-4 h-4" />
+          </Button>
+          <h1 className="font-semibold text-lg">{title}</h1>
+          <div className="w-8"></div>
+        </div>
+
+        {infoText && (
+          <div className="px-4 py-2 text-xs text-gray-500 border-b border-gray-100 dark:border-gray-800">
+            {infoText}
+          </div>
+        )}
+
+        {/* Comments List - matching CommentDialog scroll behavior */}
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain [-webkit-overflow-scrolling:touch]">
+          <div className="p-4 space-y-4 pb-24">
+            {(users.length ? users : Array.from({ length: 14 }).map((_, i) => ({ 
+              id: String(i), 
+              name: `user_${i+1}`, 
+              avatar: '', 
+              subtitle: 'Gợi ý cho bạn' 
+            })) ).map((u) => (
+              <div key={u.id} className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-11 h-11 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden flex items-center justify-center shrink-0">
+                    {u.avatar ? (
+                      <img 
+                        src={u.avatar} 
+                        alt={u.name}
+                        className="w-full h-full rounded-full object-cover"
+                      />
+                    ) : (
+                      <span className="text-sm font-medium text-gray-600 dark:text-gray-300">
+                        {u.name?.charAt(0)?.toUpperCase() || 'U'}
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex flex-col min-w-0">
+                    <div className="text-sm font-medium leading-5 truncate">{u.name}</div>
+                    {u.subtitle && <div className="text-xs text-gray-500 leading-4 truncate">{u.subtitle}</div>}
+                  </div>
+                </div>
+                <button
+                  onClick={() => handleToggle(u.id)}
+                  className={
+                    followMap[u.id]
+                      ? 'px-4 py-1.5 rounded-lg text-[13px] font-semibold bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200'
+                      : 'px-4 py-1.5 rounded-lg text-[13px] font-semibold text-white bg-gradient-instagram hover:opacity-90 active:opacity-85 shadow-glow'
+                  }
+                >
+                  {followMap[u.id] ? 'Đang theo dõi' : 'Theo dõi'}
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Desktop version - original design
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center">
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
