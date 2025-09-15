@@ -6,6 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import { EmojiPicker } from '@/components/common/EmojiPicker';
 import { ActionMenu } from '@/components/common/ActionMenu';
+import { LikesDialog } from './LikesDialog';
 
 interface Comment {
   id: string;
@@ -117,7 +118,13 @@ export const CommentDialog = ({
           <div className="flex items-center gap-4">
             <span className="text-[11px] text-gray-500">{formatTimeAgo(reply.createdAt)}</span>
             {getLikesCount(reply.id, reply.likesCount) > 0 && (
-              <span className="text-[11px] text-gray-500">{getLikesCount(reply.id, reply.likesCount)} lượt thích</span>
+              <button
+                type="button"
+                onClick={() => openLikesDialog(reply.id, 'reply')}
+                className="text-[11px] text-gray-500 hover:underline"
+              >
+                {getLikesCount(reply.id, reply.likesCount)} lượt thích
+              </button>
             )}
             <button
               onClick={() => setReplyingTo(parentCommentId)}
@@ -219,6 +226,9 @@ export const CommentDialog = ({
       
       // Don't close if ActionMenu is open
       if (showActionMenu) return;
+
+      // Don't close if LikesDialog is open
+      if (showLikesDialog) return;
       
       if (dialogRef.current && !dialogRef.current.contains(event.target as Node)) {
         onClose();
@@ -234,7 +244,7 @@ export const CommentDialog = ({
       document.removeEventListener('mousedown', handleClickOutside);
       document.body.style.overflow = 'unset';
     };
-  }, [isOpen, onClose, isShareDialogOpen, showEmojiPicker, showActionMenu]);
+  }, [isOpen, onClose, isShareDialogOpen, showEmojiPicker, showActionMenu, showLikesDialog]);
 
   const handleSubmitComment = (e: React.FormEvent) => {
     e.preventDefault();
@@ -833,12 +843,7 @@ export const CommentDialog = ({
             </ul>
           </div>
 
-          {/* Post Time */}
-          <div className="px-4 py-2">
-            <div className="text-xs text-gray-500">
-              <time>{formatTimeAgo(post.createdAt)}</time>
-            </div>
-          </div>
+          
 
           {/* Actions */}
           <div className="p-4 border-t border-gray-200 dark:border-gray-700">
@@ -849,6 +854,7 @@ export const CommentDialog = ({
                   "transition-colors",
                   isPostLiked ? "text-red-500" : "text-gray-500 hover:text-gray-700"
                 )}
+                type="button"
               >
                 <Heart className={cn("w-6 h-6", isPostLiked && "fill-current")} />
               </button>
@@ -858,13 +864,35 @@ export const CommentDialog = ({
               <button 
                 onClick={handleOpenShareDialog}
                 className="text-gray-500 hover:text-gray-700 transition-colors"
+                type="button"
               >
                 <Send className="w-6 h-6" />
               </button>
               <div className="flex-1"></div>
-              <button className="text-gray-500 hover:text-gray-700 transition-colors">
+              <button className="text-gray-500 hover:text-gray-700 transition-colors" type="button">
                 <Bookmark className="w-6 h-6" />
               </button>
+            </div>
+
+            {/* Likes summary like Instagram */}
+            <div className="mt-1 text-sm">
+              <button type="button" className="font-medium hover:underline">
+                {comments[0]?.userName || 'someone'}
+              </button>
+              <span className="text-gray-600 dark:text-gray-300"> và </span>
+              <button
+                type="button"
+                onClick={() => openLikesDialog(post.id, 'post')}
+                className="font-medium hover:underline"
+              >
+                những người khác
+              </button>
+              <span className="text-gray-600 dark:text-gray-300"> đã thích</span>
+            </div>
+
+            {/* Post time under summary */}
+            <div className="mt-1 mb-4 text-[12px] text-gray-500">
+              <time>{formatTimeAgo(post.createdAt)} trước</time>
             </div>
 
             {/* Comment Form */}
@@ -997,6 +1025,8 @@ export const CommentDialog = ({
           }
         ]}
       />
+
+      <LikesDialog isOpen={!!showLikesDialog} onClose={closeLikesDialog} />
     </div>
   );
 };
