@@ -25,7 +25,6 @@ import TwoFactorPage from "./features/auth/pages/TwoFactorPage";
 // Post Pages
 import { FeedPage } from "./features/post/pages/FeedPage";
 import { CreatePostPage } from "./features/post/pages/CreatePostPage";
-import { StoryPage } from "./features/post/pages/StoryPage";
 import { ReelCreatePage } from "./features/post/pages/ReelCreatePage";
 import { LiveStudioPage } from "./features/post/pages/LiveStudioPage";
 import { NoteCreatePage } from "./features/post/pages/NoteCreatePage";
@@ -43,6 +42,11 @@ import { InboxPage } from "./features/message/pages/InboxPage";
 import { ChatPage } from "./features/message/pages/ChatPage";
 import { ExplorePage } from "./features/explore/pages/ExplorePage";
 import { SearchPage } from "./features/explore/pages/SearchPage";
+
+// Profile Pages
+import { ProfilePage } from "./features/profile/pages/ProfilePage";
+import { EditProfilePage } from "./features/profile/pages/EditProfilePage";
+import { AccountSettingsPage } from "./features/profile/pages/AccountSettingsPage";
 
 const queryClient = new QueryClient();
 
@@ -67,15 +71,14 @@ const App = () => (
                 <Route path="friends" element={<FriendsPage />} />
                 <Route path="suggested" element={<SuggestedPage />} />
                 <Route path="create" element={<CreatePostPage />} />
-                <Route path="story" element={<StoryPage />} />
                 <Route path="reels/create" element={<ReelCreatePage />} />
                 <Route path="live" element={<LiveStudioPage />} />
                 <Route path="notes/create" element={<NoteCreatePage />} />
-                <Route path="profile" element={<div className="p-6">Hồ sơ (Coming soon)</div>} />
-                <Route path="edit-profile" element={<div className="p-6">Chỉnh sửa hồ sơ (Coming soon)</div>} />
-                <Route path="account/settings" element={<div className="p-6">Cài đặt tài khoản (Coming soon)</div>} />
-                <Route path=":username" element={<div className="p-6">Trang cá nhân (Coming soon)</div>} />
-                <Route path="settings" element={<div className="p-6">Cài đặt (Coming soon)</div>} />
+                <Route path="profile" element={<ProfilePage />} />
+                <Route path="edit-profile" element={<EditProfilePage />} />
+                <Route path="account/settings" element={<AccountSettingsPage />} />
+                <Route path=":username" element={<ProfilePage />} />
+                <Route path="settings" element={<AccountSettingsPage />} />
                 
                 {/* AI Features */}
                 <Route path="people/suggestions" element={<PeopleSuggestions />} />

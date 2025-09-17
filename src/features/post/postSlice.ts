@@ -157,6 +157,9 @@ const postSlice = createSlice({
     fetchReelsSuccess: (state, action: PayloadAction<Reel[]>) => {
       state.reels = action.payload;
     },
+    setReels: (state, action: PayloadAction<Reel[]>) => {
+      state.reels = action.payload;
+    },
     
     clearError: (state) => {
       state.error = null;
@@ -178,6 +181,7 @@ export const {
   deletePost,
   fetchStoriesSuccess,
   fetchReelsSuccess,
+  setReels,
   clearError,
 } = postSlice.actions;
 

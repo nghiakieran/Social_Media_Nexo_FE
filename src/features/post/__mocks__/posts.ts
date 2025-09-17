@@ -8,7 +8,7 @@ export const mockPosts = [
     media: [
       {
         id: 'm1',
-        type: 'image' as const,
+      type: 'image' as const,
         url: 'https://picsum.photos/600/600?random=1',
         alt: 'Sunset view',
       },
