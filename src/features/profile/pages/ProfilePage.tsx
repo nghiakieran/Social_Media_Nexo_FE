@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '@/store';
 import {
@@ -15,6 +15,10 @@ import {
   setShowFollowingDialog,
   setShowBlockDialog,
   setShowReportDialog,
+  setShowAvatarDialog,
+  setShowCreateHighlightDialog,
+  addHighlight,
+  updateAvatar,
 } from '../profileSlice';
 import { ProfileHeader } from '../components/ProfileHeader';
 import { ProfileTabs } from '../components/ProfileTabs';
@@ -22,12 +26,18 @@ import { PostGrid } from '../components/PostGrid';
 import { FollowersDialog } from '../components/FollowersDialog';
 import { BlockUserDialog } from '../components/BlockUserDialog';
 import { ReportUserDialog } from '../components/ReportUserDialog';
+import { StoryHighlights } from '../components/StoryHighlights';
+import { CreateHighlightDialog } from '../components/CreateHighlightDialog';
+import { AvatarChangeDialog } from '../components/AvatarChangeDialog';
 import { mockUsers, mockCurrentUser } from '../__mocks__/users';
 import { mockProfilePosts, mockReels, mockSavedPosts } from '../__mocks__/posts';
 import { useToast } from '@/hooks/use-toast';
+import { StoryViewer } from '@/features/story/components/StoryViewer';
+import type { Story } from '@/features/story/types';
 
 export const ProfilePage = () => {
   const { username } = useParams<{ username: string }>();
+  const navigate = useNavigate();
   const dispatch = useDispatch();
   const { toast } = useToast();
   
@@ -36,6 +46,7 @@ export const ProfilePage = () => {
     posts,
     reels,
     saved,
+    highlights,
     followers,
     following,
     activeTab,
@@ -43,6 +54,8 @@ export const ProfilePage = () => {
     showFollowingDialog,
     showBlockDialog,
     showReportDialog,
+    showAvatarDialog,
+    showCreateHighlightDialog,
   } = useSelector((state: RootState) => state.profile);
 
   // Determine if this is the current user's profile
@@ -80,7 +93,7 @@ export const ProfilePage = () => {
   };
 
   const handleEdit = () => {
-    window.location.href = '/edit-profile';
+    navigate('/edit-profile');
   };
 
   const handleBlock = () => {
@@ -89,6 +102,71 @@ export const ProfilePage = () => {
 
   const handleReport = () => {
     dispatch(setShowReportDialog(true));
+  };
+
+  const handleAvatarClick = () => {
+    dispatch(setShowAvatarDialog(true));
+  };
+
+  const handleAvatarUpload = (file: File) => {
+    // Create a preview URL for the uploaded file
+    const previewUrl = URL.createObjectURL(file);
+    dispatch(updateAvatar(previewUrl));
+    
+    toast({
+      title: 'Đã cập nhật ảnh đại diện',
+      description: 'Ảnh đại diện đã được thay đổi thành công',
+    });
+  };
+
+  const handleAvatarRemove = () => {
+    dispatch(updateAvatar(''));
+  };
+
+  // Highlights
+  const handleOpenCreateHighlight = () => {
+    dispatch(setShowCreateHighlightDialog(true));
+  };
+
+  const handleCreateHighlight = ({ name, selectedIds }: { name: string; selectedIds: string[] }) => {
+    // Choose the first selected as cover
+    const first = posts.find((p) => p.id === selectedIds[0]);
+    const cover = first?.thumbnail || posts[0]?.thumbnail || '';
+    dispatch(
+      addHighlight({
+        id: `${Date.now()}`,
+        title: name,
+        cover,
+        postIds: selectedIds,
+      })
+    );
+  };
+
+  // Open highlight as stories
+  const [openViewer, setOpenViewer] = useState(false);
+  const [viewerData, setViewerData] = useState<{ stories: Story[]; index: number }>({ stories: [], index: 0 });
+
+  const handleOpenHighlight = (highlightId: string) => {
+    const highlight = highlights.find((h) => h.id === highlightId);
+    if (!highlight) return;
+    
+    // Create stories only for the clicked highlight
+    const contents = highlight.postIds
+      .map((id) => posts.find((p) => p.id === id))
+      .filter(Boolean)
+      .map((p) => ({ id: p!.id, type: 'image' as const, url: p!.thumbnail, duration: 5 }));
+    
+    const story: Story = {
+      id: highlight.id,
+      username: currentProfile!.username,
+      profileImage: currentProfile!.avatar,
+      timeAgo: 'vừa xong',
+      content: contents,
+      isOwnStory: true,
+    };
+    
+    setViewerData({ stories: [story], index: 0 });
+    setOpenViewer(true);
   };
 
   const getCurrentContent = () => {
@@ -128,6 +206,14 @@ export const ProfilePage = () => {
         onReport={handleReport}
         onShowFollowers={() => dispatch(setShowFollowersDialog(true))}
         onShowFollowing={() => dispatch(setShowFollowingDialog(true))}
+        onAvatarClick={handleAvatarClick}
+      />
+
+      {/* Story highlights */}
+      <StoryHighlights
+        highlights={highlights}
+        onAdd={isCurrentUser ? handleOpenCreateHighlight : undefined}
+        onOpen={handleOpenHighlight}
       />
 
       <ProfileTabs
@@ -136,7 +222,7 @@ export const ProfilePage = () => {
         isCurrentUser={isCurrentUser}
       />
 
-      <div className="p-4">
+      <div className="px-0">
         {getCurrentContent()}
       </div>
 
@@ -168,6 +254,31 @@ export const ProfilePage = () => {
         onClose={() => dispatch(setShowReportDialog(false))}
         user={currentProfile}
       />
+
+      <AvatarChangeDialog
+        isOpen={showAvatarDialog}
+        onClose={() => dispatch(setShowAvatarDialog(false))}
+        onUpload={handleAvatarUpload}
+        onRemove={handleAvatarRemove}
+        currentAvatar={currentProfile?.avatar}
+        userName={currentProfile?.name}
+      />
+
+      <CreateHighlightDialog
+        isOpen={showCreateHighlightDialog}
+        onClose={() => dispatch(setShowCreateHighlightDialog(false))}
+        posts={posts.map((p) => ({ id: p.id, thumbnail: p.thumbnail }))}
+        onCreate={handleCreateHighlight}
+      />
+
+      {openViewer && (
+        <StoryViewer
+          isOpen={openViewer}
+          onClose={() => setOpenViewer(false)}
+          stories={viewerData.stories}
+          initialStoryIndex={viewerData.index}
+        />
+      )}
     </div>
   );
 };

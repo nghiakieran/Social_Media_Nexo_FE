@@ -24,6 +24,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { CommentDialog } from './CommentDialog';
+import { LazyImage } from '@/components/common/LazyImage';
 import { ShareDialog } from './ShareDialog';
 import { EmojiPicker } from '@/components/common/EmojiPicker';
 import { useToast } from '@/hooks/use-toast';
@@ -340,10 +341,13 @@ export const PostCard = ({
 
             <div className="aspect-square bg-muted relative overflow-hidden">
               {post.media[currentMediaIndex].type === 'image' ? (
-                <img
+                <LazyImage
                   src={post.media[currentMediaIndex].url}
                   alt={post.media[currentMediaIndex].alt || 'Post media'}
-                  className="w-full h-full object-cover"
+                  className="w-full h-full"
+                  loading="lazy"
+                  decoding="async"
+                  enableProgressiveLoading
                 />
               ) : (
                 <video

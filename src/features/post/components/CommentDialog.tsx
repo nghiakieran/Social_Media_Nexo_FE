@@ -5,7 +5,7 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import { EmojiPicker } from '@/components/common/EmojiPicker';
-import { ActionMenu } from '@/components/common/ActionMenu';
+import { ActionMenu, ActionMenuItem } from '@/components/common/ActionMenu';
 import { LikesDialog } from './LikesDialog';
 
 interface Comment {
@@ -64,6 +64,9 @@ interface CommentDialogProps {
   onAddPostEmojiReaction?: (postId: string, emoji: string) => void;
   isAuthorFollowed?: boolean;
   onToggleFollowAuthor?: (userId: string, nextIsFollowing: boolean) => void;
+  actionMenuItems?: ActionMenuItem[];
+  isBookmarked?: boolean;
+  onToggleBookmark?: (postId: string, nextIsBookmarked: boolean) => void;
 }
 
 export const CommentDialog = ({
@@ -82,7 +85,10 @@ export const CommentDialog = ({
   onAddEmojiReaction,
   onAddPostEmojiReaction,
   isAuthorFollowed,
-  onToggleFollowAuthor
+  onToggleFollowAuthor,
+  actionMenuItems,
+  isBookmarked = false,
+  onToggleBookmark
 }: CommentDialogProps) => {
   const [isMobile, setIsMobile] = useState(false);
   const [newComment, setNewComment] = useState('');
@@ -242,11 +248,17 @@ export const CommentDialog = ({
     if (isOpen) {
       document.addEventListener('mousedown', handleClickOutside);
       document.body.style.overflow = 'hidden';
+      document.body.style.overscrollBehavior = 'contain';
+      document.documentElement.style.overflow = 'hidden';
+      document.documentElement.style.overscrollBehavior = 'contain';
     }
 
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
       document.body.style.overflow = 'unset';
+      document.body.style.overscrollBehavior = '';
+      document.documentElement.style.overflow = '';
+      document.documentElement.style.overscrollBehavior = '';
     };
   }, [isOpen, onClose, isShareDialogOpen, showEmojiPicker, showActionMenu, showLikesDialog]);
 
@@ -598,7 +610,7 @@ export const CommentDialog = ({
   }
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4" style={{ overscrollBehavior: 'contain' }}>
       <div
         ref={dialogRef}
         className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl flex overflow-hidden animate-in fade-in-0 zoom-in-95 duration-200"
@@ -727,7 +739,7 @@ export const CommentDialog = ({
           </div>
 
           {/* Comments List */}
-          <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto" style={{ overscrollBehavior: 'contain' }}>
             <ul className="p-4 space-y-4">
               {comments.map((comment) => (
                 <li
@@ -869,7 +881,7 @@ export const CommentDialog = ({
           
 
           {/* Actions */}
-          <div className="p-4 border-t border-gray-200 dark:border-gray-700">
+          <div className="p-4 border-t border-gray-200 dark:border-gray-700" style={{ overscrollBehavior: 'contain' }}>
             <div className="flex items-center gap-4 mb-4">
               <button
                 onClick={() => onLikePost(post.id)}
@@ -893,7 +905,14 @@ export const CommentDialog = ({
               </button>
               <div className="flex-1"></div>
               <button className="text-gray-500 hover:text-gray-700 transition-colors" type="button">
-                <Bookmark className="w-6 h-6" />
+                <Bookmark
+                  className={cn("w-6 h-6", isBookmarked && "fill-current text-gray-800 dark:text-gray-100")}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (onToggleBookmark) onToggleBookmark(post.id, !isBookmarked);
+                  }}
+                />
               </button>
             </div>
 
@@ -1003,15 +1022,19 @@ export const CommentDialog = ({
         isOpen={showActionMenu}
         onClose={handleCloseActionMenu}
         position={actionMenuPosition}
-        items={currentCommentForAction === 'post' ? [
-          { label: 'Báo cáo', action: () => handleCommentAction('report'), isDestructive: true },
-          { label: 'Đi đến bài viết', action: () => handleCommentAction('goToPost') },
-          { label: 'Chia sẻ lên...', action: () => handleCommentAction('share') },
-          { label: 'Sao chép liên kết', action: () => handleCommentAction('copyLink') },
-          { label: 'Nhúng', action: () => handleCommentAction('embed') },
-          { label: 'Giới thiệu về tài khoản này', action: () => handleCommentAction('aboutAccount') },
-          { label: 'Hủy', action: handleCloseActionMenu }
-        ] : [
+        items={currentCommentForAction === 'post' ? (
+          actionMenuItems && actionMenuItems.length > 0
+            ? actionMenuItems
+            : [
+                { label: 'Báo cáo', action: () => handleCommentAction('report'), isDestructive: true },
+                { label: 'Đi đến bài viết', action: () => handleCommentAction('goToPost') },
+                { label: 'Chia sẻ lên...', action: () => handleCommentAction('share') },
+                { label: 'Sao chép liên kết', action: () => handleCommentAction('copyLink') },
+                { label: 'Nhúng', action: () => handleCommentAction('embed') },
+                { label: 'Giới thiệu về tài khoản này', action: () => handleCommentAction('aboutAccount') },
+                { label: 'Hủy', action: handleCloseActionMenu }
+              ]
+        ) : [
           { label: 'Báo cáo', action: () => handleCommentAction('report'), isDestructive: true },
           { label: 'Không quan tâm', action: () => handleCommentAction('notInterested') },
           { label: 'Hủy', action: handleCloseActionMenu }

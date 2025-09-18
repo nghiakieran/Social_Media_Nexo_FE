@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { ExplorePost } from '../exploreSlice';
 import { Heart, MessageCircle, Play, Copy } from 'lucide-react';
+import { LazyImage } from '@/components/common/LazyImage';
 
 interface ExploreGridProps {
   posts: ExplorePost[];
@@ -34,14 +35,15 @@ export const ExploreGrid: React.FC<ExploreGridProps> = ({
           >
             {/* Post Image/Video Container */}
             <div className="relative overflow-hidden rounded-sm bg-muted">
-              <img
+              <LazyImage
                 src={post.imageUrl}
                 alt={post.caption || `Post by ${post.author.username}`}
                 className={cn(
-                  'w-full h-auto object-cover transition-transform duration-300',
-                  'group-hover:scale-105'
+                  'w-full h-auto',
                 )}
                 loading="lazy"
+                decoding="async"
+                enableProgressiveLoading
               />
 
               {/* Video/Carousel Indicators */}

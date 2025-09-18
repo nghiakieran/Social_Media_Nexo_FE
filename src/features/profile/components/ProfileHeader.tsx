@@ -24,6 +24,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { UserProfile } from '../profileSlice';
 import { useToast } from '@/hooks/use-toast';
+import { useNavigate } from 'react-router-dom';
 
 interface ProfileHeaderProps {
   profile: UserProfile;
@@ -36,6 +37,7 @@ interface ProfileHeaderProps {
   onReport: () => void;
   onShowFollowers: () => void;
   onShowFollowing: () => void;
+  onAvatarClick?: () => void;
 }
 
 export const ProfileHeader = ({
@@ -49,8 +51,10 @@ export const ProfileHeader = ({
   onReport,
   onShowFollowers,
   onShowFollowing,
+  onAvatarClick,
 }: ProfileHeaderProps) => {
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const handleWebsiteClick = () => {
     if (profile.website) {
@@ -75,24 +79,31 @@ export const ProfileHeader = ({
   };
 
   return (
-    <div className="px-4 py-6 border-b border-border bg-background">
-      <div className="flex items-start gap-6">
+    <div className="px-14 py-6 border-b border-border bg-background">
+      <div className="flex items-start gap-16">
         {/* Avatar */}
         <div className="relative">
-          <Avatar className="w-20 h-20 md:w-24 md:h-24 ring-2 ring-primary/20">
-            <AvatarImage src={profile.avatar} alt={profile.name} />
-            <AvatarFallback className="text-xl font-semibold">
-              {profile.name.charAt(0).toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
+          <button
+            onClick={isCurrentUser ? onAvatarClick : undefined}
+            className={isCurrentUser ? "cursor-pointer hover:opacity-80 transition-opacity" : "cursor-default"}
+            disabled={!isCurrentUser}
+            title={isCurrentUser ? "Thay đổi ảnh đại diện" : "Ảnh đại diện"}
+          >
+            <Avatar className="w-20 h-20 md:w-44 md:h-44 ring-2 ring-primary/20">
+              <AvatarImage src={profile.avatar} alt={profile.name} />
+              <AvatarFallback className="text-xl font-semibold">
+                {profile.name.charAt(0).toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+          </button>
         </div>
 
         {/* Profile Info */}
         <div className="flex-1 min-w-0">
           {/* Username and Actions */}
-          <div className="flex items-center gap-3 mb-4">
+          <div className="flex items-center gap-3 mb-3">
             <div className="flex items-center gap-2">
-              <h1 className="text-xl font-light">{profile.username}</h1>
+              <h1 className="text-xl md:text-2xl font-light">{profile.username}</h1>
               {profile.isVerified && (
                 <BadgeCheck className="w-5 h-5 text-primary fill-current" />
               )}
@@ -112,6 +123,7 @@ export const ProfileHeader = ({
                 <Button 
                   variant="outline" 
                   size="sm"
+                  onClick={() => navigate('/account/settings')}
                 >
                   <Settings className="w-4 h-4" />
                 </Button>
@@ -177,7 +189,7 @@ export const ProfileHeader = ({
           </div>
 
           {/* Stats */}
-          <div className="flex items-center gap-6 mb-4">
+          <div className="flex items-center gap-6 mb-3">
             <div className="text-center">
               <div className="font-semibold">{profile.postsCount}</div>
               <div className="text-sm text-muted-foreground">bài viết</div>

@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { X, Search, UserPlus, UserMinus } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Search, UserPlus, UserMinus, X } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -30,6 +30,14 @@ export const FollowersDialog = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [localUsers, setLocalUsers] = useState(users);
   const { toast } = useToast();
+
+  // Keep local users in sync with props when dialog opens or data changes
+  useEffect(() => {
+    if (isOpen) {
+      setLocalUsers(users);
+      setSearchTerm('');
+    }
+  }, [isOpen, users, title]);
 
   const filteredUsers = localUsers.filter(user =>
     user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -63,12 +71,12 @@ export const FollowersDialog = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-sm mx-auto bg-background">
-        <DialogHeader className="border-b border-border pb-4">
-          <DialogTitle className="text-center">{title}</DialogTitle>
+      <DialogContent className="w-[90vw] max-w-[560px] mx-auto bg-background p-0 overflow-hidden">
+        <DialogHeader className="relative border-b border-border p-3">
+          <DialogTitle className="text-center text-base font-semibold">{title}</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4">
+        <div className="space-y-3 p-3 pt-0">
           {/* Search */}
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -80,15 +88,15 @@ export const FollowersDialog = ({
             />
           </div>
 
-          {/* User List */}
-          <div className="max-h-80 overflow-y-auto space-y-2">
+          {/* User List - fixed height for stable UX */}
+          <div className="h-[340px] overflow-y-auto space-y-1.5">
             {filteredUsers.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
+              <div className="h-full flex items-center justify-center text-muted-foreground">
                 {searchTerm ? 'Không tìm thấy kết quả' : 'Danh sách trống'}
               </div>
             ) : (
               filteredUsers.map((user) => (
-                <div key={user.id} className="flex items-center justify-between p-2 hover:bg-muted/50 rounded-lg transition-colors">
+                <div key={user.id} className="flex items-center justify-between px-2 py-2 hover:bg-muted/40 rounded-lg transition-colors">
                   <div className="flex items-center gap-3">
                     <Avatar className="w-11 h-11">
                       <AvatarImage src={user.avatar} alt={user.name} />
@@ -97,8 +105,8 @@ export const FollowersDialog = ({
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-1 min-w-0">
-                      <div className="font-semibold text-sm">{user.username}</div>
-                      <div className="text-sm text-muted-foreground truncate">
+                      <div className="font-semibold text-sm leading-5">{user.username}</div>
+                      <div className="text-xs text-muted-foreground truncate">
                         {user.name}
                       </div>
                     </div>

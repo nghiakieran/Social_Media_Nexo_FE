@@ -1,11 +1,12 @@
-import { useState } from 'react';
-import { Play, Heart, MessageCircle, MoreHorizontal } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { Play, Heart, MessageCircle } from 'lucide-react';
 import { ProfilePost } from '../profileSlice';
-import {
-  Dialog,
-  DialogContent,
-  DialogTrigger,
-} from '@/components/ui/dialog';
+import { CommentDialog } from '@/features/post/components/CommentDialog';
+import { ShareDialog } from '@/features/post/components/ShareDialog';
+import { useAppSelector } from '@/store';
+import { mockComments } from '@/features/interaction/__mocks__/comments';
+import { useNavigate } from 'react-router-dom';
+import { LazyGrid } from '@/components/common/LazyGrid';
 
 interface PostGridProps {
   posts: ProfilePost[];
@@ -17,125 +18,84 @@ interface PostDetailProps {
   onClose: () => void;
 }
 
-const PostDetail = ({ post, onClose }: PostDetailProps) => {
-  return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 max-w-6xl mx-auto bg-background">
-      {/* Media */}
-      <div className="relative bg-black flex items-center justify-center">
-        {post.type === 'video' || post.type === 'reel' ? (
-          <video
-            src={post.url}
-            controls
-            className="max-w-full max-h-full object-contain"
-            autoPlay
-            muted
-          />
-        ) : (
-          <img
-            src={post.url}
-            alt="Post"
-            className="max-w-full max-h-full object-contain"
-          />
-        )}
-      </div>
+const PostDetail = ({ post, onClose }: PostDetailProps) => null;
 
-      {/* Details */}
-      <div className="flex flex-col">
-        {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-border">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-gradient-instagram rounded-full" />
-            <span className="font-semibold">nghialc81</span>
-          </div>
-          <button>
-            <MoreHorizontal className="w-5 h-5" />
-          </button>
-        </div>
-
-        {/* Caption */}
-        <div className="p-4 border-b border-border">
-          <div className="flex gap-3">
-            <div className="w-8 h-8 bg-gradient-instagram rounded-full flex-shrink-0" />
-            <div>
-              <span className="font-semibold">nghialc81</span>
-              <span className="ml-2">{post.caption}</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Comments */}
-        <div className="flex-1 p-4 space-y-4 overflow-y-auto">
-          <div className="flex gap-3">
-            <div className="w-8 h-8 bg-muted rounded-full flex-shrink-0" />
-            <div>
-              <span className="font-semibold">nvaannhi</span>
-              <span className="ml-2 text-sm">Anh Nghĩa đẹp trai</span>
-              <div className="text-xs text-muted-foreground mt-1">228 tuần</div>
-            </div>
-          </div>
-          
-          <div className="flex gap-3">
-            <div className="w-8 h-8 bg-muted rounded-full flex-shrink-0" />
-            <div>
-              <span className="font-semibold">noinhiuey.2</span>
-              <span className="ml-2 text-sm">Xàu thế</span>
-              <div className="text-xs text-muted-foreground mt-1">230 tuần</div>
-            </div>
-          </div>
-
-          <div className="flex gap-3">
-            <div className="w-8 h-8 bg-muted rounded-full flex-shrink-0" />
-            <div>
-              <span className="font-semibold">th_hnaa</span>
-              <span className="ml-2 text-sm">Mai đi học bơi nhaaaaaaaa</span>
-              <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
-                <span>230 tuần</span>
-                <span>1 lượt thích</span>
-                <button className="hover:opacity-70">Trả lời</button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Actions */}
-        <div className="border-t border-border">
-          <div className="flex items-center justify-between p-4">
-            <div className="flex items-center gap-4">
-              <button className="hover:opacity-70 transition-opacity">
-                <Heart className="w-6 h-6" />
-              </button>
-              <button className="hover:opacity-70 transition-opacity">
-                <MessageCircle className="w-6 h-6" />
-              </button>
-            </div>
-          </div>
-
-          <div className="px-4 pb-2">
-            <div className="text-sm font-semibold">
-              lt_n071 và 17 người khác đã thích
-            </div>
-            <div className="text-xs text-muted-foreground">30 Tháng 3 2021</div>
-          </div>
-
-          {/* Comment Input */}
-          <div className="border-t border-border p-4">
-            <div className="flex items-center gap-3">
-              <input
-                type="text"
-                placeholder="Bình luận..."
-                className="flex-1 bg-transparent border-none outline-none text-sm"
-              />
-              <button className="text-primary font-semibold text-sm">Đăng</button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
 
 export const PostGrid = ({ posts, onPostClick }: PostGridProps) => {
   const [selectedPost, setSelectedPost] = useState<ProfilePost | null>(null);
+  const profile = useAppSelector((s) => s.profile.currentProfile);
+  const navigate = useNavigate();
+  const [isShareOpen, setIsShareOpen] = useState(false);
+  const [isPostLiked, setIsPostLiked] = useState<Record<string, boolean>>({});
+  const [isBookmarkedById, setIsBookmarkedById] = useState<Record<string, boolean>>({});
+  const [commentsByPostId, setCommentsByPostId] = useState<Record<string, CDComment[]>>({});
+
+  interface CDComment {
+    id: string;
+    userId: string;
+    userName: string;
+    userAvatar: string;
+    content: string;
+    likesCount: number;
+    isLiked: boolean;
+    createdAt: string;
+    replies?: CDComment[];
+  }
+
+  interface MockReply {
+    id: string;
+    postId: string;
+    userId: string;
+    userName: string;
+    userAvatar: string;
+    content: string;
+    likesCount?: number;
+    isLiked?: boolean;
+    createdAt: string;
+    updatedAt?: string;
+    parentId?: string;
+    replies?: MockReply[];
+  }
+
+  const selectedComments = useMemo<CDComment[]>(() => {
+    if (!selectedPost) return [];
+    const mapReplies = (replies?: MockReply[]): CDComment[] | undefined => {
+      if (!replies || replies.length === 0) return undefined;
+      return replies.map((r) => ({
+        id: r.id,
+        userId: r.userId,
+        userName: r.userName,
+        userAvatar: r.userAvatar,
+        content: r.content,
+        likesCount: r.likesCount ?? 0,
+        isLiked: r.isLiked ?? false,
+        createdAt: r.createdAt,
+      }));
+    };
+    return (mockComments as unknown as MockReply[])
+      .filter((c) => c.postId === selectedPost.id)
+      .map((c) => ({
+        id: c.id,
+        userId: c.userId,
+        userName: c.userName,
+        userAvatar: c.userAvatar,
+        content: c.content,
+        likesCount: c.likesCount ?? 0,
+        isLiked: c.isLiked ?? false,
+        createdAt: c.createdAt,
+        replies: mapReplies(c.replies),
+      }));
+  }, [selectedPost, mockComments]);
+
+  const currentComments: CDComment[] = useMemo(() => {
+    if (!selectedPost) return [];
+    return commentsByPostId[selectedPost.id] ?? selectedComments;
+  }, [commentsByPostId, selectedComments, selectedPost]);
+
+  const ensureCommentsForSelected = () => {
+    if (!selectedPost) return;
+    setCommentsByPostId((prev) => prev[selectedPost.id] ? prev : ({ ...prev, [selectedPost.id]: selectedComments }));
+  };
 
   const handlePostClick = (post: ProfilePost) => {
     setSelectedPost(post);
@@ -158,53 +118,184 @@ export const PostGrid = ({ posts, onPostClick }: PostGridProps) => {
 
   return (
     <>
-      <div className="grid grid-cols-3 gap-1 md:gap-2">
-        {posts.map((post) => (
-          <Dialog key={post.id}>
-            <DialogTrigger asChild>
-              <div
-                className="relative aspect-square bg-muted cursor-pointer group overflow-hidden"
-                onClick={() => handlePostClick(post)}
-              >
-                <img
-                  src={post.thumbnail}
-                  alt={post.caption}
-                  className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105"
-                />
-                
-                {/* Video/Reel indicator */}
-                {(post.type === 'video' || post.type === 'reel') && (
-                  <div className="absolute top-2 right-2">
-                    <Play className="w-4 h-4 text-white fill-current drop-shadow-lg" />
+      <LazyGrid
+        items={posts.map(post => ({
+          id: post.id,
+          thumbnail: post.thumbnail,
+          type: post.type,
+          caption: post.caption,
+          likesCount: post.likesCount,
+          commentsCount: post.commentsCount
+        }))}
+        onItemClick={(item) => {
+          const post = posts.find(p => p.id === item.id);
+          if (post) handlePostClick(post);
+        }}
+        className="pb-4"
+        columns={3}
+        gap="md"
+        enableProgressiveLoading={true}
+        enableBlurToSharp={false}
+        renderOverlay={(item, isVisible) => {
+          if (!isVisible) return null;
+          
+          return (
+            <>
+              {/* Video/Reel indicator */}
+              {(item.type === 'video' || item.type === 'reel') && (
+                <div className="absolute top-2 right-2">
+                  <Play className="w-4 h-4 text-white fill-current drop-shadow-lg" />
+                </div>
+              )}
+              
+              {/* Hover overlay with stats */}
+              <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
+                <div className="flex items-center gap-4 text-white">
+                  <div className="flex items-center gap-1">
+                    <Heart className="w-5 h-5 fill-current" />
+                    <span className="font-semibold">{item.likesCount}</span>
                   </div>
-                )}
-
-                {/* Hover overlay */}
-                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
-                  <div className="flex items-center gap-4 text-white">
-                    <div className="flex items-center gap-1">
-                      <Heart className="w-5 h-5 fill-current" />
-                      <span className="font-semibold">{post.likesCount}</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <MessageCircle className="w-5 h-5 fill-current" />
-                      <span className="font-semibold">{post.commentsCount}</span>
-                    </div>
+                  <div className="flex items-center gap-1">
+                    <MessageCircle className="w-5 h-5 fill-current" />
+                    <span className="font-semibold">{item.commentsCount}</span>
                   </div>
                 </div>
               </div>
-            </DialogTrigger>
-            <DialogContent className="max-w-none w-full h-full p-0 bg-transparent border-none">
-              {selectedPost && (
-                <PostDetail 
-                  post={selectedPost} 
-                  onClose={() => setSelectedPost(null)} 
-                />
-              )}
-            </DialogContent>
-          </Dialog>
-        ))}
-      </div>
+            </>
+          );
+        }}
+      />
+
+      {selectedPost && (
+        <CommentDialog
+          isOpen={!!selectedPost}
+          onClose={() => setSelectedPost(null)}
+          post={{
+            id: selectedPost.id,
+            userId: profile?.id || 'me',
+            userName: profile?.username || 'me',
+            userAvatar: profile?.avatar || '',
+            content: selectedPost.caption,
+            media: [
+              {
+                id: 'media-1',
+                type: selectedPost.type === 'photo' ? 'image' : 'video',
+                url: selectedPost.url,
+                alt: selectedPost.caption,
+              },
+            ],
+            likesCount: selectedPost.likesCount,
+            commentsCount: selectedPost.commentsCount,
+            createdAt: selectedPost.createdAt,
+          }}
+          comments={currentComments}
+          onAddComment={(content) => {
+            if (!selectedPost) return;
+            ensureCommentsForSelected();
+            setCommentsByPostId((prev) => ({
+              ...prev,
+              [selectedPost.id]: [
+                ...(
+                  prev[selectedPost.id] ?? selectedComments
+                ),
+                {
+                  id: `c-${Date.now()}`,
+                  userId: profile?.id || 'me',
+                  userName: profile?.username || 'me',
+                  userAvatar: profile?.avatar || '',
+                  content,
+                  likesCount: 0,
+                  isLiked: false,
+                  createdAt: new Date().toISOString(),
+                }
+              ]
+            }));
+          }}
+          onLikeComment={(commentId) => {
+            if (!selectedPost) return;
+            ensureCommentsForSelected();
+            setCommentsByPostId((prev) => ({
+              ...prev,
+              [selectedPost.id]: (prev[selectedPost.id] ?? selectedComments).map((c) =>
+                c.id === commentId
+                  ? { ...c, isLiked: !c.isLiked, likesCount: (c.likesCount || 0) + (c.isLiked ? -1 : 1) }
+                  : {
+                      ...c,
+                      replies: c.replies?.map((r) =>
+                        r.id === commentId
+                          ? { ...r, isLiked: !r.isLiked, likesCount: (r.likesCount || 0) + (r.isLiked ? -1 : 1) }
+                          : r
+                      ),
+                    }
+              ),
+            }));
+          }}
+          onReplyComment={(parentId, content) => {
+            if (!selectedPost) return;
+            ensureCommentsForSelected();
+            setCommentsByPostId((prev) => ({
+              ...prev,
+              [selectedPost.id]: (prev[selectedPost.id] ?? selectedComments).map((c) =>
+                c.id === parentId
+                  ? {
+                      ...c,
+                      replies: [
+                        ...(c.replies ?? []),
+                        {
+                          id: `r-${Date.now()}`,
+                          userId: profile?.id || 'me',
+                          userName: profile?.username || 'me',
+                          userAvatar: profile?.avatar || '',
+                          content,
+                          likesCount: 0,
+                          isLiked: false,
+                          createdAt: new Date().toISOString(),
+                        },
+                      ],
+                    }
+                  : c
+              ),
+            }));
+          }}
+          onLikePost={(postId) => setIsPostLiked(prev => ({ ...prev, [postId]: !prev[postId] }))}
+          isPostLiked={!!isPostLiked[selectedPost.id]}
+          onOpenShareDialog={() => setIsShareOpen(true)}
+          isShareDialogOpen={isShareOpen}
+          isBookmarked={!!isBookmarkedById[selectedPost.id]}
+          onToggleBookmark={(postId, next) => setIsBookmarkedById(prev => ({ ...prev, [postId]: next }))}
+          actionMenuItems={[
+            { label: 'Xóa', action: () => {} , isDestructive: true },
+            { label: 'Chỉnh sửa', action: () => {} },
+            { label: 'Ẩn số lượt thích với những người khác', action: () => {} },
+            { label: 'Tắt tính năng bình luận', action: () => {} },
+            { label: 'Đi đến bài viết', action: () => { navigate(`/comments/${selectedPost.id}`); } },
+            { label: 'Giới thiệu về tài khoản này', action: () => {} },
+            { label: 'Hủy', action: () => {} },
+          ]}
+        />
+      )}
+
+      {/* Share Dialog to match homepage behavior */}
+      {selectedPost && (
+        <ShareDialog
+          isOpen={isShareOpen}
+          onClose={() => setIsShareOpen(false)}
+          post={{
+            id: selectedPost.id,
+            content: selectedPost.caption,
+            media: [
+              { url: selectedPost.url, type: selectedPost.type === 'photo' ? 'image' : 'video', alt: selectedPost.caption }
+            ],
+            userName: profile?.username || 'me',
+            userAvatar: profile?.avatar || '',
+            createdAt: selectedPost.createdAt,
+          }}
+          onShare={(postId, userIds, message) => {
+            // mock share success then close
+            setIsShareOpen(false);
+          }}
+        />
+      )}
     </>
   );
 };

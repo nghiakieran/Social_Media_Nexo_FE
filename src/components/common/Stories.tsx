@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react"
 import { cn } from "@/lib/utils"
 import { ChevronLeft, ChevronRight } from "lucide-react"
+import { LazyImage } from "@/components/common/LazyImage"
 
 interface Story {
   id: string
@@ -104,14 +105,16 @@ export function Stories({ stories, onStoryClick }: StoriesProps) {
                 <div className="w-full h-full rounded-full bg-background p-0.5">
                   {/* Profile Picture */}
                   <div className="w-full h-full rounded-full overflow-hidden">
-                    <img
+                    <LazyImage
                       src={story.profileImage || "/placeholder.svg"}
                       alt={`${story.username}'s profile picture`}
                       className={cn(
-                        "w-full h-full object-cover transition-all duration-200 group-hover:scale-110",
-                        story.isViewed && "opacity-70" // Slightly dim viewed stories
+                        "w-full h-full",
+                        story.isViewed && "opacity-70"
                       )}
-                      crossOrigin="anonymous"
+                      loading="lazy"
+                      decoding="async"
+                      enableProgressiveLoading
                     />
                   </div>
                 </div>
