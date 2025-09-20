@@ -93,6 +93,7 @@ export const ProfileHeader = ({
     }
   };
 
+
   return (
     <div className="px-14 py-6 border-b border-border bg-background">
       <div className="flex items-start gap-16">
