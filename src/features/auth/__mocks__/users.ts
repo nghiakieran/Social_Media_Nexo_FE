@@ -1,7 +1,7 @@
 export const mockUsers = [
   {
     id: '1',
-    email: 'demo@instagram.com',
+    email: 'demo@gmail.com',
     name: 'Demo User',
     username: 'demouser',
     avatar: 'https://picsum.photos/100/100?random=1',
@@ -11,10 +11,10 @@ export const mockUsers = [
   },
   {
     id: '2',
-    email: 'user@example.com',
-    name: 'John Doe',
-    username: 'johndoe',
-    isVerified: false,
+    email: 'nghialc81@gmail.com',  
+    name: 'Lê Chí Nghĩa',
+    username: 'nghialc81',
+    isVerified: true,
     password: 'password123',
     hasTwoFactor: false,
   },

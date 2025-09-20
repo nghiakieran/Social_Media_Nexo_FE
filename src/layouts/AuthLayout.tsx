@@ -6,13 +6,7 @@ export const AuthLayout = () => {
       {/* Background decoration */}
       <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMiIgZmlsbD0icmdiYSgyNTUsIDI1NSwgMjU1LCAwLjEpIi8+Cjwvc3ZnPg==')] opacity-30" />
       
-      <div className="w-full max-w-md relative z-10">
-        {/* Instagram logo placeholder */}
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-white mb-2">Instagram</h1>
-          <p className="text-white/80 text-sm">Kết nối với những người bạn yêu thương</p>
-        </div>
-        
+      <div className="w-full max-w-md relative z-10">        
         <Outlet />
       </div>
     </div>

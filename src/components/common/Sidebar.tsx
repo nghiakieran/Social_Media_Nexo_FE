@@ -51,7 +51,7 @@ export const Sidebar = () => {
   const handleLogout = () => {
     // TODO: Implement logout logic
     console.log('Logout clicked');
-    navigate('/login');
+    navigate('/auth/login');
   };
 
   const handleThemeToggle = (theme: 'light' | 'dark') => {
@@ -209,7 +209,7 @@ export const Sidebar = () => {
           />
         </PopoverTrigger>
         <PopoverContent 
-          className="w-80 p-0"  
+          className="w-64 p-0"  
           side="right" 
           sideOffset={15}
           style={{
