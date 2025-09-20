@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '@/store';
 import {
@@ -41,6 +41,7 @@ export const ProfilePage = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const { toast } = useToast();
+  const [searchParams] = useSearchParams();
   
   const {
     currentProfile,
@@ -75,6 +76,14 @@ export const ProfilePage = () => {
       dispatch(setFollowing(mockUsers.slice(2, 7)));
     }
   }, [username, isCurrentUser, dispatch]);
+
+  // Handle tab from URL query parameter
+  useEffect(() => {
+    const tabFromUrl = searchParams.get('tab');
+    if (tabFromUrl && ['posts', 'reels', 'saved'].includes(tabFromUrl)) {
+      dispatch(setActiveTab(tabFromUrl as 'posts' | 'reels' | 'saved'));
+    }
+  }, [searchParams, dispatch]);
 
   const handleFollow = () => {
     dispatch(toggleFollow());
@@ -219,7 +228,18 @@ export const ProfilePage = () => {
 
       <ProfileTabs
         activeTab={activeTab}
-        onTabChange={(tab) => dispatch(setActiveTab(tab))}
+        onTabChange={(tab) => {
+          dispatch(setActiveTab(tab));
+          // Update URL with tab parameter
+          const newSearchParams = new URLSearchParams(searchParams);
+          if (tab === 'posts') {
+            newSearchParams.delete('tab'); // Remove tab param for default posts tab
+          } else {
+            newSearchParams.set('tab', tab);
+          }
+          const newUrl = `${window.location.pathname}${newSearchParams.toString() ? `?${newSearchParams.toString()}` : ''}`;
+          navigate(newUrl, { replace: true });
+        }}
         isCurrentUser={isCurrentUser}
       />
 
