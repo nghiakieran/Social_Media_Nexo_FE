@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import type { LoginRequest, LoginResponse } from '../types';
-// import { ForgotPasswordDialog } from './ForgotPasswordDialog';
+import { ForgotPasswordDialog } from './ForgotPasswordDialog';
 
 interface SwitchAccountDialogProps {
   isOpen: boolean;
@@ -46,7 +46,7 @@ export const SwitchAccountDialog = ({ isOpen, onClose }: SwitchAccountDialogProp
     try {
       // TODO: Implement actual login API call
       const loginData: LoginRequest = {
-        username,
+        email: username, // Using email field as per updated interface
         password,
         saveLogin: saveLoginInfo
       };
@@ -181,11 +181,11 @@ export const SwitchAccountDialog = ({ isOpen, onClose }: SwitchAccountDialogProp
       </div>
 
       {/* Forgot Password Dialog */}
-      {/* <ForgotPasswordDialog
+      <ForgotPasswordDialog
         isOpen={showForgotPassword}
         onClose={() => setShowForgotPassword(false)}
         onBackToLogin={() => setShowForgotPassword(false)}
-      /> */}
+      />
     </div>
   );
 };

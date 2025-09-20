@@ -1,12 +1,15 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
+import { useDispatch, useSelector } from 'react-redux';
 import { Eye, EyeOff, Mail, Lock, User, AtSign } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { OAuthButton } from './OAuthButton';
+import { registerStart, registerSuccess, registerFailure } from '../authSlice';
+import type { RootState } from '@/store';
 import { mockAuthDelay } from '../__mocks__/users';
 
 interface RegisterFormData {
@@ -20,9 +23,10 @@ interface RegisterFormData {
 export const RegisterForm = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
+  const dispatch = useDispatch();
+  const { isLoading, error } = useSelector((state: RootState) => state.auth);
 
   const {
     register,
@@ -34,12 +38,14 @@ export const RegisterForm = () => {
   const password = watch('password');
 
   const onSubmit = async (data: RegisterFormData) => {
-    setIsLoading(true);
+    dispatch(registerStart());
     
     try {
       await mockAuthDelay();
       
       // Mock registration success
+      dispatch(registerSuccess());
+      
       toast({
         title: "Đăng ký thành công!",
         description: "Tài khoản của bạn đã được tạo. Vui lòng đăng nhập.",
@@ -47,13 +53,12 @@ export const RegisterForm = () => {
       
       navigate('/auth/login');
     } catch (error) {
+      dispatch(registerFailure("Có lỗi xảy ra. Vui lòng thử lại"));
       toast({
         variant: "destructive",
         title: "Lỗi",
         description: "Có lỗi xảy ra. Vui lòng thử lại.",
       });
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -69,7 +74,7 @@ export const RegisterForm = () => {
     <div className="w-full max-w-sm mx-auto">
       <div className="text-center mb-8">
         <h1 className="text-3xl font-bold bg-gradient-instagram bg-clip-text text-transparent mb-2">
-          Social Media Nexo
+          Nexo
         </h1>
         <p className="text-muted-foreground">Tạo tài khoản mới</p>
       </div>

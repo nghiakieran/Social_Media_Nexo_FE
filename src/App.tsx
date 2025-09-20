@@ -91,10 +91,12 @@ const App = () => (
               </Route>
 
               {/* Auth Routes */}
-              <Route path="/login" element={<LoginPage />} />
-              <Route path="/register" element={<RegisterPage />} />
-              <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-              <Route path="/2fa" element={<TwoFactorPage />} />
+              <Route path="/auth" element={<AuthLayout />}>
+                <Route path="login" element={<LoginPage />} />
+                <Route path="register" element={<RegisterPage />} />
+                <Route path="forgot-password" element={<ForgotPasswordPage />} />
+                <Route path="2fa" element={<TwoFactorPage />} />
+              </Route>
 
               {/* Catch-all route */}
               <Route path="*" element={<NotFound />} />

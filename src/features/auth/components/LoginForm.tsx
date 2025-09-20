@@ -1,12 +1,15 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
+import { useDispatch, useSelector } from 'react-redux';
 import { Eye, EyeOff, Mail, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { OAuthButton } from './OAuthButton';
+import { loginStart, loginSuccess, loginTwoFactor, loginFailure } from '../authSlice';
+import type { RootState } from '@/store';
 import { mockUsers, mockAuthDelay } from '../__mocks__/users';
 
 interface LoginFormData {
@@ -16,9 +19,10 @@ interface LoginFormData {
 
 export const LoginForm = () => {
   const [showPassword, setShowPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
+  const dispatch = useDispatch();
+  const { isLoading, error } = useSelector((state: RootState) => state.auth);
 
   const {
     register,
@@ -27,7 +31,7 @@ export const LoginForm = () => {
   } = useForm<LoginFormData>();
 
   const onSubmit = async (data: LoginFormData) => {
-    setIsLoading(true);
+    dispatch(loginStart());
     
     try {
       await mockAuthDelay();
@@ -36,6 +40,7 @@ export const LoginForm = () => {
       const user = mockUsers.find(u => u.email === data.email && u.password === data.password);
       
       if (!user) {
+        dispatch(loginFailure("Email hoặc mật khẩu không chính xác"));
         toast({
           variant: "destructive",
           title: "Đăng nhập thất bại",
@@ -46,6 +51,7 @@ export const LoginForm = () => {
 
       if (user.hasTwoFactor) {
         // Redirect to 2FA
+        dispatch(loginTwoFactor(user.id));
         navigate('/auth/2fa', { state: { email: data.email } });
         toast({
           title: "Xác thực 2 bước",
@@ -55,6 +61,15 @@ export const LoginForm = () => {
       }
 
       // Successful login
+      dispatch(loginSuccess({
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        username: user.username,
+        avatar: user.avatar,
+        isVerified: user.isVerified,
+      }));
+      
       toast({
         title: "Đăng nhập thành công!",
         description: `Chào mừng trở lại, ${user.name}!`,
@@ -62,13 +77,12 @@ export const LoginForm = () => {
       
       navigate('/');
     } catch (error) {
+      dispatch(loginFailure("Có lỗi xảy ra. Vui lòng thử lại"));
       toast({
         variant: "destructive",
         title: "Lỗi",
         description: "Có lỗi xảy ra. Vui lòng thử lại.",
       });
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -84,7 +98,7 @@ export const LoginForm = () => {
     <div className="w-full max-w-sm mx-auto">
       <div className="text-center mb-8">
         <h1 className="text-3xl font-bold bg-gradient-instagram bg-clip-text text-transparent mb-2">
-          SSocial Media Nexo
+          Nexo
         </h1>
         <p className="text-muted-foreground">Đăng nhập vào tài khoản của bạn</p>
       </div>
@@ -127,8 +141,8 @@ export const LoginForm = () => {
               {...register('password', {
                 required: 'Mật khẩu là bắt buộc',
                 minLength: {
-                  value: 6,
-                  message: 'Mật khẩu phải có ít nhất 6 ký tự',
+                  value: 8,
+                  message: 'Mật khẩu phải có ít nhất 8 ký tự',
                 },
               })}
             />
