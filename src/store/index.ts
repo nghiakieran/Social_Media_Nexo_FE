@@ -10,6 +10,7 @@ import friendSlice from '@/features/friend/friendSlice';
 import messageSlice from '@/features/message/messageSlice';
 import exploreSlice from '@/features/explore/exploreSlice';
 import profileSlice from '@/features/profile/profileSlice';
+import savedSlice from '@/features/saved/savedSlice';
 
 export const store = configureStore({
   reducer: {
@@ -21,6 +22,7 @@ export const store = configureStore({
     message: messageSlice,
     explore: exploreSlice,
     profile: profileSlice,
+    saved: savedSlice,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

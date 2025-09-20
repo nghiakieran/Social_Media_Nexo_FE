@@ -9,7 +9,8 @@ import {
   ChevronRight,
   Lock,
   Globe,
-  Users
+  Users,
+  UserX
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -27,8 +28,11 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
+import { useNavigate } from 'react-router-dom';
 
 export const AccountSettings = () => {
+  const navigate = useNavigate();
+  const { toast } = useToast();
   const [settings, setSettings] = useState({
     isPrivate: false,
     allowMessageRequests: true,
@@ -43,7 +47,6 @@ export const AccountSettings = () => {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const { toast } = useToast();
 
   const handleSettingChange = (key: string, value: boolean) => {
     setSettings(prev => ({ ...prev, [key]: value }));
@@ -156,6 +159,44 @@ export const AccountSettings = () => {
               checked={settings.allowTagging}
               onCheckedChange={(checked) => handleSettingChange('allowTagging', checked)}
             />
+          </div>
+
+          <Separator />
+
+          <div className="flex items-center justify-between">
+            <div>
+              <Label className="font-medium">Đã chặn</Label>
+              <p className="text-sm text-muted-foreground">
+                Quản lý danh sách người dùng đã chặn
+              </p>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigate('/account/blocked')}
+              className="gap-2"
+            >
+              <UserX className="w-4 h-4" />
+              Xem danh sách
+            </Button>
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div>
+              <Label className="font-medium">Ẩn tin</Label>
+              <p className="text-sm text-muted-foreground">
+                Quản lý danh sách bài viết đã ẩn
+              </p>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigate('/account/hidden-posts')}
+              className="gap-2"
+            >
+              <EyeOff className="w-4 h-4" />
+              Xem danh sách
+            </Button>
           </div>
         </CardContent>
       </Card>

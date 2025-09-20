@@ -102,6 +102,7 @@ export const ActionMenu: React.FC<ActionMenuProps> = ({
                     e.preventDefault();
                     e.stopPropagation();
                     item.action();
+                    onClose();
                   }}
                 >
                   {item.label}
@@ -112,6 +113,7 @@ export const ActionMenu: React.FC<ActionMenuProps> = ({
                     e.preventDefault();
                     e.stopPropagation();
                     item.action();
+                    onClose();
                   }}
                   className={`px-6 py-4 text-center text-sm font-medium transition-colors hover:bg-gray-100 dark:hover:bg-gray-800 ${
                     item.isDestructive 

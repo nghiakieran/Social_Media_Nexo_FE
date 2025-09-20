@@ -25,11 +25,25 @@ export const LikesDialog = ({ isOpen, onClose, title = 'Lượt thích', infoTex
   const [followMap, setFollowMap] = useState<Record<string, boolean>>({});
   const [isMobile, setIsMobile] = useState(false);
   
-  useEffect(() => {
+useEffect(() => {
+  if (!isOpen) return;
+  setFollowMap((prev) => {
     const next: Record<string, boolean> = {};
     for (const u of users) next[u.id] = !!u.isFollowing;
-    setFollowMap(next);
-  }, [users]);
+
+    // shallow compare keys and values to avoid unnecessary state updates
+    const prevKeys = Object.keys(prev);
+    const nextKeys = Object.keys(next);
+    if (prevKeys.length === nextKeys.length) {
+      let identical = true;
+      for (const k of nextKeys) {
+        if (prev[k] !== next[k]) { identical = false; break; }
+      }
+      if (identical) return prev;
+    }
+    return next;
+  });
+}, [isOpen, users]);
 
   useEffect(() => {
     const checkMobile = () => {
@@ -137,7 +151,7 @@ export const LikesDialog = ({ isOpen, onClose, title = 'Lượt thích', infoTex
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center">
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-      <div className="relative bg-white dark:bg-gray-900 rounded-2xl shadow-xl w-[420px] max-w-[90vw] max-h-[72vh] flex flex-col">
+      <div className="relative bg-white dark:bg-gray-900 rounded-t-2xl shadow-xl w-[420px] max-w-[90vw] max-h-[72vh] flex flex-col">
         {/* Header - IG like */}
         <div className="relative px-4 py-3 border-b border-gray-200 dark:border-gray-800">
           <button type="button" onClick={onClose} className="absolute left-2 top-1/2 -translate-y-1/2 p-1 text-gray-700 dark:text-gray-300" aria-label="Đóng">

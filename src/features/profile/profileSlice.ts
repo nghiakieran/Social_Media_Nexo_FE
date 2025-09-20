@@ -29,11 +29,19 @@ export interface ProfilePost {
   createdAt: string;
 }
 
+export interface StoryHighlight {
+  id: string;
+  title: string;
+  cover: string;
+  postIds: string[];
+}
+
 interface ProfileState {
   currentProfile: UserProfile | null;
   posts: ProfilePost[];
   reels: ProfilePost[];
   saved: ProfilePost[];
+  highlights: StoryHighlight[];
   followers: UserProfile[];
   following: UserProfile[];
   activeTab: 'posts' | 'reels' | 'saved';
@@ -43,6 +51,8 @@ interface ProfileState {
   showFollowingDialog: boolean;
   showBlockDialog: boolean;
   showReportDialog: boolean;
+  showAvatarDialog: boolean;
+  showCreateHighlightDialog: boolean;
 }
 
 const initialState: ProfileState = {
@@ -50,6 +60,7 @@ const initialState: ProfileState = {
   posts: [],
   reels: [],
   saved: [],
+  highlights: [],
   followers: [],
   following: [],
   activeTab: 'posts',
@@ -59,6 +70,8 @@ const initialState: ProfileState = {
   showFollowingDialog: false,
   showBlockDialog: false,
   showReportDialog: false,
+  showAvatarDialog: false,
+  showCreateHighlightDialog: false,
 };
 
 const profileSlice = createSlice({
@@ -76,6 +89,12 @@ const profileSlice = createSlice({
     },
     setSaved: (state, action: PayloadAction<ProfilePost[]>) => {
       state.saved = action.payload;
+    },
+    setHighlights: (state, action: PayloadAction<StoryHighlight[]>) => {
+      state.highlights = action.payload;
+    },
+    addHighlight: (state, action: PayloadAction<StoryHighlight>) => {
+      state.highlights = [action.payload, ...state.highlights];
     },
     setFollowers: (state, action: PayloadAction<UserProfile[]>) => {
       state.followers = action.payload;
@@ -120,6 +139,17 @@ const profileSlice = createSlice({
     setError: (state, action: PayloadAction<string | null>) => {
       state.error = action.payload;
     },
+    setShowAvatarDialog: (state, action: PayloadAction<boolean>) => {
+      state.showAvatarDialog = action.payload;
+    },
+    setShowCreateHighlightDialog: (state, action: PayloadAction<boolean>) => {
+      state.showCreateHighlightDialog = action.payload;
+    },
+    updateAvatar: (state, action: PayloadAction<string>) => {
+      if (state.currentProfile) {
+        state.currentProfile.avatar = action.payload;
+      }
+    },
   },
 });
 
@@ -128,6 +158,8 @@ export const {
   setPosts,
   setReels,
   setSaved,
+  setHighlights,
+  addHighlight,
   setFollowers,
   setFollowing,
   setActiveTab,
@@ -140,6 +172,9 @@ export const {
   setShowReportDialog,
   setLoading,
   setError,
+  setShowAvatarDialog,
+  setShowCreateHighlightDialog,
+  updateAvatar,
 } = profileSlice.actions;
 
 export default profileSlice.reducer;

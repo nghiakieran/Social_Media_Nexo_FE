@@ -2,6 +2,7 @@ import { memo } from "react"
 import { useNavigate } from "react-router-dom"
 import { Volume2, VolumeX, MoreHorizontal, Pause, Play, X } from "lucide-react"
 import { Story } from "../types"
+import { LazyImage } from "@/components/common/LazyImage"
 
 interface StoryHeaderProps {
   story: Story
@@ -40,12 +41,13 @@ export const StoryHeader = memo(({
           className="flex items-center gap-3 flex-1 min-w-0 hover:opacity-80 transition-opacity"
         >
           <div className="relative">
-            <img
+            <LazyImage
               src={story.profileImage || "/placeholder.svg"}
               alt={`${story.username}'s profile`}
               className="w-8 h-8 rounded-full flex-shrink-0 ring-2 ring-white/20"
-              crossOrigin="anonymous"
               loading="lazy"
+              decoding="async"
+              enableProgressiveLoading
             />
             <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-black"></div>
           </div>

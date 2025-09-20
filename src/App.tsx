@@ -47,6 +47,8 @@ import { SearchPage } from "./features/explore/pages/SearchPage";
 import { ProfilePage } from "./features/profile/pages/ProfilePage";
 import { EditProfilePage } from "./features/profile/pages/EditProfilePage";
 import { AccountSettingsPage } from "./features/profile/pages/AccountSettingsPage";
+import { BlockedUsersPage } from "./features/profile/pages/BlockedUsersPage";
+import { HiddenPostsPage } from "./features/profile/pages/HiddenPostsPage";
 
 const queryClient = new QueryClient();
 
@@ -77,6 +79,8 @@ const App = () => (
                 <Route path="profile" element={<ProfilePage />} />
                 <Route path="edit-profile" element={<EditProfilePage />} />
                 <Route path="account/settings" element={<AccountSettingsPage />} />
+                <Route path="account/blocked" element={<BlockedUsersPage />} />
+                <Route path="account/hidden-posts" element={<HiddenPostsPage />} />
                 <Route path=":username" element={<ProfilePage />} />
                 <Route path="settings" element={<AccountSettingsPage />} />
                 

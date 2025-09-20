@@ -17,6 +17,7 @@ import { Suggestions } from '@/components/common/Suggestions';
 export const MainLayout = () => {
   const location = useLocation();
   const dispatch = useAppDispatch();
+  const isHome = location.pathname === '/';
   const { 
     chats, 
     messages, 
@@ -43,10 +44,10 @@ export const MainLayout = () => {
       <div className="flex">
         <Sidebar />
         <main className="flex-1 flex justify-center min-h-screen pt-16 pb-16 lg:pt-0 lg:pb-0">
-          <div className="w-full max-w-lg xl:max-w-xl 2xl:max-w-2xl">
+          <div className={isHome ? "w-full max-w-lg xl:max-w-xl 2xl:max-w-2xl" : "w-full max-w-[935px]"}>
             <Outlet />
           </div>
-          {location.pathname === '/' && (
+          {isHome && (
             <div className="hidden xl:block xl:w-80 2xl:w-96">
               <div className="sticky top-4 pt-8">
                 <Suggestions />
