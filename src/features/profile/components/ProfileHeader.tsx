@@ -115,7 +115,7 @@ export const ProfileHeader = ({
                   variant="outline" 
                   size="sm"
                   onClick={onEdit}
-                  className="gap-1"
+                  className="gap-1 bg-gray-200"
                 >
                   <Edit3 className="w-4 h-4" />
                   Chỉnh sửa trang cá nhân
@@ -124,6 +124,7 @@ export const ProfileHeader = ({
                   variant="outline" 
                   size="sm"
                   onClick={() => navigate('/account/settings')}
+                  className='bg-gray-200'
                 >
                   <Settings className="w-4 h-4" />
                 </Button>

@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils';
 import { EmojiPicker } from '@/components/common/EmojiPicker';
 import { ActionMenu, ActionMenuItem } from '@/components/common/ActionMenu';
 import { LikesDialog } from './LikesDialog';
+import { useBookmark } from '@/features/saved/hooks/useBookmark';
 
 interface Comment {
   id: string;
@@ -65,8 +66,6 @@ interface CommentDialogProps {
   isAuthorFollowed?: boolean;
   onToggleFollowAuthor?: (userId: string, nextIsFollowing: boolean) => void;
   actionMenuItems?: ActionMenuItem[];
-  isBookmarked?: boolean;
-  onToggleBookmark?: (postId: string, nextIsBookmarked: boolean) => void;
 }
 
 export const CommentDialog = ({
@@ -86,10 +85,10 @@ export const CommentDialog = ({
   onAddPostEmojiReaction,
   isAuthorFollowed,
   onToggleFollowAuthor,
-  actionMenuItems,
-  isBookmarked = false,
-  onToggleBookmark
+  actionMenuItems
 }: CommentDialogProps) => {
+  // Use bookmark hook
+  const { isBookmarked, toggleBookmark } = useBookmark();
   const [isMobile, setIsMobile] = useState(false);
   const [newComment, setNewComment] = useState('');
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
@@ -904,14 +903,17 @@ export const CommentDialog = ({
                 <Send className="w-6 h-6" />
               </button>
               <div className="flex-1"></div>
-              <button className="text-gray-500 hover:text-gray-700 transition-colors" type="button">
+              <button 
+                className="text-gray-500 hover:text-gray-700 transition-colors" 
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  toggleBookmark(post.id);
+                }}
+              >
                 <Bookmark
-                  className={cn("w-6 h-6", isBookmarked && "fill-current text-gray-800 dark:text-gray-100")}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    if (onToggleBookmark) onToggleBookmark(post.id, !isBookmarked);
-                  }}
+                  className={cn("w-6 h-6", isBookmarked(post.id) && "fill-current text-gray-800 dark:text-gray-100")}
                 />
               </button>
             </div>

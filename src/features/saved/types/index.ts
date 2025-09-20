@@ -1,0 +1,42 @@
+export interface SavedPost {
+  id: string;
+  postId: string;
+  collectionId: string;
+  savedAt: string;
+  post: {
+    id: string;
+    userId: string;
+    userName: string;
+    userAvatar: string;
+    content: string;
+    media: Array<{
+      id: string;
+      type: 'image' | 'video' | 'reel';
+      url: string;
+      alt: string;
+    }>;
+    likesCount: number;
+    commentsCount: number;
+    createdAt: string;
+  };
+}
+
+export interface SavedCollection {
+  id: string;
+  name: string;
+  description?: string;
+  coverImage?: string;
+  postsCount: number;
+  createdAt: string;
+  updatedAt: string;
+  isDefault?: boolean; // "Tất cả bài viết"
+}
+
+export interface SavedState {
+  collections: SavedCollection[];
+  posts: SavedPost[];
+  loading: boolean;
+  error: string | null;
+}
+
+

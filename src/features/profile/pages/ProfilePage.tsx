@@ -34,6 +34,7 @@ import { mockProfilePosts, mockReels, mockSavedPosts } from '../__mocks__/posts'
 import { useToast } from '@/hooks/use-toast';
 import { StoryViewer } from '@/features/story/components/StoryViewer';
 import type { Story } from '@/features/story/types';
+import { SavedCollectionsContent } from '@/features/saved/components/SavedCollectionsContent';
 
 export const ProfilePage = () => {
   const { username } = useParams<{ username: string }>();
@@ -174,7 +175,7 @@ export const ProfilePage = () => {
       case 'reels':
         return <PostGrid posts={reels} />;
       case 'saved':
-        return isCurrentUser ? <PostGrid posts={saved} /> : null;
+        return isCurrentUser ? <SavedCollectionsContent /> : null;
       default:
         return <PostGrid posts={posts} />;
     }

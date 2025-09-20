@@ -30,6 +30,7 @@ import { EmojiPicker } from '@/components/common/EmojiPicker';
 import { useToast } from '@/hooks/use-toast';
 import { LikesDialog } from './LikesDialog';
 import { ActionMenu } from '@/components/common/ActionMenu';
+import { useBookmark } from '@/features/saved/hooks/useBookmark';
 
 interface MediaItem {
   id: string;
@@ -73,9 +74,8 @@ interface Comment {
 }
 
 interface PostCardProps {
-  post: Post;
+  post: Omit<Post, 'isBookmarked'>;
   onLike: (postId: string) => void;
-  onBookmark: (postId: string) => void;
   onEdit: (postId: string) => void;
   onDelete: (postId: string) => void;
   onReport: (postId: string) => void;
@@ -91,7 +91,6 @@ interface PostCardProps {
 export const PostCard = ({ 
   post, 
   onLike, 
-  onBookmark, 
   onEdit, 
   onDelete, 
   onReport,
@@ -114,6 +113,9 @@ export const PostCard = ({
   const [showActionMenu, setShowActionMenu] = useState(false);
   const [actionMenuPosition, setActionMenuPosition] = useState<{ top: number; left?: number; right?: number } | null>(null);
   const [isAuthorFollowed, setIsAuthorFollowed] = useState(false);
+  
+  // Use bookmark hook
+  const { isBookmarked, toggleBookmark } = useBookmark();
 
   const privacyIcons = {
     public: Globe,
@@ -427,12 +429,12 @@ export const PostCard = ({
               </button>
             </div>
             <button
-              className={`h-9 w-9 inline-flex items-center justify-center select-none touch-manipulation transition-opacity ${post.isBookmarked ? 'text-foreground' : 'text-foreground hover:opacity-80 active:opacity-60'}`}
-              onClick={() => handleAction('Bookmark', onBookmark)}
+              className={`h-9 w-9 inline-flex items-center justify-center select-none touch-manipulation transition-opacity ${isBookmarked(post.id) ? 'text-foreground' : 'text-foreground hover:opacity-80 active:opacity-60'}`}
+              onClick={() => toggleBookmark(post.id)}
               aria-label="Lưu bài viết"
               type="button"
             >
-              <Bookmark className={`w-6 h-6 ${post.isBookmarked ? 'fill-current' : ''}`} />
+              <Bookmark className={`w-6 h-6 ${isBookmarked(post.id) ? 'fill-current' : ''}`} />
             </button>
           </div>
 
