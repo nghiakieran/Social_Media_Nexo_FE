@@ -1,4 +1,5 @@
-import { NavLink } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
+import { useState, useRef } from 'react';
 import { 
   Home, 
   Search, 
@@ -8,12 +9,21 @@ import {
   Heart, 
   PlusSquare, 
   User,
+  MoreHorizontal,
   Settings,
+  Bookmark,
+  Sun,
+  Moon,
+  LogOut,
   Users,
-  Shield
+  Shield,
+  ChevronLeft
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Logo } from './Logo';
+import { Button } from '@/components/ui/button';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { SwitchAccountDialog } from '@/features/auth';
 
 const navigation = [
   { name: 'Trang chủ', href: '/', icon: Home },
@@ -32,6 +42,23 @@ const mlFeatures = [
 ];
 
 export const Sidebar = () => {
+  const navigate = useNavigate();
+  const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
+  const [isThemeMenuOpen, setIsThemeMenuOpen] = useState(false);
+  const [isSwitchAccountOpen, setIsSwitchAccountOpen] = useState(false);
+  const themeButtonRef = useRef<HTMLButtonElement>(null);
+
+  const handleLogout = () => {
+    // TODO: Implement logout logic
+    console.log('Logout clicked');
+    navigate('/login');
+  };
+
+  const handleThemeToggle = (theme: 'light' | 'dark') => {
+    // TODO: Implement theme switching logic
+    console.log('Theme changed to:', theme);
+    setIsThemeMenuOpen(false);
+  };
 
   const SidebarContent = () => (
     <>
@@ -90,14 +117,150 @@ export const Sidebar = () => {
       </nav>
       
       <div className="p-4 border-t border-border">
-        <NavLink
-          to="/settings"
-          className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground transition-all duration-200"
-        >
-          <Settings className="h-5 w-5" />
-          Cài đặt
-        </NavLink>
+        <Popover open={isMoreMenuOpen} onOpenChange={setIsMoreMenuOpen}>
+          <PopoverTrigger asChild>
+            <Button
+              variant="ghost"
+              className="w-full justify-start gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground transition-all duration-200"
+            >
+              <MoreHorizontal className="h-5 w-5" />
+              Xem thêm
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-64 p-2" align="start">
+            <div className="space-y-1">
+              {/* Cài đặt */}
+              <Button
+                variant="ghost"
+                className="w-full justify-start gap-3 px-3 py-2.5 text-sm"
+                onClick={() => {
+                  navigate('/account/settings');
+                  setIsMoreMenuOpen(false);
+                }}
+              >
+                <Settings className="h-4 w-4" />
+                Cài đặt
+              </Button>
+
+              {/* Đã lưu */}
+              <Button
+                variant="ghost"
+                className="w-full justify-start gap-3 px-3 py-2.5 text-sm"
+                onClick={() => {
+                  navigate('/profile?tab=saved');
+                  setIsMoreMenuOpen(false);
+                }}
+              >
+                <Bookmark className="h-4 w-4" />
+                Đã lưu
+              </Button>
+
+              {/* Chuyển chế độ */}
+              <Button
+                ref={themeButtonRef}
+                variant="ghost"
+                className="w-full justify-start gap-3 px-3 py-2.5 text-sm"
+                onClick={() => {
+                  setIsThemeMenuOpen(true);
+                  setIsMoreMenuOpen(false);
+                }}
+              >
+                <Sun className="h-4 w-4" />
+                Chuyển chế độ
+              </Button>
+
+              {/* Chuyển tài khoản */}
+              <Button
+                variant="ghost"
+                className="w-full justify-start gap-3 px-3 py-2.5 text-sm"
+                onClick={() => {
+                  setIsSwitchAccountOpen(true);
+                  setIsMoreMenuOpen(false);
+                }}
+              >
+                <User className="h-4 w-4" />
+                Chuyển tài khoản
+              </Button>
+
+              {/* Đăng xuất */}
+              <Button
+                variant="ghost"
+                className="w-full justify-start gap-3 px-3 py-2.5 text-sm text-red-600 hover:text-red-700 hover:bg-red-50"
+                onClick={() => {
+                  handleLogout();
+                  setIsMoreMenuOpen(false);
+                }}
+              >
+                <LogOut className="h-4 w-4" />
+                Đăng xuất
+              </Button>
+            </div>
+          </PopoverContent>
+        </Popover>
       </div>
+
+      {/* Theme Menu Popover - Using Popover component with proper positioning */}
+      <Popover open={isThemeMenuOpen} onOpenChange={setIsThemeMenuOpen}>
+        <PopoverTrigger asChild>
+          <Button
+            ref={themeButtonRef}
+            className="hidden"
+            aria-hidden="true"
+          />
+        </PopoverTrigger>
+        <PopoverContent 
+          className="w-80 p-0"  
+          side="right" 
+          sideOffset={15}
+          style={{
+            translate: "0% 234%"
+          }}
+        >
+          {/* Header with back button */}
+          <div className="flex items-center gap-3 p-3 border-b border-border">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setIsThemeMenuOpen(false);
+                setIsMoreMenuOpen(true);
+              }}
+              className="p-1 h-8 w-8"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <p className="text-sm font-semibold">Chuyển chế độ</p>
+          </div>
+
+          {/* Theme options */}
+          <div className="p-4">
+            <div className="space-y-2">
+              <Button
+                variant="ghost"
+                className="w-full justify-start gap-3 px-3 py-3 text-sm h-auto"
+                onClick={() => handleThemeToggle('light')}
+              >
+                <Sun className="h-5 w-5" />
+                <div className="text-left font-medium">
+                  Chế độ sáng
+                </div>
+              </Button>
+              
+              <Button
+                variant="ghost"
+                className="w-full justify-start gap-3 px-3 py-3 text-sm h-auto"
+                onClick={() => handleThemeToggle('dark')}
+              >
+                <Moon className="h-5 w-5" />
+                <div className="text-left font-medium">
+                  Chế độ tối
+                </div>
+              </Button>
+            </div>
+          </div>
+        </PopoverContent>
+      </Popover>
+
     </>
   );
 
@@ -174,6 +337,12 @@ export const Sidebar = () => {
       <aside className="hidden lg:flex w-64 flex-col border-r border-border bg-background/50 backdrop-blur-sm h-screen sticky top-0">
         <SidebarContent />
       </aside>
+
+      {/* Switch Account Dialog - Outside sidebar container */}
+      <SwitchAccountDialog
+        isOpen={isSwitchAccountOpen}
+        onClose={() => setIsSwitchAccountOpen(false)}
+      />
     </>
   );
 };
