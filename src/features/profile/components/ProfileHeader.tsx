@@ -13,6 +13,7 @@ import {
   Link as LinkIcon,
   BadgeCheck
 } from 'lucide-react';
+import { NotesDialog } from './NotesDialog';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import {
@@ -55,11 +56,25 @@ export const ProfileHeader = ({
 }: ProfileHeaderProps) => {
   const { toast } = useToast();
   const navigate = useNavigate();
+  const [isNotesDialogOpen, setIsNotesDialogOpen] = useState(false);
 
   const handleWebsiteClick = () => {
     if (profile.website) {
       window.open(profile.website, '_blank');
     }
+  };
+
+  const handleNotesClick = () => {
+    setIsNotesDialogOpen(true);
+  };
+
+  const handlePublishNote = (content: string) => {
+    // TODO: Implement note publishing logic
+    console.log('Publishing note:', content);
+    toast({
+      title: "Ghi chú đã được chia sẻ",
+      description: "Ghi chú của bạn đã được đăng thành công.",
+    });
   };
 
   const handleCopyLink = async () => {
@@ -81,8 +96,9 @@ export const ProfileHeader = ({
   return (
     <div className="px-14 py-6 border-b border-border bg-background">
       <div className="flex items-start gap-16">
-        {/* Avatar */}
+        {/* Avatar Container */}
         <div className="relative">
+          {/* Avatar Button */}
           <button
             onClick={isCurrentUser ? onAvatarClick : undefined}
             className={isCurrentUser ? "cursor-pointer hover:opacity-80 transition-opacity" : "cursor-default"}
@@ -96,6 +112,18 @@ export const ProfileHeader = ({
               </AvatarFallback>
             </Avatar>
           </button>
+          
+          {/* Notes Overlay - Separate clickable area */}
+          {isCurrentUser && (
+            <div className="absolute -bottom-2 -right-2">
+              <button
+                onClick={handleNotesClick}
+                className="bg-black/80 hover:bg-black/90 text-white text-xs font-medium px-3 py-1.5 rounded-full backdrop-blur-sm transition-all duration-200 hover:scale-105"
+              >
+                Ghi chú...
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Profile Info */}
@@ -228,6 +256,17 @@ export const ProfileHeader = ({
           </div>
         </div>
       </div>
+
+      {/* Notes Dialog - Only render when open */}
+      {isNotesDialogOpen && (
+        <NotesDialog
+          isOpen={isNotesDialogOpen}
+          onClose={() => setIsNotesDialogOpen(false)}
+          onPublish={handlePublishNote}
+          userAvatar={profile.avatar}
+          userName={profile.name}
+        />
+      )}
     </div>
   );
 };

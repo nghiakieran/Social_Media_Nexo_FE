@@ -45,13 +45,6 @@ export const SavedCollectionsContent: React.FC = () => {
 
   return (
     <div className="px-4 py-6">
-      {/* Privacy Notice */}
-      <div className="mb-8 p-4 bg-blue-50 rounded-lg border border-blue-200">
-        <p className="text-sm text-blue-800">
-          Chỉ mình bạn có thể xem mục mình đã lưu
-        </p>
-      </div>
-
       {/* Create Collection Button (IG-like pill) */}
       <div className="mb-6">
         <button
