@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { useDispatch, useSelector } from 'react-redux';
 import { Eye, EyeOff, Mail, Lock } from 'lucide-react';
@@ -21,6 +21,7 @@ export const LoginForm = () => {
   const [showPassword, setShowPassword] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
+  const location = useLocation();
   const dispatch = useDispatch();
   const { isLoading, error } = useSelector((state: RootState) => state.auth);
 
@@ -85,6 +86,18 @@ export const LoginForm = () => {
       });
     }
   };
+
+  // Show session expired message based on query param
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get('reason') === 'session_expired') {
+      toast({
+        variant: 'destructive',
+        title: 'Phiên đăng nhập đã hết hạn',
+        description: 'Vui lòng đăng nhập lại để tiếp tục.',
+      });
+    }
+  }, [location.search, toast]);
 
   const handleOAuth = async (provider: string) => {
     await mockAuthDelay();

@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useNavigate } from "react-router-dom";
 import { store } from '@/store';
 import { ErrorBoundary } from '@/components/common/ErrorBoundary';
 import { MainLayout } from '@/layouts/MainLayout';
@@ -49,8 +49,18 @@ import { EditProfilePage } from "./features/profile/pages/EditProfilePage";
 import { AccountSettingsPage } from "./features/profile/pages/AccountSettingsPage";
 import { BlockedUsersPage } from "./features/profile/pages/BlockedUsersPage";
 import { HiddenPostsPage } from "./features/profile/pages/HiddenPostsPage";
+import { useEffect } from 'react';
+import { setOnUnauthorizedNavigate } from '@/lib/axios';
 
 const queryClient = new QueryClient();
+
+const NavigationBinder = () => {
+  const navigate = useNavigate();
+  useEffect(() => {
+    setOnUnauthorizedNavigate((path) => navigate(path, { replace: true }));
+  }, [navigate]);
+  return null;
+};
 
 const App = () => (
   <ErrorBoundary>
@@ -60,6 +70,7 @@ const App = () => (
           <Toaster />
           <Sonner />
           <BrowserRouter>
+            <NavigationBinder />
             <Routes>
               {/* Main App Routes with Layout */}
               <Route path="/" element={<MainLayout />}>

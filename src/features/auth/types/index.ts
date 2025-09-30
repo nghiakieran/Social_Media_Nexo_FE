@@ -77,3 +77,25 @@ export interface User {
   avatar?: string;
   isVerified: boolean;
 }
+
+export interface TokenPayload {
+  access_token?: string;
+  refresh_token?: string;
+  id_token?: string | null;
+  token_type?: string;
+  expires_in?: number;
+  refresh_expires_in?: number;
+}
+
+export interface TokenResponse {
+  status?: number;
+  message?: string;
+  data?: TokenPayload;
+
+  access_token?: string;
+  refresh_token?: string;
+  id_token?: string | null;
+  token_type?: string;
+  expires_in?: number;
+  refresh_expires_in?: number;
+}

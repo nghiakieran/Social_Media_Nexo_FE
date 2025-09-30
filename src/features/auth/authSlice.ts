@@ -1,5 +1,6 @@
-import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { createSlice, PayloadAction, createAsyncThunk } from '@reduxjs/toolkit';
 import type { User } from './types';
+import { performLogout } from '@/lib/axios';
 
 interface AuthState {
   user: User | null;

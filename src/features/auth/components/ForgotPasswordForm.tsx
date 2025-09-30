@@ -146,7 +146,7 @@ export const ForgotPasswordForm = () => {
                 }),
                 ...(method === 'sms' && {
                   pattern: {
-                    value: /^[+]?[0-9\s\-\(\)]{10,}$/,
+                    value: /^[+]?[0-9\s\-()]{10,}$/,
                     message: 'Số điện thoại không hợp lệ',
                   },
                 }),
