@@ -12,7 +12,7 @@ import {
 
 // Create axios instance with base configuration
 export const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL,
+  baseURL: import.meta.env.VITE_API_URL || "http://localhost:8080/api",
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
@@ -84,15 +84,10 @@ export const abortAuthRefresh = () => {
 // Logout API: abort refresh, call server logout with refresh_token, clear tokens, drop default auth header
 export const performLogout = async (options?: { redirect?: boolean }) => {
   try {
+    // Abort refresh + clear tokens and default headers immediately (fail-safe)
     abortAuthRefresh();
     const baseURL = api.defaults.baseURL || '';
     const refreshToken = localStorage.getItem(REFRESH_TOKEN_STORAGE_KEY);
-    if (refreshToken) {
-      await axios.post(`${baseURL}${AUTH_LOGOUT_ENDPOINT}`, { refresh_token: refreshToken });
-    }
-  } catch (_) {
-    // ignore logout errors
-  } finally {
     clearTokens();
     if (api.defaults.headers) {
       if (api.defaults.headers instanceof AxiosHeaders) {
@@ -102,6 +97,13 @@ export const performLogout = async (options?: { redirect?: boolean }) => {
         if (defaultsHeaders.common) delete defaultsHeaders.common.Authorization;
       }
     }
+    // Best-effort notify backend (don't block logout semantics on failure)
+    if (refreshToken) {
+      await axios.post(`${baseURL}${AUTH_LOGOUT_ENDPOINT}`, { refresh_token: refreshToken });
+    }
+  } catch (_) {
+    // ignore logout errors
+  } finally {
     if (options?.redirect !== false) {
       navigateToLogin();
     }
