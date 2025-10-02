@@ -33,19 +33,35 @@ export const LoginForm = () => {
   const onSubmit = async (data: LoginFormData) => {
     try {
       await dispatch(loginAsync(data)).unwrap();
-      
+
       toast({
         title: "Đăng nhập thành công!",
         description: "Chào mừng trở lại!",
       });
-      
+
       navigate('/');
     } catch (error: unknown) {
-      toast({
-        variant: "destructive",
-        title: "Đăng nhập thất bại",
-        description: (error as string) || "Có lỗi xảy ra. Vui lòng thử lại.",
-      });
+      const err = error as { status?: number; message?: string } | string;
+      const status = typeof err === 'string' ? undefined : err.status;
+      if (status === 400) {
+        toast({
+          variant: "destructive",
+          title: "Chưa xác thực email",
+          description: "Vui lòng kiểm tra email và xác thực tài khoản trước khi đăng nhập.",
+        });
+      } else if (status === 401) {
+        toast({
+          variant: "destructive",
+          title: "Email hoặc mật khẩu không đúng",
+          description: "Vui lòng kiểm tra lại thông tin đăng nhập.",
+        });
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Đăng nhập thất bại",
+          description: (typeof err === 'string' ? err : err?.message) || "Có lỗi xảy ra. Vui lòng thử lại.",
+        });
+      }
     }
   };
 
@@ -124,6 +140,8 @@ export const LoginForm = () => {
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
+              tabIndex={-1}
+              aria-hidden="true"
               className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
             >
               {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -139,6 +157,7 @@ export const LoginForm = () => {
           <Link
             to="/auth/forgot-password"
             className="text-sm text-primary hover:underline"
+            tabIndex={-1}
           >
             Quên mật khẩu?
           </Link>

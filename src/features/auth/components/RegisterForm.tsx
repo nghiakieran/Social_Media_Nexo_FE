@@ -44,7 +44,7 @@ export const RegisterForm = () => {
       
       toast({
         title: "Đăng ký thành công!",
-        description: "Tài khoản của bạn đã được tạo. Vui lòng đăng nhập.",
+        description: "Tài khoản của bạn đã được tạo. Vui lòng kiểm tra email để xác thực tài khoản trước khi đăng nhập.",
       });
       
       navigate(AUTH_LOGIN_ENDPOINT);
@@ -174,6 +174,8 @@ export const RegisterForm = () => {
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
+              tabIndex={-1}
+              aria-hidden="true"
               className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
             >
               {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -203,6 +205,8 @@ export const RegisterForm = () => {
             <button
               type="button"
               onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+              tabIndex={-1}
+              aria-hidden="true"
               className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
             >
               {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}

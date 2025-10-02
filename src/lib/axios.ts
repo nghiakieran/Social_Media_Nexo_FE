@@ -6,7 +6,6 @@ import {
   AUTH_LOGOUT_ENDPOINT,
   AUTH_REFRESH_ENDPOINT,
   BEARER_TOKEN_PREFIX,
-  LOGIN_PATH,
   REFRESH_TOKEN_STORAGE_KEY,
 } from '@/utils/constants';
 
@@ -26,7 +25,7 @@ export const setOnUnauthorizedNavigate = (handler: (path: string) => void) => {
 };
 
 const navigateToLogin = (reason?: string) => {
-  const path = reason ? `${LOGIN_PATH}?reason=${reason}` : LOGIN_PATH;
+  const path = reason ? `${AUTH_LOGIN_ENDPOINT}?reason=${reason}` : AUTH_LOGIN_ENDPOINT;
   if (onUnauthorizedNavigate) {
     onUnauthorizedNavigate(path);
   } else {

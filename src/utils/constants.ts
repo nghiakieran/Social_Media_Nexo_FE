@@ -1,5 +1,3 @@
-export const LOGIN_PATH = '/auth/login';
-
 // Environment variable keys
 export const ENV_API_BASE_URL = 'VITE_API_URL';
 

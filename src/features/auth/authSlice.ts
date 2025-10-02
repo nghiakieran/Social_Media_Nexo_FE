@@ -120,8 +120,10 @@ export const loginAsync = createAsyncThunk('auth/loginAsync', async (credentials
       } as User;
     }
   } catch (error: unknown) {
-    const axiosError = error as { response?: { data?: { message?: string } } };
-    return rejectWithValue(axiosError?.response?.data?.message || 'Đăng nhập thất bại');
+    const axiosError = error as { response?: { status?: number; data?: { message?: string } } };
+    const status = axiosError?.response?.status;
+    const message = axiosError?.response?.data?.message || 'Đăng nhập thất bại';
+    return rejectWithValue({ status, message });
   }
 });
 
