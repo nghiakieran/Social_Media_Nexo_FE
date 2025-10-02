@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, useNavigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useNavigate, Navigate, useLocation } from "react-router-dom";
 import { store } from '@/store';
 import { ErrorBoundary } from '@/components/common/ErrorBoundary';
 import { MainLayout } from '@/layouts/MainLayout';
@@ -51,6 +51,9 @@ import { BlockedUsersPage } from "./features/profile/pages/BlockedUsersPage";
 import { HiddenPostsPage } from "./features/profile/pages/HiddenPostsPage";
 import { useEffect } from 'react';
 import { setOnUnauthorizedNavigate } from '@/lib/axios';
+import { useAppDispatch, useAppSelector } from '@/store';
+import { AUTH_LOGIN_ENDPOINT } from '@/utils/constants';
+import { hydrateAuthAsync } from '@/features/auth/authSlice';
 
 const queryClient = new QueryClient();
 
@@ -62,6 +65,26 @@ const NavigationBinder = () => {
   return null;
 };
 
+const HydrateOnStart = () => {
+  const dispatch = useAppDispatch();
+  useEffect(() => {
+    dispatch(hydrateAuthAsync());
+  }, [dispatch]);
+  return null;
+};
+
+const RequireAuth = ({ children }: { children: JSX.Element }) => {
+  const { isAuthenticated, isHydrated } = useAppSelector((state) => state.auth);
+  const location = useLocation();
+  if (!isHydrated) {
+    return null; // or a loader
+  }
+  if (!isAuthenticated) {
+    return <Navigate to={AUTH_LOGIN_ENDPOINT} replace state={{ from: location }} />;
+  }
+  return children;
+};
+
 const App = () => (
   <ErrorBoundary>
     <Provider store={store}>
@@ -71,9 +94,10 @@ const App = () => (
           <Sonner />
           <BrowserRouter>
             <NavigationBinder />
+            <HydrateOnStart />
             <Routes>
               {/* Main App Routes with Layout */}
-              <Route path="/" element={<MainLayout />}>
+              <Route path="/" element={<RequireAuth><MainLayout /></RequireAuth>}>
                 <Route index element={<FeedPage />} />
                 <Route path="search" element={<SearchPage />} />
                 <Route path="explore" element={<ExplorePage />} />

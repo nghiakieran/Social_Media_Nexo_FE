@@ -98,7 +98,11 @@ export const performLogout = async (options?: { redirect?: boolean }) => {
     }
     // Best-effort notify backend (don't block logout semantics on failure)
     if (refreshToken) {
-      await axios.post(`${baseURL}${AUTH_LOGOUT_ENDPOINT}`, { refresh_token: refreshToken });
+      await axios.post(
+        `${baseURL}${AUTH_LOGOUT_ENDPOINT}`,
+        {},
+        { headers: { Authorization: `${BEARER_TOKEN_PREFIX} ${refreshToken}` } }
+      );
     }
   } catch (_) {
     // ignore logout errors
@@ -168,8 +172,11 @@ api.interceptors.response.use(
           refreshAbortController = new AbortController();
           const refreshResponse = await axios.post(
             `${baseURL}${AUTH_REFRESH_ENDPOINT}`,
-            { refresh_token: refreshToken },
-            { signal: refreshAbortController.signal }
+            {},
+            {
+              signal: refreshAbortController.signal,
+              headers: { Authorization: `${BEARER_TOKEN_PREFIX} ${refreshToken}` },
+            }
           );
 
           const body = refreshResponse.data as TokenResponse;

@@ -1,5 +1,6 @@
 import { createSlice, PayloadAction, createAsyncThunk } from '@reduxjs/toolkit';
 import type { User, LoginRequest, LoginResponse, UserProfileResponse, RegisterRequest, RegisterResponse } from './types';
+import { AUTH_FORGOT_PASSWORD_ENDPOINT } from '@/utils/constants';
 import { performLogout } from '@/lib/axios';
 import { toast } from 'sonner';
 import api from '@/lib/axios';
@@ -13,6 +14,7 @@ interface AuthState {
   error: string | null;
   twoFactorRequired: boolean;
   twoFactorToken: string | null;
+  isHydrated: boolean;
 }
 
 const initialState: AuthState = {
@@ -22,6 +24,7 @@ const initialState: AuthState = {
   error: null,
   twoFactorRequired: false,
   twoFactorToken: null,
+  isHydrated: false,
 };
 
 const authSlice = createSlice({
@@ -72,6 +75,44 @@ const authSlice = createSlice({
       state.isLoading = false;
       state.error = action.payload;
     },
+  },
+  extraReducers: (builder) => {
+    builder
+      .addCase(loginAsync.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(loginAsync.fulfilled, (state, action: PayloadAction<User>) => {
+        state.user = action.payload;
+        state.isAuthenticated = true;
+        state.isLoading = false;
+        state.error = null;
+        state.twoFactorRequired = false;
+        state.twoFactorToken = null;
+      })
+      .addCase(loginAsync.rejected, (state, action) => {
+        state.isLoading = false;
+        const payload = action.payload as { status?: number; message?: string } | string | undefined;
+        state.error = typeof payload === 'string' ? payload : payload?.message || 'Đăng nhập thất bại';
+      })
+      .addCase(hydrateAuthAsync.fulfilled, (state, action: PayloadAction<User | null>) => {
+        state.isHydrated = true;
+        if (action.payload) {
+          state.user = action.payload;
+          state.isAuthenticated = true;
+        } else {
+          state.user = null;
+          state.isAuthenticated = false;
+        }
+      })
+      .addCase(hydrateAuthAsync.rejected, (state) => {
+        state.isHydrated = true;
+        state.user = null;
+        state.isAuthenticated = false;
+      })
+      .addCase(hydrateAuthAsync.pending, (state) => {
+        state.isHydrated = false;
+      });
   },
 });
 
@@ -144,6 +185,57 @@ export const registerAsync = createAsyncThunk('auth/registerAsync', async (userD
     return rejectWithValue(errorMessage);
   }
 });
+
+// Thunk: hydrate auth from stored tokens/profile on app start
+export const hydrateAuthAsync = createAsyncThunk('auth/hydrateAuthAsync', async (_, { rejectWithValue }) => {
+  try {
+    const accessToken = localStorage.getItem(ACCESS_TOKEN_STORAGE_KEY);
+    const refreshToken = localStorage.getItem(REFRESH_TOKEN_STORAGE_KEY);
+    if (!accessToken && !refreshToken) {
+      return null;
+    }
+    // If we have access token, try fetch profile
+    try {
+      const profileResponse = await api.get<UserProfileResponse>(USER_PROFILE_ENDPOINT);
+      return profileResponse.data.data;
+    } catch (e) {
+      // If access token invalid but refresh exists, let interceptors attempt refresh on a lightweight call
+      if (refreshToken) {
+        try {
+          const profileResponse = await api.get<UserProfileResponse>(USER_PROFILE_ENDPOINT);
+          return profileResponse.data.data;
+        } catch (e2) {
+          return null;
+        }
+      }
+      return null;
+    }
+  } catch (error) {
+    return rejectWithValue('Hydration failed');
+  }
+});
+
+// Thunk: forgot password (request reset link)
+export const forgotPasswordAsync = createAsyncThunk(
+  'auth/forgotPasswordAsync',
+  async (
+    payload: { email: string },
+    { rejectWithValue }
+  ) => {
+    try {
+      const response = await api.post(AUTH_FORGOT_PASSWORD_ENDPOINT, {
+        EMAIL: payload.email,
+      });
+      return response.data?.message || 'Đã gửi link khôi phục';
+    } catch (error: unknown) {
+      const err = error as { response?: { status?: number; data?: { message?: string } } };
+      return rejectWithValue({
+        status: err?.response?.status,
+        message: err?.response?.data?.message || 'Yêu cầu khôi phục thất bại',
+      });
+    }
+  }
+);
 
 // Thunk: standardize logout flow (abort refresh, call API, clear tokens, reset state, navigate)
 export const logoutAsync = createAsyncThunk('auth/logoutAsync', async (_, { dispatch }) => {
