@@ -3,10 +3,11 @@ import { X, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
-import type { LoginRequest, LoginResponse } from '../types';
-// import { ForgotPasswordDialog } from './ForgotPasswordDialog';
+import type { LoginRequest } from '../types';
+import { ForgotPasswordDialog } from './ForgotPasswordDialog';
+import { useAppDispatch } from '@/store';
+import { loginAsync } from '../authSlice';
 
 interface SwitchAccountDialogProps {
   isOpen: boolean;
@@ -17,10 +18,10 @@ export const SwitchAccountDialog = ({ isOpen, onClose }: SwitchAccountDialogProp
   const [username, setUsername] = useState('lechinghia202@gmail.com');
   const [password, setPassword] = useState('Nghia290');
   const [showPassword, setShowPassword] = useState(false);
-  const [saveLoginInfo, setSaveLoginInfo] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const { toast } = useToast();
+  const dispatch = useAppDispatch();
 
   // Prevent body scroll when dialog is open
   useEffect(() => {
@@ -44,14 +45,11 @@ export const SwitchAccountDialog = ({ isOpen, onClose }: SwitchAccountDialogProp
     setIsLoading(true);
 
     try {
-      // TODO: Implement actual login API call
       const loginData: LoginRequest = {
-        username,
+        email: username,
         password,
-        saveLogin: saveLoginInfo
       };
-
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API call
+      await dispatch(loginAsync(loginData)).unwrap();
       
       toast({
         title: 'Đăng nhập thành công',
@@ -60,11 +58,27 @@ export const SwitchAccountDialog = ({ isOpen, onClose }: SwitchAccountDialogProp
       
       onClose();
     } catch (error) {
-      toast({
-        title: 'Đăng nhập thất bại',
-        description: 'Vui lòng kiểm tra lại thông tin đăng nhập',
-        variant: 'destructive',
-      });
+      const err = error as { status?: number; message?: string } | string;
+      const status = typeof err === 'string' ? undefined : err.status;
+      if (status === 400) {
+        toast({
+          variant: 'destructive',
+          title: 'Chưa xác thực email',
+          description: 'Vui lòng kiểm tra email và xác thực tài khoản trước khi đăng nhập.',
+        });
+      } else if (status === 401) {
+        toast({
+          variant: 'destructive',
+          title: 'Email hoặc mật khẩu không đúng',
+          description: 'Vui lòng kiểm tra lại thông tin đăng nhập.',
+        });
+      } else {
+        toast({
+          title: 'Đăng nhập thất bại',
+          description: (typeof err === 'string' ? err : err?.message) || 'Vui lòng thử lại sau',
+          variant: 'destructive',
+        });
+      }
     } finally {
       setIsLoading(false);
     }
@@ -104,13 +118,13 @@ export const SwitchAccountDialog = ({ isOpen, onClose }: SwitchAccountDialogProp
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Username/Email */}
             <div className="space-y-2">
-              <Label htmlFor="username">Số điện thoại, tên người dùng hoặc email</Label>
+              <Label htmlFor="username">Email</Label>
               <Input
                 id="username"
                 type="text"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                placeholder="Số điện thoại, tên người dùng hoặc email"
+                placeholder="Nhập email..."
                 required
                 className="h-10"
               />
@@ -135,6 +149,7 @@ export const SwitchAccountDialog = ({ isOpen, onClose }: SwitchAccountDialogProp
                   size="sm"
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-0 top-0 h-10 w-10 p-0"
+                  tabIndex={-1}
                 >
                   {showPassword ? (
                     <EyeOff className="w-4 h-4" />
@@ -143,18 +158,6 @@ export const SwitchAccountDialog = ({ isOpen, onClose }: SwitchAccountDialogProp
                   )}
                 </Button>
               </div>
-            </div>
-
-            {/* Save login info */}
-            <div className="flex items-center space-x-2 pb-1.5">
-              <Checkbox
-                id="saveLogin"
-                checked={saveLoginInfo}
-                onCheckedChange={(checked) => setSaveLoginInfo(checked as boolean)}
-              />
-              <Label htmlFor="saveLogin" className="text-sm">
-                Lưu thông tin đăng nhập
-              </Label>
             </div>
 
             {/* Login Button */}
@@ -181,11 +184,11 @@ export const SwitchAccountDialog = ({ isOpen, onClose }: SwitchAccountDialogProp
       </div>
 
       {/* Forgot Password Dialog */}
-      {/* <ForgotPasswordDialog
+      <ForgotPasswordDialog
         isOpen={showForgotPassword}
         onClose={() => setShowForgotPassword(false)}
         onBackToLogin={() => setShowForgotPassword(false)}
-      /> */}
+      />
     </div>
   );
 };

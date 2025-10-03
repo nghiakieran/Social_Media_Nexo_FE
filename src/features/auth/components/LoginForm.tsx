@@ -1,24 +1,28 @@
-import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
+import { useSelector } from 'react-redux';
 import { Eye, EyeOff, Mail, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { OAuthButton } from './OAuthButton';
-import { mockUsers, mockAuthDelay } from '../__mocks__/users';
+import { useAppDispatch } from '@/store';
+import { loginAsync } from '../authSlice';
+import type { RootState } from '@/store';
+import { mockAuthDelay } from '../__mocks__/users';
+import type { LoginFormData } from '../types';
+import { AUTH_REGISTER_ENDPOINT } from '@/utils/constants';
 
-interface LoginFormData {
-  email: string;
-  password: string;
-}
 
 export const LoginForm = () => {
   const [showPassword, setShowPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
+  const location = useLocation();
+  const dispatch = useAppDispatch();
+  const { isLoading, error } = useSelector((state: RootState) => state.auth);
 
   const {
     register,
@@ -27,50 +31,51 @@ export const LoginForm = () => {
   } = useForm<LoginFormData>();
 
   const onSubmit = async (data: LoginFormData) => {
-    setIsLoading(true);
-    
     try {
-      await mockAuthDelay();
-      
-      // Mock authentication
-      const user = mockUsers.find(u => u.email === data.email && u.password === data.password);
-      
-      if (!user) {
+      await dispatch(loginAsync(data)).unwrap();
+
+      toast({
+        title: "Đăng nhập thành công!",
+        description: "Chào mừng trở lại!",
+      });
+
+      navigate('/');
+    } catch (error: unknown) {
+      const err = error as { status?: number; message?: string } | string;
+      const status = typeof err === 'string' ? undefined : err.status;
+      if (status === 400) {
+        toast({
+          variant: "destructive",
+          title: "Chưa xác thực email",
+          description: "Vui lòng kiểm tra email và xác thực tài khoản trước khi đăng nhập.",
+        });
+      } else if (status === 401) {
+        toast({
+          variant: "destructive",
+          title: "Email hoặc mật khẩu không đúng",
+          description: "Vui lòng kiểm tra lại thông tin đăng nhập.",
+        });
+      } else {
         toast({
           variant: "destructive",
           title: "Đăng nhập thất bại",
-          description: "Email hoặc mật khẩu không chính xác.",
+          description: (typeof err === 'string' ? err : err?.message) || "Có lỗi xảy ra. Vui lòng thử lại.",
         });
-        return;
       }
-
-      if (user.hasTwoFactor) {
-        // Redirect to 2FA
-        navigate('/auth/2fa', { state: { email: data.email } });
-        toast({
-          title: "Xác thực 2 bước",
-          description: "Vui lòng nhập mã xác thực từ ứng dụng của bạn.",
-        });
-        return;
-      }
-
-      // Successful login
-      toast({
-        title: "Đăng nhập thành công!",
-        description: `Chào mừng trở lại, ${user.name}!`,
-      });
-      
-      navigate('/');
-    } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Lỗi",
-        description: "Có lỗi xảy ra. Vui lòng thử lại.",
-      });
-    } finally {
-      setIsLoading(false);
     }
   };
+
+  // Show session expired message based on query param
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get('reason') === 'session_expired') {
+      toast({
+        variant: 'destructive',
+        title: 'Phiên đăng nhập đã hết hạn',
+        description: 'Vui lòng đăng nhập lại để tiếp tục.',
+      });
+    }
+  }, [location.search, toast]);
 
   const handleOAuth = async (provider: string) => {
     await mockAuthDelay();
@@ -84,7 +89,7 @@ export const LoginForm = () => {
     <div className="w-full max-w-sm mx-auto">
       <div className="text-center mb-8">
         <h1 className="text-3xl font-bold bg-gradient-instagram bg-clip-text text-transparent mb-2">
-          SSocial Media Nexo
+          Nexo
         </h1>
         <p className="text-muted-foreground">Đăng nhập vào tài khoản của bạn</p>
       </div>
@@ -127,14 +132,16 @@ export const LoginForm = () => {
               {...register('password', {
                 required: 'Mật khẩu là bắt buộc',
                 minLength: {
-                  value: 6,
-                  message: 'Mật khẩu phải có ít nhất 6 ký tự',
+                  value: 8,
+                  message: 'Mật khẩu phải có ít nhất 8 ký tự',
                 },
               })}
             />
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
+              tabIndex={-1}
+              aria-hidden="true"
               className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
             >
               {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -150,6 +157,7 @@ export const LoginForm = () => {
           <Link
             to="/auth/forgot-password"
             className="text-sm text-primary hover:underline"
+            tabIndex={-1}
           >
             Quên mật khẩu?
           </Link>
@@ -183,7 +191,7 @@ export const LoginForm = () => {
       <div className="text-center mt-6 pt-6 border-t border-border">
         <p className="text-sm text-muted-foreground">
           Chưa có tài khoản?{' '}
-          <Link to="/auth/register" className="text-primary hover:underline font-medium">
+          <Link to={AUTH_REGISTER_ENDPOINT} className="text-primary hover:underline font-medium">
             Đăng ký ngay
           </Link>
         </p>

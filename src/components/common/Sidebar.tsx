@@ -1,5 +1,7 @@
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useState, useRef } from 'react';
+import { useAppDispatch } from '@/store';
+import { logoutAsync } from '@/features/auth/authSlice';
 import { 
   Home, 
   Search, 
@@ -43,15 +45,14 @@ const mlFeatures = [
 
 export const Sidebar = () => {
   const navigate = useNavigate();
+  const dispatch = useAppDispatch();
   const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
   const [isThemeMenuOpen, setIsThemeMenuOpen] = useState(false);
   const [isSwitchAccountOpen, setIsSwitchAccountOpen] = useState(false);
   const themeButtonRef = useRef<HTMLButtonElement>(null);
 
   const handleLogout = () => {
-    // TODO: Implement logout logic
-    console.log('Logout clicked');
-    navigate('/login');
+    dispatch(logoutAsync());
   };
 
   const handleThemeToggle = (theme: 'light' | 'dark') => {
@@ -209,7 +210,7 @@ export const Sidebar = () => {
           />
         </PopoverTrigger>
         <PopoverContent 
-          className="w-80 p-0"  
+          className="w-64 p-0"  
           side="right" 
           sideOffset={15}
           style={{
