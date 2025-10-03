@@ -1,11 +1,13 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { ArrowLeft, Mail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
+import { useAppDispatch } from '@/store';
+import { forgotPasswordAsync } from '../authSlice';
 import { Countdown } from '@/components/common/Countdown';
 import type { ResetPasswordRequest } from '../types';
 
@@ -18,7 +20,7 @@ export default function ForgotPasswordPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isCountdownActive, setIsCountdownActive] = useState(false);
   const { toast } = useToast();
-  const navigate = useNavigate();
+  const dispatch = useAppDispatch();
 
   const {
     register,
@@ -33,12 +35,8 @@ export default function ForgotPasswordPage() {
     setIsLoading(true);
 
     try {
-      // TODO: Implement actual forgot password API call
-      const resetData: ResetPasswordRequest = {
-        email: data.email
-      };
-
-      await new Promise(resolve => setTimeout(resolve, 1500)); // Simulate API call
+      const resetData: ResetPasswordRequest = { email: data.email };
+      await dispatch(forgotPasswordAsync({ email: resetData.email })).unwrap();
       
       setIsEmailSent(true);
       setIsCountdownActive(true);
@@ -47,11 +45,27 @@ export default function ForgotPasswordPage() {
         description: 'Vui lòng kiểm tra hộp thư của bạn để đặt lại mật khẩu',
       });
     } catch (error) {
-      toast({
-        title: 'Gửi email thất bại',
-        description: 'Vui lòng thử lại sau',
-        variant: 'destructive',
-      });
+      const err = error as { status?: number; message?: string } | string;
+      const status = typeof err === 'string' ? undefined : err.status;
+      if (status === 404) {
+        toast({
+          variant: 'destructive',
+          title: 'Không tìm thấy tài khoản',
+          description: 'Email không khớp với tài khoản nào.',
+        });
+      } else if (status === 400) {
+        toast({
+          variant: 'destructive',
+          title: 'Yêu cầu không hợp lệ',
+          description: (typeof err === 'string' ? err : err?.message) || 'Vui lòng kiểm tra lại email.',
+        });
+      } else {
+        toast({
+          title: 'Gửi email thất bại',
+          description: (typeof err === 'string' ? err : err?.message) || 'Vui lòng thử lại sau',
+          variant: 'destructive',
+        });
+      }
     } finally {
       setIsLoading(false);
     }

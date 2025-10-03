@@ -1,31 +1,27 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
-import { useDispatch, useSelector } from 'react-redux';
+import { useSelector } from 'react-redux';
 import { Eye, EyeOff, Mail, Lock, User, AtSign } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { OAuthButton } from './OAuthButton';
-import { registerStart, registerSuccess, registerFailure } from '../authSlice';
+import { useAppDispatch } from '@/store';
+import { registerAsync } from '../authSlice';
 import type { RootState } from '@/store';
 import { mockAuthDelay } from '../__mocks__/users';
+import type { RegisterFormData } from '../types';
+import { AUTH_LOGIN_ENDPOINT } from '@/utils/constants';
 
-interface RegisterFormData {
-  name: string;
-  username: string;
-  email: string;
-  password: string;
-  confirmPassword: string;
-}
 
 export const RegisterForm = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
   const { isLoading, error } = useSelector((state: RootState) => state.auth);
 
   const {
@@ -38,26 +34,25 @@ export const RegisterForm = () => {
   const password = watch('password');
 
   const onSubmit = async (data: RegisterFormData) => {
-    dispatch(registerStart());
-    
     try {
-      await mockAuthDelay();
-      
-      // Mock registration success
-      dispatch(registerSuccess());
+      await dispatch(registerAsync({
+        email: data.email,
+        username: data.username,
+        fullname: data.fullname,
+        password: data.password,
+      })).unwrap();
       
       toast({
         title: "Đăng ký thành công!",
-        description: "Tài khoản của bạn đã được tạo. Vui lòng đăng nhập.",
+        description: "Tài khoản của bạn đã được tạo. Vui lòng kiểm tra email để xác thực tài khoản trước khi đăng nhập.",
       });
       
-      navigate('/auth/login');
-    } catch (error) {
-      dispatch(registerFailure("Có lỗi xảy ra. Vui lòng thử lại"));
+      navigate(AUTH_LOGIN_ENDPOINT);
+    } catch (error: unknown) {
       toast({
         variant: "destructive",
-        title: "Lỗi",
-        description: "Có lỗi xảy ra. Vui lòng thử lại.",
+        title: "Đăng ký thất bại",
+        description: (error as string) || "Có lỗi xảy ra. Vui lòng thử lại.",
       });
     }
   };
@@ -82,14 +77,14 @@ export const RegisterForm = () => {
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         {/* Full Name */}
         <div className="space-y-2">
-          <Label htmlFor="name">Họ tên</Label>
+          <Label htmlFor="fullname">Họ tên</Label>
           <div className="relative">
             <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              id="name"
+              id="fullname"
               placeholder="Nguyen Van A"
               className="pl-10"
-              {...register('name', {
+              {...register('fullname', {
                 required: 'Họ tên là bắt buộc',
                 minLength: {
                   value: 2,
@@ -98,8 +93,8 @@ export const RegisterForm = () => {
               })}
             />
           </div>
-          {errors.name && (
-            <p className="text-sm text-destructive">{errors.name.message}</p>
+          {errors.fullname && (
+            <p className="text-sm text-destructive">{errors.fullname.message}</p>
           )}
         </div>
 
@@ -179,6 +174,8 @@ export const RegisterForm = () => {
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
+              tabIndex={-1}
+              aria-hidden="true"
               className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
             >
               {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -208,6 +205,8 @@ export const RegisterForm = () => {
             <button
               type="button"
               onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+              tabIndex={-1}
+              aria-hidden="true"
               className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
             >
               {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -246,7 +245,7 @@ export const RegisterForm = () => {
       <div className="text-center mt-6 pt-6 border-t border-border">
         <p className="text-sm text-muted-foreground">
           Đã có tài khoản?{' '}
-          <Link to="/auth/login" className="text-primary hover:underline font-medium">
+          <Link to={AUTH_LOGIN_ENDPOINT} className="text-primary hover:underline font-medium">
             Đăng nhập ngay
           </Link>
         </p>
