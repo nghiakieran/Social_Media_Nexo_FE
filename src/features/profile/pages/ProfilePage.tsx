@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
-import { useDispatch, useSelector } from 'react-redux';
-import { RootState } from '@/store';
+import { useDispatch } from 'react-redux';
+import { AppDispatch, useAppSelector } from '@/store';
 import {
   setProfile,
   setPosts,
@@ -19,6 +19,12 @@ import {
   setShowCreateHighlightDialog,
   addHighlight,
   updateAvatar,
+  fetchCurrentUserProfileAsync,
+  fetchUserProfileByUsernameAsync,
+  fetchFollowersByUsernameAsync,
+  fetchFollowingByUsernameAsync,
+  followUserAsync,
+  unfollowUserAsync,
 } from '../profileSlice';
 import { ProfileHeader } from '../components/ProfileHeader';
 import { ProfileTabs } from '../components/ProfileTabs';
@@ -29,17 +35,17 @@ import { ReportUserDialog } from '../components/ReportUserDialog';
 import { StoryHighlights } from '../components/StoryHighlights';
 import { CreateHighlightDialog } from '../components/CreateHighlightDialog';
 import { AvatarChangeDialog } from '../components/AvatarChangeDialog';
-import { mockUsers, mockCurrentUser } from '../__mocks__/users';
 import { mockProfilePosts, mockReels, mockSavedPosts } from '../__mocks__/posts';
 import { useToast } from '@/hooks/use-toast';
 import { StoryViewer } from '@/features/story/components/StoryViewer';
 import type { Story } from '@/features/story/types';
+import { PrivateAccountMessage } from '../components/PrivateAccountMessage';
 import { SavedCollectionsContent } from '@/features/saved/components/SavedCollectionsContent';
 
 export const ProfilePage = () => {
   const { username } = useParams<{ username: string }>();
   const navigate = useNavigate();
-  const dispatch = useDispatch();
+  const dispatch = useDispatch<AppDispatch>();
   const { toast } = useToast();
   const [searchParams] = useSearchParams();
   
@@ -52,28 +58,34 @@ export const ProfilePage = () => {
     followers,
     following,
     activeTab,
+    isLoading,
     showFollowersDialog,
     showFollowingDialog,
     showBlockDialog,
     showReportDialog,
     showAvatarDialog,
     showCreateHighlightDialog,
-  } = useSelector((state: RootState) => state.profile);
+  } = useAppSelector((state) => state.profile);
 
-  // Determine if this is the current user's profile
-  const isCurrentUser = username === 'nghialc81' || !username;
+  const currentUser = useAppSelector((state) => state.auth.user);
+  const isCurrentUser = currentUser && username === currentUser.username;
 
   useEffect(() => {
-    // Load profile data
-    const profile = isCurrentUser ? mockCurrentUser : mockUsers.find(u => u.username === username);
-    
-    if (profile) {
-      dispatch(setProfile(profile));
+    if (username) {
+      // Fetch profile data
+      if (isCurrentUser) {
+        dispatch(fetchCurrentUserProfileAsync());
+      } else {
+        dispatch(fetchUserProfileByUsernameAsync(username));
+      }
+      
+      dispatch(fetchFollowersByUsernameAsync({ username }));
+      dispatch(fetchFollowingByUsernameAsync({ username }));
+      
+      // Set mock data for posts (will be replaced with real API later)
       dispatch(setPosts(mockProfilePosts));
       dispatch(setReels(mockReels));
       dispatch(setSaved(mockSavedPosts));
-      dispatch(setFollowers(mockUsers.slice(0, 5)));
-      dispatch(setFollowing(mockUsers.slice(2, 7)));
     }
   }, [username, isCurrentUser, dispatch]);
 
@@ -86,13 +98,32 @@ export const ProfilePage = () => {
   }, [searchParams, dispatch]);
 
   const handleFollow = () => {
-    dispatch(toggleFollow());
-    toast({
-      title: currentProfile?.isFollowing ? 'Đã bỏ theo dõi' : 'Đã theo dõi',
-      description: currentProfile?.isFollowing 
-        ? `Bạn đã bỏ theo dõi ${currentProfile.name}`
-        : `Bạn đã theo dõi ${currentProfile?.name}`,
-    });
+    if (currentProfile) {
+      if (currentProfile.isFollowing) {
+        dispatch(unfollowUserAsync(currentProfile.username));
+        toast({
+          title: 'Đã bỏ theo dõi',
+          description: `Bạn đã bỏ theo dõi ${currentProfile.name}`,
+        });
+      } else {
+        // Check if it's a private account
+        if (currentProfile.isPrivate) {
+          // Send follow request for private account
+          dispatch(followUserAsync(currentProfile.username));
+          toast({
+            title: 'Đã gửi yêu cầu theo dõi',
+            description: `Đã gửi yêu cầu theo dõi ${currentProfile.name}`,
+          });
+        } else {
+          // Direct follow for public account
+          dispatch(followUserAsync(currentProfile.username));
+          toast({
+            title: 'Đã theo dõi',
+            description: `Bạn đã theo dõi ${currentProfile.name}`,
+          });
+        }
+      }
+    }
   };
 
   const handleMessage = () => {
@@ -112,6 +143,21 @@ export const ProfilePage = () => {
 
   const handleReport = () => {
     dispatch(setShowReportDialog(true));
+  };
+
+  const handleAddToCloseFriends = () => {
+    // TODO: Implement add to close friends
+    console.log('Add to close friends');
+  };
+
+  const handleAddToFavorites = () => {
+    // TODO: Implement add to favorites
+    console.log('Add to favorites');
+  };
+
+  const handleRestrict = () => {
+    // TODO: Implement restrict user
+    console.log('Restrict user');
   };
 
   const handleAvatarClick = () => {
@@ -180,6 +226,11 @@ export const ProfilePage = () => {
   };
 
   const getCurrentContent = () => {
+    // Check if viewing private account without follow access
+    if (!isCurrentUser && currentProfile?.isPrivate && !currentProfile?.isFollowing) {
+      return <PrivateAccountMessage profileName={currentProfile.name} />;
+    }
+
     switch (activeTab) {
       case 'reels':
         return <PostGrid posts={reels} />;
@@ -208,6 +259,8 @@ export const ProfilePage = () => {
       <ProfileHeader
         profile={currentProfile}
         isCurrentUser={isCurrentUser}
+        followersCount={followers?.length || 0}
+        followingCount={following?.length || 0}
         onFollow={handleFollow}
         onUnfollow={handleFollow}
         onMessage={handleMessage}
@@ -217,6 +270,9 @@ export const ProfilePage = () => {
         onShowFollowers={() => dispatch(setShowFollowersDialog(true))}
         onShowFollowing={() => dispatch(setShowFollowingDialog(true))}
         onAvatarClick={handleAvatarClick}
+        onAddToCloseFriends={handleAddToCloseFriends}
+        onAddToFavorites={handleAddToFavorites}
+        onRestrict={handleRestrict}
       />
 
       {/* Story highlights */}
@@ -251,7 +307,7 @@ export const ProfilePage = () => {
       <FollowersDialog
         isOpen={showFollowersDialog}
         onClose={() => dispatch(setShowFollowersDialog(false))}
-        users={followers}
+        users={followers || []}
         title="Người theo dõi"
         isCurrentUser={isCurrentUser}
       />
@@ -259,7 +315,7 @@ export const ProfilePage = () => {
       <FollowersDialog
         isOpen={showFollowingDialog}
         onClose={() => dispatch(setShowFollowingDialog(false))}
-        users={following}
+        users={following || []}
         title="Đang theo dõi"
         isCurrentUser={isCurrentUser}
       />

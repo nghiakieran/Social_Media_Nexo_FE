@@ -1,11 +1,25 @@
 import { createSlice, PayloadAction, createAsyncThunk } from '@reduxjs/toolkit';
-import type { User, LoginRequest, LoginResponse, UserProfileResponse, RegisterRequest, RegisterResponse } from './types';
+import type { User, LoginRequest, LoginResponse, RegisterRequest, RegisterResponse } from './types';
 import { AUTH_FORGOT_PASSWORD_ENDPOINT } from '@/utils/constants';
 import { performLogout } from '@/lib/axios';
 import { toast } from 'sonner';
 import api from '@/lib/axios';
-import { AUTH_LOGIN_ENDPOINT, AUTH_REGISTER_ENDPOINT, USER_PROFILE_ENDPOINT, ACCESS_TOKEN_STORAGE_KEY, REFRESH_TOKEN_STORAGE_KEY, BEARER_TOKEN_PREFIX } from '@/utils/constants';
+import { AUTH_LOGIN_ENDPOINT, AUTH_REGISTER_ENDPOINT, ACCESS_TOKEN_STORAGE_KEY, REFRESH_TOKEN_STORAGE_KEY, BEARER_TOKEN_PREFIX } from '@/utils/constants';
 import { AxiosHeaders } from 'axios';
+import { getCurrentUserProfile } from '@/features/profile/api/profileApi';
+import { transformProfileData, type UserProfile } from '@/features/profile/types';
+
+// Transform UserProfile to User for auth slice
+const transformToUser = (userProfile: UserProfile): User => ({
+  id: parseInt(userProfile.id),
+  username: userProfile.username,
+  fullName: userProfile.name,
+  avatar: userProfile.avatar || undefined,
+  bio: userProfile.bio || undefined,
+  isPrivate: userProfile.isPrivate,
+  followers: userProfile.followersCount,
+  following: userProfile.followingCount,
+});
 
 interface AuthState {
   user: User | null;
@@ -143,8 +157,9 @@ export const loginAsync = createAsyncThunk('auth/loginAsync', async (credentials
 
     // Fetch user profile after successful login
     try {
-      const profileResponse = await api.get<UserProfileResponse>(USER_PROFILE_ENDPOINT);
-      return profileResponse.data.data;
+      const profileData = await getCurrentUserProfile();
+      const userProfile = transformProfileData(profileData);
+      return transformToUser(userProfile);
     } catch (profileError) {
       // If profile fetch fails, still return a basic user object
       console.warn('Failed to fetch user profile:', profileError);
@@ -196,14 +211,16 @@ export const hydrateAuthAsync = createAsyncThunk('auth/hydrateAuthAsync', async 
     }
     // If we have access token, try fetch profile
     try {
-      const profileResponse = await api.get<UserProfileResponse>(USER_PROFILE_ENDPOINT);
-      return profileResponse.data.data;
+      const profileData = await getCurrentUserProfile();
+      const userProfile = transformProfileData(profileData);
+      return transformToUser(userProfile);
     } catch (e) {
       // If access token invalid but refresh exists, let interceptors attempt refresh on a lightweight call
       if (refreshToken) {
         try {
-          const profileResponse = await api.get<UserProfileResponse>(USER_PROFILE_ENDPOINT);
-          return profileResponse.data.data;
+          const profileData = await getCurrentUserProfile();
+          const userProfile = transformProfileData(profileData);
+          return transformToUser(userProfile);
         } catch (e2) {
           return null;
         }

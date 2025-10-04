@@ -111,7 +111,6 @@ const App = () => (
                 <Route path="reels/create" element={<ReelCreatePage />} />
                 <Route path="live" element={<LiveStudioPage />} />
                 <Route path="notes/create" element={<NoteCreatePage />} />
-                <Route path="profile" element={<ProfilePage />} />
                 <Route path="edit-profile" element={<EditProfilePage />} />
                 <Route path="account/settings" element={<AccountSettingsPage />} />
                 <Route path="account/blocked" element={<BlockedUsersPage />} />
