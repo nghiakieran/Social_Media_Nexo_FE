@@ -49,6 +49,7 @@ import { EditProfilePage } from "./features/profile/pages/EditProfilePage";
 import { AccountSettingsPage } from "./features/profile/pages/AccountSettingsPage";
 import { BlockedUsersPage } from "./features/profile/pages/BlockedUsersPage";
 import { HiddenPostsPage } from "./features/profile/pages/HiddenPostsPage";
+import { CloseFriendsPage } from "./features/profile/pages/CloseFriendsPage";
 import { useEffect } from 'react';
 import { setOnUnauthorizedNavigate } from '@/lib/axios';
 import { useAppDispatch, useAppSelector } from '@/store';
@@ -115,6 +116,7 @@ const App = () => (
                 <Route path="account/settings" element={<AccountSettingsPage />} />
                 <Route path="account/blocked" element={<BlockedUsersPage />} />
                 <Route path="account/hidden-posts" element={<HiddenPostsPage />} />
+                <Route path="account/close-friends" element={<CloseFriendsPage />} />
                 <Route path=":username" element={<ProfilePage />} />
                 <Route path="settings" element={<AccountSettingsPage />} />
                 

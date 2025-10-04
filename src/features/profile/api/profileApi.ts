@@ -9,7 +9,9 @@ import type {
   UpdateProfileRequest,
   UpdateProfileResponse,
   FollowRequestsResponse,
-  FollowRequestUser
+  FollowRequestUser,
+  CloseFriendsResponse,
+  CloseFriendUser
 } from '../types';
 
 /**
@@ -124,4 +126,19 @@ export const followUser = async (username: string): Promise<void> => {
  */
 export const unfollowUser = async (username: string): Promise<void> => {
   await api.delete(`/users/unfollow/${username}`);
+};
+
+/**
+ * Get close friends list for current user
+ */
+export const getCloseFriends = async (page: number = 0, limit: number = 20): Promise<CloseFriendUser[]> => {
+  const response = await api.get<{status: number, message: string, data: CloseFriendsResponse}>(`/users/close-friends?page=${page}&size=${limit}`);
+  return response.data.data.content;
+};
+
+/**
+ * Toggle close friend status (add/remove from close friends)
+ */
+export const toggleCloseFriend = async (username: string): Promise<void> => {
+  await api.put(`/users/close-friend/${username}`);
 };

@@ -1,7 +1,7 @@
 import { createSlice, PayloadAction, createAsyncThunk } from '@reduxjs/toolkit';
-import { getProfile, getFollowersByUsername, getFollowingByUsername, updateUserProfile, getFollowRequests, acceptFollowRequest, rejectFollowRequest, followUser, unfollowUser } from './api/profileApi';
+import { getProfile, getFollowersByUsername, getFollowingByUsername, updateUserProfile, getFollowRequests, acceptFollowRequest, rejectFollowRequest, followUser, unfollowUser, getCloseFriends, toggleCloseFriend } from './api/profileApi';
 import { transformProfileData } from './types';
-import type { UserProfile, ProfilePost, StoryHighlight, FollowerUser, FollowingUser, UpdateProfileRequest, FollowRequestUser } from './types';
+import type { UserProfile, ProfilePost, StoryHighlight, FollowerUser, FollowingUser, UpdateProfileRequest, FollowRequestUser, CloseFriendUser } from './types';
 
 interface ProfileState {
   currentProfile: UserProfile | null;
@@ -12,6 +12,7 @@ interface ProfileState {
   followers: FollowerUser[];
   following: FollowingUser[];
   followRequests: FollowRequestUser[];
+  closeFriends: CloseFriendUser[];
   activeTab: 'posts' | 'reels' | 'saved';
   isLoading: boolean;
   error: string | null;
@@ -33,6 +34,7 @@ const initialState: ProfileState = {
   followers: [],
   following: [],
   followRequests: [],
+  closeFriends: [],
   activeTab: 'posts',
   isLoading: false,
   error: null,
@@ -186,6 +188,34 @@ export const unfollowUserAsync = createAsyncThunk(
   }
 );
 
+export const fetchCloseFriendsAsync = createAsyncThunk(
+  'profile/fetchCloseFriends',
+  async ({ page = 0, limit = 20 }: { page?: number; limit?: number } = {}, { rejectWithValue }) => {
+    try {
+      const closeFriends = await getCloseFriends(page, limit);
+      return { closeFriends, page, limit };
+    } catch (error: unknown) {
+      const axiosError = error as { response?: { data?: { message?: string } } };
+      const message = axiosError?.response?.data?.message || 'Không thể tải danh sách bạn thân';
+      return rejectWithValue(message);
+    }
+  }
+);
+
+export const toggleCloseFriendAsync = createAsyncThunk(
+  'profile/toggleCloseFriend',
+  async (username: string, { rejectWithValue }) => {
+    try {
+      await toggleCloseFriend(username);
+      return username;
+    } catch (error: unknown) {
+      const axiosError = error as { response?: { data?: { message?: string } } };
+      const message = axiosError?.response?.data?.message || 'Không thể thay đổi trạng thái bạn thân';
+      return rejectWithValue(message);
+    }
+  }
+);
+
 const profileSlice = createSlice({
   name: 'profile',
   initialState,
@@ -216,6 +246,9 @@ const profileSlice = createSlice({
     },
     setFollowRequests: (state, action: PayloadAction<FollowRequestUser[]>) => {
       state.followRequests = action.payload;
+    },
+    setCloseFriends: (state, action: PayloadAction<CloseFriendUser[]>) => {
+      state.closeFriends = action.payload;
     },
     setActiveTab: (state, action: PayloadAction<'posts' | 'reels' | 'saved'>) => {
       state.activeTab = action.payload;
@@ -394,6 +427,20 @@ const profileSlice = createSlice({
             state.currentProfile.followersCount = Math.max(0, state.currentProfile.followersCount - 1);
           }
         }
+      })
+      .addCase(fetchCloseFriendsAsync.fulfilled, (state, action) => {
+        const { closeFriends, page } = action.payload;
+        if (page === 0) {
+          // Replace the list for first page
+          state.closeFriends = closeFriends;
+        } else {
+          // Append for subsequent pages
+          state.closeFriends = [...state.closeFriends, ...closeFriends];
+        }
+      })
+      .addCase(toggleCloseFriendAsync.fulfilled, (state, action) => {
+        // Toggle close friend status - this will be handled by refetching the list
+        // or we can update the local state if we know the current status
       });
       },
     });
@@ -407,6 +454,8 @@ export const {
   addHighlight,
   setFollowers,
   setFollowing,
+  setFollowRequests,
+  setCloseFriends,
   setActiveTab,
   toggleFollow,
   toggleBlock,
@@ -414,7 +463,6 @@ export const {
   setShowFollowersDialog,
   setShowFollowingDialog,
   setShowFollowRequestsDialog,
-  setFollowRequests,
   setShowBlockDialog,
   setShowReportDialog,
   setLoading,

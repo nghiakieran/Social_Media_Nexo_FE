@@ -110,6 +110,24 @@ export interface FollowRequestsResponse {
   };
 }
 
+// Close Friends Types
+export interface CloseFriendUser {
+  userId: number;
+  userName: string;
+  fullName: string;
+  avatar: string;
+}
+
+export interface CloseFriendsResponse {
+  content: CloseFriendUser[];
+  totalElements: number;
+  totalPages: number;
+  pageable: {
+    pageNumber: number;
+    pageSize: number;
+  };
+}
+
 // API Request Types
 export interface GetProfileRequest {
   username?: string; // Optional - if not provided, gets current user's profile

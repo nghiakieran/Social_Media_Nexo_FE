@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
-import { Search, UserPlus, UserMinus, X, AlertTriangle } from 'lucide-react';
-import { useAppDispatch } from '@/store';
+import { useEffect, useState, useCallback, useRef } from 'react';
+import { Search, UserPlus, UserMinus, X, AlertTriangle, Loader2 } from 'lucide-react';
+import { useAppDispatch, useAppSelector } from '@/store';
 import {
   Dialog,
   DialogContent,
@@ -22,7 +22,7 @@ import { Input } from '@/components/ui/input';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { UserProfile, FollowerUser, FollowingUser } from '../types';
 import { useToast } from '@/hooks/use-toast';
-import { followUserAsync, unfollowUserAsync } from '../profileSlice';
+import { followUserAsync, unfollowUserAsync, fetchFollowersByUsernameAsync, fetchFollowingByUsernameAsync } from '../profileSlice';
 
 interface FollowersDialogProps {
   isOpen: boolean;
@@ -30,6 +30,7 @@ interface FollowersDialogProps {
   users: FollowerUser[] | FollowingUser[];
   title: string;
   isCurrentUser?: boolean;
+  username?: string; // Needed for API calls
 }
 
 export const FollowersDialog = ({
@@ -37,7 +38,8 @@ export const FollowersDialog = ({
   onClose,
   users,
   title,
-  isCurrentUser = false
+  isCurrentUser = false,
+  username
 }: FollowersDialogProps) => {
   const dispatch = useAppDispatch();
   const [searchTerm, setSearchTerm] = useState('');
@@ -46,15 +48,68 @@ export const FollowersDialog = ({
   const [userToDelete, setUserToDelete] = useState<FollowerUser | FollowingUser | null>(null);
   const [showUnfollowConfirm, setShowUnfollowConfirm] = useState(false);
   const [userToUnfollow, setUserToUnfollow] = useState<FollowerUser | FollowingUser | null>(null);
+  const [currentPage, setCurrentPage] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+  const { isLoading } = useAppSelector((state) => state.profile);
 
   // Keep local users in sync with props when dialog opens or data changes
   useEffect(() => {
     if (isOpen && Array.isArray(users)) {
       setLocalUsers(users);
       setSearchTerm('');
+      setCurrentPage(0);
+      setHasMore(users.length >= 10); // Assume more if we got 10 items
     }
   }, [isOpen, users, title]);
+
+  // Load more data when scrolling near bottom
+  const loadMore = useCallback(async () => {
+    if (!username || isLoadingMore || !hasMore) return;
+
+    setIsLoadingMore(true);
+    const nextPage = currentPage + 1;
+    
+    try {
+      let resultAction;
+      if (title === 'Người theo dõi') {
+        resultAction = await dispatch(fetchFollowersByUsernameAsync({ username, page: nextPage, limit: 10 }));
+      } else if (title === 'Đang theo dõi') {
+        resultAction = await dispatch(fetchFollowingByUsernameAsync({ username, page: nextPage, limit: 10 }));
+      }
+      
+      if (resultAction && (fetchFollowersByUsernameAsync.fulfilled.match(resultAction) || fetchFollowingByUsernameAsync.fulfilled.match(resultAction))) {
+        const newUsers = resultAction.payload;
+        setLocalUsers(prev => [...prev, ...newUsers]);
+        setCurrentPage(nextPage);
+        
+        // Check if we have more data
+        if (newUsers.length < 10) {
+          setHasMore(false);
+        }
+      }
+    } catch (error) {
+      toast({
+        title: 'Lỗi',
+        description: 'Không thể tải thêm dữ liệu.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoadingMore(false);
+    }
+  }, [username, currentPage, hasMore, isLoadingMore, dispatch, title, toast]);
+
+  // Infinite scroll handler
+  const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
+    const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
+    const scrollPercentage = (scrollTop + clientHeight) / scrollHeight;
+    
+    if (scrollPercentage > 0.8 && hasMore && !isLoadingMore) {
+      loadMore();
+    }
+  }, [hasMore, isLoadingMore, loadMore]);
 
   const filteredUsers = Array.isArray(localUsers) ? localUsers.filter(user =>
     user.userName.toLowerCase().includes(searchTerm.toLowerCase())
@@ -230,7 +285,11 @@ export const FollowersDialog = ({
             </div>
 
             {/* User List - fixed height for stable UX */}
-            <div className="h-[340px] overflow-y-auto space-y-1.5">
+            <div 
+              ref={scrollContainerRef}
+              className="h-[340px] overflow-y-auto space-y-1.5"
+              onScroll={handleScroll}
+            >
               {filteredUsers.length === 0 ? (
                 <div className="h-full flex items-center justify-center text-muted-foreground">
                   {searchTerm ? 'Không tìm thấy kết quả' : 'Danh sách trống'}
@@ -301,6 +360,14 @@ export const FollowersDialog = ({
                     </div>
                   </div>
                 ))
+              )}
+              
+              {/* Loading indicator for infinite scroll */}
+              {isLoadingMore && (
+                <div className="flex items-center justify-center py-4">
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  <span className="ml-2 text-sm text-muted-foreground">Đang tải...</span>
+                </div>
               )}
             </div>
           </div>

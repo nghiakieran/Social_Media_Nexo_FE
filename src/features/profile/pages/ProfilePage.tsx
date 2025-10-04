@@ -310,6 +310,7 @@ export const ProfilePage = () => {
         users={followers || []}
         title="Người theo dõi"
         isCurrentUser={isCurrentUser}
+        username={currentProfile?.username}
       />
 
       <FollowersDialog
@@ -318,6 +319,7 @@ export const ProfilePage = () => {
         users={following || []}
         title="Đang theo dõi"
         isCurrentUser={isCurrentUser}
+        username={currentProfile?.username}
       />
 
       <BlockUserDialog
