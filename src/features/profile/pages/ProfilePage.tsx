@@ -25,6 +25,7 @@ import {
   fetchFollowingByUsernameAsync,
   followUserAsync,
   unfollowUserAsync,
+  updateUserProfileAsync,
 } from '../profileSlice';
 import { ProfileHeader } from '../components/ProfileHeader';
 import { ProfileTabs } from '../components/ProfileTabs';
@@ -164,19 +165,69 @@ export const ProfilePage = () => {
     dispatch(setShowAvatarDialog(true));
   };
 
-  const handleAvatarUpload = (file: File) => {
-    // Create a preview URL for the uploaded file
-    const previewUrl = URL.createObjectURL(file);
-    dispatch(updateAvatar(previewUrl));
-    
-    toast({
-      title: 'Đã cập nhật ảnh đại diện',
-      description: 'Ảnh đại diện đã được thay đổi thành công',
-    });
+  const handleAvatarUpload = async (file: File) => {
+    try {
+      // Create a preview URL for the uploaded file
+      const previewUrl = URL.createObjectURL(file);
+      dispatch(updateAvatar(previewUrl));
+      
+      // Call API to update profile with new avatar
+      const resultAction = await dispatch(updateUserProfileAsync({ avatar: file }));
+      
+      if (updateUserProfileAsync.fulfilled.match(resultAction)) {
+        toast({
+          title: 'Đã cập nhật ảnh đại diện',
+          description: 'Ảnh đại diện đã được thay đổi thành công',
+        });
+      } else {
+        // Revert the preview on error
+        dispatch(updateAvatar(currentProfile?.avatar || ''));
+        toast({
+          title: 'Lỗi',
+          description: 'Không thể cập nhật ảnh đại diện',
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
+      dispatch(updateAvatar(currentProfile?.avatar || ''));
+      toast({
+        title: 'Lỗi',
+        description: 'Đã xảy ra lỗi không mong muốn',
+        variant: 'destructive',
+      });
+    }
   };
 
-  const handleAvatarRemove = () => {
-    dispatch(updateAvatar(''));
+  const handleAvatarRemove = async () => {
+    try {
+      // Update local state first
+      dispatch(updateAvatar(''));
+      
+      // Call API to remove avatar
+      const resultAction = await dispatch(updateUserProfileAsync({ avatar: '' }));
+      
+      if (updateUserProfileAsync.fulfilled.match(resultAction)) {
+        toast({
+          title: 'Đã gỡ ảnh đại diện',
+          description: 'Ảnh đại diện đã được gỡ bỏ thành công',
+        });
+      } else {
+        // Revert on error
+        dispatch(updateAvatar(currentProfile?.avatar || ''));
+        toast({
+          title: 'Lỗi',
+          description: 'Không thể gỡ ảnh đại diện',
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
+      dispatch(updateAvatar(currentProfile?.avatar || ''));
+      toast({
+        title: 'Lỗi',
+        description: 'Đã xảy ra lỗi không mong muốn',
+        variant: 'destructive',
+      });
+    }
   };
 
   // Highlights

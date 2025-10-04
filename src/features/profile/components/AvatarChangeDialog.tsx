@@ -1,5 +1,5 @@
-import { useRef } from 'react';
-import { Camera, X, Upload } from 'lucide-react';
+import { useRef, useState } from 'react';
+import { Camera, X, Upload, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -7,6 +7,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
 
 interface AvatarChangeDialogProps {
@@ -27,6 +37,7 @@ export const AvatarChangeDialog = ({
   userName = 'User'
 }: AvatarChangeDialogProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [showRemoveConfirm, setShowRemoveConfirm] = useState(false);
   const { toast } = useToast();
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -61,13 +72,22 @@ export const AvatarChangeDialog = ({
     fileInputRef.current?.click();
   };
 
-  const handleRemove = () => {
+  const handleRemoveClick = () => {
+    setShowRemoveConfirm(true);
+  };
+
+  const confirmRemove = () => {
     onRemove();
+    setShowRemoveConfirm(false);
     onClose();
     toast({
       title: 'Đã gỡ ảnh đại diện',
       description: 'Ảnh đại diện đã được gỡ bỏ',
     });
+  };
+
+  const cancelRemove = () => {
+    setShowRemoveConfirm(false);
   };
 
   return (
@@ -113,7 +133,7 @@ export const AvatarChangeDialog = ({
 
               {currentAvatar && (
                 <Button
-                  onClick={handleRemove}
+                  onClick={handleRemoveClick}
                   className="w-full gap-2"
                   variant="outline"
                 >
@@ -142,6 +162,39 @@ export const AvatarChangeDialog = ({
         onChange={handleFileSelect}
         className="hidden"
       />
+
+      {/* Remove Confirmation Dialog */}
+      <AlertDialog open={showRemoveConfirm} onOpenChange={setShowRemoveConfirm}>
+        <AlertDialogContent className="max-w-md mx-auto">
+          <AlertDialogHeader>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                <AlertTriangle className="w-5 h-5 text-primary" />
+              </div>
+              <AlertDialogTitle className="text-lg font-semibold">
+                Gỡ ảnh đại diện?
+              </AlertDialogTitle>
+            </div>
+            <AlertDialogDescription className="text-sm text-muted-foreground">
+              Bạn có chắc muốn gỡ ảnh đại diện hiện tại? Ảnh sẽ bị xóa khỏi hồ sơ của bạn.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex gap-2">
+            <AlertDialogCancel 
+              onClick={cancelRemove}
+              className="flex-1"
+            >
+              Hủy
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={confirmRemove}
+              className="flex-1 bg-red-600 hover:bg-red-700"
+            >
+              Gỡ ảnh
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 };
