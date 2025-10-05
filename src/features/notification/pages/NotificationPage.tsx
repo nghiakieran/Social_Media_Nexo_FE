@@ -1,17 +1,24 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useAppDispatch, useAppSelector } from '@/store';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Check } from 'lucide-react';
+import { Check, UserPlus, UserMinus } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import TabSwitcher from '../components/TabSwitcher';
 import NotificationItem from '../components/NotificationItem';
+import { FollowRequestsDialog } from '@/features/profile/components/FollowRequestsDialog';
 import { 
   setNotifications, 
   markAsRead, 
   markAllAsRead, 
   setActiveTab 
 } from '../notificationSlice';
+import { 
+  fetchFollowRequestsAsync,
+  acceptFollowRequestAsync,
+  rejectFollowRequestAsync,
+  setShowFollowRequestsDialog
+} from '@/features/profile/profileSlice';
 import { mockNotifications } from '../__mocks__/notifications';
 
 const NotificationPage: React.FC = () => {
@@ -20,21 +27,31 @@ const NotificationPage: React.FC = () => {
   const { notifications, activeTab, unreadCount } = useAppSelector(
     (state) => state.notification
   );
+  const { followRequests, showFollowRequestsDialog, isLoading } = useAppSelector(
+    (state) => state.profile
+  );
+  const currentUser = useAppSelector((state) => state.auth.user);
 
   // Load mock data on component mount
   useEffect(() => {
     dispatch(setNotifications(mockNotifications));
-  }, [dispatch]);
+    
+    // Fetch follow requests if user has private account
+    if (currentUser?.isPrivate) {
+      dispatch(fetchFollowRequestsAsync({}));
+    }
+  }, [dispatch, currentUser]);
 
   // Filter notifications based on active tab
   const filteredNotifications = useMemo(() => {
+    const safeNotifications = notifications || [];
     switch (activeTab) {
       case 'following':
-        return notifications.filter(n => n.type === 'like' || n.type === 'comment');
+        return safeNotifications.filter(n => n.type === 'like' || n.type === 'comment');
       case 'you':
-        return notifications.filter(n => n.type === 'follow' || n.type === 'hashtag');
+        return safeNotifications.filter(n => n.type === 'follow' || n.type === 'hashtag');
       default:
-        return notifications;
+        return safeNotifications;
     }
   }, [notifications, activeTab]);
 
@@ -54,7 +71,7 @@ const NotificationPage: React.FC = () => {
     dispatch(setActiveTab(tab));
   };
 
-  const handleNotificationClick = (notification: any) => {
+  const handleNotificationClick = (notification) => {
     // Navigate to post or profile based on notification type
     if (notification.postId) {
       // Navigate to post details or comments
@@ -63,6 +80,18 @@ const NotificationPage: React.FC = () => {
       // Navigate to user profile
       console.log('Navigate to profile:', notification.userId);
     }
+  };
+
+  const handleShowFollowRequests = () => {
+    dispatch(setShowFollowRequestsDialog(true));
+  };
+
+  const handleAcceptFollowRequest = (username: string) => {
+    dispatch(acceptFollowRequestAsync(username));
+  };
+
+  const handleRejectFollowRequest = (username: string) => {
+    dispatch(rejectFollowRequestAsync(username));
   };
 
   return (
@@ -84,6 +113,35 @@ const NotificationPage: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* Follow Requests Section - Only show if user has private account and pending requests */}
+      {currentUser?.isPrivate && followRequests && followRequests.length > 0 && (
+        <div className="border-b border-border bg-background">
+          <div className="p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                  <UserPlus className="w-5 h-5 text-primary" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-sm">Yêu cầu theo dõi</h3>
+                  <p className="text-xs text-muted-foreground">
+                    {followRequests?.length || 0} yêu cầu đang chờ
+                  </p>
+                </div>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleShowFollowRequests}
+                className="text-primary hover:text-primary/80"
+              >
+                Xem tất cả
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Tab Switcher */}
       <TabSwitcher 
@@ -134,6 +192,16 @@ const NotificationPage: React.FC = () => {
           )}
         </div>
       </ScrollArea>
+
+      {/* Follow Requests Dialog */}
+      <FollowRequestsDialog
+        isOpen={showFollowRequestsDialog}
+        onClose={() => dispatch(setShowFollowRequestsDialog(false))}
+        followRequests={followRequests || []}
+        onAccept={handleAcceptFollowRequest}
+        onReject={handleRejectFollowRequest}
+        isLoading={isLoading}
+      />
     </div>
   );
 };
