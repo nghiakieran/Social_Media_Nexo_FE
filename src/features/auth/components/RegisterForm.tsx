@@ -1,16 +1,14 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
-import { useSelector } from 'react-redux';
 import { Eye, EyeOff, Mail, Lock, User, AtSign } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { OAuthButton } from './OAuthButton';
-import { useAppDispatch } from '@/store';
+import { useAppDispatch, useAppSelector } from '@/store';
 import { registerAsync } from '../authSlice';
-import type { RootState } from '@/store';
 import { mockAuthDelay } from '../__mocks__/users';
 import type { RegisterFormData } from '../types';
 import { AUTH_LOGIN_ENDPOINT } from '@/utils/constants';
@@ -22,7 +20,7 @@ export const RegisterForm = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
-  const { isLoading, error } = useSelector((state: RootState) => state.auth);
+  const { isLoading, error } = useAppSelector((state) => state.auth);
 
   const {
     register,

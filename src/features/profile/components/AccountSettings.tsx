@@ -10,7 +10,8 @@ import {
   Lock,
   Globe,
   Users,
-  UserX
+  UserX,
+  Heart
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -195,6 +196,24 @@ export const AccountSettings = () => {
               className="gap-2"
             >
               <EyeOff className="w-4 h-4" />
+              Xem danh sách
+            </Button>
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div>
+              <Label className="font-medium">Bạn thân</Label>
+              <p className="text-sm text-muted-foreground">
+                Quản lý danh sách bạn thân để chia sẻ tin riêng tư
+              </p>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigate('/account/close-friends')}
+              className="gap-2"
+            >
+              <Heart className="w-4 h-4" />
               Xem danh sách
             </Button>
           </div>

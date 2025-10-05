@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Camera, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,33 +8,64 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
+import { useAppDispatch, useAppSelector } from '@/store';
+import { updateUserProfileAsync, fetchCurrentUserProfileAsync } from '../profileSlice';
+import type { UpdateProfileRequest, UserProfile } from '../types';
 
 interface EditProfileFormProps {
-  onSave: (data: any) => void;
+  onSave: (data: UserProfile) => void;
   onCancel: () => void;
 }
 
 export const EditProfileForm = ({ onSave, onCancel }: EditProfileFormProps) => {
-  const [formData, setFormData] = useState({
-    name: 'Lê Chí Nghĩa',
-    username: 'nghialc81',
-    bio: 'Bình yên 🌸\nlocket.cam/nghialc',
-    website: 'https://locket.cam/nghialc',
-    avatar: 'https://picsum.photos/150/150?random=current',
-    isPrivate: false,
-  });
-  const [isLoading, setIsLoading] = useState(false);
+  const dispatch = useAppDispatch();
+  const { currentProfile, isLoading } = useAppSelector((state) => state.profile);
   const { toast } = useToast();
+
+  const [formData, setFormData] = useState({
+    username: currentProfile?.username || '',
+    fullName: currentProfile?.name || '',
+    bio: currentProfile?.bio || '',
+    avatar: currentProfile?.avatar || '',
+    isPrivate: currentProfile?.isPrivate || false,
+  });
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+
+  // Fetch current user profile when component mounts
+  useEffect(() => {
+    if (!currentProfile) {
+      dispatch(fetchCurrentUserProfileAsync());
+    }
+  }, [dispatch, currentProfile]);
+
+  // Update form data when currentProfile changes
+  useEffect(() => {
+    if (currentProfile) {
+      setFormData({
+        username: currentProfile.username || '',
+        fullName: currentProfile.name || '',
+        bio: currentProfile.bio || '',
+        avatar: currentProfile.avatar || '',
+        isPrivate: currentProfile.isPrivate || false,
+      });
+    }
+  }, [currentProfile]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
     
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const updateData: UpdateProfileRequest = {
+        username: formData.username,
+        fullName: formData.fullName,
+        bio: formData.bio,
+        isPrivate: formData.isPrivate,
+        avatar: selectedFile || formData.avatar,
+      };
+
+      const result = await dispatch(updateUserProfileAsync(updateData)).unwrap();
       
-      onSave(formData);
+      onSave(result);
       toast({
         title: 'Đã cập nhật hồ sơ',
         description: 'Thông tin hồ sơ của bạn đã được lưu thành công.',
@@ -45,14 +76,13 @@ export const EditProfileForm = ({ onSave, onCancel }: EditProfileFormProps) => {
         description: 'Không thể cập nhật hồ sơ. Vui lòng thử lại.',
         variant: 'destructive',
       });
-    } finally {
-      setIsLoading(false);
     }
   };
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      setSelectedFile(file);
       const url = URL.createObjectURL(file);
       setFormData(prev => ({ ...prev, avatar: url }));
     }
@@ -72,7 +102,7 @@ export const EditProfileForm = ({ onSave, onCancel }: EditProfileFormProps) => {
                 <Avatar className="w-20 h-20">
                   <AvatarImage src={formData.avatar} alt="Avatar" />
                   <AvatarFallback>
-                    {formData.name.charAt(0).toUpperCase()}
+                    {formData.fullName.charAt(0).toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
                 <label className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-0 hover:opacity-100 transition-opacity cursor-pointer">
@@ -102,11 +132,11 @@ export const EditProfileForm = ({ onSave, onCancel }: EditProfileFormProps) => {
 
             {/* Name */}
             <div className="space-y-2">
-              <Label htmlFor="name">Tên</Label>
+              <Label htmlFor="fullName">Tên</Label>
               <Input
-                id="name"
-                value={formData.name}
-                onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                id="fullName"
+                value={formData.fullName}
+                onChange={(e) => setFormData(prev => ({ ...prev, fullName: e.target.value }))}
                 placeholder="Tên của bạn"
               />
               <p className="text-xs text-muted-foreground">
@@ -142,18 +172,6 @@ export const EditProfileForm = ({ onSave, onCancel }: EditProfileFormProps) => {
               <p className="text-xs text-muted-foreground">
                 {formData.bio.length}/150 ký tự
               </p>
-            </div>
-
-            {/* Website */}
-            <div className="space-y-2">
-              <Label htmlFor="website">Trang web</Label>
-              <Input
-                id="website"
-                type="url"
-                value={formData.website}
-                onChange={(e) => setFormData(prev => ({ ...prev, website: e.target.value }))}
-                placeholder="https://yourwebsite.com"
-              />
             </div>
 
             {/* Private Account */}

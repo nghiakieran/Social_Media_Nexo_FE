@@ -11,9 +11,10 @@ import {
   UserX,
   Edit3,
   Link as LinkIcon,
-  BadgeCheck
+  ChevronDown
 } from 'lucide-react';
 import { NotesDialog } from './NotesDialog';
+import { FollowingOptionsDialog } from './FollowingOptionsDialog';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import {
@@ -30,6 +31,8 @@ import { useNavigate } from 'react-router-dom';
 interface ProfileHeaderProps {
   profile: UserProfile;
   isCurrentUser: boolean;
+  followersCount?: number;
+  followingCount?: number;
   onFollow: () => void;
   onUnfollow: () => void;
   onMessage: () => void;
@@ -39,11 +42,16 @@ interface ProfileHeaderProps {
   onShowFollowers: () => void;
   onShowFollowing: () => void;
   onAvatarClick?: () => void;
+  onAddToCloseFriends?: () => void;
+  onAddToFavorites?: () => void;
+  onRestrict?: () => void;
 }
 
 export const ProfileHeader = ({
   profile,
   isCurrentUser,
+  followersCount,
+  followingCount,
   onFollow,
   onUnfollow,
   onMessage,
@@ -53,16 +61,14 @@ export const ProfileHeader = ({
   onShowFollowers,
   onShowFollowing,
   onAvatarClick,
+  onAddToCloseFriends,
+  onAddToFavorites,
+  onRestrict,
 }: ProfileHeaderProps) => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const [isNotesDialogOpen, setIsNotesDialogOpen] = useState(false);
-
-  const handleWebsiteClick = () => {
-    if (profile.website) {
-      window.open(profile.website, '_blank');
-    }
-  };
+  const [isFollowingOptionsOpen, setIsFollowingOptionsOpen] = useState(false);
 
   const handleNotesClick = () => {
     setIsNotesDialogOpen(true);
@@ -107,7 +113,7 @@ export const ProfileHeader = ({
             title={isCurrentUser ? "Thay đổi ảnh đại diện" : "Ảnh đại diện"}
           >
             <Avatar className="w-20 h-20 md:w-44 md:h-44 ring-2 ring-primary/20">
-              <AvatarImage src={profile.avatar} alt={profile.name} />
+              <AvatarImage src={profile.avatar} alt={profile.username} />
               <AvatarFallback className="text-xl font-semibold">
                 {profile.name.charAt(0).toUpperCase()}
               </AvatarFallback>
@@ -133,9 +139,6 @@ export const ProfileHeader = ({
           <div className="flex items-center gap-3 mb-3">
             <div className="flex items-center gap-2">
               <h1 className="text-xl md:text-2xl font-light">{profile.username}</h1>
-              {profile.isVerified && (
-                <BadgeCheck className="w-5 h-5 text-primary fill-current" />
-              )}
             </div>
 
             {isCurrentUser ? (
@@ -164,11 +167,22 @@ export const ProfileHeader = ({
                   <Button 
                     variant="outline" 
                     size="sm"
-                    onClick={onUnfollow}
+                    onClick={() => setIsFollowingOptionsOpen(true)}
                     className="gap-1"
                   >
                     <UserCheck className="w-4 h-4" />
                     Đang theo dõi
+                    <ChevronDown className="w-3 h-3" />
+                  </Button>
+                ) : profile.hasRequestedFollow ? (
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    disabled
+                    className="gap-1"
+                  >
+                    <UserCheck className="w-4 h-4" />
+                    Đã yêu cầu
                   </Button>
                 ) : (
                   <Button 
@@ -224,18 +238,28 @@ export const ProfileHeader = ({
               <div className="font-semibold">{profile.postsCount}</div>
               <div className="text-sm text-muted-foreground">bài viết</div>
             </div>
-            <button 
+            <button
               onClick={onShowFollowers}
-              className="text-center hover:opacity-70 transition-opacity"
+              className={`text-center transition-opacity ${
+                !isCurrentUser && profile.isPrivate && !profile.isFollowing 
+                  ? 'opacity-50 cursor-not-allowed' 
+                  : 'hover:opacity-70'
+              }`}
+              disabled={!isCurrentUser && profile.isPrivate && !profile.isFollowing}
             >
-              <div className="font-semibold">{profile.followersCount}</div>
+              <div className="font-semibold">{followersCount !== undefined ? followersCount : profile.followersCount}</div>
               <div className="text-sm text-muted-foreground">người theo dõi</div>
             </button>
-            <button 
+            <button
               onClick={onShowFollowing}
-              className="text-center hover:opacity-70 transition-opacity"
+              className={`text-center transition-opacity ${
+                !isCurrentUser && profile.isPrivate && !profile.isFollowing 
+                  ? 'opacity-50 cursor-not-allowed' 
+                  : 'hover:opacity-70'
+              }`}
+              disabled={!isCurrentUser && profile.isPrivate && !profile.isFollowing}
             >
-              <div className="font-semibold">{profile.followingCount}</div>
+              <div className="font-semibold">{followingCount !== undefined ? followingCount : profile.followingCount}</div>
               <div className="text-sm text-muted-foreground">đang theo dõi</div>
             </button>
           </div>
@@ -245,14 +269,6 @@ export const ProfileHeader = ({
             <div className="font-semibold">{profile.name}</div>
             {profile.bio && (
               <div className="text-sm whitespace-pre-line">{profile.bio}</div>
-            )}
-            {profile.website && (
-              <button
-                onClick={handleWebsiteClick}
-                className="text-sm text-primary hover:underline"
-              >
-                {profile.website.replace(/^https?:\/\//, '')}
-              </button>
             )}
           </div>
         </div>
@@ -266,6 +282,20 @@ export const ProfileHeader = ({
           onPublish={handlePublishNote}
           userAvatar={profile.avatar}
           userName={profile.name}
+        />
+      )}
+
+      {/* Following Options Dialog */}
+      {!isCurrentUser && (
+        <FollowingOptionsDialog
+          isOpen={isFollowingOptionsOpen}
+          onClose={() => setIsFollowingOptionsOpen(false)}
+          profile={profile}
+          onUnfollow={onUnfollow}
+          onAddToCloseFriends={onAddToCloseFriends || (() => {})}
+          onAddToFavorites={onAddToFavorites || (() => {})}
+          onRestrict={onRestrict || (() => {})}
+          onBlockUser={onBlock}
         />
       )}
     </div>

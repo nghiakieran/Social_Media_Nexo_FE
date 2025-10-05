@@ -1,6 +1,6 @@
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useState, useRef } from 'react';
-import { useAppDispatch } from '@/store';
+import { useAppDispatch, useAppSelector } from '@/store';
 import { logoutAsync } from '@/features/auth/authSlice';
 import { 
   Home, 
@@ -35,7 +35,7 @@ const navigation = [
   { name: 'Tin nhắn', href: '/messages', icon: MessageCircle },
   { name: 'Thông báo', href: '/notifications', icon: Heart },
   { name: 'Tạo', href: '/create', icon: PlusSquare },
-  { name: 'Hồ sơ', href: '/profile', icon: User },
+  { name: 'Hồ sơ', href: '/profile', icon: User, dynamic: true },
 ];
 
 const mlFeatures = [
@@ -46,6 +46,7 @@ const mlFeatures = [
 export const Sidebar = () => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
+  const user = useAppSelector((state) => state.auth.user);
   const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
   const [isThemeMenuOpen, setIsThemeMenuOpen] = useState(false);
   const [isSwitchAccountOpen, setIsSwitchAccountOpen] = useState(false);
@@ -70,24 +71,29 @@ export const Sidebar = () => {
 
       <nav className="flex-1 p-4">
         <ul className="space-y-2">
-          {navigation.map((item) => (
-            <li key={item.name}>
-              <NavLink
-                to={item.href}
-                className={({ isActive }) =>
-                  cn(
-                    'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200',
-                    isActive
-                      ? 'bg-primary text-primary-foreground shadow-glow'
-                      : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
-                  )
-                }
-              >
-                <item.icon className="h-5 w-5" />
-                {item.name}
-              </NavLink>
-            </li>
-          ))}
+          {navigation.map((item) => {
+            // For profile link, use current user's username
+            const href = item.dynamic && user ? `/${user.username}` : item.href;
+            
+            return (
+              <li key={item.name}>
+                <NavLink
+                  to={href}
+                  className={({ isActive }) =>
+                    cn(
+                      'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200',
+                      isActive
+                        ? 'bg-primary text-primary-foreground shadow-glow'
+                        : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
+                    )
+                  }
+                >
+                  <item.icon className="h-5 w-5" />
+                  {item.name}
+                </NavLink>
+              </li>
+            );
+          })}
         </ul>
 
         <div className="mt-8">
@@ -148,7 +154,8 @@ export const Sidebar = () => {
                 variant="ghost"
                 className="w-full justify-start gap-3 px-3 py-2.5 text-sm"
                 onClick={() => {
-                  navigate('/profile?tab=saved');
+                  const profileUrl = user ? `/${user.username}?tab=saved` : '/';
+                  navigate(profileUrl);
                   setIsMoreMenuOpen(false);
                 }}
               >
@@ -271,7 +278,7 @@ export const Sidebar = () => {
     { name: 'Tìm kiếm', href: '/search', icon: Search },
     { name: 'Reels', href: '/reels', icon: Film },
     { name: 'Tin nhắn', href: '/messages', icon: MessageCircle },
-    { name: 'Hồ sơ', href: '/profile', icon: User },
+    { name: 'Hồ sơ', href: '/profile', icon: User, dynamic: true },
   ];
 
   return (
@@ -314,23 +321,28 @@ export const Sidebar = () => {
       {/* Mobile Bottom Navigation */}
       <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-sm border-t border-border">
         <div className="flex items-center justify-around py-3 px-4">
-          {mobileNavItems.map((item) => (
-            <NavLink
-              key={item.name}
-              to={item.href}
-              className={({ isActive }) =>
-                cn(
-                  'flex flex-col items-center gap-1 p-2 rounded-lg transition-all duration-200',
-                  isActive
-                    ? 'text-primary'
-                    : 'text-muted-foreground'
-                )
-              }
-            >
-              <item.icon className="h-6 w-6" />
-              <span className="text-xs font-medium">{item.name}</span>
-            </NavLink>
-          ))}
+          {mobileNavItems.map((item) => {
+            // For profile link, use current user's username
+            const href = item.dynamic && user ? `/${user.username}` : item.href;
+            
+            return (
+              <NavLink
+                key={item.name}
+                to={href}
+                className={({ isActive }) =>
+                  cn(
+                    'flex flex-col items-center gap-1 p-2 rounded-lg transition-all duration-200',
+                    isActive
+                      ? 'text-primary'
+                      : 'text-muted-foreground'
+                  )
+                }
+              >
+                <item.icon className="h-6 w-6" />
+                <span className="text-xs font-medium">{item.name}</span>
+              </NavLink>
+            );
+          })}
         </div>
       </div>
 
