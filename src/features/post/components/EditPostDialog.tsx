@@ -1,194 +1,77 @@
-import { useState, useEffect } from 'react';
-import { X } from 'lucide-react';
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
+  DialogDescription,
   DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { useToast } from '@/hooks/use-toast';
+} from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/hooks/use-toast";
+import { useState } from "react";
 
 interface EditPostDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  post: {
-    id: string;
-    content: string;
-    privacy: 'public' | 'friends' | 'private';
-    hashtags: string[];
-    taggedUsers: string[];
-    location?: string;
-  };
-  onSave: (postId: string, updatedData: any) => void;
+  initialContent: string;
+  onSave: (newContent: string) => void;
 }
 
-export const EditPostDialog = ({ 
-  isOpen, 
-  onClose, 
-  post, 
-  onSave 
+export const EditPostDialog = ({
+  isOpen,
+  onClose,
+  initialContent,
+  onSave,
 }: EditPostDialogProps) => {
-  const [content, setContent] = useState(post.content);
-  const [privacy, setPrivacy] = useState(post.privacy);
-  const [hashtags, setHashtags] = useState(post.hashtags);
-  const [taggedUsers, setTaggedUsers] = useState(post.taggedUsers);
-  const [location, setLocation] = useState(post.location || '');
+  const [content, setContent] = useState(initialContent);
   const { toast } = useToast();
-
-  useEffect(() => {
-    setContent(post.content);
-    setPrivacy(post.privacy);
-    setHashtags(post.hashtags);
-    setTaggedUsers(post.taggedUsers);
-    setLocation(post.location || '');
-  }, [post]);
 
   const handleSave = () => {
     if (!content.trim()) {
       toast({
-        variant: "destructive",
         title: "Lỗi",
         description: "Nội dung bài viết không được để trống.",
+        variant: "destructive",
       });
       return;
     }
 
-    onSave(post.id, {
-      content: content.trim(),
-      privacy,
-      hashtags,
-      taggedUsers,
-      location: location.trim(),
-    });
-
+    onSave(content.trim());
     toast({
-      title: "Cập nhật thành công!",
+      title: "Thành công",
       description: "Bài viết đã được cập nhật.",
     });
-
     onClose();
   };
 
-  const removeHashtag = (hashtagToRemove: string) => {
-    setHashtags(prev => prev.filter(tag => tag !== hashtagToRemove));
-  };
-
-  const removeTaggedUser = (userToRemove: string) => {
-    setTaggedUsers(prev => prev.filter(user => user !== userToRemove));
+  const handleClose = () => {
+    setContent(initialContent); // Reset to original content
+    onClose();
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-lg">
-        <DialogHeader>
-          <DialogTitle>Chỉnh sửa bài viết</DialogTitle>
-        </DialogHeader>
+    <Dialog open={isOpen} onOpenChange={handleClose}>
+      <DialogContent className="max-w-2xl w-full max-h-[90vh] overflow-hidden">
+        <DialogTitle>Chỉnh sửa bài viết</DialogTitle>
+        <DialogDescription>
+          Chỉnh sửa nội dung bài viết của bạn
+        </DialogDescription>
 
-        <div className="space-y-4">
-          {/* Content */}
-          <div>
-            <label className="text-sm font-medium mb-2 block">
-              Nội dung
-            </label>
-            <Textarea
-              placeholder="Bạn đang nghĩ gì?"
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              className="min-h-[100px]"
-            />
-          </div>
+        <div className="space-y-4 py-4">
+          <Textarea
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            placeholder="Viết gì đó..."
+            className="min-h-[200px] max-h-[400px] resize-none text-base"
+          />
 
-          {/* Privacy */}
-          <div>
-            <label className="text-sm font-medium mb-2 block">
-              Quyền riêng tư
-            </label>
-            <Select value={privacy} onValueChange={(value: any) => setPrivacy(value)}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="public">🌍 Công khai</SelectItem>
-                <SelectItem value="friends">👥 Bạn bè</SelectItem>
-                <SelectItem value="private">🔒 Chỉ mình tôi</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Hashtags */}
-          {hashtags.length > 0 && (
-            <div>
-              <label className="text-sm font-medium mb-2 block">
-                Hashtags
-              </label>
-              <div className="flex flex-wrap gap-2">
-                {hashtags.map((tag) => (
-                  <Badge key={tag} variant="secondary" className="gap-1">
-                    {tag}
-                    <button
-                      onClick={() => removeHashtag(tag)}
-                      className="hover:bg-destructive/20 rounded-full p-0.5"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  </Badge>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Tagged Users */}
-          {taggedUsers.length > 0 && (
-            <div>
-              <label className="text-sm font-medium mb-2 block">
-                Người được gắn thẻ
-              </label>
-              <div className="flex flex-wrap gap-2">
-                {taggedUsers.map((user) => (
-                  <Badge key={user} variant="outline" className="gap-1">
-                    @{user}
-                    <button
-                      onClick={() => removeTaggedUser(user)}
-                      className="hover:bg-destructive/20 rounded-full p-0.5"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  </Badge>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Location */}
-          <div>
-            <label className="text-sm font-medium mb-2 block">
-              Vị trí
-            </label>
-            <Textarea
-              placeholder="Thêm vị trí..."
-              value={location}
-              onChange={(e) => setLocation(e.target.value)}
-              rows={2}
-            />
-          </div>
-
-          {/* Actions */}
-          <div className="flex justify-end gap-2 pt-4">
-            <Button variant="outline" onClick={onClose}>
+          <div className="flex justify-end gap-3">
+            <Button variant="outline" onClick={handleClose}>
               Hủy
             </Button>
-            <Button onClick={handleSave} variant="instagram">
+            <Button
+              onClick={handleSave}
+              disabled={!content.trim() || content === initialContent}
+            >
               Lưu thay đổi
             </Button>
           </div>

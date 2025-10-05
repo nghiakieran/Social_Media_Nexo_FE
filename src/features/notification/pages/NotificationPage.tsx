@@ -1,25 +1,25 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { useAppDispatch, useAppSelector } from '@/store';
-import { Button } from '@/components/ui/button';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Check, UserPlus, UserMinus } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
-import TabSwitcher from '../components/TabSwitcher';
-import NotificationItem from '../components/NotificationItem';
-import { FollowRequestsDialog } from '@/features/profile/components/FollowRequestsDialog';
-import { 
-  setNotifications, 
-  markAsRead, 
-  markAllAsRead, 
-  setActiveTab 
-} from '../notificationSlice';
-import { 
-  fetchFollowRequestsAsync,
+import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { FollowRequestsDialog } from "@/features/profile/components/FollowRequestsDialog";
+import {
   acceptFollowRequestAsync,
+  fetchFollowRequestsAsync,
   rejectFollowRequestAsync,
-  setShowFollowRequestsDialog
-} from '@/features/profile/profileSlice';
-import { mockNotifications } from '../__mocks__/notifications';
+  setShowFollowRequestsDialog,
+} from "@/features/profile/profileSlice";
+import { useToast } from "@/hooks/use-toast";
+import { useAppDispatch, useAppSelector } from "@/store";
+import { Check, UserPlus } from "lucide-react";
+import React, { useEffect, useMemo } from "react";
+import { mockNotifications } from "../__mocks__/notifications";
+import { NotificationItem } from "../components/NotificationItem";
+import TabSwitcher from "../components/TabSwitcher";
+import {
+  markAllAsRead,
+  markAsRead,
+  setActiveTab,
+  setNotifications,
+} from "../notificationSlice";
 
 const NotificationPage: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -27,15 +27,14 @@ const NotificationPage: React.FC = () => {
   const { notifications, activeTab, unreadCount } = useAppSelector(
     (state) => state.notification
   );
-  const { followRequests, showFollowRequestsDialog, isLoading } = useAppSelector(
-    (state) => state.profile
-  );
+  const { followRequests, showFollowRequestsDialog, isLoading } =
+    useAppSelector((state) => state.profile);
   const currentUser = useAppSelector((state) => state.auth.user);
 
   // Load mock data on component mount
   useEffect(() => {
     dispatch(setNotifications(mockNotifications));
-    
+
     // Fetch follow requests if user has private account
     if (currentUser?.isPrivate) {
       dispatch(fetchFollowRequestsAsync({}));
@@ -46,10 +45,14 @@ const NotificationPage: React.FC = () => {
   const filteredNotifications = useMemo(() => {
     const safeNotifications = notifications || [];
     switch (activeTab) {
-      case 'following':
-        return safeNotifications.filter(n => n.type === 'like' || n.type === 'comment');
-      case 'you':
-        return safeNotifications.filter(n => n.type === 'follow' || n.type === 'hashtag');
+      case "following":
+        return safeNotifications.filter(
+          (n) => n.type === "like" || n.type === "comment"
+        );
+      case "you":
+        return safeNotifications.filter(
+          (n) => n.type === "follow" || n.type === "hashtag"
+        );
       default:
         return safeNotifications;
     }
@@ -67,19 +70,8 @@ const NotificationPage: React.FC = () => {
     });
   };
 
-  const handleTabChange = (tab: 'all' | 'following' | 'you') => {
+  const handleTabChange = (tab: "all" | "following" | "you") => {
     dispatch(setActiveTab(tab));
-  };
-
-  const handleNotificationClick = (notification) => {
-    // Navigate to post or profile based on notification type
-    if (notification.postId) {
-      // Navigate to post details or comments
-      console.log('Navigate to post:', notification.postId);
-    } else if (notification.type === 'follow') {
-      // Navigate to user profile
-      console.log('Navigate to profile:', notification.userId);
-    }
   };
 
   const handleShowFollowRequests = () => {
@@ -101,8 +93,8 @@ const NotificationPage: React.FC = () => {
         <div className="flex items-center justify-between p-4">
           <h1 className="text-xl font-semibold">Thông báo</h1>
           {unreadCount > 0 && (
-            <Button 
-              variant="ghost" 
+            <Button
+              variant="ghost"
               size="sm"
               onClick={handleMarkAllAsRead}
               className="text-primary hover:text-primary/80 transition-colors duration-200"
@@ -115,36 +107,38 @@ const NotificationPage: React.FC = () => {
       </div>
 
       {/* Follow Requests Section - Only show if user has private account and pending requests */}
-      {currentUser?.isPrivate && followRequests && followRequests.length > 0 && (
-        <div className="border-b border-border bg-background">
-          <div className="p-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                  <UserPlus className="w-5 h-5 text-primary" />
+      {currentUser?.isPrivate &&
+        followRequests &&
+        followRequests.length > 0 && (
+          <div className="border-b border-border bg-background">
+            <div className="p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                    <UserPlus className="w-5 h-5 text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-sm">Yêu cầu theo dõi</h3>
+                    <p className="text-xs text-muted-foreground">
+                      {followRequests?.length || 0} yêu cầu đang chờ
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="font-semibold text-sm">Yêu cầu theo dõi</h3>
-                  <p className="text-xs text-muted-foreground">
-                    {followRequests?.length || 0} yêu cầu đang chờ
-                  </p>
-                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleShowFollowRequests}
+                  className="text-primary hover:text-primary/80"
+                >
+                  Xem tất cả
+                </Button>
               </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleShowFollowRequests}
-                className="text-primary hover:text-primary/80"
-              >
-                Xem tất cả
-              </Button>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
       {/* Tab Switcher */}
-      <TabSwitcher 
+      <TabSwitcher
         activeTab={activeTab}
         onTabChange={handleTabChange}
         unreadCount={unreadCount}
@@ -156,18 +150,17 @@ const NotificationPage: React.FC = () => {
           {filteredNotifications.length > 0 ? (
             <>
               {filteredNotifications.map((notification, index) => (
-                <div 
+                <div
                   key={notification.id}
                   className="animate-fade-in"
-                  style={{ 
+                  style={{
                     animationDelay: `${index * 0.05}s`,
-                    animationFillMode: 'both'
+                    animationFillMode: "both",
                   }}
                 >
                   <NotificationItem
                     notification={notification}
                     onMarkAsRead={handleMarkAsRead}
-                    onClick={() => handleNotificationClick(notification)}
                   />
                 </div>
               ))}
@@ -181,12 +174,11 @@ const NotificationPage: React.FC = () => {
                 Không có thông báo
               </h3>
               <p className="text-muted-foreground text-center max-w-sm">
-                {activeTab === 'all' 
-                  ? 'Bạn đã xem hết tất cả thông báo'
+                {activeTab === "all"
+                  ? "Bạn đã xem hết tất cả thông báo"
                   : `Không có thông báo nào trong tab "${
-                      activeTab === 'following' ? 'Đang theo dõi' : 'Bạn'
-                    }"`
-                }
+                      activeTab === "following" ? "Đang theo dõi" : "Bạn"
+                    }"`}
               </p>
             </div>
           )}
