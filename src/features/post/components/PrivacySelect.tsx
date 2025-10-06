@@ -1,14 +1,14 @@
-import { Globe, Users, Lock } from 'lucide-react';
-import { 
+import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
+} from "@/components/ui/select";
+import { Globe, Lock } from "lucide-react";
 
 interface PrivacyOption {
-  value: 'public' | 'friends' | 'private';
+  value: "public" | "friends" | "private";
   label: string;
   icon: React.ComponentType<{ className?: string }>;
   description: string;
@@ -16,57 +16,87 @@ interface PrivacyOption {
 
 interface PrivacySelectProps {
   value: string;
-  onChange: (value: 'public' | 'friends' | 'private') => void;
+  onChange: (value: "public" | "friends" | "private") => void;
   className?: string;
 }
 
 const privacyOptions: PrivacyOption[] = [
   {
-    value: 'public',
-    label: 'Công khai',
+    value: "public",
+    label: "Công khai",
     icon: Globe,
-    description: 'Mọi người đều có thể xem',
+    description: "Mọi người đều có thể xem",
   },
   {
-    value: 'friends',
-    label: 'Bạn bè',
-    icon: Users,
-    description: 'Chỉ bạn bè có thể xem',
-  },
-  {
-    value: 'private',
-    label: 'Chỉ mình tôi',
+    value: "private",
+    label: "Chỉ mình tôi",
     icon: Lock,
-    description: 'Chỉ bạn có thể xem',
+    description: "Chỉ bạn có thể xem",
   },
 ];
 
-export const PrivacySelect = ({ value, onChange, className }: PrivacySelectProps) => {
-  const selectedOption = privacyOptions.find(option => option.value === value);
+export const PrivacySelect = ({
+  value,
+  onChange,
+  className,
+}: PrivacySelectProps) => {
+  const selectedOption = privacyOptions.find(
+    (option) => option.value === value
+  );
+
+  const getIconColor = (optionValue: string) => {
+    switch (optionValue) {
+      case "public":
+        return "text-green-500";
+      case "private":
+        return "text-orange-500";
+      default:
+        return "text-muted-foreground";
+    }
+  };
 
   return (
     <Select value={value} onValueChange={onChange}>
-      <SelectTrigger className={`w-full ${className}`}>
+      <SelectTrigger
+        className={`w-full border-0 bg-transparent p-0 h-auto hover:bg-transparent focus:ring-0 ${className}`}
+      >
         <SelectValue>
           {selectedOption && (
-            <div className="flex items-center gap-2">
-              <selectedOption.icon className="w-4 h-4" />
-              <span>{selectedOption.label}</span>
+            <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-muted/50 hover:bg-muted transition-colors">
+              <selectedOption.icon
+                className={`w-4 h-4 ${getIconColor(selectedOption.value)}`}
+              />
+              <span className="text-sm font-medium">
+                {selectedOption.label}
+              </span>
             </div>
           )}
         </SelectValue>
       </SelectTrigger>
-      <SelectContent>
+      <SelectContent className="w-64 p-2">
         {privacyOptions.map((option) => (
-          <SelectItem key={option.value} value={option.value}>
-            <div className="flex items-start gap-3 py-1">
-              <option.icon className="w-5 h-5 mt-0.5 text-muted-foreground" />
-              <div className="flex flex-col">
-                <span className="font-medium">{option.label}</span>
-                <span className="text-sm text-muted-foreground">
+          <SelectItem
+            key={option.value}
+            value={option.value}
+            className="p-3 rounded-xl [&>span>span]:hidden hover:cursor-pointer focus:bg-accent/85"
+          >
+            <div className="flex items-center gap-3 w-full">
+              <div
+                className={`p-2 rounded-lg bg-muted/50 ${getIconColor(
+                  option.value
+                )}`}
+              >
+                <option.icon className="w-4 h-4" />
+              </div>
+              <div className="flex flex-col flex-1">
+                <span className="font-medium text-sm">{option.label}</span>
+                <span className="text-xs text-muted-foreground">
                   {option.description}
                 </span>
               </div>
+              {value === option.value && (
+                <div className="w-2 h-2 rounded-full bg-primary"></div>
+              )}
             </div>
           </SelectItem>
         ))}

@@ -1,119 +1,142 @@
-import React from 'react';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Heart, MessageCircle, UserPlus, Hash, Bell } from 'lucide-react';
-import { Notification } from '../notificationSlice';
-import { formatDistanceToNow } from 'date-fns';
-import { vi } from 'date-fns/locale';
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Card, CardContent } from "@/components/ui/card";
+import { navigateToPost, navigateToProfile } from "@/utils/navigation";
+import {
+  Bell,
+  Hash,
+  Heart,
+  MessageCircle,
+  ThumbsUp,
+  UserPlus,
+} from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Notification } from "../notificationSlice";
 
 interface NotificationItemProps {
   notification: Notification;
   onMarkAsRead: (id: string) => void;
-  onClick?: () => void;
 }
 
-const NotificationItem: React.FC<NotificationItemProps> = ({ 
-  notification, 
-  onMarkAsRead, 
-  onClick 
-}) => {
+export const NotificationItem = ({
+  notification,
+  onMarkAsRead,
+}: NotificationItemProps) => {
+  const navigate = useNavigate();
+
+  const formatTimeAgo = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+    if (diffInSeconds < 60) return "Vừa xong";
+    if (diffInSeconds < 3600)
+      return `${Math.floor(diffInSeconds / 60)} phút trước`;
+    if (diffInSeconds < 86400)
+      return `${Math.floor(diffInSeconds / 3600)} giờ trước`;
+    return `${Math.floor(diffInSeconds / 86400)} ngày trước`;
+  };
+
   const getNotificationIcon = () => {
-    const iconClass = "w-4 h-4";
     switch (notification.type) {
-      case 'like':
-        return <Heart className={`${iconClass} text-destructive fill-destructive`} />;
-      case 'comment':
-        return <MessageCircle className={`${iconClass} text-primary`} />;
-      case 'follow':
-        return <UserPlus className={`${iconClass} text-secondary`} />;
-      case 'hashtag':
-        return <Hash className={`${iconClass} text-accent`} />;
-      case 'system':
-        return <Bell className={`${iconClass} text-muted-foreground`} />;
+      case "like":
+        return <Heart className="w-4 h-4 text-red-500" />;
+      case "comment":
+        return <MessageCircle className="w-4 h-4 text-blue-500" />;
+      case "follow":
+        return <UserPlus className="w-4 h-4 text-purple-500" />;
+      case "hashtag":
+        return <Hash className="w-4 h-4 text-green-500" />;
+      case "system":
+        return <Bell className="w-4 h-4 text-orange-500" />;
       default:
-        return <Bell className={`${iconClass} text-muted-foreground`} />;
+        return <ThumbsUp className="w-4 h-4 text-gray-500" />;
     }
   };
 
   const handleClick = () => {
+    // Mark as read
     if (!notification.isRead) {
       onMarkAsRead(notification.id);
     }
-    onClick?.();
+
+    // Navigate based on notification type
+    switch (notification.type) {
+      case "like":
+      case "comment":
+      case "hashtag":
+        if (notification.postId) {
+          navigateToPost(navigate, notification.postId);
+        }
+        break;
+      case "follow":
+        navigateToProfile(navigate, notification.userName);
+        break;
+      case "system":
+        // System notifications usually don't navigate anywhere
+        break;
+      default:
+        // Default action or no action
+        break;
+    }
   };
 
-  const timeAgo = formatDistanceToNow(new Date(notification.timestamp), {
-    addSuffix: true,
-    locale: vi,
-  });
+  const handleProfileClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    navigateToProfile(navigate, notification.userName);
+  };
 
   return (
-    <div 
-      className={`
-        flex items-start space-x-3 p-4 border-b border-border last:border-b-0 
-        cursor-pointer transition-all duration-200 hover:bg-muted/50 
-        animate-slide-in-right
-        ${!notification.isRead ? 'bg-primary/5' : ''}
-      `}
+    <Card
+      className={`cursor-pointer transition-all hover:shadow-md ${
+        notification.isRead
+          ? "bg-card/50"
+          : "bg-primary/5 border-primary/20 shadow-sm"
+      }`}
       onClick={handleClick}
     >
-      <div className="relative">
-        <Avatar className="w-12 h-12 ring-2 ring-primary/10 transition-all duration-200 hover:ring-primary/30">
-          <AvatarImage 
-            src={notification.userAvatar} 
-            alt={notification.userName} 
-          />
-          <AvatarFallback>
-            {notification.userName.charAt(0).toUpperCase()}
-          </AvatarFallback>
-        </Avatar>
-        
-        {/* Notification type icon */}
-        <div className="absolute -bottom-1 -right-1 bg-background rounded-full p-1 border border-border">
-          {getNotificationIcon()}
-        </div>
-      </div>
+      <CardContent className="p-4">
+        <div className="flex items-start gap-3">
+          {/* Notification Icon */}
+          <div className="flex-shrink-0 mt-1">{getNotificationIcon()}</div>
 
-      <div className="flex-1 min-w-0 space-y-1">
-        <div className="flex items-start justify-between">
-          <div className="space-y-1">
-            <p className="text-sm">
-              <span className="font-semibold text-foreground hover:underline">
-                {notification.userName}
-              </span>
-              <span className="text-muted-foreground ml-1">
-                {notification.content}
-              </span>
-            </p>
-            <p className="text-xs text-muted-foreground">
-              {timeAgo}
-            </p>
-          </div>
-          
-          {!notification.isRead && (
-            <Badge 
-              variant="destructive" 
-              className="w-2 h-2 p-0 rounded-full ml-2 animate-pulse"
+          {/* Avatar */}
+          <Avatar
+            className="w-10 h-10 flex-shrink-0 cursor-pointer hover:ring-2 hover:ring-primary/20 transition-all"
+            onClick={handleProfileClick}
+          >
+            <AvatarImage
+              src={notification.userAvatar}
+              alt={notification.userName}
             />
-          )}
-        </div>
+            <AvatarFallback>{notification.userName.charAt(0)}</AvatarFallback>
+          </Avatar>
 
-        {/* Action buttons for certain notification types */}
-        {notification.type === 'follow' && (
-          <div className="pt-2">
-            <Button 
-              size="sm" 
-              variant="outline"
-              className="text-xs transition-all duration-200 hover:scale-[1.02]"
-            >
-              Theo dõi lại
-            </Button>
+          {/* Content */}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-start justify-between">
+              <div className="flex-1 min-w-0">
+                <p className="text-sm text-foreground">
+                  <span
+                    className="font-semibold hover:text-primary cursor-pointer"
+                    onClick={handleProfileClick}
+                  >
+                    {notification.userName}
+                  </span>{" "}
+                  {notification.content}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {formatTimeAgo(notification.timestamp)}
+                </p>
+              </div>
+
+              {/* Unread indicator */}
+              {!notification.isRead && (
+                <div className="w-2 h-2 bg-primary rounded-full flex-shrink-0 mt-2"></div>
+              )}
+            </div>
           </div>
-        )}
-      </div>
-    </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 };
-
-export default NotificationItem;
