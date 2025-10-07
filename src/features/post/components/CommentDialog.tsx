@@ -13,7 +13,7 @@ interface Comment {
   id: string;
   userId: string;
   userName: string;
-  userAvatar: string;
+  avatarUrl: string;
   content: string;
   likesCount: number;
   isLiked: boolean;
@@ -30,7 +30,7 @@ interface Post {
   id: string;
   userId: string;
   userName: string;
-  userAvatar: string;
+  avatarUrl: string;
   content: string;
   media: Array<{
     id: string;
@@ -115,7 +115,7 @@ export const CommentDialog = ({
       >
         <div className="relative">
           <Avatar className="w-6 h-6">
-            <AvatarImage src={reply.userAvatar} alt={reply.userName} />
+            <AvatarImage src={reply.avatarUrl} alt={reply.userName} />
             <AvatarFallback>{reply.userName?.charAt(0) || 'U'}</AvatarFallback>
           </Avatar>
         </div>
@@ -416,7 +416,7 @@ export const CommentDialog = ({
         <div className="p-4 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
           <div className="flex items-start gap-3">
             <Avatar className="w-8 h-8">
-              <AvatarImage src={post.userAvatar} alt={post.userName} />
+              <AvatarImage src={post.avatarUrl} alt={post.userName} />
               <AvatarFallback>{post.userName?.charAt(0) || 'U'}</AvatarFallback>
             </Avatar>
             <div className="flex-1">
@@ -435,7 +435,7 @@ export const CommentDialog = ({
                 <div key={comment.id} className="group/comment">
                   <div className="flex items-start gap-3">
                     <Avatar className="w-8 h-8">
-                      <AvatarImage src={comment.userAvatar} alt={comment.userName} />
+                      <AvatarImage src={comment.avatarUrl} alt={comment.userName} />
                       <AvatarFallback>{comment.userName?.charAt(0) || 'U'}</AvatarFallback>
                     </Avatar>
                     <div className="flex-1">
@@ -495,7 +495,7 @@ export const CommentDialog = ({
                             {comment.replies.map((reply) => (
                               <div key={reply.id} className="group flex items-start gap-3">
                                 <Avatar className="w-6 h-6">
-                                  <AvatarImage src={reply.userAvatar} alt={reply.userName} />
+                                  <AvatarImage src={reply.avatarUrl} alt={reply.userName} />
                                   <AvatarFallback>{reply.userName?.charAt(0) || 'U'}</AvatarFallback>
                                 </Avatar>
                                 <div className="flex-1">
@@ -655,7 +655,7 @@ export const CommentDialog = ({
               <div className="flex items-center gap-3">
                 <div className="relative">
                   <Avatar className="w-8 h-8">
-                    <AvatarImage src={post.userAvatar} alt={post.userName} />
+                    <AvatarImage src={post.avatarUrl} alt={post.userName} />
                     <AvatarFallback>{post.userName?.charAt(0) || 'U'}</AvatarFallback>
                   </Avatar>
                 </div>
@@ -703,7 +703,7 @@ export const CommentDialog = ({
             <div className="flex items-start gap-3">
               <div className="relative">
                 <Avatar className="w-8 h-8">
-                  <AvatarImage src={post.userAvatar} alt={post.userName} />
+                  <AvatarImage src={post.avatarUrl} alt={post.userName} />
                   <AvatarFallback>{post.userName?.charAt(0) || 'U'}</AvatarFallback>
                 </Avatar>
               </div>
@@ -759,7 +759,7 @@ export const CommentDialog = ({
                 >
                   <div className="relative">
                     <Avatar className="w-8 h-8">
-                      <AvatarImage src={comment.userAvatar} alt={comment.userName} />
+                      <AvatarImage src={comment.avatarUrl} alt={comment.userName} />
                       <AvatarFallback>{comment.userName?.charAt(0) || 'U'}</AvatarFallback>
                     </Avatar>
                   </div>

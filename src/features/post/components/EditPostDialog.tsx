@@ -8,18 +8,27 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
+import type { UpdatePostRequest } from "../types";
 
 interface EditPostDialogProps {
   isOpen: boolean;
   onClose: () => void;
+  postId: number;
+  userId: number;
   initialContent: string;
-  onSave: (newContent: string) => void;
+  initialVisibility: 'PUBLIC' | 'PRIVATE';
+  initialMediaUrl: string[];
+  onSave: (files: File[], updateData: UpdatePostRequest) => void;
 }
 
 export const EditPostDialog = ({
   isOpen,
   onClose,
+  postId,
+  userId,
   initialContent,
+  initialVisibility,
+  initialMediaUrl,
   onSave,
 }: EditPostDialogProps) => {
   const [content, setContent] = useState(initialContent);
@@ -35,7 +44,20 @@ export const EditPostDialog = ({
       return;
     }
 
-    onSave(content.trim());
+    const updateData: UpdatePostRequest = {
+      postId,
+      userId,
+      caption: content.trim(),
+      visibility: initialVisibility,
+      tag: "", // Can be enhanced later to support tag editing
+      mediaUrl: initialMediaUrl, // Keep existing media URLs
+    };
+
+    // For now, pass empty files array since we're only editing text content
+    // In the future, this could be enhanced to support media editing
+    const files: File[] = [];
+
+    onSave(files, updateData);
     toast({
       title: "Thành công",
       description: "Bài viết đã được cập nhật.",

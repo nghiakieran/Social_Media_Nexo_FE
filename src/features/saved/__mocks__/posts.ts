@@ -10,7 +10,7 @@ export const mockSavedPosts: SavedPost[] = [
       id: 'post-1',
       userId: 'user-1',
       userName: 'tech_developer',
-      userAvatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face',
+      avatarUrl: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face',
       content: '(Save ❤️) API Calling Redux With Redux Toolkit\n\n-> Redux Toolkit Makes API Handling Easier & More Efficient. With createAsyncThunk, You Can Manage Asynchronous Requests Like A Pro!\n\n#nodejs #javascriptdeveloper #reduxtoolkit #merstack #jsbrasil #codinglife #apidevelopment #react #javascripttricks #javascripttips',
       media: [{
         id: 'media-1',
@@ -32,7 +32,7 @@ export const mockSavedPosts: SavedPost[] = [
       id: 'post-2',
       userId: 'user-2',
       userName: 'react_roadmap',
-      userAvatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face',
+      avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face',
       content: 'ReactJS roadmap 🔥\n\nFollow @theindiandev for more!!\n\n#reactjs #reactnative #javascript #developer #coding #programming #webdevelopment #webdev\n\nAre you learning React?',
       media: [{
         id: 'media-2',
@@ -54,7 +54,7 @@ export const mockSavedPosts: SavedPost[] = [
       id: 'post-3',
       userId: 'user-3',
       userName: 'funny_memes',
-      userAvatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150&h=150&fit=crop&crop=face',
+      avatarUrl: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150&h=150&fit=crop&crop=face',
       content: 'Cuối tháng hết xiền hẹn hò ăn vặt siu ngon giá sinh viên thoiii 😘\n\n#foodreview #foodinsta #foodporn #foodblogger #foodie #trending #viralreels #xuhuong #yummy #amthuc #henho #flan #pannacotta #cavienchien #vietnamesefood #quanbinhthanh #streetfood #homnayangi #diadiemanuong #dianthoi #fyp #anvat #saigon #date #reels #reelsinstagram',
       media: [{
         id: 'media-3',
@@ -76,7 +76,7 @@ export const mockSavedPosts: SavedPost[] = [
       id: 'post-4',
       userId: 'user-4',
       userName: 'coding_tips',
-      userAvatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&h=150&fit=crop&crop=face',
+      avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&h=150&fit=crop&crop=face',
       content: 'Dịp ở nhà này cậu đã học thêm gì rồi?\nHọc nấu ăn, trau dồi ngôn ngữ mới hay chỉ đơn giản là học yêu bản thân hơn? 🥰🥰\n\nHôm nay hãy cùng tớ lưu lại 4 khóa học hữu ích miễn phí của Coursera để có thêm nhiều kiến thức nhen.\n\nTruy cập Coursera.org thui nào. Link khóa học tớ sẽ đính kèm ở mục story highlight với tiêu đề là Study nhé.',
       media: [{
         id: 'media-4',
@@ -98,7 +98,7 @@ export const mockSavedPosts: SavedPost[] = [
       id: 'post-5',
       userId: 'user-5',
       userName: 'saigon_foodie',
-      userAvatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop&crop=face',
+      avatarUrl: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop&crop=face',
       content: 'List 40 cafe theo từng quận p1 🫶',
       media: [{
         id: 'media-5',
@@ -120,7 +120,7 @@ export const mockSavedPosts: SavedPost[] = [
       id: 'post-6',
       userId: 'user-6',
       userName: 'food_lover_sg',
-      userAvatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&h=150&fit=crop&crop=face',
+      avatarUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&h=150&fit=crop&crop=face',
       content: 'Hướng dẫn đường đến quán cóc bờ kè có view trực diện LM81 cực chill #lacasaigon #saigon #bokequan2 #songsaigon #landmark81 #lm81 #view #fyp',
       media: [{
         id: 'media-6',

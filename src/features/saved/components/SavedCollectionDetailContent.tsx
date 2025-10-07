@@ -16,7 +16,7 @@ import { CommentDialog } from '../../post/components/CommentDialog';
 import { ShareDialog } from '../../post/components/ShareDialog';
 import { useBookmark } from '../hooks/useBookmark';
 import { useToast } from '../../../hooks/use-toast';
-import { toggleLike, toggleBookmark as togglePostBookmark } from '../../post/postSlice';
+import { likePostThunk, bookmarkPostThunk } from '../../post/postSlice';
 import { mockComments } from '@/features/interaction/__mocks__/comments';
 
 interface SavedCollectionDetailContentProps {
@@ -96,16 +96,27 @@ export const SavedCollectionDetailContent: React.FC<SavedCollectionDetailContent
   };
 
   const handleLikePost = (postId: string) => {
-    dispatch(toggleLike(postId));
-    const post = allPosts.find(p => p.id === postId);
-    if (post) {
-      // Update selectedPost state to reflect the like change
-      setSelectedPost(prev => prev ? { ...prev, isLiked: !prev.isLiked, likesCount: prev.likesCount + (prev.isLiked ? -1 : 1) } : prev);
-      toast({
-        title: post.isLiked ? "Đã bỏ thích bài viết!" : "Đã thích bài viết!",
-        duration: 1500,
+    dispatch(likePostThunk(postId))
+      .unwrap()
+      .then(() => {
+        const post = allPosts.find(p => p.id === postId);
+        if (post) {
+          // Update selectedPost state to reflect the like change
+          setSelectedPost(prev => prev ? { ...prev, isLiked: !prev.isLiked, likesCount: prev.likesCount + (prev.isLiked ? -1 : 1) } : prev);
+          toast({
+            title: post.isLiked ? "Đã bỏ thích bài viết!" : "Đã thích bài viết!",
+            duration: 1500,
+          });
+        }
+      })
+      .catch((error) => {
+        console.error('Like post error:', error);
+        toast({
+          title: "Lỗi",
+          description: "Không thể thực hiện thao tác. Vui lòng thử lại.",
+          variant: "destructive",
+        });
       });
-    }
   };
 
   const handleShare = (postId: string, userIds: string[], message: string) => {

@@ -31,6 +31,8 @@ import { useToast } from '@/hooks/use-toast';
 import { LikesDialog } from './LikesDialog';
 import { ActionMenu } from '@/components/common/ActionMenu';
 import { useBookmark } from '@/features/saved/hooks/useBookmark';
+import { useNavigate } from 'react-router-dom';
+import { navigateToPost, navigateToProfile } from '@/utils/navigation';
 
 interface MediaItem {
   id: string;
@@ -40,17 +42,21 @@ interface MediaItem {
   alt?: string;
 }
 
+interface TaggedUser {
+  userId: number;
+  userName: string;
+}
+
 interface Post {
   id: string;
   userId: string;
   userName: string;
-  userAvatar: string;
+  avatarUrl: string;
   content: string;
   media: MediaItem[];
   privacy: 'public' | 'friends' | 'private';
-  taggedUsers: string[];
+  taggedUsers: TaggedUser[];
   hashtags: string[];
-  location?: string;
   createdAt: string;
   likesCount: number;
   commentsCount: number;
@@ -61,20 +67,20 @@ interface Post {
   violationType?: string;
 }
 
-interface Comment {
+interface CommentType {
   id: string;
   userId: string;
   userName: string;
-  userAvatar: string;
+  avatarUrl: string;
   content: string;
   likesCount: number;
   isLiked: boolean;
   createdAt: string;
-  replies?: Comment[];
+  replies?: CommentType[];
 }
 
 interface PostCardProps {
-  post: Omit<Post, 'isBookmarked'>;
+  post: Post;
   onLike: (postId: string) => void;
   onEdit: (postId: string) => void;
   onDelete: (postId: string) => void;
@@ -82,7 +88,7 @@ interface PostCardProps {
   onShare?: (postId: string, userIds: string[], message: string) => void;
   onOpenShareDialog?: () => void;
   isShareDialogOpen?: boolean;
-  comments?: Comment[];
+  comments?: CommentType[];
   onAddComment?: (postId: string, content: string) => void;
   onLikeComment?: (commentId: string) => void;
   onReplyComment?: (commentId: string, content: string) => void;
@@ -113,6 +119,7 @@ export const PostCard = ({
   const [showActionMenu, setShowActionMenu] = useState(false);
   const [actionMenuPosition, setActionMenuPosition] = useState<{ top: number; left?: number; right?: number } | null>(null);
   const [isAuthorFollowed, setIsAuthorFollowed] = useState(false);
+  const navigate = useNavigate();
   
   // Use bookmark hook
   const { isBookmarked, toggleBookmark } = useBookmark();
@@ -123,7 +130,19 @@ export const PostCard = ({
     private: Lock,
   };
 
-  const PrivacyIcon = privacyIcons[post.privacy];
+  const PrivacyIcon = privacyIcons[post.privacy] || Globe;
+
+  const handleProfileClick = () => {
+    navigateToProfile(navigate, post.userName);
+  };
+
+  const handleTagClick = (userName: string) => {
+    navigateToProfile(navigate, userName);
+  };
+
+  const handleGoToPost = (postId: string) => {
+    navigateToPost(navigate, postId);
+  };
 
   const handleAction = (action: string, actionFn: (id: string) => void) => {
     actionFn(post.id);
@@ -228,7 +247,7 @@ export const PostCard = ({
         onReport(post.id);
         break;
       case 'goToPost':
-        // In a real app navigate to post detail
+        handleGoToPost(post.id);
         break;
       case 'share':
         if (onOpenShareDialog) onOpenShareDialog();
@@ -274,14 +293,31 @@ export const PostCard = ({
         {/* Header */}
         <div className="flex items-center justify-between p-4">
           <div className="flex items-center gap-3">
-            <Avatar className="w-8 h-8">
-              <AvatarImage src={post.userAvatar} alt={post.userName} />
+            <Avatar className="w-10 h-10 cursor-pointer" onClick={handleProfileClick}>
+              <AvatarImage src={post.avatarUrl} alt={post.userName} />
               <AvatarFallback>{post.userName?.charAt(0) || 'U'}</AvatarFallback>
             </Avatar>
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <span className="font-semibold text-foreground text-sm">{post.userName}</span>
-              <span className="text-muted-foreground">•</span>
-              <span>{formatTimeAgo(post.createdAt)}</span>
+            <div className="flex flex-col">
+              <div className="flex items-center gap-2">
+                <span 
+                  className="font-semibold text-foreground text-sm cursor-pointer hover:underline"
+                  onClick={handleProfileClick}
+                >
+                  {post.userName}
+                </span>
+              </div>
+              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                <span 
+                  className="cursor-pointer hover:underline"
+                  onClick={handleProfileClick}
+                >
+                  @{post.userName}
+                </span>
+                <span>•</span>
+                <span>{formatTimeAgo(post.createdAt)}</span>
+                <span>•</span>
+                <PrivacyIcon className="w-3 h-3" />
+              </div>
             </div>
           </div>
           
@@ -315,6 +351,25 @@ export const PostCard = ({
                 )
               )}
             </p>
+            
+            {/* Tagged Users */}
+            {post.taggedUsers && post.taggedUsers.length > 0 && (
+              <div className="mt-2 flex items-center gap-1 flex-wrap">
+                <Users className="w-3 h-3 text-muted-foreground" />
+                <span className="text-xs text-muted-foreground">với</span>
+                {post.taggedUsers.map((tag, index) => (
+                  <span key={index} className="text-xs">
+                    <span 
+                      className="font-medium text-primary hover:underline cursor-pointer"
+                      onClick={() => handleTagClick(tag.userName)}
+                    >
+                      {tag.userName}
+                    </span>
+                    {index < post.taggedUsers.length - 1 && <span className="text-muted-foreground">, </span>}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
@@ -539,7 +594,7 @@ export const PostCard = ({
         onClose={handleCloseLikesDialog}
         title="Lượt thích"
         infoText={undefined}
-        users={(comments.slice(0, 10).map((c) => ({ id: c.id, name: c.userName, avatar: c.userAvatar, subtitle: undefined, isVerified: false, isFollowing: false })))}
+        users={(comments.slice(0, 10).map((c) => ({ id: c.id, name: c.userName, avatar: c.avatarUrl, subtitle: undefined, isVerified: false, isFollowing: false })))}
       />
 
       {/* Action Menu */}

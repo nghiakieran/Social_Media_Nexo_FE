@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ChevronLeft, ChevronRight, Volume2, VolumeX } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, memo } from "react";
 
 interface MediaItem {
   id: string;
@@ -21,6 +21,7 @@ export const MediaSlider = ({
 }: MediaSliderProps) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [globalMuteState, setGlobalMuteState] = useState(true); // Global mute state
+  const [loadedVideos, setLoadedVideos] = useState<Set<string>>(new Set());
   const sliderRef = useRef<HTMLDivElement>(null);
   const videoRefs = useRef<Record<string, HTMLVideoElement>>({});
 
@@ -147,23 +148,32 @@ export const MediaSlider = ({
       {/* Main Media Container */}
       <div
         ref={sliderRef}
-        className="relative aspect-square bg-black rounded-lg overflow-hidden group"
+        className="relative aspect-square bg-black rounded-lg overflow-hidden group touch-pan-y"
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
+        style={{ transform: 'translateZ(0)' }}
       >
-        {media.map((mediaItem, index) => (
-          <div
-            key={mediaItem.id}
-            className={cn(
-              "absolute inset-0 transition-transform duration-300 ease-in-out",
-              index === currentIndex
-                ? "translate-x-0"
-                : index < currentIndex
-                ? "-translate-x-full"
-                : "translate-x-full"
-            )}
-          >
+        {media.map((mediaItem, index) => {
+          // Only render current slide and adjacent slides for performance
+          const shouldRender = Math.abs(index - currentIndex) <= 1;
+          
+          if (!shouldRender) {
+            return null;
+          }
+
+          return (
+            <div
+              key={mediaItem.id}
+              className={cn(
+                "absolute inset-0 transition-transform duration-300 ease-out will-change-transform",
+                index === currentIndex
+                  ? "translate-x-0 z-10"
+                  : index < currentIndex
+                  ? "-translate-x-full z-0"
+                  : "translate-x-full z-0"
+              )}
+            >
             {mediaItem.type === "image" ? (
               <img
                 src={mediaItem.url}
@@ -172,7 +182,12 @@ export const MediaSlider = ({
                 loading="lazy"
               />
             ) : (
-              <div className="relative w-full h-full">
+              <div className="relative w-full h-full bg-gray-900">
+                {!loadedVideos.has(mediaItem.id) && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-gray-900">
+                    <div className="animate-spin rounded-full h-8 w-8 border-2 border-white border-t-transparent"></div>
+                  </div>
+                )}
                 <video
                   ref={(el) => {
                     if (el) videoRefs.current[mediaItem.id] = el;
@@ -182,6 +197,10 @@ export const MediaSlider = ({
                   muted={globalMuteState} // Use global mute state
                   loop
                   playsInline
+                  preload="metadata"
+                  onLoadedData={() => {
+                    setLoadedVideos(prev => new Set(prev).add(mediaItem.id));
+                  }}
                   onClick={() => handleVideoClick(mediaItem.id)}
                 />
 
@@ -203,8 +222,9 @@ export const MediaSlider = ({
                 </Button>
               </div>
             )}
-          </div>
-        ))}
+            </div>
+          );
+        })}
 
         {/* Navigation Arrows - Only show if more than 1 media */}
         {media.length > 1 && (
@@ -230,23 +250,9 @@ export const MediaSlider = ({
         )}
       </div>
 
-      {/* Dots Indicators - Only show if more than 1 media */}
-      {media.length > 1 && (
-        <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
-          {media.map((_, index) => (
-            <button
-              key={index}
-              onClick={() => setCurrentIndex(index)}
-              className={cn(
-                "w-2 h-2 rounded-full transition-all duration-200",
-                index === currentIndex
-                  ? "bg-white scale-125"
-                  : "bg-white/50 hover:bg-white/70"
-              )}
-            />
-          ))}
-        </div>
-      )}
     </div>
   );
 };
+
+// Memoize component to prevent unnecessary re-renders
+export default memo(MediaSlider);

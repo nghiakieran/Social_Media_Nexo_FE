@@ -1,21 +1,54 @@
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Sparkles } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAppDispatch, useAppSelector } from "@/store";
+import { createPostThunk, getMutualFollowersThunk } from "../postSlice";
 import { PostComposer } from "../components/PostComposer";
+import { CreatePostRequest } from "../types";
+import { Loader } from "@/components/common/Loader";
+
+// Interface for UI form data
+interface CreatePostFormData {
+  content: string;
+  privacy: 'public' | 'private';
+  taggedUsers: number[];
+  media: File[];
+}
+
 
 export const CreatePostPage = () => {
-  const [isLoading, setIsLoading] = useState(false);
+  const dispatch = useAppDispatch();
+  const { isCreating, error } = useAppSelector(state => state.post);
+  const { user } = useAppSelector(state => state.auth);
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const handleSubmit = async (postData) => {
-    setIsLoading(true);
+  const handleSubmit = async (postData: CreatePostFormData) => {
+    if (!user) {
+      toast({
+        variant: "destructive",
+        title: "Lỗi",
+        description: "Bạn cần đăng nhập để tạo bài viết.",
+      });
+      navigate('/login');
+      return;
+    }
 
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      // Map UI data to API format
+      const createPostRequest = {
+        postId: 0,
+        userId: user.id,
+        caption: postData.content,
+        visibility: postData.privacy.toUpperCase() as 'PUBLIC' | 'PRIVATE',
+        tag: postData.taggedUsers.join(','),
+      };
+
+      const files = postData.media || [];
+
+      await dispatch(createPostThunk({ files, postData: createPostRequest })).unwrap();
 
       toast({
         title: "Đăng bài thành công!",
@@ -25,13 +58,12 @@ export const CreatePostPage = () => {
       // Navigate back to feed
       navigate("/");
     } catch (error) {
+      console.error('Create post error:', error);
       toast({
         variant: "destructive",
         title: "Lỗi",
-        description: "Có lỗi xảy ra khi đăng bài. Vui lòng thử lại.",
+        description: error instanceof Error ? error.message : "Không thể đăng bài. Vui lòng thử lại.",
       });
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -70,30 +102,12 @@ export const CreatePostPage = () => {
         {/* Main Content */}
         <div className="flex justify-center">
           <div className="w-full max-w-2xl">
-            <PostComposer onSubmit={handleSubmit} isLoading={isLoading} />
+            <PostComposer onSubmit={handleSubmit} isLoading={isCreating} />
           </div>
         </div>
 
         {/* Loading Overlay */}
-        {isLoading && (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-            <div className="bg-card rounded-2xl p-8 flex flex-col items-center gap-6 shadow-2xl border border-border/50">
-              <div className="relative">
-                <div className="w-16 h-16 rounded-full bg-gradient-to-r from-primary to-accent flex items-center justify-center">
-                  <div className="animate-spin rounded-full h-10 w-10 border-2 border-background border-t-transparent"></div>
-                </div>
-              </div>
-              <div className="text-center">
-                <p className="text-lg font-semibold mb-1">
-                  Đang đăng bài viết...
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  Vui lòng chờ trong giây lát
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
+        {isCreating && <Loader overlay />}
       </div>
     </div>
   );

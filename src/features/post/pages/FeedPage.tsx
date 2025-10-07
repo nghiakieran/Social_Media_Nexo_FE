@@ -6,10 +6,14 @@ import { ReportPostDialog } from '../components/ReportPostDialog';
 import { ShareDialog } from '../components/ShareDialog';
 import { Stories } from '@/components/common/Stories';
 import { StoryViewer } from '@/features/story/components';
-import { mockPosts } from '../__mocks__/posts';
 import { mockStories, mockStoriesData } from '../__mocks__/stories';
 import { mockComments } from '@/features/interaction/__mocks__/comments';
 import { useToast } from '@/hooks/use-toast';
+import { useAppDispatch, useAppSelector } from '@/store';
+import { getPostsThunk, updatePostThunk, deletePostThunk, togglePostActiveThunk } from '../postSlice';
+import { Loader } from '@/components/common/Loader';
+import { useInfiniteScroll } from '@/hooks/use-infinite-scroll';
+import type { UpdatePostRequest } from '../types';
 
 interface MediaItem {
   id: string;
@@ -19,7 +23,9 @@ interface MediaItem {
 }
 
 export const FeedPage = () => {
-  const [posts, setPosts] = useState(mockPosts);
+  const dispatch = useAppDispatch();
+  const { user } = useAppSelector(state => state.auth);
+  const { posts, isLoading, error, hasMore, currentPage } = useAppSelector(state => state.post);
   const [editingPost, setEditingPost] = useState<any>(null);
   const [reportingPost, setReportingPost] = useState<string | null>(null);
   const [showStoryViewer, setShowStoryViewer] = useState(false);
@@ -29,25 +35,37 @@ export const FeedPage = () => {
   const [sharePost, setSharePost] = useState<any>(null);
   const { toast } = useToast();
 
+  // Load posts when component mounts
+  useEffect(() => {
+    if (user) {
+      dispatch(getPostsThunk({ userId: user.id, pageNo: 0, pageSize: 10 }));
+    }
+  }, [dispatch, user]);
+
+  // Infinite scroll handler
+  const handleLoadMore = () => {
+    if (user && !isLoading && hasMore) {
+      const nextPage = currentPage + 1;
+      dispatch(getPostsThunk({ userId: user.id, pageNo: nextPage, pageSize: 10 }));
+    }
+  };
+
+  // Use infinite scroll hook with higher threshold
+  const { lastElementRef } = useInfiniteScroll(handleLoadMore, {
+    hasMore,
+    isLoading,
+    threshold: 200, // Trigger earlier for smoother experience
+  });
+
 
   const handleLike = (postId: string) => {
-    setPosts(prev => prev.map(post => 
-      post.id === postId 
-        ? { 
-            ...post, 
-            isLiked: !post.isLiked,
-            likesCount: post.isLiked ? post.likesCount - 1 : post.likesCount + 1
-          }
-        : post
-    ));
+    // TODO: Dispatch likePostThunk
+    console.log('Like post:', postId);
   };
 
   const handleBookmark = (postId: string) => {
-    setPosts(prev => prev.map(post => 
-      post.id === postId 
-        ? { ...post, isBookmarked: !post.isBookmarked }
-        : post
-    ));
+    // TODO: Dispatch bookmarkPostThunk
+    console.log('Bookmark post:', postId);
   };
 
   const handleEdit = (postId: string) => {
@@ -57,21 +75,47 @@ export const FeedPage = () => {
     }
   };
 
-  const handleSaveEdit = (postId: string, updatedData: any) => {
-    setPosts(prev => prev.map(post =>
-      post.id === postId
-        ? { ...post, ...updatedData }
-        : post
-    ));
-    setEditingPost(null);
+  const handleSaveEdit = (files: File[], updateData: UpdatePostRequest) => {
+    dispatch(updatePostThunk({ files, postData: updateData }))
+      .unwrap()
+      .then(() => {
+        toast({
+          title: "Cập nhật thành công!",
+          description: "Bài viết đã được cập nhật.",
+        });
+        setEditingPost(null);
+        // Refresh posts
+        if (user) {
+          dispatch(getPostsThunk({ userId: user.id, pageNo: 0, pageSize: 10 }));
+        }
+      })
+      .catch((error) => {
+        toast({
+          variant: "destructive",
+          title: "Lỗi",
+          description: error || "Không thể cập nhật bài viết.",
+        });
+      });
   };
 
   const handleDelete = (postId: string) => {
-    setPosts(prev => prev.filter(post => post.id !== postId));
-    toast({
-      title: "Xóa bài viết thành công!",
-      description: "Bài viết đã được xóa khỏi trang cá nhân của bạn.",
-    });
+    if (window.confirm('Bạn có chắc chắn muốn xóa bài viết này?')) {
+      dispatch(deletePostThunk(parseInt(postId)))
+        .unwrap()
+        .then(() => {
+          toast({
+            title: "Xóa bài viết thành công!",
+            description: "Bài viết đã được xóa khỏi trang cá nhân của bạn.",
+          });
+        })
+        .catch((error) => {
+          toast({
+            variant: "destructive",
+            title: "Lỗi",
+            description: error || "Không thể xóa bài viết.",
+          });
+        });
+    }
   };
 
   const handleReport = (postId: string, reason: string, details?: string) => {
@@ -104,7 +148,7 @@ export const FeedPage = () => {
       postId,
       userId: 'current_user',
       userName: 'Bạn',
-      userAvatar: 'https://picsum.photos/40/40?random=999',
+      avatarUrl: 'https://picsum.photos/40/40?random=999',
       content,
       likesCount: 0,
       isLiked: false,
@@ -115,12 +159,8 @@ export const FeedPage = () => {
     
     setComments(prev => [...prev, newComment]);
     
-    // Update post comment count
-    setPosts(prev => prev.map(post => 
-      post.id === postId 
-        ? { ...post, commentsCount: post.commentsCount + 1 }
-        : post
-    ));
+    // TODO: Update post comment count via API
+    console.log('Comment added to post:', postId);
   };
 
   const handleLikeComment = (commentId: string) => {
@@ -141,7 +181,7 @@ export const FeedPage = () => {
       postId: 'post1', // Use a default postId since we're working with mock data
       userId: 'current_user',
       userName: 'Bạn',
-      userAvatar: 'https://picsum.photos/40/40?random=999',
+      avatarUrl: 'https://picsum.photos/40/40?random=999',
       content,
       parentId: commentId,
       likesCount: 0,
@@ -165,6 +205,28 @@ export const FeedPage = () => {
     }
   };
 
+  // Show initial loading
+  if (isLoading && posts.length === 0) {
+    return <Loader overlay />;
+  }
+
+  // Show error
+  if (error && posts.length === 0) {
+    return (
+      <div className="w-full min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-500 mb-4">{error}</p>
+          <button 
+            className="px-4 py-2 bg-primary text-white rounded-lg"
+            onClick={() => user && dispatch(getPostsThunk({ userId: user.id, pageNo: 0, pageSize: 10 }))}
+          >
+            Thử lại
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="w-full min-h-screen bg-background pt-4">
       {/* Stories */}
@@ -172,24 +234,35 @@ export const FeedPage = () => {
 
         {/* Posts Feed */}
         <div className="space-y-6 p-4">
-          {posts.map((post) => (
-            <PostCard
-              key={post.id}
-              post={post}
-              onLike={handleLike}
-              onBookmark={handleBookmark}
-              onEdit={handleEdit}
-              onDelete={handleDelete}
-              onReport={(postId) => setReportingPost(postId)}
-                        onShare={handleShare}
-                        onOpenShareDialog={() => handleOpenShareDialog(post)}
-                        isShareDialogOpen={showShareDialog && sharePost?.id === post.id}
-                        comments={comments.filter(comment => comment.postId === post.id)}
-                        onAddComment={handleAddComment}
-                        onLikeComment={handleLikeComment}
-                        onReplyComment={handleReplyComment}
-            />
-          ))}
+          {posts.map((post, index) => {
+            const isLastItem = index === posts.length - 1;
+            
+            return (
+              <div key={post.id} ref={isLastItem ? lastElementRef : null}>
+                <PostCard
+                  post={post as any}
+                  onLike={handleLike}
+                  onEdit={handleEdit}
+                  onDelete={handleDelete}
+                  onReport={(postId) => setReportingPost(postId)}
+                  onShare={handleShare}
+                  onOpenShareDialog={() => handleOpenShareDialog(post)}
+                  isShareDialogOpen={showShareDialog && sharePost?.id === post.id}
+                  comments={comments.filter(comment => comment.postId === post.id)}
+                  onAddComment={handleAddComment}
+                  onLikeComment={handleLikeComment}
+                  onReplyComment={handleReplyComment}
+                />
+              </div>
+            );
+          })}
+
+          {/* Load more indicator */}
+          {isLoading && posts.length > 0 && (
+            <div className="flex justify-center items-center py-8">
+              <Loader />
+            </div>
+          )}
 
           {posts.length === 0 && (
             <div className="text-center py-12">
@@ -205,7 +278,11 @@ export const FeedPage = () => {
           <EditPostDialog
             isOpen={!!editingPost}
             onClose={() => setEditingPost(null)}
-            post={editingPost}
+            postId={parseInt(editingPost.id)}
+            userId={user?.id || 0}
+            initialContent={editingPost.content}
+            initialVisibility={editingPost.visibility.toUpperCase() as 'PUBLIC' | 'PRIVATE'}
+            initialMediaUrl={editingPost.media.map((m: any) => m.url)}
             onSave={handleSaveEdit}
           />
         )}

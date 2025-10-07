@@ -30,8 +30,7 @@ export const PostComposer = ({
   const [privacy, setPrivacy] = useState<"public" | "friends" | "private">(
     "public"
   );
-  const [taggedFriends, setTaggedFriends] = useState<string[]>([]);
-  const [location, setLocation] = useState("");
+  const [taggedFriends, setTaggedFriends] = useState<number[]>([]);
   const [showMediaUploader, setShowMediaUploader] = useState(false);
   const [showTagFriends, setShowTagFriends] = useState(false);
   const [selectedMedia, setSelectedMedia] = useState<MediaItem | null>(null);
@@ -49,19 +48,19 @@ export const PostComposer = ({
     }
 
     try {
+      const files = media.map(item => item.file);
+      
       await onSubmit({
         content: content.trim(),
-        media,
+        media: files,
         privacy,
-        taggedUsers: taggedFriends,
-        location: location.trim(),
+        taggedUsers: taggedFriends
       });
 
       // Reset form
       setContent("");
       setMedia([]);
       setTaggedFriends([]);
-      setLocation("");
       setPrivacy("public");
     } catch (error) {
       console.error("Post submission error:", error);
@@ -135,17 +134,6 @@ export const PostComposer = ({
                   <span className="text-muted-foreground">Gắn thẻ:</span>
                   <span className="font-medium text-foreground">
                     {taggedFriends.join(", ")}
-                  </span>
-                </div>
-              )}
-
-              {/* Location */}
-              {location && (
-                <div className="flex items-center gap-2 text-sm">
-                  <MapPin className="w-4 h-4 text-accent" />
-                  <span className="text-muted-foreground">Địa điểm:</span>
-                  <span className="font-medium text-foreground">
-                    {location}
                   </span>
                 </div>
               )}

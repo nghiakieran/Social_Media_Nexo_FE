@@ -2,12 +2,16 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Check, Search, Users, X } from "lucide-react";
-import { useState } from "react";
-import { mockFriends } from "../__mocks__/friends";
+import { useState, useEffect } from "react";
+import { useAppDispatch, useAppSelector } from "@/store";
+import { getMutualFollowersThunk } from "../postSlice";
+import { Loader } from "@/components/common/Loader";
+import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
+import type { MutualUser } from "../types";
 
 interface TagFriendsProps {
-  selectedFriends: string[];
-  onSelectionChange: (friends: string[]) => void;
+  selectedFriends: number[];
+  onSelectionChange: (friends: number[]) => void;
   onClose: () => void;
 }
 
@@ -16,25 +20,48 @@ export const TagFriends = ({
   onSelectionChange,
   onClose,
 }: TagFriendsProps) => {
+  const dispatch = useAppDispatch();
+  const { 
+    mutualFollowers, 
+    isLoadingMutuals, 
+    mutualFollowersHasMore,
+    mutualFollowersPage 
+  } = useAppSelector(state => state.post);
   const [searchTerm, setSearchTerm] = useState("");
 
-  const filteredFriends = mockFriends.filter(
-    (friend) =>
-      friend.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      friend.username.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Load mutual followers when component mounts
+  useEffect(() => {
+    dispatch(getMutualFollowersThunk({ pageNo: 0, pageSize: 10 }));
+  }, [dispatch]);
 
-  const toggleFriend = (friendUsername: string) => {
-    if (selectedFriends.includes(friendUsername)) {
-      onSelectionChange(selectedFriends.filter((f) => f !== friendUsername));
-    } else {
-      onSelectionChange([...selectedFriends, friendUsername]);
+  // Infinite scroll handler
+  const handleLoadMore = () => {
+    if (!isLoadingMutuals && mutualFollowersHasMore) {
+      const nextPage = mutualFollowersPage + 1;
+      dispatch(getMutualFollowersThunk({ pageNo: nextPage, pageSize: 10 }));
     }
   };
 
-  const selectedFriendsList = mockFriends.filter((f) =>
-    selectedFriends.includes(f.username)
+  // Use infinite scroll hook
+  const { lastElementRef } = useInfiniteScroll(handleLoadMore, {
+    hasMore: mutualFollowersHasMore,
+    isLoading: isLoadingMutuals,
+  });
+
+  const filteredFriends = mutualFollowers.filter(
+    (friend) =>
+      friend.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      friend.userName.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const toggleFriend = (friendUserId: number) => {
+    if (selectedFriends.includes(friendUserId)) {
+      onSelectionChange(selectedFriends.filter((f) => f !== friendUserId));
+    } else {
+      onSelectionChange([...selectedFriends, friendUserId]);
+    }
+  };
+
 
   return (
     <div className="space-y-6 p-6 border border-border/50 rounded-2xl bg-card/80 backdrop-blur-sm shadow-lg">
@@ -72,11 +99,11 @@ export const TagFriends = ({
       </div>
 
       {/* Selected Friends */}
-      {selectedFriendsList.length > 0 && (
+      {selectedFriends.length > 0 && (
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <p className="text-sm font-medium text-foreground">
-              Đã chọn ({selectedFriendsList.length})
+              Đã chọn ({selectedFriends.length})
             </p>
             <Button
               variant="ghost"
@@ -88,85 +115,110 @@ export const TagFriends = ({
             </Button>
           </div>
           <div className="flex flex-wrap gap-2">
-            {selectedFriendsList.map((friend) => (
-              <Badge
-                key={friend.id}
-                variant="secondary"
-                className="gap-2 px-3 py-2 rounded-full bg-primary/10 text-primary border-primary/20"
-              >
-                <img
-                  src={friend.avatar}
-                  alt={friend.name}
-                  className="w-5 h-5 rounded-full object-cover"
-                />
-                <span className="font-medium">{friend.name}</span>
-                <button
-                  onClick={() => toggleFriend(friend.username)}
-                  className="hover:bg-destructive/20 rounded-full p-0.5 transition-colors"
+            {selectedFriends.map((friendUserId) => {
+              const friend = mutualFollowers.find(f => f.userId === friendUserId);
+              if (!friend) return null;
+              
+              return (
+                <Badge
+                  key={friend.userId}
+                  variant="secondary"
+                  className="gap-2 px-3 py-2 rounded-full bg-primary/10 text-primary border-primary/20"
                 >
-                  <X className="w-3 h-3" />
-                </button>
-              </Badge>
-            ))}
+                  <img
+                    src={friend.avatar}
+                    alt={friend.fullName}
+                    className="w-5 h-5 rounded-full object-cover"
+                  />
+                  <span className="font-medium">{friend.fullName}</span>
+                  <button
+                    onClick={() => toggleFriend(friend.userId)}
+                    className="hover:bg-destructive/20 rounded-full p-0.5 transition-colors"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </Badge>
+              );
+            })}
           </div>
         </div>
       )}
 
       {/* Friends List */}
       <div className="max-h-80 overflow-y-auto space-y-2 scrollbar-thin scrollbar-thumb-muted-foreground/30 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/50">
-        {filteredFriends.map((friend) => {
-          const isSelected = selectedFriends.includes(friend.username);
+        {isLoadingMutuals ? (
+          <div className="flex justify-center items-center py-8">
+            <Loader />
+          </div>
+        ) : (
+          filteredFriends.map((friend, index) => {
+            const isSelected = selectedFriends.includes(friend.userId);
+            const isLastItem = index === filteredFriends.length - 1;
 
-          return (
-            <div
-              key={friend.id}
-              onClick={() => toggleFriend(friend.username)}
-              className={`
-                flex items-center gap-4 p-4 rounded-xl cursor-pointer transition-all duration-200 group
-                ${
-                  isSelected
-                    ? "bg-primary/10 border border-primary/20 shadow-sm"
-                    : "hover:bg-muted/50 hover:shadow-sm"
-                }
-              `}
-            >
-              <div className="relative">
-                <img
-                  src={friend.avatar}
-                  alt={friend.name}
-                  className="w-12 h-12 rounded-full object-cover shadow-md"
-                />
-                {friend.isOnline && (
-                  <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-success rounded-full border-2 border-background shadow-sm"></div>
+            return (
+              <div
+                key={friend.userId}
+                ref={isLastItem ? lastElementRef : null}
+                onClick={() => toggleFriend(friend.userId)}
+                className={`
+                  flex items-center gap-4 p-4 rounded-xl cursor-pointer transition-all duration-200 group
+                  ${
+                    isSelected
+                      ? "bg-primary/10 border border-primary/20 shadow-sm"
+                      : "hover:bg-muted/50 hover:shadow-sm"
+                  }
+                `}
+              >
+                <div className="relative">
+                  <img
+                    src={friend.avatar}
+                    alt={friend.fullName}
+                    className="w-12 h-12 rounded-full object-cover shadow-md"
+                  />
+                  {friend.isFollowing && (
+                    <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-success rounded-full border-2 border-background shadow-sm"></div>
+                  )}
+                </div>
+
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-foreground truncate">
+                    {friend.fullName}
+                  </p>
+                  <p className="text-sm text-muted-foreground truncate">
+                    @{friend.userName}
+                  </p>
+                  {friend.closeFriend && (
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 mt-1">
+                      Bạn thân
+                    </span>
+                  )}
+                </div>
+
+                {isSelected && (
+                  <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center shadow-md">
+                    <Check className="w-4 h-4 text-primary-foreground" />
+                  </div>
+                )}
+
+                {!isSelected && (
+                  <div className="w-8 h-8 rounded-full border-2 border-muted-foreground/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="w-3 h-3 rounded-full bg-muted-foreground/30"></div>
+                  </div>
                 )}
               </div>
-
-              <div className="flex-1 min-w-0">
-                <p className="font-medium text-foreground truncate">
-                  {friend.name}
-                </p>
-                <p className="text-sm text-muted-foreground truncate">
-                  @{friend.username}
-                </p>
-              </div>
-
-              {isSelected && (
-                <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center shadow-md">
-                  <Check className="w-4 h-4 text-primary-foreground" />
-                </div>
-              )}
-
-              {!isSelected && (
-                <div className="w-8 h-8 rounded-full border-2 border-muted-foreground/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                  <div className="w-3 h-3 rounded-full bg-muted-foreground/30"></div>
-                </div>
-              )}
-            </div>
-          );
-        })}
+            );
+          })
+        )}
+        
+        {/* Load more indicator */}
+        {isLoadingMutuals && filteredFriends.length > 0 && (
+          <div className="flex justify-center items-center py-4">
+            <Loader />
+          </div>
+        )}
       </div>
 
-      {filteredFriends.length === 0 && (
+      {!isLoadingMutuals && filteredFriends.length === 0 && (
         <div className="text-center py-12">
           <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-muted/50 flex items-center justify-center">
             <Search className="w-8 h-8 text-muted-foreground" />
@@ -188,9 +240,9 @@ export const TagFriends = ({
         <Button
           onClick={onClose}
           className="rounded-xl bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90"
-          disabled={selectedFriendsList.length === 0}
+          disabled={selectedFriends.length === 0}
         >
-          Xong ({selectedFriendsList.length})
+          Xong ({selectedFriends.length})
         </Button>
       </div>
     </div>

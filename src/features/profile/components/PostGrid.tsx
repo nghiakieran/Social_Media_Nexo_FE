@@ -34,7 +34,7 @@ export const PostGrid = ({ posts, onPostClick }: PostGridProps) => {
     id: string;
     userId: string;
     userName: string;
-    userAvatar: string;
+    avatarUrl: string;
     content: string;
     likesCount: number;
     isLiked: boolean;
@@ -47,7 +47,7 @@ export const PostGrid = ({ posts, onPostClick }: PostGridProps) => {
     postId: string;
     userId: string;
     userName: string;
-    userAvatar: string;
+    avatarUrl: string;
     content: string;
     likesCount?: number;
     isLiked?: boolean;
@@ -65,7 +65,7 @@ export const PostGrid = ({ posts, onPostClick }: PostGridProps) => {
         id: r.id,
         userId: r.userId,
         userName: r.userName,
-        userAvatar: r.userAvatar,
+        avatarUrl: r.avatarUrl,
         content: r.content,
         likesCount: r.likesCount ?? 0,
         isLiked: r.isLiked ?? false,
@@ -78,7 +78,7 @@ export const PostGrid = ({ posts, onPostClick }: PostGridProps) => {
         id: c.id,
         userId: c.userId,
         userName: c.userName,
-        userAvatar: c.userAvatar,
+        avatarUrl: c.avatarUrl,
         content: c.content,
         likesCount: c.likesCount ?? 0,
         isLiked: c.isLiked ?? false,
@@ -174,7 +174,7 @@ export const PostGrid = ({ posts, onPostClick }: PostGridProps) => {
             id: selectedPost.id,
             userId: profile?.id || 'me',
             userName: profile?.username || 'me',
-            userAvatar: profile?.avatar || '',
+            avatarUrl: profile?.avatar || '',
             content: selectedPost.caption,
             media: [
               {
@@ -202,7 +202,7 @@ export const PostGrid = ({ posts, onPostClick }: PostGridProps) => {
                   id: `c-${Date.now()}`,
                   userId: profile?.id || 'me',
                   userName: profile?.username || 'me',
-                  userAvatar: profile?.avatar || '',
+                  avatarUrl: profile?.avatar || '',
                   content,
                   likesCount: 0,
                   isLiked: false,
@@ -245,7 +245,7 @@ export const PostGrid = ({ posts, onPostClick }: PostGridProps) => {
                           id: `r-${Date.now()}`,
                           userId: profile?.id || 'me',
                           userName: profile?.username || 'me',
-                          userAvatar: profile?.avatar || '',
+                          avatarUrl: profile?.avatar || '',
                           content,
                           likesCount: 0,
                           isLiked: false,
@@ -261,8 +261,8 @@ export const PostGrid = ({ posts, onPostClick }: PostGridProps) => {
           isPostLiked={!!isPostLiked[selectedPost.id]}
           onOpenShareDialog={() => setIsShareOpen(true)}
           isShareDialogOpen={isShareOpen}
-          isBookmarked={!!isBookmarkedById[selectedPost.id]}
-          onToggleBookmark={(postId, next) => setIsBookmarkedById(prev => ({ ...prev, [postId]: next }))}
+          // isBookmarked={!!isBookmarkedById[selectedPost.id]}
+          // onToggleBookmark={(postId, next) => setIsBookmarkedById(prev => ({ ...prev, [postId]: next }))}
           actionMenuItems={[
             { label: 'Xóa', action: () => {} , isDestructive: true },
             { label: 'Chỉnh sửa', action: () => {} },
@@ -287,7 +287,7 @@ export const PostGrid = ({ posts, onPostClick }: PostGridProps) => {
               { url: selectedPost.url, type: selectedPost.type === 'photo' ? 'image' : 'video', alt: selectedPost.caption }
             ],
             userName: profile?.username || 'me',
-            userAvatar: profile?.avatar || '',
+            avatarUrl: profile?.avatar || '',
             createdAt: selectedPost.createdAt,
           }}
           onShare={(postId, userIds, message) => {
