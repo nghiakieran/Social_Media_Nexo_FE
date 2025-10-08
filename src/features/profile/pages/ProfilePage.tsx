@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { AppDispatch, useAppSelector } from '@/store';
+import { getPostsThunk } from '@/features/post/postSlice';
 import {
   setProfile,
   setPosts,
@@ -42,6 +43,7 @@ import { StoryViewer } from '@/features/story/components/StoryViewer';
 import type { Story } from '@/features/story/types';
 import { PrivateAccountMessage } from '../components/PrivateAccountMessage';
 import { SavedCollectionsContent } from '@/features/saved/components/SavedCollectionsContent';
+import { useInfiniteScroll } from '@/hooks/use-infinite-scroll';
 
 export const ProfilePage = () => {
   const { username } = useParams<{ username: string }>();
@@ -70,6 +72,10 @@ export const ProfilePage = () => {
 
   const currentUser = useAppSelector((state) => state.auth.user);
   const isCurrentUser = currentUser && username === currentUser.username;
+  const apiPosts = useAppSelector((state) => state.post.posts);
+  const isLoadingPosts = useAppSelector((state) => state.post.isLoading);
+  const hasMorePosts = useAppSelector((state) => state.post.hasMore);
+  const [currentPage, setCurrentPage] = useState(0);
 
   useEffect(() => {
     if (username) {
@@ -83,12 +89,41 @@ export const ProfilePage = () => {
       dispatch(fetchFollowersByUsernameAsync({ username }));
       dispatch(fetchFollowingByUsernameAsync({ username }));
       
-      // Set mock data for posts (will be replaced with real API later)
-      dispatch(setPosts(mockProfilePosts));
+      // Set mock data for reels and saved (will be replaced with real API later)
       dispatch(setReels(mockReels));
       dispatch(setSaved(mockSavedPosts));
     }
   }, [username, isCurrentUser, dispatch]);
+
+  useEffect(() => {
+    if (currentUser && currentProfile) {
+      const userId = parseInt(currentProfile.id);
+      setCurrentPage(0);
+      dispatch(getPostsThunk({ userId, pageNo: 0, pageSize: 10 }));
+    }
+  }, [currentUser, currentProfile, dispatch]);
+
+  // Infinite scroll - load more posts
+  const handleLoadMore = useCallback(() => {
+    if (currentProfile && !isLoadingPosts && hasMorePosts) {
+      const userId = parseInt(currentProfile.id);
+      const nextPage = currentPage + 1;
+      setCurrentPage(nextPage);
+      dispatch(getPostsThunk({ userId, pageNo: nextPage, pageSize: 10 }));
+    }
+  }, [currentProfile, currentPage, isLoadingPosts, hasMorePosts, dispatch]);
+
+  const { lastElementRef } = useInfiniteScroll(handleLoadMore, {
+    hasMore: hasMorePosts,
+    isLoading: isLoadingPosts,
+    threshold: 100,
+  });
+
+  useEffect(() => {
+    if (apiPosts.length > 0) {
+      dispatch(setPosts(apiPosts));
+    }
+  }, [apiPosts, dispatch]);
 
   // Handle tab from URL query parameter
   useEffect(() => {
@@ -238,7 +273,7 @@ export const ProfilePage = () => {
   const handleCreateHighlight = ({ name, selectedIds }: { name: string; selectedIds: string[] }) => {
     // Choose the first selected as cover
     const first = posts.find((p) => p.id === selectedIds[0]);
-    const cover = first?.thumbnail || posts[0]?.thumbnail || '';
+    const cover = first?.media[0]?.url || posts[0]?.media[0]?.url || '';
     dispatch(
       addHighlight({
         id: `${Date.now()}`,
@@ -261,7 +296,7 @@ export const ProfilePage = () => {
     const contents = highlight.postIds
       .map((id) => posts.find((p) => p.id === id))
       .filter(Boolean)
-      .map((p) => ({ id: p!.id, type: 'image' as const, url: p!.thumbnail, duration: 5 }));
+      .map((p) => ({ id: p!.id, type: 'image' as const, url: p!.media[0]?.url || '', duration: 5 }));
     
     const story: Story = {
       id: highlight.id,
@@ -288,7 +323,16 @@ export const ProfilePage = () => {
       case 'saved':
         return isCurrentUser ? <SavedCollectionsContent /> : null;
       default:
-        return <PostGrid posts={posts} />;
+        return (
+          <>
+            <PostGrid posts={posts} lastElementRef={lastElementRef} />
+            {isLoadingPosts && (
+              <div className="flex justify-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+              </div>
+            )}
+          </>
+        );
     }
   };
 
@@ -397,7 +441,7 @@ export const ProfilePage = () => {
       <CreateHighlightDialog
         isOpen={showCreateHighlightDialog}
         onClose={() => dispatch(setShowCreateHighlightDialog(false))}
-        posts={posts.map((p) => ({ id: p.id, thumbnail: p.thumbnail }))}
+        posts={posts.map((p) => ({ id: p.id, thumbnail: p.media[0]?.url || '' }))}
         onCreate={handleCreateHighlight}
       />
 

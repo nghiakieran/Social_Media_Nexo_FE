@@ -280,7 +280,7 @@ export const FeedPage = () => {
             onClose={() => setEditingPost(null)}
             postId={parseInt(editingPost.id)}
             userId={user?.id || 0}
-            initialContent={editingPost.content}
+            initialContent={editingPost.caption}
             initialVisibility={editingPost.visibility.toUpperCase() as 'PUBLIC' | 'PRIVATE'}
             initialMediaUrl={editingPost.media.map((m: any) => m.url)}
             onSave={handleSaveEdit}

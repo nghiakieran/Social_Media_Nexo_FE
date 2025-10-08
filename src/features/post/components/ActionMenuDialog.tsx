@@ -55,11 +55,11 @@ export const ActionMenuDialog = ({
               Chọn một tùy chọn cho bài viết này
             </DialogDescription>
 
-            <div className="space-y-2 py-4">
+            <div className="space-y-2">
               <Button
                 variant="ghost"
                 onClick={() => handleAction("delete")}
-                className="w-full justify-start text-red-600 hover:bg-red-50 hover:text-red-700 dark:hover:bg-red-900/20 h-12"
+                className="block text-center w-full justify-start text-red-600 hover:bg-red-50 hover:text-red-700 dark:hover:bg-red-900/20 h-12"
               >
                 Xóa
               </Button>
@@ -67,7 +67,7 @@ export const ActionMenuDialog = ({
               <Button
                 variant="ghost"
                 onClick={() => handleAction("edit")}
-                className="w-full justify-start h-12"
+                className="block text-center w-full justify-start h-12"
               >
                 Chỉnh sửa
               </Button>
@@ -75,7 +75,7 @@ export const ActionMenuDialog = ({
               <Button
                 variant="ghost"
                 onClick={() => handleAction("hideLikes")}
-                className="w-full justify-start h-12"
+                className="block text-center w-full justify-start h-12"
               >
                 Ẩn số lượt thích với những người khác
               </Button>
@@ -83,7 +83,7 @@ export const ActionMenuDialog = ({
               <Button
                 variant="ghost"
                 onClick={() => handleAction("disableComments")}
-                className="w-full justify-start h-12"
+                className="block text-center w-full justify-start h-12"
               >
                 Tắt tính năng bình luận
               </Button>
@@ -91,7 +91,7 @@ export const ActionMenuDialog = ({
               <Button
                 variant="ghost"
                 onClick={() => handleAction("aboutAccount")}
-                className="w-full justify-start h-12"
+                className="block text-center w-full justify-start h-12"
               >
                 Giới thiệu về tài khoản này
               </Button>

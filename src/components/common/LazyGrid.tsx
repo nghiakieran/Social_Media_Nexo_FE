@@ -124,19 +124,31 @@ export const LazyGrid = ({
             {/* Placeholder */}
             {!shouldLoad && (renderPlaceholder?.(item) || defaultPlaceholder(item))}
             
-            {/* Image */}
+            {/* Media - Video or Image */}
             {shouldLoad && (
-              <LazyImage
-                src={item.thumbnail}
-                alt={item.caption || 'Post image'}
-                className="w-full h-full"
-                loading="lazy"
-                decoding="async"
-                enableProgressiveLoading={enableProgressiveLoading}
-                enableBlurToSharp={enableBlurToSharp}
-                lowResSrc={item.lowResThumbnail}
-                placeholder={renderPlaceholder?.(item)}
-              />
+              <>
+                {item.type === 'video' || item.type === 'reel' ? (
+                  <video
+                    src={item.thumbnail}
+                    className="w-full h-full object-cover"
+                    muted
+                    playsInline
+                    preload="metadata"
+                  />
+                ) : (
+                  <LazyImage
+                    src={item.thumbnail}
+                    alt={item.caption || 'Post image'}
+                    className="w-full h-full"
+                    loading="lazy"
+                    decoding="async"
+                    enableProgressiveLoading={enableProgressiveLoading}
+                    enableBlurToSharp={enableBlurToSharp}
+                    lowResSrc={item.lowResThumbnail}
+                    placeholder={renderPlaceholder?.(item)}
+                  />
+                )}
+              </>
             )}
             
             {/* Overlay */}

@@ -52,9 +52,9 @@ interface Post {
   userId: string;
   userName: string;
   avatarUrl: string;
-  content: string;
+  caption: string;
   media: MediaItem[];
-  privacy: 'public' | 'friends' | 'private';
+  privacy: 'public' | 'private';
   taggedUsers: TaggedUser[];
   hashtags: string[];
   createdAt: string;
@@ -126,7 +126,6 @@ export const PostCard = ({
 
   const privacyIcons = {
     public: Globe,
-    friends: Users,
     private: Lock,
   };
 
@@ -293,7 +292,7 @@ export const PostCard = ({
         {/* Header */}
         <div className="flex items-center justify-between p-4">
           <div className="flex items-center gap-3">
-            <Avatar className="w-10 h-10 cursor-pointer" onClick={handleProfileClick}>
+            <Avatar className="w-10 h-10 cursor-pointer hover:opacity-80 transition-opacity" onClick={handleProfileClick}>
               <AvatarImage src={post.avatarUrl} alt={post.userName} />
               <AvatarFallback>{post.userName?.charAt(0) || 'U'}</AvatarFallback>
             </Avatar>
@@ -308,7 +307,7 @@ export const PostCard = ({
               </div>
               <div className="flex items-center gap-1 text-xs text-muted-foreground">
                 <span 
-                  className="cursor-pointer hover:underline"
+                  className="cursor-pointer hover:text-foreground transition-colors"
                   onClick={handleProfileClick}
                 >
                   @{post.userName}
@@ -338,10 +337,10 @@ export const PostCard = ({
         </div>
 
         {/* Content */}
-        {post.content && (
+        {post.caption && (
           <div className="px-4 pb-3">
             <p className="text-sm leading-relaxed">
-              {post.content.split(' ').map((word, index) => 
+              {post.caption.split(' ').map((word, index) => 
                 word.startsWith('#') ? (
                   <span key={index} className="text-primary font-medium">
                     {word}{' '}

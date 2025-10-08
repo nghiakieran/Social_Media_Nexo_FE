@@ -4,7 +4,7 @@ export const mockPosts = [
     userId: '1',
     userName: 'Nguyễn Văn A',
     avatarUrl: 'https://picsum.photos/40/40?random=101',
-    content: 'Beautiful sunset from my balcony! 🌅 #sunset #photography #evening',
+    caption: 'Beautiful sunset from my balcony! 🌅 #sunset #photography #evening',
     media: [
       {
         id: 'm1',
@@ -31,7 +31,7 @@ export const mockPosts = [
     userId: '6',
     userName: 'Demo Violation',
     avatarUrl: 'https://picsum.photos/40/40?random=106',
-    content: 'This is spam content with EXCESSIVE CAPS!!! Click here for fake news and scam offers!!!!!',
+    caption: 'This is spam content with EXCESSIVE CAPS!!! Click here for fake news and scam offers!!!!!',
     media: [
       {
         id: 'm6',
@@ -59,7 +59,7 @@ export const mockPosts = [
     userId: '2',
     userName: 'Trần Thị B',
     avatarUrl: 'https://picsum.photos/40/40?random=102',
-    content: 'Coffee time ☕ Perfect start to the weekend!',
+    caption: 'Coffee time ☕ Perfect start to the weekend!',
     media: [
       {
         id: 'm2',
@@ -92,7 +92,7 @@ export const mockPosts = [
     userId: '3',
     userName: 'Lê Văn C',
     avatarUrl: 'https://picsum.photos/40/40?random=103',
-    content: 'This content might violate community guidelines...',
+    caption: 'This content might violate community guidelines...',
     media: [
       {
         id: 'm4',

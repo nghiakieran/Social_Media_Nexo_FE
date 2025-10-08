@@ -8,6 +8,14 @@ import { EmojiPicker } from '@/components/common/EmojiPicker';
 import { ActionMenu, ActionMenuItem } from '@/components/common/ActionMenu';
 import { LikesDialog } from './LikesDialog';
 import { useBookmark } from '@/features/saved/hooks/useBookmark';
+import { MediaSlider } from './MediaSlider';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 interface Comment {
   id: string;
@@ -31,7 +39,7 @@ interface Post {
   userId: string;
   userName: string;
   avatarUrl: string;
-  content: string;
+  caption: string;
   media: Array<{
     id: string;
     type: 'image' | 'video';
@@ -41,6 +49,7 @@ interface Post {
   likesCount: number;
   commentsCount: number;
   createdAt: string;
+  updatedAt?: string;
   emojiReactions?: Array<{
     emoji: string;
     count: number;
@@ -66,6 +75,9 @@ interface CommentDialogProps {
   isAuthorFollowed?: boolean;
   onToggleFollowAuthor?: (userId: string, nextIsFollowing: boolean) => void;
   actionMenuItems?: ActionMenuItem[];
+  onNavigateToProfile?: (userName: string) => void;
+  onNavigateToPost?: (postId: string) => void;
+  onDeletePost?: (postId: string) => Promise<void>;
 }
 
 export const CommentDialog = ({
@@ -85,7 +97,10 @@ export const CommentDialog = ({
   onAddPostEmojiReaction,
   isAuthorFollowed,
   onToggleFollowAuthor,
-  actionMenuItems
+  actionMenuItems,
+  onNavigateToProfile,
+  onNavigateToPost,
+  onDeletePost
 }: CommentDialogProps) => {
   // Use bookmark hook
   const { isBookmarked, toggleBookmark } = useBookmark();
@@ -104,6 +119,7 @@ export const CommentDialog = ({
   const [likesCountById, setLikesCountById] = useState<Record<string, number>>({});
   const [showLikesDialog, setShowLikesDialog] = useState<null | { targetId: string; targetType: 'post' | 'comment' | 'reply' }>(null);
   const [hoveredItemId, setHoveredItemId] = useState<string | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const renderReplyItem = (reply: Comment, parentCommentId: string, level: number = 1) => {
     return (
@@ -238,6 +254,9 @@ export const CommentDialog = ({
 
       // Don't close if LikesDialog is open
       if (showLikesDialog) return;
+
+      // Don't close if Delete Confirm is open
+      if (showDeleteConfirm) return;
       
       if (dialogRef.current && !dialogRef.current.contains(event.target as Node)) {
         onClose();
@@ -259,7 +278,7 @@ export const CommentDialog = ({
       document.documentElement.style.overflow = '';
       document.documentElement.style.overscrollBehavior = '';
     };
-  }, [isOpen, onClose, isShareDialogOpen, showEmojiPicker, showActionMenu, showLikesDialog]);
+  }, [isOpen, onClose, isShareDialogOpen, showEmojiPicker, showActionMenu, showLikesDialog, showDeleteConfirm]);
 
   const handleSubmitComment = (e: React.FormEvent) => {
     e.preventDefault();
@@ -365,8 +384,6 @@ export const CommentDialog = ({
   };
 
   const handleCommentAction = (action: string) => {
-    if (!currentCommentForAction) return;
-    
     switch (action) {
       case 'report':
         // Handle report comment
@@ -377,8 +394,36 @@ export const CommentDialog = ({
       case 'edit':
         // Handle edit comment
         break;
+      case 'goToPost':
+        // Navigate to post detail page
+        if (onNavigateToPost) {
+          onNavigateToPost(post.id);
+        }
+        handleCloseActionMenu();
+        onClose();
+        break;
       default:
         break;
+    }
+  };
+
+  const handleDeletePostClick = () => {
+    handleCloseActionMenu();
+    setShowDeleteConfirm(true);
+  };
+
+  const handleCancelDelete = () => {
+    setShowDeleteConfirm(false);
+    // Ensure we reopen menu for post (not comment)
+    setCurrentCommentForAction('post');
+    setShowActionMenu(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    setShowDeleteConfirm(false);
+    if (onDeletePost) {
+      await onDeletePost(post.id);
+      onClose();
     }
   };
 
@@ -390,6 +435,12 @@ export const CommentDialog = ({
     if (diffInHours < 1) return 'Vừa xong';
     if (diffInHours < 24) return `${diffInHours}h`;
     return `${Math.floor(diffInHours / 24)}d`;
+  };
+
+  const handleProfileClick = (userName: string) => {
+    if (onNavigateToProfile) {
+      onNavigateToProfile(userName);
+    }
   };
 
   if (!isOpen) return null;
@@ -423,7 +474,7 @@ export const CommentDialog = ({
               <div className="flex items-center gap-2 mb-1">
                 <span className="font-semibold text-sm">{post.userName}</span>
               </div>
-              <p className="text-sm leading-relaxed">{post.content}</p>
+              <p className="text-sm leading-relaxed">{post.caption}</p>
             </div>
           </div>
         </div>
@@ -620,31 +671,22 @@ export const CommentDialog = ({
           height: '90vh'
         }}
       >
-        {/* Left side - Post Image */}
+        {/* Left side - Post Media with Slider */}
         <div className="bg-black flex items-center justify-center relative" style={{ 
           aspectRatio: '1440 / 1920',
           flexBasis: '511.5px',
           minWidth: '511.5px'
         }}>
-          {post.media.length > 0 && (
-            <div className="relative w-full h-full">
-              {post.media[0].type === 'image' ? (
-                <img
-                  src={post.media[0].url}
-                  alt={post.media[0].alt || 'Post image'}
-                  className="w-full h-full object-cover"
-                  style={{ objectFit: 'cover' }}
-                />
-              ) : (
-                <video
-                  src={post.media[0].url}
-                  className="w-full h-full object-cover"
-                  controls
-                  muted
-                  style={{ objectFit: 'cover' }}
-                />
-              )}
-            </div>
+          {post.media && post.media.length > 0 && (
+            <MediaSlider
+              media={post.media.map((media) => ({
+                id: media.id,
+                type: media.type,
+                url: media.url,
+                alt: media.alt || 'Post media',
+              }))}
+              className="w-full h-full"
+            />
           )}
         </div>
 
@@ -653,13 +695,18 @@ export const CommentDialog = ({
           {/* Header */}
             <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
               <div className="flex items-center gap-3">
-                <div className="relative">
+                <div className="relative cursor-pointer" onClick={() => handleProfileClick(post.userName)}>
                   <Avatar className="w-8 h-8">
                     <AvatarImage src={post.avatarUrl} alt={post.userName} />
                     <AvatarFallback>{post.userName?.charAt(0) || 'U'}</AvatarFallback>
                   </Avatar>
                 </div>
-                <h3 className="font-semibold text-sm">{post.userName}</h3>
+                <h3 
+                  className="font-semibold text-sm cursor-pointer hover:underline"
+                  onClick={() => handleProfileClick(post.userName)}
+                >
+                  {post.userName}
+                </h3>
                 {typeof isAuthorFollowed !== 'undefined' && !isAuthorFollowed && (
                   <Button
                     variant="ghost"
@@ -701,7 +748,7 @@ export const CommentDialog = ({
           {/* Post Content */}
           <div className="p-4 border-b border-gray-200 dark:border-gray-700">
             <div className="flex items-start gap-3">
-              <div className="relative">
+              <div className="relative cursor-pointer" onClick={() => handleProfileClick(post.userName)}>
                 <Avatar className="w-8 h-8">
                   <AvatarImage src={post.avatarUrl} alt={post.userName} />
                   <AvatarFallback>{post.userName?.charAt(0) || 'U'}</AvatarFallback>
@@ -709,9 +756,14 @@ export const CommentDialog = ({
               </div>
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="font-semibold text-sm">{post.userName}</span>
+                  <span 
+                    className="font-semibold text-sm cursor-pointer hover:underline"
+                    onClick={() => handleProfileClick(post.userName)}
+                  >
+                    {post.userName}
+                  </span>
                 </div>
-                <p className="text-sm leading-relaxed mb-2">{post.content}</p>
+                <p className="text-sm leading-relaxed mb-2">{post.caption}</p>
                 
                 {/* Post Emoji Reactions */}
                 {post.emojiReactions && post.emojiReactions.length > 0 && (
@@ -936,7 +988,7 @@ export const CommentDialog = ({
 
             {/* Post time under summary */}
             <div className="mt-1 mb-4 text-[12px] text-gray-500">
-              <time>{formatTimeAgo(post.createdAt)} trước</time>
+              <time>{formatTimeAgo(post.updatedAt || post.createdAt)} trước</time>
             </div>
 
             {/* Comment Form */}
@@ -1020,30 +1072,68 @@ export const CommentDialog = ({
       />
 
       {/* Action Menu */}
-      <ActionMenu
-        isOpen={showActionMenu}
-        onClose={handleCloseActionMenu}
-        position={actionMenuPosition}
-        items={currentCommentForAction === 'post' ? (
-          actionMenuItems && actionMenuItems.length > 0
-            ? actionMenuItems
-            : [
-                { label: 'Báo cáo', action: () => handleCommentAction('report'), isDestructive: true },
-                { label: 'Đi đến bài viết', action: () => handleCommentAction('goToPost') },
-                { label: 'Chia sẻ lên...', action: () => handleCommentAction('share') },
-                { label: 'Sao chép liên kết', action: () => handleCommentAction('copyLink') },
-                { label: 'Nhúng', action: () => handleCommentAction('embed') },
-                { label: 'Giới thiệu về tài khoản này', action: () => handleCommentAction('aboutAccount') },
-                { label: 'Hủy', action: handleCloseActionMenu }
-              ]
-        ) : [
-          { label: 'Báo cáo', action: () => handleCommentAction('report'), isDestructive: true },
-          { label: 'Không quan tâm', action: () => handleCommentAction('notInterested') },
-          { label: 'Hủy', action: handleCloseActionMenu }
-        ]}
-      />
+      {!showDeleteConfirm && (
+        <ActionMenu
+          isOpen={showActionMenu}
+          onClose={handleCloseActionMenu}
+          position={actionMenuPosition}
+          items={currentCommentForAction === 'post' ? (
+            actionMenuItems && actionMenuItems.length > 0
+              ? actionMenuItems.map(item => 
+                  item.label === 'Xóa' 
+                    ? { ...item, action: handleDeletePostClick }
+                    : item
+                )
+              : [
+                  { label: 'Xóa', action: handleDeletePostClick, isDestructive: true },
+                  { label: 'Báo cáo', action: () => handleCommentAction('report'), isDestructive: true },
+                  { label: 'Đi đến bài viết', action: () => handleCommentAction('goToPost') },
+                  { label: 'Chia sẻ lên...', action: () => handleCommentAction('share') },
+                  { label: 'Sao chép liên kết', action: () => handleCommentAction('copyLink') },
+                  { label: 'Nhúng', action: () => handleCommentAction('embed') },
+                  { label: 'Giới thiệu về tài khoản này', action: () => handleCommentAction('aboutAccount') },
+                  { label: 'Hủy', action: handleCloseActionMenu }
+                ]
+          ) : [
+            { label: 'Báo cáo', action: () => handleCommentAction('report'), isDestructive: true },
+            { label: 'Không quan tâm', action: () => handleCommentAction('notInterested') },
+            { label: 'Đi đến bài viết', action: () => handleCommentAction('goToPost') },
+            { label: 'Hủy', action: handleCloseActionMenu }
+          ]}
+        />
+      )}
 
       <LikesDialog isOpen={!!showLikesDialog} onClose={closeLikesDialog} />
+
+      {/* Delete Confirmation Dialog - Style like ActionMenuDialog */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60">
+          <div className="bg-white dark:bg-gray-900 rounded-lg shadow-xl max-w-md w-full p-6 animate-in fade-in-0 zoom-in-95 duration-200">
+            <div className="text-center mb-4">
+              <h3 className="text-lg font-semibold mb-2">Xóa bài viết?</h3>
+              <p className="text-sm text-muted-foreground">
+                Bạn có chắc chắn muốn xóa bài viết này không?
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <Button
+                variant="outline"
+                onClick={handleCancelDelete}
+                className="flex-1"
+              >
+                Hủy
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={handleConfirmDelete}
+                className="flex-1"
+              >
+                Xóa
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

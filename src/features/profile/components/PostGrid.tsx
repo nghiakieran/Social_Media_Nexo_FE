@@ -3,14 +3,17 @@ import { Play, Heart, MessageCircle } from 'lucide-react';
 import { ProfilePost } from '../profileSlice';
 import { CommentDialog } from '@/features/post/components/CommentDialog';
 import { ShareDialog } from '@/features/post/components/ShareDialog';
-import { useAppSelector } from '@/store';
+import { useAppSelector, useAppDispatch } from '@/store';
 import { mockComments } from '@/features/interaction/__mocks__/comments';
 import { useNavigate } from 'react-router-dom';
 import { LazyGrid } from '@/components/common/LazyGrid';
+import { deletePostThunk } from '@/features/post/postSlice';
+import { useToast } from '@/hooks/use-toast';
 
 interface PostGridProps {
   posts: ProfilePost[];
   onPostClick?: (post: ProfilePost) => void;
+  lastElementRef?: (node: HTMLElement | null) => void;
 }
 
 interface PostDetailProps {
@@ -20,11 +23,12 @@ interface PostDetailProps {
 
 const PostDetail = ({ post, onClose }: PostDetailProps) => null;
 
-
-export const PostGrid = ({ posts, onPostClick }: PostGridProps) => {
+export const PostGrid = ({ posts, onPostClick, lastElementRef }: PostGridProps) => {
   const [selectedPost, setSelectedPost] = useState<ProfilePost | null>(null);
   const profile = useAppSelector((s) => s.profile.currentProfile);
+  const dispatch = useAppDispatch();
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [isShareOpen, setIsShareOpen] = useState(false);
   const [isPostLiked, setIsPostLiked] = useState<Record<string, boolean>>({});
   const [isBookmarkedById, setIsBookmarkedById] = useState<Record<string, boolean>>({});
@@ -85,7 +89,7 @@ export const PostGrid = ({ posts, onPostClick }: PostGridProps) => {
         createdAt: c.createdAt,
         replies: mapReplies(c.replies),
       }));
-  }, [selectedPost, mockComments]);
+  }, [selectedPost]);
 
   const currentComments: CDComment[] = useMemo(() => {
     if (!selectedPost) return [];
@@ -101,6 +105,25 @@ export const PostGrid = ({ posts, onPostClick }: PostGridProps) => {
     setSelectedPost(post);
     onPostClick?.(post);
   };
+
+  const handleDeletePost = async (postId: string) => {
+    try {
+      await dispatch(deletePostThunk(parseInt(postId))).unwrap();
+      toast({
+        title: 'Đã xóa',
+        description: 'Bài viết đã được xóa thành công.',
+      });
+      setSelectedPost(null);
+      // Refresh posts - ProfilePage sẽ tự load lại từ store
+    } catch (error) {
+      toast({
+        title: 'Lỗi',
+        description: 'Không thể xóa bài viết. Vui lòng thử lại.',
+        variant: 'destructive',
+      });
+    }
+  };
+
 
   if (posts.length === 0) {
     return (
@@ -119,13 +142,14 @@ export const PostGrid = ({ posts, onPostClick }: PostGridProps) => {
   return (
     <>
       <LazyGrid
-        items={posts.map(post => ({
+        items={posts.map((post, index) => ({
           id: post.id,
-          thumbnail: post.thumbnail,
-          type: post.type,
+          thumbnail: post.media[0]?.thumbnail || post.media[0]?.url || '',
+          type: (post.media[0]?.type === 'image' ? 'photo' : 'video') as 'photo' | 'video' | 'reel',
           caption: post.caption,
           likesCount: post.likesCount,
-          commentsCount: post.commentsCount
+          commentsCount: post.commentsCount,
+          ref: index === posts.length - 1 ? lastElementRef : undefined,
         }))}
         onItemClick={(item) => {
           const post = posts.find(p => p.id === item.id);
@@ -142,7 +166,7 @@ export const PostGrid = ({ posts, onPostClick }: PostGridProps) => {
           return (
             <>
               {/* Video/Reel indicator */}
-              {(item.type === 'video' || item.type === 'reel') && (
+              {item.type === 'video' && (
                 <div className="absolute top-2 right-2">
                   <Play className="w-4 h-4 text-white fill-current drop-shadow-lg" />
                 </div>
@@ -172,21 +196,15 @@ export const PostGrid = ({ posts, onPostClick }: PostGridProps) => {
           onClose={() => setSelectedPost(null)}
           post={{
             id: selectedPost.id,
-            userId: profile?.id || 'me',
-            userName: profile?.username || 'me',
-            avatarUrl: profile?.avatar || '',
-            content: selectedPost.caption,
-            media: [
-              {
-                id: 'media-1',
-                type: selectedPost.type === 'photo' ? 'image' : 'video',
-                url: selectedPost.url,
-                alt: selectedPost.caption,
-              },
-            ],
+            userId: selectedPost.userId,
+            userName: selectedPost.userName,
+            avatarUrl: selectedPost.avatarUrl,
+            caption: selectedPost.caption,
+            media: selectedPost.media || [],
             likesCount: selectedPost.likesCount,
             commentsCount: selectedPost.commentsCount,
             createdAt: selectedPost.createdAt,
+            updatedAt: selectedPost.updatedAt,
           }}
           comments={currentComments}
           onAddComment={(content) => {
@@ -261,14 +279,15 @@ export const PostGrid = ({ posts, onPostClick }: PostGridProps) => {
           isPostLiked={!!isPostLiked[selectedPost.id]}
           onOpenShareDialog={() => setIsShareOpen(true)}
           isShareDialogOpen={isShareOpen}
-          // isBookmarked={!!isBookmarkedById[selectedPost.id]}
-          // onToggleBookmark={(postId, next) => setIsBookmarkedById(prev => ({ ...prev, [postId]: next }))}
+          onNavigateToProfile={(userName) => navigate(`/${userName}`)}
+          onNavigateToPost={(postId) => navigate(`/posts/${postId}`)}
+          onDeletePost={handleDeletePost}
           actionMenuItems={[
-            { label: 'Xóa', action: () => {} , isDestructive: true },
+            { label: 'Xóa', action: () => {}, isDestructive: true },
             { label: 'Chỉnh sửa', action: () => {} },
             { label: 'Ẩn số lượt thích với những người khác', action: () => {} },
             { label: 'Tắt tính năng bình luận', action: () => {} },
-            { label: 'Đi đến bài viết', action: () => { navigate(`/comments/${selectedPost.id}`); } },
+            { label: 'Đi đến bài viết', action: () => { navigate(`/posts/${selectedPost.id}`); } },
             { label: 'Giới thiệu về tài khoản này', action: () => {} },
             { label: 'Hủy', action: () => {} },
           ]}
@@ -283,11 +302,13 @@ export const PostGrid = ({ posts, onPostClick }: PostGridProps) => {
           post={{
             id: selectedPost.id,
             content: selectedPost.caption,
-            media: [
-              { url: selectedPost.url, type: selectedPost.type === 'photo' ? 'image' : 'video', alt: selectedPost.caption }
-            ],
-            userName: profile?.username || 'me',
-            avatarUrl: profile?.avatar || '',
+            media: selectedPost.media.map(m => ({ 
+              url: m.url, 
+              type: m.type, 
+              alt: selectedPost.caption 
+            })),
+            userName: selectedPost.userName,
+            avatarUrl: selectedPost.avatarUrl,
             createdAt: selectedPost.createdAt,
           }}
           onShare={(postId, userIds, message) => {

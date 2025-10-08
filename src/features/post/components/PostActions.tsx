@@ -123,7 +123,7 @@ export const PostActions = ({ post, onEditComplete }: PostActionsProps) => {
           onClose={handleCloseEditDialog}
           postId={parseInt(post.id)}
           userId={parseInt(post.userId)}
-          initialContent={post.content}
+          initialContent={post.caption}
           initialVisibility={post.visibility.toUpperCase() as 'PUBLIC' | 'PRIVATE'}
           initialMediaUrl={post.media.map(m => m.url)}
           onSave={handleUpdatePost}

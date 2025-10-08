@@ -8,7 +8,9 @@ import { navigateToProfile } from "@/utils/navigation";
 import {
   ArrowLeft,
   Bookmark,
+  Globe,
   Heart,
+  Lock,
   MessageCircle,
   MoreHorizontal,
   Share2,
@@ -17,7 +19,7 @@ import {
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "@/store";
-import { getPostsThunk, getMutualFollowersThunk } from "../postSlice";
+import { getPostsThunk, getMutualFollowersThunk, deletePostThunk } from "../postSlice";
 import { ActionMenuDialog } from "../components/ActionMenuDialog";
 import { CommentSection } from "../components/CommentSection";
 import { EditPostDialog } from "../components/EditPostDialog";
@@ -50,7 +52,7 @@ const mockPost = {
   userId: "1",
   userName: "nguyenvana",
   avatarUrl: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=32&h=32&fit=crop&crop=face",
-  content: `Chào mọi người! Hôm nay mình có cơ hội được tham quan một công ty công nghệ rất thú vị. Không gian làm việc hiện đại, team trẻ trung và năng động. Đặc biệt là phòng chill với view thành phố rất đẹp! 
+  caption: `Chào mọi người! Hôm nay mình có cơ hội được tham quan một công ty công nghệ rất thú vị. Không gian làm việc hiện đại, team trẻ trung và năng động. Đặc biệt là phòng chill với view thành phố rất đẹp! 
 
 Các bạn có kinh nghiệm nào về việc chọn môi trường làm việc không? Mình đang cân nhắc giữa startup và công ty lớn. 🤔
 
@@ -110,8 +112,8 @@ export const PostDetailPage = () => {
   const { posts, isLoading, error } = useAppSelector(state => state.post);
   const { user } = useAppSelector(state => state.auth);
 
-  const [post, setPost] = useState<UIPost>(mockPost as unknown as UIPost);
-  const [interactions, setInteractions] = useState(post.interactions);
+  const [post, setPost] = useState<UIPost | null>(mockPost as unknown as UIPost);
+  const [interactions, setInteractions] = useState(mockPost.interactions);
 
   // Load posts and mutual followers when component mounts
   useEffect(() => {
@@ -161,6 +163,13 @@ export const PostDetailPage = () => {
   const [showActionMenu, setShowActionMenu] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
 
+  const privacyIcons = {
+    public: Globe,
+    private: Lock,
+  };
+
+  const PrivacyIcon = privacyIcons[post.privacy] || Globe;
+
   const formatTimeAgo = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
@@ -209,11 +218,20 @@ export const PostDetailPage = () => {
     setShowActionMenu(false);
   };
 
-  const handleActionMenuAction = (action: string) => {
+  const handleActionMenuAction = async (action: string) => {
     switch (action) {
       case "delete":
-        toast({ title: "Đã xóa", description: "Bài viết đã được xóa." });
-        navigate(-1);
+        try {
+          await dispatch(deletePostThunk(parseInt(post.id))).unwrap();
+          toast({ title: "Đã xóa", description: "Bài viết đã được xóa." });
+          navigate(-1);
+        } catch (error) {
+          toast({ 
+            title: "Lỗi", 
+            description: "Không thể xóa bài viết. Vui lòng thử lại.",
+            variant: "destructive"
+          });
+        }
         break;
       case "edit":
         setShowEditDialog(true);
@@ -272,6 +290,10 @@ export const PostDetailPage = () => {
 
   const handleProfileClick = () => {
     navigateToProfile(navigate, post.userName);
+  };
+
+  const handleTagClick = (userName: string) => {
+    navigateToProfile(navigate, userName);
   };
 
   const handleBack = () => {
@@ -388,11 +410,8 @@ export const PostDetailPage = () => {
                         >
                           @{post.userName}
                         </span>
-                        {post.privacy === "public" && (
-                          <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
-                            Công khai
-                          </span>
-                        )}
+                        <span>•</span>
+                        <PrivacyIcon className="w-3 h-3 text-muted-foreground" />
                       </div>
                     </div>
                   </div>
@@ -400,15 +419,17 @@ export const PostDetailPage = () => {
               </div>
 
               {/* Post Text */}
-              <div className="px-6 pb-4">
-                <div className="prose prose-sm max-w-none text-foreground">
-                  {post.content.split("\n").map((line, index) => (
-                    <p key={index} className="mb-2 last:mb-0">
-                      {line}
-                    </p>
-                  ))}
+              {post.caption && (
+                <div className="px-6 pb-4">
+                  <div className="prose prose-sm max-w-none text-foreground">
+                    {post.caption.split("\n").map((line, index) => (
+                      <p key={index} className="mb-2 last:mb-0">
+                        {line}
+                      </p>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Media Slider */}
               {post.media && post.media.length > 0 && (
@@ -428,12 +449,22 @@ export const PostDetailPage = () => {
               {/* Tagged Friends */}
               {post.taggedFriends && post.taggedFriends.length > 0 && (
                 <div className="px-6 pb-4">
-                  <div className="flex items-center gap-2 text-sm">
+                  <div className="flex items-center gap-2 text-sm flex-wrap">
                     <Users className="w-4 h-4 text-primary" />
-                    <span className="text-muted-foreground">Gắn thẻ:</span>
-                    <span className="font-medium text-foreground">
-                      {post.taggedFriends.join(", ")}
-                    </span>
+                    <span className="text-muted-foreground">với</span>
+                    {post.taggedFriends.map((userName, index) => (
+                      <span key={index}>
+                        <span
+                          className="font-medium text-primary hover:underline cursor-pointer"
+                          onClick={() => handleTagClick(userName)}
+                        >
+                          {userName}
+                        </span>
+                        {index < post.taggedFriends.length - 1 && (
+                          <span className="text-muted-foreground">, </span>
+                        )}
+                      </span>
+                    ))}
                   </div>
                 </div>
               )}
@@ -545,7 +576,7 @@ export const PostDetailPage = () => {
         onClose={() => setShowShareDialog(false)}
         post={{
           id: post.id,
-          content: post.content,
+          content: post.caption,
           media: post.media || [],
           userName: post.userName,
           avatarUrl: post.avatarUrl,
@@ -578,7 +609,7 @@ export const PostDetailPage = () => {
         onClose={() => setShowEditDialog(false)}
         postId={parseInt(post.id)}
         userId={parseInt(post.userId)}
-        initialContent={post.content}
+        initialContent={post.caption}
         initialVisibility={post.privacy.toUpperCase() as 'PUBLIC' | 'PRIVATE'}
         initialMediaUrl={post.media.map(m => m.url)}
         onSave={handleEditPost}

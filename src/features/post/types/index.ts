@@ -62,7 +62,7 @@ export interface Post {
   userId: string;
   userName: string;
   avatarUrl: string;
-  content: string;
+  caption: string;
   media: PostMediaItem[];
   visibility: 'public' | 'private';
   taggedUsers: TaggedUser[];
@@ -220,7 +220,7 @@ export const transformPostData = (apiData: PostData): Post => ({
   userId: apiData.userId.toString(),
   userName: apiData.userName,
   avatarUrl: apiData.avatarUrl,
-  content: apiData.caption,
+  caption: apiData.caption,
   media: apiData.mediaUrl.map((url, index) => ({
     id: `${apiData.postId}-${index}`,
     type: getMediaType(url),

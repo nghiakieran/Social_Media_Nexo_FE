@@ -33,16 +33,8 @@ export interface UserProfile {
   hasRequestedFollow: boolean; // Whether current user has sent follow request to this private account
 }
 
-export interface ProfilePost {
-  id: string;
-  type: 'photo' | 'video' | 'reel';
-  thumbnail: string;
-  url: string;
-  likesCount: number;
-  commentsCount: number;
-  caption: string;
-  createdAt: string;
-}
+// Use Post from post feature directly
+export type { Post as ProfilePost } from '@/features/post/types';
 
 export interface StoryHighlight {
   id: string;
