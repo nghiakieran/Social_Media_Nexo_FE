@@ -23,6 +23,16 @@ interface ProfileState {
   showReportDialog: boolean;
   showAvatarDialog: boolean;
   showCreateHighlightDialog: boolean;
+  // Pagination
+  followersPage: number;
+  followersTotalPages: number;
+  followersHasMore: boolean;
+  followingPage: number;
+  followingTotalPages: number;
+  followingHasMore: boolean;
+  requestsPage: number;
+  requestsTotalPages: number;
+  requestsHasMore: boolean;
 }
 
 const initialState: ProfileState = {
@@ -45,6 +55,16 @@ const initialState: ProfileState = {
   showReportDialog: false,
   showAvatarDialog: false,
   showCreateHighlightDialog: false,
+  // Pagination
+  followersPage: 0,
+  followersTotalPages: 0,
+  followersHasMore: false,
+  followingPage: 0,
+  followingTotalPages: 0,
+  followingHasMore: false,
+  requestsPage: 0,
+  requestsTotalPages: 0,
+  requestsHasMore: false,
 };
 
 // Async thunks for API calls
@@ -78,10 +98,10 @@ export const fetchUserProfileByUsernameAsync = createAsyncThunk(
 
 export const fetchFollowersByUsernameAsync = createAsyncThunk(
   'profile/fetchFollowersByUsername',
-  async ({ username, page = 0, limit = 10 }: { username: string; page?: number; limit?: number }, { rejectWithValue }) => {
+  async ({ username, pageNo = 0, pageSize = 10 }: { username: string; pageNo?: number; pageSize?: number }, { rejectWithValue }) => {
     try {
-      const followers = await getFollowersByUsername(username, page, limit);
-      return followers;
+      const response = await getFollowersByUsername(username, pageNo, pageSize);
+      return response;
     } catch (error: unknown) {
       const axiosError = error as { response?: { data?: { message?: string } } };
       const message = axiosError?.response?.data?.message || 'Không thể tải danh sách followers';
@@ -92,10 +112,10 @@ export const fetchFollowersByUsernameAsync = createAsyncThunk(
 
 export const fetchFollowingByUsernameAsync = createAsyncThunk(
   'profile/fetchFollowingByUsername',
-  async ({ username, page = 0, limit = 10 }: { username: string; page?: number; limit?: number }, { rejectWithValue }) => {
+  async ({ username, pageNo = 0, pageSize = 10 }: { username: string; pageNo?: number; pageSize?: number }, { rejectWithValue }) => {
     try {
-      const following = await getFollowingByUsername(username, page, limit);
-      return following;
+      const response = await getFollowingByUsername(username, pageNo, pageSize);
+      return response;
     } catch (error: unknown) {
       const axiosError = error as { response?: { data?: { message?: string } } };
       const message = axiosError?.response?.data?.message || 'Không thể tải danh sách following';
@@ -120,10 +140,10 @@ export const updateUserProfileAsync = createAsyncThunk(
 
 export const fetchFollowRequestsAsync = createAsyncThunk(
   'profile/fetchFollowRequests',
-  async ({ page = 0, limit = 10 }: { page?: number; limit?: number } = {}, { rejectWithValue }) => {
+  async ({ pageNo = 0, pageSize = 10 }: { pageNo?: number; pageSize?: number } = {}, { rejectWithValue }) => {
     try {
-      const followRequests = await getFollowRequests(page, limit);
-      return followRequests;
+      const response = await getFollowRequests(pageNo, pageSize);
+      return response;
     } catch (error: unknown) {
       const axiosError = error as { response?: { data?: { message?: string } } };
       const message = axiosError?.response?.data?.message || 'Không thể tải danh sách yêu cầu theo dõi';
@@ -343,7 +363,17 @@ const profileSlice = createSlice({
       })
       .addCase(fetchFollowersByUsernameAsync.fulfilled, (state, action) => {
         state.isLoading = false;
-        state.followers = action.payload;
+        const { content, pageNo, totalPages } = action.payload;
+        
+        if (pageNo === 0) {
+          state.followers = content;
+        } else {
+          state.followers.push(...content);
+        }
+        
+        state.followersPage = pageNo;
+        state.followersTotalPages = totalPages;
+        state.followersHasMore = pageNo < totalPages - 1;
         state.error = null;
       })
       .addCase(fetchFollowersByUsernameAsync.rejected, (state, action) => {
@@ -357,7 +387,17 @@ const profileSlice = createSlice({
       })
       .addCase(fetchFollowingByUsernameAsync.fulfilled, (state, action) => {
         state.isLoading = false;
-        state.following = action.payload;
+        const { content, pageNo, totalPages } = action.payload;
+        
+        if (pageNo === 0) {
+          state.following = content;
+        } else {
+          state.following.push(...content);
+        }
+        
+        state.followingPage = pageNo;
+        state.followingTotalPages = totalPages;
+        state.followingHasMore = pageNo < totalPages - 1;
         state.error = null;
       })
       .addCase(fetchFollowingByUsernameAsync.rejected, (state, action) => {
@@ -383,7 +423,17 @@ const profileSlice = createSlice({
       })
       .addCase(fetchFollowRequestsAsync.fulfilled, (state, action) => {
         state.isLoading = false;
-        state.followRequests = action.payload;
+        const { content, pageNo, totalPages } = action.payload;
+        
+        if (pageNo === 0) {
+          state.followRequests = content;
+        } else {
+          state.followRequests.push(...content);
+        }
+        
+        state.requestsPage = pageNo;
+        state.requestsTotalPages = totalPages;
+        state.requestsHasMore = pageNo < totalPages - 1;
         state.error = null;
       })
       .addCase(fetchFollowRequestsAsync.rejected, (state, action) => {

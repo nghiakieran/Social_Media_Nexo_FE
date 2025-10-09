@@ -46,18 +46,22 @@ export const getProfile = async (username?: string): Promise<ProfileData> => {
  * Get followers list for a user
  * @param username - The username to fetch followers for
  */
-export const getFollowersByUsername = async (username: string, page: number = 0, limit: number = 10): Promise<FollowerUser[]> => {
-  const response = await api.get<{status: number, message: string, data: FollowersResponse}>(`/users/followers/${username}?page=${page}&size=${limit}`);
-  return response.data.data.content;
+export const getFollowersByUsername = async (username: string, pageNo: number = 0, pageSize: number = 10): Promise<FollowersResponse> => {
+  const response = await api.get<{status: number, message: string, data: FollowersResponse}>(`/users/followers/${username}`, {
+    params: { pageNo, pageSize }
+  });
+  return response.data.data;
 };
 
 /**
  * Get following list for a user
  * @param username - The username to fetch following for
  */
-export const getFollowingByUsername = async (username: string, page: number = 0, limit: number = 10): Promise<FollowingUser[]> => {
-  const response = await api.get<{status: number, message: string, data: FollowingResponse}>(`/users/followings/${username}?page=${page}&size=${limit}`);
-  return response.data.data.content;
+export const getFollowingByUsername = async (username: string, pageNo: number = 0, pageSize: number = 10): Promise<FollowingResponse> => {
+  const response = await api.get<{status: number, message: string, data: FollowingResponse}>(`/users/followings/${username}`, {
+    params: { pageNo, pageSize }
+  });
+  return response.data.data;
 };
 
 /**
@@ -95,9 +99,11 @@ export const updateUserProfile = async (profileData: UpdateProfileRequest): Prom
 /**
  * Get follow requests for current user
  */
-export const getFollowRequests = async (page: number = 0, limit: number = 10): Promise<FollowRequestUser[]> => {
-  const response = await api.get<{status: number, message: string, data: FollowRequestsResponse}>(`/users/requests?page=${page}&size=${limit}`);
-  return response.data.data.content;
+export const getFollowRequests = async (pageNo: number = 0, pageSize: number = 10): Promise<FollowRequestsResponse> => {
+  const response = await api.get<{status: number, message: string, data: FollowRequestsResponse}>(`/users/requests`, {
+    params: { pageNo, pageSize }
+  });
+  return response.data.data;
 };
 
 /**

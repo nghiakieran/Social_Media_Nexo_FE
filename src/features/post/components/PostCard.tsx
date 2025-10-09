@@ -25,6 +25,7 @@ import {
 } from '@/components/ui/tooltip';
 import { CommentDialog } from './CommentDialog';
 import { LazyImage } from '@/components/common/LazyImage';
+import { HLSVideoPlayer } from '@/components/common/HLSVideoPlayer';
 import { ShareDialog } from './ShareDialog';
 import { EmojiPicker } from '@/components/common/EmojiPicker';
 import { useToast } from '@/hooks/use-toast';
@@ -406,11 +407,13 @@ export const PostCard = ({
                   enableProgressiveLoading
                 />
               ) : (
-                <video
+                <HLSVideoPlayer
                   src={post.media[currentMediaIndex].url}
                   className="w-full h-full object-cover"
                   controls
                   muted
+                  playsInline
+                  preload="metadata"
                 />
               )}
 

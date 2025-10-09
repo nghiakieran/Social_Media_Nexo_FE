@@ -17,6 +17,7 @@ import {
   X,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { HLSVideoPlayer } from "@/components/common/HLSVideoPlayer";
 // Utility functions for video optimization
 const formatFileSize = (bytes: number): string => {
   if (bytes === 0) return "0 B";
@@ -420,8 +421,8 @@ export const MediaViewer = ({ media, isOpen, onClose }: MediaViewerProps) => {
                 )}
 
                 <div className="relative">
-                  <video
-                    ref={videoRef}
+                  <HLSVideoPlayer
+                    videoRef={videoRef}
                     src={media.url}
                     className="max-w-full max-h-full object-contain cursor-pointer"
                     style={{ maxHeight: "calc(90vh - 80px)" }}

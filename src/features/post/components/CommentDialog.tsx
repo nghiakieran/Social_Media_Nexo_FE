@@ -9,13 +9,6 @@ import { ActionMenu, ActionMenuItem } from '@/components/common/ActionMenu';
 import { LikesDialog } from './LikesDialog';
 import { useBookmark } from '@/features/saved/hooks/useBookmark';
 import { MediaSlider } from './MediaSlider';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
 
 interface Comment {
   id: string;

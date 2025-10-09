@@ -1,6 +1,7 @@
 import { ReactNode } from 'react';
 import { useLazyLoading } from '@/hooks/use-lazy-loading';
 import { LazyImage } from './LazyImage';
+import { SimpleVideoPreview } from './SimpleVideoPreview';
 
 interface LazyGridItem {
   id: string;
@@ -128,12 +129,9 @@ export const LazyGrid = ({
             {shouldLoad && (
               <>
                 {item.type === 'video' || item.type === 'reel' ? (
-                  <video
-                    src={item.thumbnail}
-                    className="w-full h-full object-cover"
-                    muted
-                    playsInline
-                    preload="metadata"
+                  <SimpleVideoPreview
+                    videoUrl={item.thumbnail}
+                    className="w-full h-full"
                   />
                 ) : (
                   <LazyImage

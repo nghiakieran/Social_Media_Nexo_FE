@@ -65,30 +65,32 @@ export const FollowersDialog = ({
     }
   }, [isOpen, users, title]);
 
+  // Get pagination state from store
+  const {
+    followersHasMore,
+    followersPage,
+    followingHasMore,
+    followingPage
+  } = useAppSelector((state) => state.profile);
+
   // Load more data when scrolling near bottom
   const loadMore = useCallback(async () => {
-    if (!username || isLoadingMore || !hasMore) return;
+    if (!username || isLoadingMore) return;
+
+    const isFollowersDialog = title === 'Người theo dõi';
+    const currentHasMore = isFollowersDialog ? followersHasMore : followingHasMore;
+    const currentPageNum = isFollowersDialog ? followersPage : followingPage;
+
+    if (!currentHasMore) return;
 
     setIsLoadingMore(true);
-    const nextPage = currentPage + 1;
+    const nextPage = currentPageNum + 1;
     
     try {
-      let resultAction;
-      if (title === 'Người theo dõi') {
-        resultAction = await dispatch(fetchFollowersByUsernameAsync({ username, page: nextPage, limit: 10 }));
-      } else if (title === 'Đang theo dõi') {
-        resultAction = await dispatch(fetchFollowingByUsernameAsync({ username, page: nextPage, limit: 10 }));
-      }
-      
-      if (resultAction && (fetchFollowersByUsernameAsync.fulfilled.match(resultAction) || fetchFollowingByUsernameAsync.fulfilled.match(resultAction))) {
-        const newUsers = resultAction.payload;
-        setLocalUsers(prev => [...prev, ...newUsers]);
-        setCurrentPage(nextPage);
-        
-        // Check if we have more data
-        if (newUsers.length < 10) {
-          setHasMore(false);
-        }
+      if (isFollowersDialog) {
+        await dispatch(fetchFollowersByUsernameAsync({ username, pageNo: nextPage, pageSize: 10 }));
+      } else {
+        await dispatch(fetchFollowingByUsernameAsync({ username, pageNo: nextPage, pageSize: 10 }));
       }
     } catch (error) {
       toast({
@@ -99,17 +101,20 @@ export const FollowersDialog = ({
     } finally {
       setIsLoadingMore(false);
     }
-  }, [username, currentPage, hasMore, isLoadingMore, dispatch, title, toast]);
+  }, [username, isLoadingMore, followersHasMore, followingHasMore, followersPage, followingPage, dispatch, title, toast]);
 
   // Infinite scroll handler
   const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
     const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
     const scrollPercentage = (scrollTop + clientHeight) / scrollHeight;
     
-    if (scrollPercentage > 0.8 && hasMore && !isLoadingMore) {
+    const isFollowersDialog = title === 'Người theo dõi';
+    const currentHasMore = isFollowersDialog ? followersHasMore : followingHasMore;
+    
+    if (scrollPercentage > 0.8 && currentHasMore && !isLoadingMore) {
       loadMore();
     }
-  }, [hasMore, isLoadingMore, loadMore]);
+  }, [followersHasMore, followingHasMore, isLoadingMore, loadMore, title]);
 
   const filteredUsers = Array.isArray(localUsers) ? localUsers.filter(user =>
     user.userName.toLowerCase().includes(searchTerm.toLowerCase())
@@ -137,7 +142,7 @@ export const FollowersDialog = ({
           setShowUnfollowConfirm(true);
           return;
         } else {
-          // Follow - check if account is private
+          // Follow user
           const resultAction = await dispatch(followUserAsync(user.userName));
           if (followUserAsync.fulfilled.match(resultAction)) {
             setLocalUsers(prev => {
@@ -149,18 +154,10 @@ export const FollowersDialog = ({
               );
             });
             
-            // Show appropriate message based on account privacy
-            if (user.isPrivate) {
-              toast({
-                title: 'Đã gửi yêu cầu theo dõi',
-                description: `Đã gửi yêu cầu theo dõi ${user.userName}`,
-              });
-            } else {
-              toast({
-                title: 'Đã theo dõi',
-                description: `Bạn đã theo dõi ${user.userName}`,
-              });
-            }
+            toast({
+              title: 'Đã theo dõi',
+              description: `Bạn đã theo dõi ${user.userName}`,
+            });
           } else {
             toast({
               title: 'Lỗi',
@@ -423,10 +420,7 @@ export const FollowersDialog = ({
               Bỏ theo dõi @{userToUnfollow?.userName}?
             </AlertDialogTitle>
             <AlertDialogDescription className="text-sm text-muted-foreground text-center">
-              {userToUnfollow?.isPrivate 
-                ? `Nếu đổi ý, bạn sẽ phải yêu cầu theo dõi lại @${userToUnfollow?.userName}.`
-                : `Bạn sẽ không còn thấy bài đăng của @${userToUnfollow?.userName} trong bảng tin.`
-              }
+              Bạn sẽ không còn thấy bài đăng của @{userToUnfollow?.userName} trong bảng tin.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="flex gap-2">

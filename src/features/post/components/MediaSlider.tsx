@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useEffect, useRef, useState, memo } from "react";
+import { HLSVideoPlayer } from "@/components/common/HLSVideoPlayer";
 
 interface MediaItem {
   id: string;
@@ -127,26 +128,21 @@ export const MediaSlider = ({
                 loading="lazy"
               />
             ) : (
-              <div className="relative w-full h-full bg-gray-900">
-                {!loadedVideos.has(mediaItem.id) && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-gray-900">
-                    <div className="animate-spin rounded-full h-8 w-8 border-2 border-white border-t-transparent"></div>
-                  </div>
-                )}
-                <video
-                  ref={(el) => {
-                    if (el) videoRefs.current[mediaItem.id] = el;
-                  }}
-                  src={mediaItem.url}
-                  className="w-full h-full object-cover"
-                  controls
-                  playsInline
-                  preload="metadata"
-                  onLoadedData={() => {
-                    setLoadedVideos(prev => new Set(prev).add(mediaItem.id));
-                  }}
-                />
-              </div>
+              <HLSVideoPlayer
+                src={mediaItem.url}
+                className="w-full h-full object-cover"
+                controls
+                playsInline
+                preload="metadata"
+                onLoadedData={() => {
+                  setLoadedVideos(prev => new Set(prev).add(mediaItem.id));
+                }}
+                videoRef={
+                  {
+                    current: videoRefs.current[mediaItem.id] || null
+                  } as React.RefObject<HTMLVideoElement>
+                }
+              />
             )}
             </div>
           );

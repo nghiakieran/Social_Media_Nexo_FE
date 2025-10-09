@@ -86,8 +86,8 @@ export const ProfilePage = () => {
         dispatch(fetchUserProfileByUsernameAsync(username));
       }
       
-      dispatch(fetchFollowersByUsernameAsync({ username }));
-      dispatch(fetchFollowingByUsernameAsync({ username }));
+      dispatch(fetchFollowersByUsernameAsync({ username, pageNo: 0, pageSize: 10 }));
+      dispatch(fetchFollowingByUsernameAsync({ username, pageNo: 0, pageSize: 10 }));
       
       // Set mock data for reels and saved (will be replaced with real API later)
       dispatch(setReels(mockReels));
