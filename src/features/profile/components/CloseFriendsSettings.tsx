@@ -29,7 +29,7 @@ export const CloseFriendsSettings = () => {
 
   // Fetch close friends on component mount
   useEffect(() => {
-    dispatch(fetchCloseFriendsAsync({ page: 0, limit: 20 }));
+    dispatch(fetchCloseFriendsAsync({ page: 0, limit: 10 }));
     setCurrentPage(0);
     setHasMore(true);
   }, [dispatch]);
@@ -51,7 +51,7 @@ export const CloseFriendsSettings = () => {
       
       if (toggleCloseFriendAsync.fulfilled.match(resultAction)) {
         // Refetch the close friends list to get updated data
-        dispatch(fetchCloseFriendsAsync({ page: 0, limit: 20 }));
+        dispatch(fetchCloseFriendsAsync({ page: 0, limit: 10 }));
         
         toast({
           title: 'Đã cập nhật',
@@ -86,7 +86,7 @@ export const CloseFriendsSettings = () => {
     const nextPage = currentPage + 1;
     
     try {
-      const resultAction = await dispatch(fetchCloseFriendsAsync({ page: nextPage, limit: 20 }));
+      const resultAction = await dispatch(fetchCloseFriendsAsync({ page: nextPage, limit: 10 }));
       
       if (fetchCloseFriendsAsync.fulfilled.match(resultAction)) {
         setCurrentPage(nextPage);

@@ -43,6 +43,7 @@ interface Post {
   commentsCount: number;
   createdAt: string;
   updatedAt?: string;
+  isActive?: boolean;
   emojiReactions?: Array<{
     emoji: string;
     count: number;

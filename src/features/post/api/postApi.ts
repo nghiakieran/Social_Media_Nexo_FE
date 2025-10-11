@@ -25,7 +25,8 @@ import type {
 // Create post API
 export const createPost = async (
   files: File[],
-  postData: CreatePostRequest
+  postData: CreatePostRequest,
+  onUploadProgress?: (progressEvent: { loaded: number; total?: number }) => void
 ): Promise<CreatePostResponse> => {
   try {
     const formData = new FormData();
@@ -38,10 +39,25 @@ export const createPost = async (
     
     formData.append('postRequestDTO', JSON.stringify(postData));
     
+    // Calculate total file size to estimate timeout
+    const totalSize = files.reduce((sum, file) => sum + file.size, 0);
+    const hasVideo = files.some(file => file.type.startsWith('video/'));
+    
+    // Dynamic timeout based on file size and type
+    // Video: 5 minutes, Large files (>10MB): 2 minutes, Default: 30 seconds
+    let timeout = 30000; // 30 seconds default
+    if (hasVideo || totalSize > 50 * 1024 * 1024) {
+      timeout = 300000; // 5 minutes for video or large files
+    } else if (totalSize > 10 * 1024 * 1024) {
+      timeout = 120000; // 2 minutes for medium files
+    }
+    
     const response = await api.post<CreatePostResponse>('/posts', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
+      timeout, // Dynamic timeout
+      onUploadProgress, // Track upload progress
     });
     
     return response.data;
@@ -49,6 +65,13 @@ export const createPost = async (
     if (error && typeof error === 'object' && 'response' in error) {
       const apiError = error as { response?: { data?: { message?: string } } };
       throw new Error(apiError.response?.data?.message || 'Có lỗi xảy ra khi tạo bài viết');
+    }
+    
+    if (error && typeof error === 'object' && 'code' in error) {
+      const axiosError = error as { code?: string };
+      if (axiosError.code === 'ECONNABORTED') {
+        throw new Error('Upload quá lâu. Vui lòng thử file nhỏ hơn hoặc kiểm tra kết nối mạng.');
+      }
     }
     
     throw new Error('Không thể kết nối đến server. Vui lòng thử lại.');
@@ -80,7 +103,7 @@ export const getPosts = async (params: GetPostsRequest): Promise<GetPostsRespons
 // Get feed API - posts from followed users (for feed page)
 export const getFeed = async (params: GetFeedRequest): Promise<GetFeedResponse> => {
   try {
-    const { userId, page = 0, limit = 20 } = params;
+    const { userId, page = 0, limit = 10 } = params;
     
     const response = await api.get<{ status: number; message: string; data: GetFeedResponse }>(`/feeds/posts/${userId}`, {
       params: {
@@ -117,7 +140,8 @@ export const getPostDetail = async (postId: number): Promise<GetPostDetailRespon
 // Update post API
 export const updatePost = async (
   files: File[],
-  postData: UpdatePostRequest
+  postData: UpdatePostRequest,
+  onUploadProgress?: (progressEvent: { loaded: number; total?: number }) => void
 ): Promise<UpdatePostResponse> => {
   try {
     const formData = new FormData();
@@ -130,10 +154,24 @@ export const updatePost = async (
     
     formData.append('postRequestDTO', JSON.stringify(postData));
     
+    // Calculate total file size to estimate timeout
+    const totalSize = files.reduce((sum, file) => sum + file.size, 0);
+    const hasVideo = files.some(file => file.type.startsWith('video/'));
+    
+    // Dynamic timeout based on file size and type
+    let timeout = 30000; // 30 seconds default
+    if (hasVideo || totalSize > 50 * 1024 * 1024) {
+      timeout = 300000; // 5 minutes for video or large files
+    } else if (totalSize > 10 * 1024 * 1024) {
+      timeout = 120000; // 2 minutes for medium files
+    }
+    
     const response = await api.put<UpdatePostResponse>('/posts', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
+      timeout, // Dynamic timeout
+      onUploadProgress, // Track upload progress
     });
     
     return response.data;
@@ -141,6 +179,13 @@ export const updatePost = async (
     if (error && typeof error === 'object' && 'response' in error) {
       const apiError = error as { response?: { data?: { message?: string } } };
       throw new Error(apiError.response?.data?.message || 'Có lỗi xảy ra khi cập nhật bài viết');
+    }
+    
+    if (error && typeof error === 'object' && 'code' in error) {
+      const axiosError = error as { code?: string };
+      if (axiosError.code === 'ECONNABORTED') {
+        throw new Error('Upload quá lâu. Vui lòng thử file nhỏ hơn hoặc kiểm tra kết nối mạng.');
+      }
     }
     
     throw new Error('Không thể kết nối đến server. Vui lòng thử lại.');

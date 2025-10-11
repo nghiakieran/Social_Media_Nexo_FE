@@ -137,7 +137,7 @@ export const unfollowUser = async (username: string): Promise<void> => {
 /**
  * Get close friends list for current user
  */
-export const getCloseFriends = async (page: number = 0, limit: number = 20): Promise<CloseFriendUser[]> => {
+export const getCloseFriends = async (page: number = 0, limit: number = 10): Promise<CloseFriendUser[]> => {
   const response = await api.get<{status: number, message: string, data: CloseFriendsResponse}>(`/users/close-friends?page=${page}&size=${limit}`);
   return response.data.data.content;
 };

@@ -1,69 +1,110 @@
-import { useState, useMemo } from 'react';
-import { Play, Heart, MessageCircle } from 'lucide-react';
-import { ProfilePost } from '../profileSlice';
+import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useAppDispatch, useAppSelector } from '@/store';
+import { getPostsThunk, togglePostActiveThunk } from '@/features/post/postSlice';
+import { Loader } from '@/components/common/Loader';
+import { EyeOff, Info, MessageCircle } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { useInfiniteScroll } from '@/hooks/use-infinite-scroll';
+import { LazyGrid } from '@/components/common/LazyGrid';
 import { CommentDialog } from '@/features/post/components/CommentDialog';
 import { MobilePostDetail } from '@/features/post/components/MobilePostDetail';
 import { ShareDialog } from '@/features/post/components/ShareDialog';
-import { useAppSelector, useAppDispatch } from '@/store';
 import { mockComments } from '@/features/interaction/__mocks__/comments';
 import { useNavigate } from 'react-router-dom';
-import { LazyGrid } from '@/components/common/LazyGrid';
-import { deletePostThunk, togglePostActiveThunk, getPostsThunk } from '@/features/post/postSlice';
-import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
+import type { Post } from '@/features/post/types';
 
-interface PostGridProps {
-  posts: ProfilePost[];
-  onPostClick?: (post: ProfilePost) => void;
-  lastElementRef?: (node: HTMLElement | null) => void;
+interface CDComment {
+  id: string;
+  userId: string;
+  userName: string;
+  avatarUrl: string;
+  content: string;
+  likesCount: number;
+  isLiked: boolean;
+  createdAt: string;
+  replies?: CDComment[];
 }
 
-interface PostDetailProps {
-  post: ProfilePost;
-  onClose: () => void;
+interface MockReply {
+  id: string;
+  postId: string;
+  userId: string;
+  userName: string;
+  avatarUrl: string;
+  content: string;
+  likesCount?: number;
+  isLiked?: boolean;
+  createdAt: string;
+  updatedAt?: string;
+  parentId?: string;
+  replies?: MockReply[];
 }
 
-const PostDetail = ({ post, onClose }: PostDetailProps) => null;
-
-export const PostGrid = ({ posts, onPostClick, lastElementRef }: PostGridProps) => {
-  const [selectedPost, setSelectedPost] = useState<ProfilePost | null>(null);
-  const profile = useAppSelector((s) => s.profile.currentProfile);
-  const currentUser = useAppSelector((s) => s.auth.user);
+export const HiddenPostsContent = () => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const { toast } = useToast();
   const isMobile = useIsMobile();
+  const { user } = useAppSelector(state => state.auth);
+  const { posts, isLoading, hasMore, currentPage } = useAppSelector(state => state.post);
+  const profile = useAppSelector((s) => s.profile.currentProfile);
+  
+  const [selectedPost, setSelectedPost] = useState<Post | null>(null);
   const [isShareOpen, setIsShareOpen] = useState(false);
   const [isPostLiked, setIsPostLiked] = useState<Record<string, boolean>>({});
-  const [isBookmarkedById, setIsBookmarkedById] = useState<Record<string, boolean>>({});
   const [commentsByPostId, setCommentsByPostId] = useState<Record<string, CDComment[]>>({});
+  
+  // Filter only hidden posts (isActive = false)
+  const hiddenPosts = posts.filter(post => !post.isActive);
 
-  interface CDComment {
-    id: string;
-    userId: string;
-    userName: string;
-    avatarUrl: string;
-    content: string;
-    likesCount: number;
-    isLiked: boolean;
-    createdAt: string;
-    replies?: CDComment[];
-  }
+  useEffect(() => {
+    // Load user's posts (including hidden ones)
+    if (user) {
+      dispatch(getPostsThunk({ userId: user.id, pageNo: 0, pageSize: 20 }));
+    }
+  }, [dispatch, user]);
 
-  interface MockReply {
-    id: string;
-    postId: string;
-    userId: string;
-    userName: string;
-    avatarUrl: string;
-    content: string;
-    likesCount?: number;
-    isLiked?: boolean;
-    createdAt: string;
-    updatedAt?: string;
-    parentId?: string;
-    replies?: MockReply[];
-  }
+  // Infinite scroll handler
+  const handleLoadMore = useCallback(() => {
+    if (user && !isLoading && hasMore) {
+      const nextPage = currentPage + 1;
+      dispatch(getPostsThunk({ userId: user.id, pageNo: nextPage, pageSize: 20 }));
+    }
+  }, [user, isLoading, hasMore, currentPage, dispatch]);
+
+  const { lastElementRef } = useInfiniteScroll(handleLoadMore, {
+    hasMore,
+    isLoading,
+    threshold: 200,
+  });
+
+  const handleRestorePost = async (postId: string, isActive: boolean) => {
+    try {
+      await dispatch(togglePostActiveThunk(parseInt(postId))).unwrap();
+      toast({
+        title: "Đã hiển thị bài viết",
+        description: "Bài viết đã được hiển thị lại trên trang cá nhân của bạn.",
+      });
+      setSelectedPost(null);
+      
+      // Refresh posts to update the list
+      if (user) {
+        dispatch(getPostsThunk({ userId: user.id, pageNo: 0, pageSize: 10 }));
+      }
+    } catch (error) {
+      toast({
+        title: 'Lỗi',
+        description: 'Không thể hiển thị lại bài viết.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handlePostClick = (post: Post) => {
+    setSelectedPost(post);
+  };
 
   const selectedComments = useMemo<CDComment[]>(() => {
     if (!selectedPost) return [];
@@ -102,123 +143,133 @@ export const PostGrid = ({ posts, onPostClick, lastElementRef }: PostGridProps) 
 
   const ensureCommentsForSelected = () => {
     if (!selectedPost) return;
-    setCommentsByPostId((prev) => prev[selectedPost.id] ? prev : ({ ...prev, [selectedPost.id]: selectedComments }));
-  };
-
-  const handlePostClick = (post: ProfilePost) => {
-    setSelectedPost(post);
-    onPostClick?.(post);
-  };
-
-  const handleDeletePost = async (postId: string) => {
-    try {
-      await dispatch(deletePostThunk(parseInt(postId))).unwrap();
-      toast({
-        title: 'Đã xóa',
-        description: 'Bài viết đã được xóa thành công.',
-      });
-      setSelectedPost(null);
-      // Refresh posts - ProfilePage sẽ tự load lại từ store
-    } catch (error) {
-      toast({
-        title: 'Lỗi',
-        description: 'Không thể xóa bài viết. Vui lòng thử lại.',
-        variant: 'destructive',
-      });
+    if (!commentsByPostId[selectedPost.id]) {
+      setCommentsByPostId((prev) => ({
+        ...prev,
+        [selectedPost.id]: selectedComments,
+      }));
     }
   };
 
-  const handleToggleHidePost = async (postId: string, isActive: boolean) => {
-    try {
-      await dispatch(togglePostActiveThunk(parseInt(postId))).unwrap();
-      const isNowHidden = !isActive;
-      toast({
-        title: isNowHidden ? "Đã ẩn bài viết" : "Đã hiển thị bài viết",
-        description: isNowHidden 
-          ? "Bài viết sẽ không hiển thị trên trang cá nhân của bạn." 
-          : "Bài viết đã được hiển thị lại trên trang cá nhân.",
-      });
-      setSelectedPost(null);
-      
-      // Refresh posts to update the list
-      if (profile) {
-        const userId = parseInt(profile.id);
-        dispatch(getPostsThunk({ userId, pageNo: 0, pageSize: 10 }));
-      }
-    } catch (error) {
-      toast({
-        title: 'Lỗi',
-        description: 'Không thể thay đổi trạng thái bài viết.',
-        variant: 'destructive',
-      });
-    }
-  };
-
-  if (posts.length === 0) {
+  if (isLoading && hiddenPosts.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-12">
-        <div className="w-16 h-16 border-2 border-muted rounded-full flex items-center justify-center mb-4">
-          <MessageCircle className="w-8 h-8 text-muted-foreground" />
+      <div className="flex justify-center items-center py-12">
+        <Loader />
+      </div>
+    );
+  }
+
+  if (hiddenPosts.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 px-4">
+        <div className="w-24 h-24 mb-6 rounded-full bg-muted/50 flex items-center justify-center">
+          <EyeOff className="w-12 h-12 text-muted-foreground" />
         </div>
-        <h3 className="text-lg font-semibold mb-2">Chưa có bài viết</h3>
-        <p className="text-muted-foreground text-center">
-          Khi bạn chia sẻ ảnh và video, các bài viết sẽ xuất hiện ở đây.
+        <h3 className="text-xl font-semibold mb-2">Chưa có bài viết nào bị ẩn</h3>
+        <p className="text-muted-foreground text-center max-w-sm">
+          Các bài viết bạn ẩn đi sẽ xuất hiện ở đây. Bạn có thể xem lại và khôi phục chúng bất cứ lúc nào.
         </p>
       </div>
     );
   }
 
   return (
-    <>
+    <div className="space-y-4">
+      {/* Info Alert */}
+      <div className="px-4">
+        <Alert className="border-orange-500/20 bg-orange-500/5">
+          <Info className="h-4 w-4 text-orange-500" />
+          <AlertDescription className="text-sm">
+            Các bài viết này đang bị ẩn và không hiển thị trên trang cá nhân của bạn. 
+            Click vào bài viết để xem chi tiết và khôi phục.
+          </AlertDescription>
+        </Alert>
+      </div>
+
+      {/* Hidden Posts Grid */}
       <LazyGrid
-        items={posts.map((post, index) => ({
+        items={hiddenPosts.map((post) => ({
           id: post.id,
           thumbnail: post.media[0]?.thumbnail || post.media[0]?.url || '',
           type: (post.media[0]?.type === 'image' ? 'photo' : 'video') as 'photo' | 'video' | 'reel',
           caption: post.caption,
           likesCount: post.likesCount,
           commentsCount: post.commentsCount,
-          ref: index === posts.length - 1 ? lastElementRef : undefined,
         }))}
         onItemClick={(item) => {
-          const post = posts.find(p => p.id === item.id);
+          const post = hiddenPosts.find(p => p.id === item.id);
           if (post) handlePostClick(post);
         }}
         className="pb-4"
-        columns={3}
-        gap="md"
-        enableProgressiveLoading={true}
-        enableBlurToSharp={false}
-        renderOverlay={(item, isVisible) => {
-          if (!isVisible) return null;
-          
-          return (
-            <>
-              {/* Video/Reel indicator */}
-              {item.type === 'video' && (
-                <div className="absolute top-2 right-2">
-                  <Play className="w-4 h-4 text-white fill-current drop-shadow-lg" />
-                </div>
-              )}
-              
-              {/* Hover overlay with stats */}
-              <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
-                <div className="flex items-center gap-4 text-white">
-                  <div className="flex items-center gap-1">
-                    <Heart className="w-5 h-5 fill-current" />
-                    <span className="font-semibold">{item.likesCount}</span>
+        renderOverlay={(item, isVisible) => (
+          <>
+            {/* Default overlay (likes, comments) */}
+            {isVisible && (
+              <>
+                {/* Video/Reel indicator */}
+                {(item.type === 'video' || item.type === 'reel') && (
+                  <div className="absolute top-2 right-2">
+                    <div className="p-1 rounded-full bg-black/60">
+                      <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M8 5v14l11-7z"/>
+                      </svg>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <MessageCircle className="w-5 h-5 fill-current" />
-                    <span className="font-semibold">{item.commentsCount}</span>
+                )}
+                
+                {/* Stats overlay on hover */}
+                {(item.likesCount !== undefined || item.commentsCount !== undefined) && (
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-6">
+                    {item.likesCount !== undefined && (
+                      <div className="flex items-center gap-2 text-white">
+                        <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+                        </svg>
+                        <span className="font-semibold">{item.likesCount}</span>
+                      </div>
+                    )}
+                    {item.commentsCount !== undefined && (
+                      <div className="flex items-center gap-2 text-white">
+                        <MessageCircle className="w-6 h-6" fill="currentColor" />
+                        <span className="font-semibold">{item.commentsCount}</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Hidden Badge - Always visible */}
+                <div className="absolute top-2 left-2 z-10">
+                  <div className="flex items-center gap-1 bg-orange-500/90 text-white px-2 py-1 rounded-full text-xs font-medium shadow-lg">
+                    <EyeOff className="w-3 h-3" />
+                    <span>Đã ẩn</span>
                   </div>
                 </div>
-              </div>
-            </>
-          );
-        }}
+              </>
+            )}
+          </>
+        )}
       />
 
+      {/* Infinite scroll trigger */}
+      {hiddenPosts.length > 0 && (
+        <div ref={lastElementRef} className="h-4" />
+      )}
+
+      {/* Load More Indicator */}
+      {isLoading && hiddenPosts.length > 0 && (
+        <div className="flex justify-center items-center py-8">
+          <Loader />
+        </div>
+      )}
+
+      {/* No More Posts */}
+      {!hasMore && hiddenPosts.length > 0 && (
+        <div className="text-center py-8 text-muted-foreground text-sm">
+          Đã hiển thị tất cả bài viết đã ẩn
+        </div>
+      )}
+
+      {/* Desktop - Comment Dialog */}
       {selectedPost && !isMobile && (
         <CommentDialog
           isOpen={!!selectedPost}
@@ -243,9 +294,7 @@ export const PostGrid = ({ posts, onPostClick, lastElementRef }: PostGridProps) 
             setCommentsByPostId((prev) => ({
               ...prev,
               [selectedPost.id]: [
-                ...(
-                  prev[selectedPost.id] ?? selectedComments
-                ),
+                ...(prev[selectedPost.id] ?? selectedComments),
                 {
                   id: `c-${Date.now()}`,
                   userId: profile?.id || 'me',
@@ -311,34 +360,19 @@ export const PostGrid = ({ posts, onPostClick, lastElementRef }: PostGridProps) 
           isShareDialogOpen={isShareOpen}
           onNavigateToProfile={(userName) => navigate(`/${userName}`)}
           onNavigateToPost={(postId) => navigate(`/posts/${postId}`)}
-          onDeletePost={handleDeletePost}
-          actionMenuItems={
-            // Check if this is the current user's own post
-            currentUser && selectedPost.userId === currentUser.id.toString()
-              ? [
-                  { label: 'Xóa', action: () => {}, isDestructive: true },
-                  { label: 'Chỉnh sửa', action: () => {} },
-                  { 
-                    label: selectedPost.isActive ? '🙈 Ẩn bài viết khỏi trang cá nhân' : '👁️ Hiển thị bài viết', 
-                    action: () => handleToggleHidePost(selectedPost.id, selectedPost.isActive) 
-                  },
-                  { label: 'Ẩn số lượt thích với những người khác', action: () => {} },
-                  { label: 'Tắt tính năng bình luận', action: () => {} },
-                  { label: 'Đi đến bài viết', action: () => { navigate(`/posts/${selectedPost.id}`); } },
-                  { label: 'Giới thiệu về tài khoản này', action: () => {} },
-                  { label: 'Hủy', action: () => {} },
-                ]
-              : [
-                  { label: 'Báo cáo', action: () => {}, isDestructive: true },
-                  { label: 'Đi đến bài viết', action: () => { navigate(`/posts/${selectedPost.id}`); } },
-                  { label: 'Giới thiệu về tài khoản này', action: () => {} },
-                  { label: 'Hủy', action: () => {} },
-                ]
-          }
+          actionMenuItems={[
+            { 
+              label: '👁️ Hiển thị lại bài viết', 
+              action: () => handleRestorePost(selectedPost.id, selectedPost.isActive) 
+            },
+            { label: 'Đi đến bài viết', action: () => { navigate(`/posts/${selectedPost.id}`); } },
+            { label: 'Giới thiệu về tài khoản này', action: () => {} },
+            { label: 'Hủy', action: () => {} },
+          ]}
         />
       )}
 
-      {/* Mobile Post Detail */}
+      {/* Mobile - Post Detail */}
       {selectedPost && isMobile && (
         <MobilePostDetail
           isOpen={!!selectedPost}
@@ -424,30 +458,20 @@ export const PostGrid = ({ posts, onPostClick, lastElementRef }: PostGridProps) 
           }}
           onLikePost={(postId) => setIsPostLiked(prev => ({ ...prev, [postId]: !prev[postId] }))}
           isPostLiked={!!isPostLiked[selectedPost.id]}
-          actionMenuItems={
-            currentUser && selectedPost.userId === currentUser.id.toString()
-              ? [
-                  { label: 'Xóa', action: () => {} },
-                  { label: 'Chỉnh sửa', action: () => {} },
-                  { 
-                    label: selectedPost.isActive ? '🙈 Ẩn bài viết khỏi trang cá nhân' : '👁️ Hiển thị bài viết', 
-                    action: () => handleToggleHidePost(selectedPost.id, selectedPost.isActive) 
-                  },
-                  { label: 'Đi đến bài viết', action: () => { navigate(`/posts/${selectedPost.id}`); } },
-                  { label: 'Hủy', action: () => {} },
-                ]
-              : [
-                  { label: 'Báo cáo', action: () => {} },
-                  { label: 'Đi đến bài viết', action: () => { navigate(`/posts/${selectedPost.id}`); } },
-                  { label: 'Hủy', action: () => {} },
-                ]
-          }
+          actionMenuItems={[
+            { 
+              label: '👁️ Hiển thị lại bài viết', 
+              action: () => handleRestorePost(selectedPost.id, selectedPost.isActive) 
+            },
+            { label: 'Đi đến bài viết', action: () => { navigate(`/posts/${selectedPost.id}`); } },
+            { label: 'Hủy', action: () => {} },
+          ]}
           onNavigateToProfile={(userName) => navigate(`/${userName}`)}
           onNavigateToPost={(postId) => navigate(`/posts/${postId}`)}
         />
       )}
 
-      {/* Share Dialog to match homepage behavior */}
+      {/* Share Dialog */}
       {selectedPost && (
         <ShareDialog
           isOpen={isShareOpen}
@@ -465,11 +489,10 @@ export const PostGrid = ({ posts, onPostClick, lastElementRef }: PostGridProps) 
             createdAt: selectedPost.createdAt,
           }}
           onShare={(postId, userIds, message) => {
-            // mock share success then close
             setIsShareOpen(false);
           }}
         />
       )}
-    </>
+    </div>
   );
 };

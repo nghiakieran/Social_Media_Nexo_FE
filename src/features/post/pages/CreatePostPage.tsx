@@ -24,6 +24,7 @@ export const CreatePostPage = () => {
   const { user } = useAppSelector(state => state.auth);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [uploadMessage, setUploadMessage] = useState<string>('');
 
   const handleSubmit = async (postData: CreatePostFormData) => {
     if (!user) {
@@ -47,6 +48,20 @@ export const CreatePostPage = () => {
       };
 
       const files = postData.media || [];
+      
+      // Check file size and type for better message
+      const hasVideo = files.some(file => file.type.startsWith('video/'));
+      const totalSize = files.reduce((sum, file) => sum + file.size, 0);
+      const sizeMB = totalSize / (1024 * 1024);
+      
+      // Set appropriate message based on content
+      if (hasVideo && sizeMB > 50) {
+        setUploadMessage('📹 Đang đăng bài viết... Video lớn có thể mất vài phút');
+      } else if (hasVideo || sizeMB > 10) {
+        setUploadMessage('📤 Đang đăng bài viết... Vui lòng chờ');
+      } else {
+        setUploadMessage('⏳ Đang đăng bài viết...');
+      }
 
       await dispatch(createPostThunk({ files, postData: createPostRequest })).unwrap();
 
@@ -64,6 +79,8 @@ export const CreatePostPage = () => {
         title: "Lỗi",
         description: error instanceof Error ? error.message : "Không thể đăng bài. Vui lòng thử lại.",
       });
+    } finally {
+      setUploadMessage('');
     }
   };
 
@@ -106,8 +123,29 @@ export const CreatePostPage = () => {
           </div>
         </div>
 
-        {/* Loading Overlay */}
-        {isCreating && <Loader overlay />}
+        {/* Loading Overlay with Upload Message */}
+        {isCreating && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center">
+            <div className="bg-background/95 backdrop-blur-md rounded-2xl shadow-2xl p-8 max-w-md w-full mx-4">
+              <div className="flex flex-col items-center gap-6">
+                <div className="relative">
+                  <div className="w-20 h-20 border-4 border-primary/30 border-t-primary rounded-full animate-spin"></div>
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="w-12 h-12 bg-primary/10 rounded-full"></div>
+                  </div>
+                </div>
+                <div className="text-center space-y-2">
+                  <p className="text-xl font-semibold text-foreground">
+                    {uploadMessage || 'Đang đăng bài...'}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Vui lòng không tắt trang này
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

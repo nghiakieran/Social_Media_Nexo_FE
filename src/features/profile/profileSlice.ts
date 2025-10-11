@@ -13,7 +13,7 @@ interface ProfileState {
   following: FollowingUser[];
   followRequests: FollowRequestUser[];
   closeFriends: CloseFriendUser[];
-  activeTab: 'posts' | 'reels' | 'saved';
+  activeTab: 'posts' | 'reels' | 'saved' | 'hidden';
   isLoading: boolean;
   error: string | null;
   showFollowersDialog: boolean;
@@ -210,7 +210,7 @@ export const unfollowUserAsync = createAsyncThunk(
 
 export const fetchCloseFriendsAsync = createAsyncThunk(
   'profile/fetchCloseFriends',
-  async ({ page = 0, limit = 20 }: { page?: number; limit?: number } = {}, { rejectWithValue }) => {
+  async ({ page = 0, limit = 10 }: { page?: number; limit?: number } = {}, { rejectWithValue }) => {
     try {
       const closeFriends = await getCloseFriends(page, limit);
       return { closeFriends, page, limit };
@@ -270,7 +270,7 @@ const profileSlice = createSlice({
     setCloseFriends: (state, action: PayloadAction<CloseFriendUser[]>) => {
       state.closeFriends = action.payload;
     },
-    setActiveTab: (state, action: PayloadAction<'posts' | 'reels' | 'saved'>) => {
+    setActiveTab: (state, action: PayloadAction<'posts' | 'reels' | 'saved' | 'hidden'>) => {
       state.activeTab = action.payload;
     },
     toggleFollow: (state) => {

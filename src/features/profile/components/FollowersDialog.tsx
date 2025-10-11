@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { Search, UserPlus, UserMinus, X, AlertTriangle, Loader2 } from 'lucide-react';
 import { useAppDispatch, useAppSelector } from '@/store';
+import { useInfiniteScroll } from '@/hooks/use-infinite-scroll';
 import {
   Dialog,
   DialogContent,
@@ -48,10 +49,6 @@ export const FollowersDialog = ({
   const [userToDelete, setUserToDelete] = useState<FollowerUser | FollowingUser | null>(null);
   const [showUnfollowConfirm, setShowUnfollowConfirm] = useState(false);
   const [userToUnfollow, setUserToUnfollow] = useState<FollowerUser | FollowingUser | null>(null);
-  const [currentPage, setCurrentPage] = useState(0);
-  const [hasMore, setHasMore] = useState(true);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const { isLoading } = useAppSelector((state) => state.profile);
 
@@ -60,8 +57,6 @@ export const FollowersDialog = ({
     if (isOpen && Array.isArray(users)) {
       setLocalUsers(users);
       setSearchTerm('');
-      setCurrentPage(0);
-      setHasMore(users.length >= 10); // Assume more if we got 10 items
     }
   }, [isOpen, users, title]);
 
@@ -73,48 +68,29 @@ export const FollowersDialog = ({
     followingPage
   } = useAppSelector((state) => state.profile);
 
-  // Load more data when scrolling near bottom
-  const loadMore = useCallback(async () => {
-    if (!username || isLoadingMore) return;
+  const isFollowersDialog = title === 'Người theo dõi';
+  const currentHasMore = isFollowersDialog ? followersHasMore : followingHasMore;
+  const currentPageNum = isFollowersDialog ? followersPage : followingPage;
 
-    const isFollowersDialog = title === 'Người theo dõi';
-    const currentHasMore = isFollowersDialog ? followersHasMore : followingHasMore;
-    const currentPageNum = isFollowersDialog ? followersPage : followingPage;
+  // Load more handler for infinite scroll
+  const handleLoadMore = useCallback(() => {
+    if (!username || !currentHasMore || isLoading) return;
 
-    if (!currentHasMore) return;
-
-    setIsLoadingMore(true);
     const nextPage = currentPageNum + 1;
     
-    try {
-      if (isFollowersDialog) {
-        await dispatch(fetchFollowersByUsernameAsync({ username, pageNo: nextPage, pageSize: 10 }));
-      } else {
-        await dispatch(fetchFollowingByUsernameAsync({ username, pageNo: nextPage, pageSize: 10 }));
-      }
-    } catch (error) {
-      toast({
-        title: 'Lỗi',
-        description: 'Không thể tải thêm dữ liệu.',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsLoadingMore(false);
+    if (isFollowersDialog) {
+      dispatch(fetchFollowersByUsernameAsync({ username, pageNo: nextPage, pageSize: 10 }));
+    } else {
+      dispatch(fetchFollowingByUsernameAsync({ username, pageNo: nextPage, pageSize: 10 }));
     }
-  }, [username, isLoadingMore, followersHasMore, followingHasMore, followersPage, followingPage, dispatch, title, toast]);
+  }, [username, currentHasMore, isLoading, currentPageNum, isFollowersDialog, dispatch]);
 
-  // Infinite scroll handler
-  const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
-    const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
-    const scrollPercentage = (scrollTop + clientHeight) / scrollHeight;
-    
-    const isFollowersDialog = title === 'Người theo dõi';
-    const currentHasMore = isFollowersDialog ? followersHasMore : followingHasMore;
-    
-    if (scrollPercentage > 0.8 && currentHasMore && !isLoadingMore) {
-      loadMore();
-    }
-  }, [followersHasMore, followingHasMore, isLoadingMore, loadMore, title]);
+  // Use infinite scroll hook
+  const { lastElementRef } = useInfiniteScroll(handleLoadMore, {
+    hasMore: currentHasMore,
+    isLoading,
+    threshold: 100,
+  });
 
   const filteredUsers = Array.isArray(localUsers) ? localUsers.filter(user =>
     user.userName.toLowerCase().includes(searchTerm.toLowerCase())
@@ -283,17 +259,22 @@ export const FollowersDialog = ({
 
             {/* User List - fixed height for stable UX */}
             <div 
-              ref={scrollContainerRef}
               className="h-[340px] overflow-y-auto space-y-1.5"
-              onScroll={handleScroll}
             >
               {filteredUsers.length === 0 ? (
                 <div className="h-full flex items-center justify-center text-muted-foreground">
                   {searchTerm ? 'Không tìm thấy kết quả' : 'Danh sách trống'}
                 </div>
               ) : (
-                filteredUsers.map((user) => (
-                  <div key={user.userId} className="flex items-center justify-between px-2 py-2 hover:bg-muted/40 rounded-lg transition-colors">
+                filteredUsers.map((user, index) => {
+                  const isLastItem = index === filteredUsers.length - 1;
+                  
+                  return (
+                  <div 
+                    key={user.userId} 
+                    ref={isLastItem ? lastElementRef : null}
+                    className="flex items-center justify-between px-2 py-2 hover:bg-muted/40 rounded-lg transition-colors"
+                  >
                     <div className="flex items-center gap-3">
                       <Avatar className="w-11 h-11">
                         <AvatarImage src={user.avatar} alt={user.userName} />
@@ -356,11 +337,12 @@ export const FollowersDialog = ({
                       )}
                     </div>
                   </div>
-                ))
+                  );
+                })
               )}
               
               {/* Loading indicator for infinite scroll */}
-              {isLoadingMore && (
+              {isLoading && filteredUsers.length > 0 && (
                 <div className="flex items-center justify-center py-4">
                   <Loader2 className="w-5 h-5 animate-spin" />
                   <span className="ml-2 text-sm text-muted-foreground">Đang tải...</span>

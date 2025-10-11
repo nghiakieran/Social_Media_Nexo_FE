@@ -19,8 +19,10 @@ import {
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "@/store";
-import { getPostDetailThunk, getMutualFollowersThunk, deletePostThunk } from "../postSlice";
+import { getPostDetailThunk, getMutualFollowersThunk, deletePostThunk, updatePostThunk, togglePostActiveThunk } from "../postSlice";
+import type { UpdatePostRequest } from "../types";
 import { ActionMenuDialog } from "../components/ActionMenuDialog";
+import { formatTimeAgo } from "@/utils/timeFormat";
 import { CommentSection } from "../components/CommentSection";
 import { EditPostDialog } from "../components/EditPostDialog";
 import { LikesDialog } from "../components/LikesDialog";
@@ -41,9 +43,6 @@ interface UIPost extends Post {
     isShared: boolean;
   };
   taggedFriends: string[];
-  privacy: 'public' | 'private';
-  userName: string;
-  avatarUrl: string;
 }
 
 // Mock data - replace with actual API call
@@ -142,7 +141,6 @@ export const PostDetailPage = () => {
           isShared: false,
         },
         taggedFriends: currentPost.taggedUsers.map(t => t.userName),
-        privacy: currentPost.visibility,
       };
       setPost(uiPost);
       setInteractions({
@@ -163,19 +161,6 @@ export const PostDetailPage = () => {
   const privacyIcons = {
     public: Globe,
     private: Lock,
-  };
-
-  const formatTimeAgo = (dateString: string) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-
-    if (diffInSeconds < 60) return "Vừa xong";
-    if (diffInSeconds < 3600)
-      return `${Math.floor(diffInSeconds / 60)} phút trước`;
-    if (diffInSeconds < 86400)
-      return `${Math.floor(diffInSeconds / 3600)} giờ trước`;
-    return `${Math.floor(diffInSeconds / 86400)} ngày trước`;
   };
 
   const handleLike = () => {
@@ -231,6 +216,28 @@ export const PostDetailPage = () => {
       case "edit":
         setShowEditDialog(true);
         break;
+      case "toggleHidePost":
+        try {
+          await dispatch(togglePostActiveThunk(parseInt(post.id))).unwrap();
+          const isNowHidden = !post.isActive;
+          toast({
+            title: isNowHidden ? "Đã ẩn bài viết" : "Đã hiển thị bài viết",
+            description: isNowHidden 
+              ? "Bài viết sẽ không hiển thị trên trang cá nhân của bạn." 
+              : "Bài viết đã được hiển thị lại trên trang cá nhân.",
+          });
+          // Refresh post detail
+          if (postId) {
+            dispatch(getPostDetailThunk(parseInt(postId)));
+          }
+        } catch (error) {
+          toast({
+            title: "Lỗi",
+            description: "Không thể thay đổi trạng thái bài viết.",
+            variant: "destructive"
+          });
+        }
+        break;
       case "hideLikes":
         toast({
           title: "Đã ẩn",
@@ -254,10 +261,28 @@ export const PostDetailPage = () => {
     }
   };
 
-  const handleEditPost = (files: File[], updateData: unknown) => {
-    // TODO: Implement post update with API
-    console.log('Edit post:', files, updateData);
-    setShowEditDialog(false);
+  const handleEditPost = (files: File[], updateData: UpdatePostRequest) => {
+    dispatch(updatePostThunk({ files, postData: updateData }))
+      .unwrap()
+      .then(() => {
+        toast({
+          title: "Cập nhật thành công!",
+          description: "Bài viết đã được cập nhật.",
+        });
+        setShowEditDialog(false);
+        // Refresh post detail
+        if (postId) {
+          dispatch(getPostDetailThunk(parseInt(postId)));
+        }
+      })
+      .catch((error) => {
+        toast({
+          variant: "destructive",
+          title: "Lỗi",
+          description: error || "Không thể cập nhật bài viết.",
+        });
+        setShowEditDialog(false);
+      });
   };
 
   const handleSharePost = (
@@ -407,7 +432,7 @@ export const PostDetailPage = () => {
                           @{post.userName}
                         </span>
                         <span>•</span>
-                        {post.privacy === 'private' ? (
+                        {post.visibility === 'private' ? (
                           <Lock className="w-3 h-3 text-muted-foreground" />
                         ) : (
                           <Globe className="w-3 h-3 text-muted-foreground" />
@@ -415,6 +440,16 @@ export const PostDetailPage = () => {
                       </div>
                     </div>
                   </div>
+
+                  {/* More Options Button */}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleOpenActionMenu}
+                    className="h-8 w-8 p-0 rounded-full hover:bg-muted/80 hover:text-gray-400"
+                  >
+                    <MoreHorizontal className="w-5 h-5" />
+                  </Button>
                 </div>
               </div>
 
@@ -536,17 +571,6 @@ export const PostDetailPage = () => {
                       <span className="hidden sm:inline">Lưu</span>
                     </Button>
                   </div>
-
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={handleOpenActionMenu}
-                      className="flex items-center gap-2 px-3 py-2 rounded-full hover:text-gray-600"
-                    >
-                      <MoreHorizontal className="w-5 h-5" />
-                    </Button>
-                  </div>
                 </div>
 
                 {/* Likes summary */}
@@ -601,6 +625,8 @@ export const PostDetailPage = () => {
         isOpen={showActionMenu}
         onClose={handleCloseActionMenu}
         onAction={handleActionMenuAction}
+        isOwnPost={post.userId === user?.id.toString()}
+        isPostHidden={!post.isActive}
       />
 
       {/* Edit Post Dialog */}
@@ -610,7 +636,7 @@ export const PostDetailPage = () => {
         postId={parseInt(post.id)}
         userId={parseInt(post.userId)}
         initialContent={post.caption}
-        initialVisibility={post.privacy.toUpperCase() as 'PUBLIC' | 'PRIVATE'}
+        initialVisibility={post.visibility.toUpperCase() as 'PUBLIC' | 'PRIVATE'}
         initialMediaUrl={post.media.map(m => m.url)}
         onSave={handleEditPost}
       />

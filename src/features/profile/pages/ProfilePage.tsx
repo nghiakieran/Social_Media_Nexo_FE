@@ -43,6 +43,7 @@ import { StoryViewer } from '@/features/story/components/StoryViewer';
 import type { Story } from '@/features/story/types';
 import { PrivateAccountMessage } from '../components/PrivateAccountMessage';
 import { SavedCollectionsContent } from '@/features/saved/components/SavedCollectionsContent';
+import { HiddenPostsContent } from '../components/HiddenPostsContent';
 import { useInfiniteScroll } from '@/hooks/use-infinite-scroll';
 
 export const ProfilePage = () => {
@@ -322,10 +323,14 @@ export const ProfilePage = () => {
         return <PostGrid posts={reels} />;
       case 'saved':
         return isCurrentUser ? <SavedCollectionsContent /> : null;
-      default:
+      case 'hidden':
+        return isCurrentUser ? <HiddenPostsContent /> : null;
+      default: {
+        // Filter to only show active posts in the posts tab
+        const activePosts = apiPosts.filter(post => post.isActive);
         return (
           <>
-            <PostGrid posts={posts} lastElementRef={lastElementRef} />
+            <PostGrid posts={activePosts} lastElementRef={lastElementRef} />
             {isLoadingPosts && (
               <div className="flex justify-center py-8">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
@@ -333,6 +338,7 @@ export const ProfilePage = () => {
             )}
           </>
         );
+      }
     }
   };
 

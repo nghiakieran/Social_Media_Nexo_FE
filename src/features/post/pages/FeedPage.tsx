@@ -38,7 +38,7 @@ export const FeedPage = () => {
   // Load feed when component mounts
   useEffect(() => {
     if (user) {
-      dispatch(getFeedThunk({ userId: user.id, page: 0, limit: 20 }));
+      dispatch(getFeedThunk({ userId: user.id, page: 0, limit: 10 }));
     }
   }, [dispatch, user]);
 
@@ -46,7 +46,7 @@ export const FeedPage = () => {
   const handleLoadMore = () => {
     if (user && !isLoading && hasMore) {
       const nextPage = currentPage + 1;
-      dispatch(getFeedThunk({ userId: user.id, page: nextPage, limit: 20 }));
+      dispatch(getFeedThunk({ userId: user.id, page: nextPage, limit: 10 }));
     }
   };
 
@@ -84,9 +84,9 @@ export const FeedPage = () => {
           description: "Bài viết đã được cập nhật.",
         });
         setEditingPost(null);
-        // Refresh feed
+        // Refresh feed from beginning
         if (user) {
-          dispatch(getFeedThunk({ userId: user.id, page: 0, limit: 20 }));
+          dispatch(getFeedThunk({ userId: user.id, page: 0, limit: 10 }));
         }
       })
       .catch((error) => {
@@ -95,6 +95,7 @@ export const FeedPage = () => {
           title: "Lỗi",
           description: error || "Không thể cập nhật bài viết.",
         });
+        setEditingPost(null);
       });
   };
 
@@ -218,7 +219,7 @@ export const FeedPage = () => {
           <p className="text-red-500 mb-4">{error}</p>
           <button 
             className="px-4 py-2 bg-primary text-white rounded-lg"
-            onClick={() => user && dispatch(getFeedThunk({ userId: user.id, page: 0, limit: 20 }))}
+            onClick={() => user && dispatch(getFeedThunk({ userId: user.id, page: 0, limit: 10 }))}
           >
             Thử lại
           </button>
@@ -252,6 +253,8 @@ export const FeedPage = () => {
                   onAddComment={handleAddComment}
                   onLikeComment={handleLikeComment}
                   onReplyComment={handleReplyComment}
+                  isOwnPost={post.userId === user?.id.toString()}
+                  isInProfilePage={false}
                 />
               </div>
             );
