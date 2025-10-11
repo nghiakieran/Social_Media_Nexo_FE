@@ -59,6 +59,7 @@ interface Post {
   taggedUsers: TaggedUser[];
   hashtags: string[];
   createdAt: string;
+  updatedAt: string;
   likesCount: number;
   commentsCount: number;
   sharesCount: number;
@@ -314,7 +315,7 @@ export const PostCard = ({
                   @{post.userName}
                 </span>
                 <span>•</span>
-                <span>{formatTimeAgo(post.createdAt)}</span>
+                <span>{formatTimeAgo(post.updatedAt)}</span>
                 <span>•</span>
                 <PrivacyIcon className="w-3 h-3" />
               </div>
@@ -509,7 +510,7 @@ export const PostCard = ({
 
           {/* Post time under summary */}
           <div className="mt-1 mb-2 text-[12px] text-gray-500">
-            <time>{formatTimeAgo(post.createdAt)} trước</time>
+            <time>{formatTimeAgo(post.updatedAt)} trước</time>
           </div>
 
           {/* Comments Count */}

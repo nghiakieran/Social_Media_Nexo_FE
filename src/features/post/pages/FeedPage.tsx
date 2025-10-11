@@ -10,7 +10,7 @@ import { mockStories, mockStoriesData } from '../__mocks__/stories';
 import { mockComments } from '@/features/interaction/__mocks__/comments';
 import { useToast } from '@/hooks/use-toast';
 import { useAppDispatch, useAppSelector } from '@/store';
-import { getPostsThunk, updatePostThunk, deletePostThunk, togglePostActiveThunk } from '../postSlice';
+import { getFeedThunk, updatePostThunk, deletePostThunk, togglePostActiveThunk } from '../postSlice';
 import { Loader } from '@/components/common/Loader';
 import { useInfiniteScroll } from '@/hooks/use-infinite-scroll';
 import type { UpdatePostRequest } from '../types';
@@ -35,10 +35,10 @@ export const FeedPage = () => {
   const [sharePost, setSharePost] = useState<any>(null);
   const { toast } = useToast();
 
-  // Load posts when component mounts
+  // Load feed when component mounts
   useEffect(() => {
     if (user) {
-      dispatch(getPostsThunk({ userId: user.id, pageNo: 0, pageSize: 10 }));
+      dispatch(getFeedThunk({ userId: user.id, page: 0, limit: 20 }));
     }
   }, [dispatch, user]);
 
@@ -46,7 +46,7 @@ export const FeedPage = () => {
   const handleLoadMore = () => {
     if (user && !isLoading && hasMore) {
       const nextPage = currentPage + 1;
-      dispatch(getPostsThunk({ userId: user.id, pageNo: nextPage, pageSize: 10 }));
+      dispatch(getFeedThunk({ userId: user.id, page: nextPage, limit: 20 }));
     }
   };
 
@@ -84,9 +84,9 @@ export const FeedPage = () => {
           description: "Bài viết đã được cập nhật.",
         });
         setEditingPost(null);
-        // Refresh posts
+        // Refresh feed
         if (user) {
-          dispatch(getPostsThunk({ userId: user.id, pageNo: 0, pageSize: 10 }));
+          dispatch(getFeedThunk({ userId: user.id, page: 0, limit: 20 }));
         }
       })
       .catch((error) => {
@@ -218,7 +218,7 @@ export const FeedPage = () => {
           <p className="text-red-500 mb-4">{error}</p>
           <button 
             className="px-4 py-2 bg-primary text-white rounded-lg"
-            onClick={() => user && dispatch(getPostsThunk({ userId: user.id, pageNo: 0, pageSize: 10 }))}
+            onClick={() => user && dispatch(getFeedThunk({ userId: user.id, page: 0, limit: 20 }))}
           >
             Thử lại
           </button>

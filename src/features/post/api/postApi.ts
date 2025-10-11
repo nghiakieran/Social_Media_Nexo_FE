@@ -6,6 +6,9 @@ import type {
   UpdatePostResponse,
   GetPostsRequest,
   GetPostsResponse,
+  GetFeedRequest,
+  GetFeedResponse,
+  GetPostDetailResponse,
   TogglePostActiveResponse,
   DeletePostResponse,
   CreateCommentRequest,
@@ -52,7 +55,7 @@ export const createPost = async (
   }
 };
 
-// Get posts list API - only for specific user
+// Get posts list API - only for specific user (for profile page)
 export const getPosts = async (params: GetPostsRequest): Promise<GetPostsResponse> => {
   try {
     const { userId, pageNo = 0, pageSize = 10 } = params;
@@ -68,6 +71,43 @@ export const getPosts = async (params: GetPostsRequest): Promise<GetPostsRespons
     if (error && typeof error === 'object' && 'response' in error) {
       const apiError = error as { response?: { data?: { message?: string } } };
       throw new Error(apiError.response?.data?.message || 'Có lỗi xảy ra khi tải danh sách bài viết');
+    }
+    
+    throw new Error('Không thể kết nối đến server. Vui lòng thử lại.');
+  }
+};
+
+// Get feed API - posts from followed users (for feed page)
+export const getFeed = async (params: GetFeedRequest): Promise<GetFeedResponse> => {
+  try {
+    const { userId, page = 0, limit = 20 } = params;
+    
+    const response = await api.get<{ status: number; message: string; data: GetFeedResponse }>(`/feeds/posts/${userId}`, {
+      params: {
+        page,
+        limit,
+      },
+    });
+    return response.data.data;
+  } catch (error: unknown) {
+    if (error && typeof error === 'object' && 'response' in error) {
+      const apiError = error as { response?: { data?: { message?: string } } };
+      throw new Error(apiError.response?.data?.message || 'Có lỗi xảy ra khi tải feed');
+    }
+    
+    throw new Error('Không thể kết nối đến server. Vui lòng thử lại.');
+  }
+};
+
+// Get post detail API
+export const getPostDetail = async (postId: number): Promise<GetPostDetailResponse> => {
+  try {
+    const response = await api.get<GetPostDetailResponse>(`/posts/${postId}`);
+    return response.data;
+  } catch (error: unknown) {
+    if (error && typeof error === 'object' && 'response' in error) {
+      const apiError = error as { response?: { data?: { message?: string } } };
+      throw new Error(apiError.response?.data?.message || 'Có lỗi xảy ra khi tải chi tiết bài viết');
     }
     
     throw new Error('Không thể kết nối đến server. Vui lòng thử lại.');

@@ -49,6 +49,7 @@ export interface PostData {
   listUserTag: TaggedUser[];
   isActive: boolean;
   createdAt: string;
+  updatedAt: string;
 }
 
 export interface TaggedUser {
@@ -117,6 +118,28 @@ export interface GetPostsResponse {
   totalElements: number;
   totalPages: number;
   content: PostData[];
+}
+
+// Feed API (posts from followed users)
+export interface GetFeedRequest {
+  userId: number;
+  page?: number;
+  limit?: number;
+}
+
+export interface GetFeedResponse {
+  pageNo: number;
+  pageSize: number;
+  totalElements: number;
+  totalPages: number;
+  content: PostData[];
+}
+
+// Post Detail API
+export interface GetPostDetailResponse {
+  status: number;
+  message: string;
+  data: PostData;
 }
 
 // Mutual followers types
@@ -235,7 +258,7 @@ export const transformPostData = (apiData: PostData): Post => ({
   visibility: apiData.visibility.toLowerCase() as 'public' | 'private',
   taggedUsers: apiData.listUserTag,
   createdAt: apiData.createdAt,
-  updatedAt: apiData.createdAt,
+  updatedAt: apiData.updatedAt,
   likesCount: apiData.quantityLike,
   commentsCount: apiData.quantityComment,
   sharesCount: 0,

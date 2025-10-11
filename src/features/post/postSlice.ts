@@ -1,7 +1,7 @@
 import { createSlice, PayloadAction, createAsyncThunk } from '@reduxjs/toolkit';
-import { createPost, getPosts, updatePost, togglePostActive, deletePost, likePost, bookmarkPost, createComment, getMutualFollowers } from './api/postApi';
+import { createPost, getPosts, getFeed, getPostDetail, updatePost, togglePostActive, deletePost, likePost, bookmarkPost, createComment, getMutualFollowers } from './api/postApi';
 import { transformPostData } from './types';
-import type { Post, CreatePostRequest, UpdatePostRequest, GetPostsRequest, CreateCommentRequest, GetMutualFollowersRequest, MutualUser } from './types';
+import type { Post, CreatePostRequest, UpdatePostRequest, GetPostsRequest, GetFeedRequest, CreateCommentRequest, GetMutualFollowersRequest, MutualUser } from './types';
 
 interface PostState {
   posts: Post[];
@@ -56,6 +56,30 @@ export const getPostsThunk = createAsyncThunk(
       return response;
     } catch (error: unknown) {
       return rejectWithValue(error instanceof Error ? error.message : 'Có lỗi xảy ra khi tải danh sách bài viết');
+    }
+  }
+);
+
+export const getFeedThunk = createAsyncThunk(
+  'post/getFeed',
+  async (params: GetFeedRequest, { rejectWithValue }) => {
+    try {
+      const response = await getFeed(params);
+      return response;
+    } catch (error: unknown) {
+      return rejectWithValue(error instanceof Error ? error.message : 'Có lỗi xảy ra khi tải feed');
+    }
+  }
+);
+
+export const getPostDetailThunk = createAsyncThunk(
+  'post/getPostDetail',
+  async (postId: number, { rejectWithValue }) => {
+    try {
+      const response = await getPostDetail(postId);
+      return response;
+    } catch (error: unknown) {
+      return rejectWithValue(error instanceof Error ? error.message : 'Có lỗi xảy ra khi tải chi tiết bài viết');
     }
   }
 );
@@ -188,7 +212,7 @@ const postSlice = createSlice({
         state.error = action.payload as string;
       });
 
-    // Get Posts
+    // Get Posts (for profile page)
     builder
       .addCase(getPostsThunk.pending, (state) => {
         state.isLoading = true;
@@ -200,10 +224,8 @@ const postSlice = createSlice({
         const transformedPosts = content.map(transformPostData);
         
         if (pageNo === 0) {
-          // First page - replace posts
           state.posts = transformedPosts;
         } else {
-          // Subsequent pages - append posts
           state.posts.push(...transformedPosts);
         }
         
@@ -212,6 +234,48 @@ const postSlice = createSlice({
         state.hasMore = pageNo < totalPages - 1;
       })
       .addCase(getPostsThunk.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload as string;
+      });
+
+    // Get Feed (for feed page)
+    builder
+      .addCase(getFeedThunk.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(getFeedThunk.fulfilled, (state, action) => {
+        state.isLoading = false;
+        const { content, totalPages, pageNo } = action.payload;
+        const transformedPosts = content.map(transformPostData);
+        
+        if (pageNo === 0) {
+          state.posts = transformedPosts;
+        } else {
+          state.posts.push(...transformedPosts);
+        }
+        
+        state.currentPage = pageNo;
+        state.totalPages = totalPages;
+        state.hasMore = pageNo < totalPages - 1;
+      })
+      .addCase(getFeedThunk.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload as string;
+      });
+
+    // Get Post Detail
+    builder
+      .addCase(getPostDetailThunk.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(getPostDetailThunk.fulfilled, (state, action) => {
+        state.isLoading = false;
+        const transformedPost = transformPostData(action.payload.data);
+        state.currentPost = transformedPost;
+      })
+      .addCase(getPostDetailThunk.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload as string;
       });

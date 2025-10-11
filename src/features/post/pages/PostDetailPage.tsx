@@ -19,7 +19,7 @@ import {
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "@/store";
-import { getPostsThunk, getMutualFollowersThunk, deletePostThunk } from "../postSlice";
+import { getPostDetailThunk, getMutualFollowersThunk, deletePostThunk } from "../postSlice";
 import { ActionMenuDialog } from "../components/ActionMenuDialog";
 import { CommentSection } from "../components/CommentSection";
 import { EditPostDialog } from "../components/EditPostDialog";
@@ -109,52 +109,49 @@ export const PostDetailPage = () => {
   const dispatch = useAppDispatch();
   const { toast } = useToast();
   const { isBookmarked, toggleBookmark } = useBookmark();
-  const { posts, isLoading, error } = useAppSelector(state => state.post);
+  const { currentPost, isLoading, error } = useAppSelector(state => state.post);
   const { user } = useAppSelector(state => state.auth);
 
-  const [post, setPost] = useState<UIPost | null>(mockPost as unknown as UIPost);
-  const [interactions, setInteractions] = useState(mockPost.interactions);
+  const [post, setPost] = useState<UIPost | null>(null);
+  const [interactions, setInteractions] = useState({
+    isLiked: false,
+    isBookmarked: false,
+    isShared: false,
+  });
 
-  // Load posts and mutual followers when component mounts
+  // Load post detail when component mounts
   useEffect(() => {
-    if (user) {
-      // Load posts for the current user
-      dispatch(getPostsThunk({ userId: user.id, pageNo: 0, pageSize: 10 }));
-      
-      // Load mutual followers for tagging
+    if (postId && user) {
+      dispatch(getPostDetailThunk(parseInt(postId)));
       dispatch(getMutualFollowersThunk({ pageNo: 0, pageSize: 10 }));
     }
-  }, [dispatch, user]);
+  }, [dispatch, user, postId]);
 
-  // Find the specific post when posts are loaded
+  // Map currentPost to UIPost when loaded
   useEffect(() => {
-    if (postId && posts.length > 0) {
-      const foundPost = posts.find(p => p.id === postId);
-      if (foundPost) {
-        // Map API Post to UIPost
-        const uiPost: UIPost = {
-          ...foundPost,
-          stats: {
-            likes: foundPost.likesCount,
-            comments: foundPost.commentsCount,
-          },
-          interactions: {
-            isLiked: foundPost.isLiked,
-            isBookmarked: foundPost.isBookmarked,
-            isShared: false,
-          },
-          taggedFriends: foundPost.taggedUsers.map(t => t.userName),
-          privacy: foundPost.visibility,
-        };
-        setPost(uiPost);
-        setInteractions({
-          isLiked: foundPost.isLiked,
-          isBookmarked: foundPost.isBookmarked,
+    if (currentPost) {
+      const uiPost: UIPost = {
+        ...currentPost,
+        stats: {
+          likes: currentPost.likesCount,
+          comments: currentPost.commentsCount,
+        },
+        interactions: {
+          isLiked: currentPost.isLiked,
+          isBookmarked: currentPost.isBookmarked,
           isShared: false,
-        });
-      }
+        },
+        taggedFriends: currentPost.taggedUsers.map(t => t.userName),
+        privacy: currentPost.visibility,
+      };
+      setPost(uiPost);
+      setInteractions({
+        isLiked: currentPost.isLiked,
+        isBookmarked: currentPost.isBookmarked,
+        isShared: false,
+      });
     }
-  }, [postId, posts]);
+  }, [currentPost]);
   const [showShareDialog, setShowShareDialog] = useState(false);
   const [showLikesDialog, setShowLikesDialog] = useState<null | {
     targetId: string;
@@ -314,8 +311,9 @@ export const PostDetailPage = () => {
           <Button 
             variant="outline" 
             onClick={() => {
-              const currentUserId = 6;
-              dispatch(getPostsThunk({ userId: currentUserId, pageNo: 0, pageSize: 20 }));
+              if (postId) {
+                dispatch(getPostDetailThunk(parseInt(postId)));
+              }
             }}
           >
             Thử lại
