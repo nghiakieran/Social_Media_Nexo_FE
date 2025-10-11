@@ -182,7 +182,6 @@ export const LoginForm = () => {
       {/* OAuth Buttons */}
       <div className="space-y-3">
         <OAuthButton provider="google" onAuth={handleOAuth} disabled={isLoading} />
-        <OAuthButton provider="facebook" onAuth={handleOAuth} disabled={isLoading} />
       </div>
 
       {/* Register Link */}

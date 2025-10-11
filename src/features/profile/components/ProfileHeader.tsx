@@ -17,6 +17,7 @@ import { NotesDialog } from './NotesDialog';
 import { FollowingOptionsDialog } from './FollowingOptionsDialog';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { getAvatarUrl, getAvatarInitials } from '@/utils/avatar';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -113,9 +114,9 @@ export const ProfileHeader = ({
             title={isCurrentUser ? "Thay đổi ảnh đại diện" : "Ảnh đại diện"}
           >
             <Avatar className="w-20 h-20 md:w-44 md:h-44 ring-2 ring-primary/20">
-              <AvatarImage src={profile.avatar} alt={profile.username} />
+              <AvatarImage src={getAvatarUrl(profile.avatar)} alt={profile.username} />
               <AvatarFallback className="text-xl font-semibold">
-                {profile.name.charAt(0).toUpperCase()}
+                {getAvatarInitials(profile.name || profile.username)}
               </AvatarFallback>
             </Avatar>
           </button>

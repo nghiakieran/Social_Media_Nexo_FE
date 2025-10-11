@@ -459,11 +459,18 @@ const profileSlice = createSlice({
       .addCase(followUserAsync.fulfilled, (state, action) => {
         // Update current profile follow state
         if (state.currentProfile) {
-          state.currentProfile.isFollowing = true;
-          // If following current user, increase followers count
-          const currentUser = state.currentProfile;
-          if (currentUser.username === action.payload) {
-            state.currentProfile.followersCount += 1;
+          // If it's a private account, set hasRequestedFollow instead of isFollowing
+          if (state.currentProfile.isPrivate) {
+            state.currentProfile.hasRequestedFollow = true;
+            // Don't set isFollowing to true yet - wait for request approval
+          } else {
+            // For public accounts, set isFollowing immediately
+            state.currentProfile.isFollowing = true;
+            // If following current user, increase followers count
+            const currentUser = state.currentProfile;
+            if (currentUser.username === action.payload) {
+              state.currentProfile.followersCount += 1;
+            }
           }
         }
       })

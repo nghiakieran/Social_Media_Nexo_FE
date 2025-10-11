@@ -66,7 +66,12 @@ export const Sidebar = () => {
     <>
       {/* Logo Section */}
       <div className="p-4 border-b border-border">
-        <Logo size="xl" />
+        <button 
+          onClick={() => navigate('/')} 
+          className="cursor-pointer hover:opacity-80 transition-opacity"
+        >
+          <Logo size="xl" />
+        </button>
       </div>
 
       <nav className="flex-1 p-4">
@@ -286,7 +291,12 @@ export const Sidebar = () => {
       {/* Mobile Header */}
       <header className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-sm border-b border-border">
         <div className="flex items-center justify-between px-4 py-3">
-          <Logo size="md" />
+          <button 
+            onClick={() => navigate('/')} 
+            className="cursor-pointer hover:opacity-80 transition-opacity"
+          >
+            <Logo size="md" />
+          </button>
           <div className="flex items-center gap-4">
             <NavLink
               to="/create"

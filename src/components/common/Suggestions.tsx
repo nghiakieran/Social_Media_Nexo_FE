@@ -3,6 +3,9 @@ import { useNavigate } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Dialog, DialogContent } from "@/components/ui/dialog"
+import { useAppSelector } from "@/store"
+import { SwitchAccountDialog } from "@/features/auth"
+import { getAvatarUrl, getAvatarInitials } from "@/utils/avatar"
 
 interface SuggestionUser {
   id: string
@@ -185,9 +188,9 @@ const AllSuggestionsModal = ({ isOpen, onClose, onUserClick }: AllSuggestionsMod
                       <Avatar
                         className={`h-12 w-12 transition-all duration-300 ${hoveredUser === user.id ? "ring-2 ring-gradient-instagram scale-110" : ""}`}
                       >
-                        <AvatarImage src={user.avatar || "/placeholder.svg"} />
+                        <AvatarImage src={getAvatarUrl(user.avatar)} />
                         <AvatarFallback className="bg-gradient-to-br from-muted to-secondary text-foreground font-semibold">
-                          {user.username.slice(0, 2).toUpperCase()}
+                          {getAvatarInitials(user.username)}
                         </AvatarFallback>
                       </Avatar>
                       {hoveredUser === user.id && (
@@ -231,6 +234,8 @@ export const Suggestions = () => {
   const navigate = useNavigate()
   const [hoveredUser, setHoveredUser] = useState<string | null>(null)
   const [showAllSuggestions, setShowAllSuggestions] = useState(false)
+  const [isSwitchAccountOpen, setIsSwitchAccountOpen] = useState(false)
+  const user = useAppSelector((state) => state.auth.user)
 
   const displayedSuggestions = mockSuggestions.slice(0, 5)
 
@@ -242,6 +247,10 @@ export const Suggestions = () => {
     navigate(`/${user.username}`)
   }
 
+  const handleSwitchAccount = () => {
+    setIsSwitchAccountOpen(true)
+  }
+
   return (
     <>
       <div className="fixed right-4 top-4 w-[22rem] h-[calc(100vh)] overflow-y-auto p-4 space-y-6 bg-background border-l border-border/30">
@@ -250,22 +259,23 @@ export const Suggestions = () => {
           <div className="flex items-center gap-3">
             <div className="relative">
               <Avatar className="h-14 w-14 ring-2 ring-gradient-instagram">
-                <AvatarImage src="https://picsum.photos/56/56?random=999" />
+                <AvatarImage src={getAvatarUrl(user?.avatar)} />
                 <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white font-semibold">
-                  LN
+                  {getAvatarInitials(user?.username)}
                 </AvatarFallback>
               </Avatar>
               <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-gradient-story rounded-full border-2 border-background"></div>
             </div>
             <div className="flex-1">
-              <p className="font-bold text-sm text-foreground">nghialc81</p>
-              <p className="text-muted-foreground text-sm">Lê Chí Nghĩa</p>
+              <p className="font-bold text-sm text-foreground">{user?.username || "username"}</p>
+              <p className="text-muted-foreground text-sm">{user?.fullName || "Full Name"}</p>
             </div>
           </div>
           <Button
             variant="ghost"
             size="sm"
             className="text-blue-500 hover:text-blue-600 font-bold hover:bg-blue-50 transition-all duration-200 hover:scale-105"
+            onClick={handleSwitchAccount}
           >
             Chuyển
           </Button>
@@ -299,9 +309,9 @@ export const Suggestions = () => {
                     <Avatar
                       className={`h-11 w-11 transition-all duration-300 ${hoveredUser === user.id ? "ring-2 ring-gradient-instagram scale-110" : ""}`}
                     >
-                      <AvatarImage src={user.avatar || "/placeholder.svg"} />
+                      <AvatarImage src={getAvatarUrl(user.avatar)} />
                       <AvatarFallback className="bg-gradient-to-br from-muted to-secondary text-foreground font-semibold">
-                        {user.username.slice(0, 2).toUpperCase()}
+                        {getAvatarInitials(user.username)}
                       </AvatarFallback>
                     </Avatar>
                     {hoveredUser === user.id && (
@@ -373,6 +383,12 @@ export const Suggestions = () => {
         isOpen={showAllSuggestions}
         onClose={() => setShowAllSuggestions(false)}
         onUserClick={handleUserClick}
+      />
+
+      {/* Switch Account Dialog */}
+      <SwitchAccountDialog
+        isOpen={isSwitchAccountOpen}
+        onClose={() => setIsSwitchAccountOpen(false)}
       />
     </>
   )

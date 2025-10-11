@@ -88,9 +88,9 @@ export const CreatePostPage = () => {
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
       <div className="container mx-auto max-w-4xl px-4 py-6">
         {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center justify-center">
-            <div className="flex items-center gap-4">
+        <div className="mb-8 flex justify-center">
+          <div className="w-full max-w-2xl">
+            <div className="flex items-center gap-4 lg:gap-40">
               <Button
                 variant="ghost"
                 size="sm"

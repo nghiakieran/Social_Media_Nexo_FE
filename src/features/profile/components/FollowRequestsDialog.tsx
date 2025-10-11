@@ -119,9 +119,7 @@ export const FollowRequestsDialog = ({
                     </Avatar>
                     <div className="flex-1 min-w-0">
                       <div className="font-semibold text-sm leading-5">{request.userName}</div>
-                      <div className="text-xs text-muted-foreground">
-                        {formatTimeAgoShort(request.requestedAt)}
-                      </div>
+                      <div className="text-sm text-muted-foreground">{request.fullName}</div>
                     </div>
                   </div>
 

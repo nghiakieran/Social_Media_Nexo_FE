@@ -1,6 +1,7 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
 import { navigateToPost, navigateToProfile } from "@/utils/navigation";
+import { getAvatarUrl, getAvatarInitials } from "@/utils/avatar";
 import {
   Bell,
   Hash,
@@ -93,10 +94,10 @@ export const NotificationItem = ({
             onClick={handleProfileClick}
           >
             <AvatarImage
-              src={notification.userAvatar}
+              src={getAvatarUrl(notification.userAvatar)}
               alt={notification.userName}
             />
-            <AvatarFallback>{notification.userName.charAt(0)}</AvatarFallback>
+            <AvatarFallback>{getAvatarInitials(notification.userName)}</AvatarFallback>
           </Avatar>
 
           {/* Content */}

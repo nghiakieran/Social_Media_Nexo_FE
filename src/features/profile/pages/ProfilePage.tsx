@@ -80,15 +80,12 @@ export const ProfilePage = () => {
 
   useEffect(() => {
     if (username) {
-      // Fetch profile data
+      // Fetch profile data first
       if (isCurrentUser) {
         dispatch(fetchCurrentUserProfileAsync());
       } else {
         dispatch(fetchUserProfileByUsernameAsync(username));
       }
-      
-      dispatch(fetchFollowersByUsernameAsync({ username, pageNo: 0, pageSize: 10 }));
-      dispatch(fetchFollowingByUsernameAsync({ username, pageNo: 0, pageSize: 10 }));
       
       // Set mock data for reels and saved (will be replaced with real API later)
       dispatch(setReels(mockReels));
@@ -96,13 +93,28 @@ export const ProfilePage = () => {
     }
   }, [username, isCurrentUser, dispatch]);
 
+  // Only fetch posts, followers, following if:
+  // 1. It's current user's profile, OR
+  // 2. It's a public profile, OR  
+  // 3. It's a private profile but we're following them
   useEffect(() => {
     if (currentUser && currentProfile) {
-      const userId = parseInt(currentProfile.id);
-      setCurrentPage(0);
-      dispatch(getPostsThunk({ userId, pageNo: 0, pageSize: 10 }));
+      const canAccessProfile = isCurrentUser || !currentProfile.isPrivate || currentProfile.isFollowing;
+      
+      // Fetch posts only if we have access
+      if (canAccessProfile) {
+        const userId = parseInt(currentProfile.id);
+        setCurrentPage(0);
+        dispatch(getPostsThunk({ userId, pageNo: 0, pageSize: 10 }));
+      }
+      
+      // Fetch followers and following only if we have access
+      if (canAccessProfile && username) {
+        dispatch(fetchFollowersByUsernameAsync({ username, pageNo: 0, pageSize: 10 }));
+        dispatch(fetchFollowingByUsernameAsync({ username, pageNo: 0, pageSize: 10 }));
+      }
     }
-  }, [currentUser, currentProfile, dispatch]);
+  }, [currentUser, currentProfile, dispatch, isCurrentUser, username]);
 
   // Infinite scroll - load more posts
   const handleLoadMore = useCallback(() => {
@@ -355,13 +367,26 @@ export const ProfilePage = () => {
     );
   }
 
+  // Calculate following count - for current user, only count users with isFollowing = true
+  const calculateFollowingCount = () => {
+    if (!following) return 0;
+    
+    if (isCurrentUser) {
+      // For current user's profile, only count users that are actually following (not pending requests)
+      return following.filter(user => user.isFollowing).length;
+    }
+    
+    // For other users' profiles, count all
+    return following.length;
+  };
+
   return (
     <div className="max-w-4xl mx-auto">
       <ProfileHeader
         profile={currentProfile}
         isCurrentUser={isCurrentUser}
         followersCount={followers?.length || 0}
-        followingCount={following?.length || 0}
+        followingCount={calculateFollowingCount()}
         onFollow={handleFollow}
         onUnfollow={handleFollow}
         onMessage={handleMessage}

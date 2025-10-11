@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { Search, UserPlus, UserMinus, X, AlertTriangle, Loader2 } from 'lucide-react';
+import { Search, UserPlus, UserMinus, X, AlertTriangle, Loader2, UserCheck } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '@/store';
 import { useInfiniteScroll } from '@/hooks/use-infinite-scroll';
 import {
@@ -24,6 +25,8 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { UserProfile, FollowerUser, FollowingUser } from '../types';
 import { useToast } from '@/hooks/use-toast';
 import { followUserAsync, unfollowUserAsync, fetchFollowersByUsernameAsync, fetchFollowingByUsernameAsync } from '../profileSlice';
+import { navigateToProfile } from '@/utils/navigation';
+import { getAvatarUrl, getAvatarInitials } from '@/utils/avatar';
 
 interface FollowersDialogProps {
   isOpen: boolean;
@@ -43,6 +46,7 @@ export const FollowersDialog = ({
   username
 }: FollowersDialogProps) => {
   const dispatch = useAppDispatch();
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [localUsers, setLocalUsers] = useState<FollowerUser[] | FollowingUser[]>([]);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -92,9 +96,25 @@ export const FollowersDialog = ({
     threshold: 100,
   });
 
-  const filteredUsers = Array.isArray(localUsers) ? localUsers.filter(user =>
-    user.userName.toLowerCase().includes(searchTerm.toLowerCase())
-  ) : [];
+  // Filter users based on search term (frontend filtering for now)
+  // TODO: If user count > 50, consider implementing backend search API
+  const filteredUsers = Array.isArray(localUsers) ? localUsers.filter(user => {
+    // For Following dialog of current user, only show users that are actually following (isFollowing = true)
+    // Filter out pending requests (hasRequestedFollow = true but isFollowing = false)
+    if (title === 'Đang theo dõi' && isCurrentUser && !user.isFollowing) {
+      return false;
+    }
+    
+    // Apply search filter
+    return user.userName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.fullName?.toLowerCase().includes(searchTerm.toLowerCase());
+  }) : [];
+
+  // Navigate to user profile
+  const handleNavigateToProfile = (userName: string) => {
+    navigateToProfile(navigate, userName);
+    onClose(); // Close dialog after navigation
+  };
 
   const handleFollow = async (userId: number) => {
     if (!Array.isArray(localUsers)) return;
@@ -201,14 +221,20 @@ export const FollowersDialog = ({
       try {
         const resultAction = await dispatch(unfollowUserAsync(userToUnfollow.userName));
         if (unfollowUserAsync.fulfilled.match(resultAction)) {
-          setLocalUsers(prev => {
-            if (!Array.isArray(prev)) return [];
-            return prev.map(u => 
-              u.userId === userToUnfollow.userId 
-                ? { ...u, isFollowing: false }
-                : u
-            );
-          });
+          // If in Following dialog, reload the following list to get fresh data
+          if (title === 'Đang theo dõi' && username) {
+            dispatch(fetchFollowingByUsernameAsync({ username, pageNo: 0, pageSize: 10 }));
+          } else {
+            // Otherwise, update local state
+            setLocalUsers(prev => {
+              if (!Array.isArray(prev)) return [];
+              return prev.map(u => 
+                u.userId === userToUnfollow.userId 
+                  ? { ...u, isFollowing: false }
+                  : u
+              );
+            });
+          }
           toast({
             title: 'Đã bỏ theo dõi',
             description: `Bạn đã bỏ theo dõi ${userToUnfollow.userName}`,
@@ -247,14 +273,27 @@ export const FollowersDialog = ({
 
           <div className="space-y-3 p-3 pt-0">
             {/* Search */}
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                placeholder="Tìm kiếm"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 bg-muted/50"
-              />
+            <div className="space-y-2">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  placeholder="Tìm kiếm theo tên hoặc username"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10 bg-muted/50"
+                />
+              </div>
+              {/* Search info - show when there are many users */}
+              {localUsers.length > 50 && !searchTerm && (
+                <p className="text-xs text-muted-foreground px-1">
+                  💡 Tip: Sử dụng tìm kiếm để tìm nhanh trong {localUsers.length} người
+                </p>
+              )}
+              {searchTerm && filteredUsers.length > 0 && (
+                <p className="text-xs text-muted-foreground px-1">
+                  Tìm thấy {filteredUsers.length} kết quả
+                </p>
+              )}
             </div>
 
             {/* User List - fixed height for stable UX */}
@@ -275,15 +314,15 @@ export const FollowersDialog = ({
                     ref={isLastItem ? lastElementRef : null}
                     className="flex items-center justify-between px-2 py-2 hover:bg-muted/40 rounded-lg transition-colors"
                   >
-                    <div className="flex items-center gap-3">
-                      <Avatar className="w-11 h-11">
-                        <AvatarImage src={user.avatar} alt={user.userName} />
+                    <div className="flex items-center gap-3 flex-1 min-w-0 cursor-pointer" onClick={() => handleNavigateToProfile(user.userName)}>
+                      <Avatar className="w-11 h-11 hover:opacity-80 transition-opacity">
+                        <AvatarImage src={getAvatarUrl(user.avatar)} alt={user.userName} />
                         <AvatarFallback>
-                          {user.userName.charAt(0).toUpperCase()}
+                          {getAvatarInitials(user.userName)}
                         </AvatarFallback>
                       </Avatar>
                         <div className="flex-1 min-w-0">
-                          <div className="font-semibold text-sm leading-5">{user.userName}</div>
+                          <div className="font-semibold text-sm leading-5 hover:underline">{user.userName}</div>
                           <div className="text-xs text-muted-foreground truncate">
                             {user.fullName || (user.closeFriend ? 'Bạn thân' : (title === 'Đang theo dõi' ? 'Đang theo dõi' : 'Người theo dõi'))}
                           </div>
@@ -324,16 +363,30 @@ export const FollowersDialog = ({
                           </Button>
                         )
                       ) : (
-                        // Following dialog - always show unfollow button since all users are being followed
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleFollow(user.userId)}
-                          className="text-xs gap-1"
-                        >
-                          <UserMinus className="w-3 h-3" />
-                          Đang theo dõi
-                        </Button>
+                        // Following dialog
+                        user.hasRequestedFollow && !user.isFollowing ? (
+                          // Show "Đang yêu cầu" for pending requests
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            disabled
+                            className="text-xs gap-1"
+                          >
+                            <UserCheck className="w-3 h-3" />
+                            Đang yêu cầu
+                          </Button>
+                        ) : (
+                          // Show "Đang theo dõi" for confirmed follows
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleFollow(user.userId)}
+                            className="text-xs gap-1"
+                          >
+                            <UserMinus className="w-3 h-3" />
+                            Đang theo dõi
+                          </Button>
+                        )
                       )}
                     </div>
                   </div>
@@ -392,9 +445,9 @@ export const FollowersDialog = ({
           <AlertDialogHeader>
             <div className="flex items-center gap-3 mb-2">
               <Avatar className="w-12 h-12">
-                <AvatarImage src={userToUnfollow?.avatar} alt={userToUnfollow?.userName} />
+                <AvatarImage src={getAvatarUrl(userToUnfollow?.avatar)} alt={userToUnfollow?.userName} />
                 <AvatarFallback>
-                  {userToUnfollow?.userName.charAt(0).toUpperCase()}
+                  {getAvatarInitials(userToUnfollow?.userName)}
                 </AvatarFallback>
               </Avatar>
             </div>

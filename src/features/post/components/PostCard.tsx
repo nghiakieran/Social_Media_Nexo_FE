@@ -19,6 +19,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { getAvatarUrl, getAvatarInitials } from '@/utils/avatar';
 import {
   Tooltip,
   TooltipContent,
@@ -313,11 +314,11 @@ export const PostCard = ({
         <div className="flex items-center justify-between p-4">
           <div className="flex items-center gap-3">
             <Avatar className="w-10 h-10 cursor-pointer hover:opacity-80 transition-opacity" onClick={handleProfileClick}>
-              <AvatarImage src={post.avatarUrl} alt={post.userName} />
-              <AvatarFallback>{post.userName?.charAt(0) || 'U'}</AvatarFallback>
+              <AvatarImage src={getAvatarUrl(post.avatarUrl)} alt={post.userName} />
+              <AvatarFallback>{getAvatarInitials(post.userName)}</AvatarFallback>
             </Avatar>
             <div className="flex flex-col">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 mb-1">
                 <span 
                   className="font-semibold text-foreground text-sm cursor-pointer hover:underline"
                   onClick={handleProfileClick}
@@ -326,16 +327,18 @@ export const PostCard = ({
                 </span>
               </div>
               <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                <span 
-                  className="cursor-pointer hover:text-foreground transition-colors"
-                  onClick={handleProfileClick}
-                >
-                  @{post.userName}
-                </span>
-                <span>•</span>
                 <span>{formatTimeAgoShort(post.updatedAt)}</span>
                 <span>•</span>
-                <PrivacyIcon className="w-3 h-3" />
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <PrivacyIcon className="w-3 h-3" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>{post.visibility === 'public' ? 'Công khai' : 'Riêng tư'}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               </div>
             </div>
           </div>

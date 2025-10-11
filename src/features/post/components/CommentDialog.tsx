@@ -9,6 +9,7 @@ import { ActionMenu, ActionMenuItem } from '@/components/common/ActionMenu';
 import { LikesDialog } from './LikesDialog';
 import { useBookmark } from '@/features/saved/hooks/useBookmark';
 import { MediaSlider } from './MediaSlider';
+import { getAvatarUrl, getAvatarInitials } from '@/utils/avatar';
 
 interface Comment {
   id: string;
@@ -125,8 +126,8 @@ export const CommentDialog = ({
       >
         <div className="relative">
           <Avatar className="w-6 h-6">
-            <AvatarImage src={reply.avatarUrl} alt={reply.userName} />
-            <AvatarFallback>{reply.userName?.charAt(0) || 'U'}</AvatarFallback>
+            <AvatarImage src={getAvatarUrl(reply.avatarUrl)} alt={reply.userName} />
+            <AvatarFallback>{getAvatarInitials(reply.userName)}</AvatarFallback>
           </Avatar>
         </div>
         <div className="flex-1">
@@ -461,8 +462,8 @@ export const CommentDialog = ({
         <div className="p-4 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
           <div className="flex items-start gap-3">
             <Avatar className="w-8 h-8">
-              <AvatarImage src={post.avatarUrl} alt={post.userName} />
-              <AvatarFallback>{post.userName?.charAt(0) || 'U'}</AvatarFallback>
+              <AvatarImage src={getAvatarUrl(post.avatarUrl)} alt={post.userName} />
+              <AvatarFallback>{getAvatarInitials(post.userName)}</AvatarFallback>
             </Avatar>
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-1">
@@ -480,8 +481,8 @@ export const CommentDialog = ({
                 <div key={comment.id} className="group/comment">
                   <div className="flex items-start gap-3">
                     <Avatar className="w-8 h-8">
-                      <AvatarImage src={comment.avatarUrl} alt={comment.userName} />
-                      <AvatarFallback>{comment.userName?.charAt(0) || 'U'}</AvatarFallback>
+                      <AvatarImage src={getAvatarUrl(comment.avatarUrl)} alt={comment.userName} />
+                      <AvatarFallback>{getAvatarInitials(comment.userName)}</AvatarFallback>
                     </Avatar>
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
