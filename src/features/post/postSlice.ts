@@ -223,10 +223,18 @@ const postSlice = createSlice({
         const { content, totalPages, pageNo } = action.payload;
         const transformedPosts = content.map(transformPostData);
         
+        // Remove duplicates from the response itself
+        const uniquePosts = Array.from(
+          new Map(transformedPosts.map(post => [post.id, post])).values()
+        );
+        
         if (pageNo === 0) {
-          state.posts = transformedPosts;
+          state.posts = uniquePosts;
         } else {
-          state.posts.push(...transformedPosts);
+          // Filter out duplicates when appending
+          const existingIds = new Set(state.posts.map(p => p.id));
+          const newPosts = uniquePosts.filter(p => !existingIds.has(p.id));
+          state.posts.push(...newPosts);
         }
         
         state.currentPage = pageNo;
@@ -249,10 +257,18 @@ const postSlice = createSlice({
         const { content, totalPages, pageNo } = action.payload;
         const transformedPosts = content.map(transformPostData);
         
+        // Remove duplicates from the response itself
+        const uniquePosts = Array.from(
+          new Map(transformedPosts.map(post => [post.id, post])).values()
+        );
+        
         if (pageNo === 0) {
-          state.posts = transformedPosts;
+          state.posts = uniquePosts;
         } else {
-          state.posts.push(...transformedPosts);
+          // Filter out duplicates when appending
+          const existingIds = new Set(state.posts.map(p => p.id));
+          const newPosts = uniquePosts.filter(p => !existingIds.has(p.id));
+          state.posts.push(...newPosts);
         }
         
         state.currentPage = pageNo;

@@ -165,8 +165,6 @@ export const PostDetailPage = () => {
     private: Lock,
   };
 
-  const PrivacyIcon = privacyIcons[post.privacy] || Globe;
-
   const formatTimeAgo = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
@@ -409,7 +407,11 @@ export const PostDetailPage = () => {
                           @{post.userName}
                         </span>
                         <span>•</span>
-                        <PrivacyIcon className="w-3 h-3 text-muted-foreground" />
+                        {post.privacy === 'private' ? (
+                          <Lock className="w-3 h-3 text-muted-foreground" />
+                        ) : (
+                          <Globe className="w-3 h-3 text-muted-foreground" />
+                        )}
                       </div>
                     </div>
                   </div>
