@@ -216,7 +216,7 @@ export const StoryViewer = memo(({
   if (!isOpen || !currentStory || !currentContent) return null
 
   if (isLoading) {
-    return <StorySkeleton isMobile={isMobile} />
+    return <StorySkeleton isMobile={isMobile} showSideThumbnails={stories.length > 1} />
   }
 
   return (

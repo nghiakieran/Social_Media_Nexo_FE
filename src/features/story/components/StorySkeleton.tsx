@@ -3,39 +3,42 @@ import { cn } from "@/lib/utils"
 
 interface StorySkeletonProps {
   isMobile?: boolean
+  showSideThumbnails?: boolean
 }
 
-export const StorySkeleton = memo(({ isMobile = false }: StorySkeletonProps) => {
+export const StorySkeleton = memo(({ isMobile = false, showSideThumbnails = false }: StorySkeletonProps) => {
   return (
     <div className="fixed inset-0 z-50 bg-black">
       <div className="relative w-full h-full lg:w-[1298px] lg:h-[730px] lg:mx-auto lg:top-1/2 lg:-translate-y-1/2">
         {/* Left side thumbnails skeleton - desktop only */}
-        <div className="hidden lg:block">
-          <div
-            className="absolute z-10 animate-pulse"
-            style={{
-              height: "280px",
-              left: "0px",
-              top: "50%",
-              transform: "translateX(calc(-50% + 150px)) translateY(-50%)",
-              width: "158px",
-            }}
-          >
-            <div className="w-full h-full rounded-xl bg-gray-700" />
+        {showSideThumbnails && (
+          <div className="hidden lg:block">
+            <div
+              className="absolute z-10 animate-pulse"
+              style={{
+                height: "280px",
+                left: "0px",
+                top: "50%",
+                transform: "translateX(calc(-50% + 150px)) translateY(-50%)",
+                width: "158px",
+              }}
+            >
+              <div className="w-full h-full rounded-xl bg-gray-700" />
+            </div>
+            <div
+              className="absolute z-20 animate-pulse"
+              style={{
+                height: "280px",
+                left: "0px",
+                top: "50%",
+                transform: "translateX(calc(-50% + 350px)) translateY(-50%)",
+                width: "158px",
+              }}
+            >
+              <div className="w-full h-full rounded-xl bg-gray-700" />
+            </div>
           </div>
-          <div
-            className="absolute z-20 animate-pulse"
-            style={{
-              height: "280px",
-              left: "0px",
-              top: "50%",
-              transform: "translateX(calc(-50% + 350px)) translateY(-50%)",
-              width: "158px",
-            }}
-          >
-            <div className="w-full h-full rounded-xl bg-gray-700" />
-          </div>
-        </div>
+        )}
 
         {/* Main story container skeleton */}
         <div
@@ -97,45 +100,53 @@ export const StorySkeleton = memo(({ isMobile = false }: StorySkeletonProps) => 
             </div>
 
             {/* Navigation arrows skeleton - desktop only */}
-            <div className="hidden lg:block absolute left-0 top-1/2 -translate-y-1/2 z-30">
-              <div className="w-10 h-10 rounded-full bg-gray-700 animate-pulse" />
-            </div>
-            <div className="hidden lg:block absolute right-0 top-1/2 -translate-y-1/2 z-30">
-              <div className="w-10 h-10 rounded-full bg-gray-700 animate-pulse" />
-            </div>
+            {showSideThumbnails && (
+              <>
+                <div className="hidden lg:block absolute left-4 top-1/2 -translate-y-1/2 z-30">
+                  <div className="w-10 h-10 rounded-full bg-gray-700 animate-pulse" />
+                </div>
+                <div className="hidden lg:block absolute right-4 top-1/2 -translate-y-1/2 z-30">
+                  <div className="w-10 h-10 rounded-full bg-gray-700 animate-pulse" />
+                </div>
+              </>
+            )}
           </div>
         </div>
 
         {/* Right side thumbnails skeleton - desktop only */}
-        <div className="hidden lg:block">
-          <div
-            className="absolute z-20 animate-pulse"
-            style={{
-              height: "280px",
-              left: "0px",
-              top: "50%",
-              transform: "translateX(calc(-50% + 970px)) translateY(-50%)",
-              width: "158px",
-            }}
-          >
-            <div className="w-full h-full rounded-xl bg-gray-700" />
+        {showSideThumbnails && (
+          <div className="hidden lg:block">
+            <div
+              className="absolute z-20 animate-pulse"
+              style={{
+                height: "280px",
+                left: "0px",
+                top: "50%",
+                transform: "translateX(calc(-50% + 970px)) translateY(-50%)",
+                width: "158px",
+              }}
+            >
+              <div className="w-full h-full rounded-xl bg-gray-700" />
+            </div>
+            <div
+              className="absolute z-10 animate-pulse"
+              style={{
+                height: "280px",
+                left: "0px",
+                top: "50%",
+                transform: "translateX(calc(-50% + 1174px)) translateY(-50%)",
+                width: "158px",
+              }}
+            >
+              <div className="w-full h-full rounded-xl bg-gray-700" />
+            </div>
           </div>
-          <div
-            className="absolute z-10 animate-pulse"
-            style={{
-              height: "280px",
-              left: "0px",
-              top: "50%",
-              transform: "translateX(calc(-50% + 1174px)) translateY(-50%)",
-              width: "158px",
-            }}
-          >
-            <div className="w-full h-full rounded-xl bg-gray-700" />
-          </div>
-        </div>
+        )}
 
-        {/* Close button skeleton */}
-        <div className="absolute top-4 right-4 z-40 w-10 h-10 rounded-full bg-gray-700 animate-pulse" />
+        {/* Close button skeleton - desktop only */}
+        {!isMobile && (
+          <div className="absolute top-4 right-4 z-40 w-10 h-10 rounded-full bg-gray-700 animate-pulse" />
+        )}
       </div>
     </div>
   )
