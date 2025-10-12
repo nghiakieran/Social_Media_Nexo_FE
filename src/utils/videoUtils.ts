@@ -7,20 +7,20 @@ export const generateVideoThumbnail = (
   timeInSeconds: number = 0
 ): Promise<string> => {
   return new Promise((resolve, reject) => {
-    const video = document.createElement('video');
-    const canvas = document.createElement('canvas');
-    const context = canvas.getContext('2d');
+    const video = document.createElement("video");
+    const canvas = document.createElement("canvas");
+    const context = canvas.getContext("2d");
 
     if (!context) {
-      reject(new Error('Cannot get canvas context'));
+      reject(new Error("Cannot get canvas context"));
       return;
     }
 
-    video.crossOrigin = 'anonymous';
-    video.preload = 'metadata';
+    video.crossOrigin = "anonymous";
+    video.preload = "metadata";
     video.muted = true;
 
-    video.addEventListener('loadeddata', () => {
+    video.addEventListener("loadeddata", () => {
       // Set canvas size to video size
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
@@ -29,26 +29,26 @@ export const generateVideoThumbnail = (
       video.currentTime = timeInSeconds;
     });
 
-    video.addEventListener('seeked', () => {
+    video.addEventListener("seeked", () => {
       try {
         // Draw the current frame to canvas
         context.drawImage(video, 0, 0, canvas.width, canvas.height);
-        
+
         // Convert canvas to data URL
-        const thumbnailUrl = canvas.toDataURL('image/jpeg', 0.8);
-        
+        const thumbnailUrl = canvas.toDataURL("image/jpeg", 0.8);
+
         // Clean up
-        video.src = '';
+        video.src = "";
         video.load();
-        
+
         resolve(thumbnailUrl);
       } catch (error) {
         reject(error);
       }
     });
 
-    video.addEventListener('error', (e) => {
-      reject(new Error('Error loading video for thumbnail generation'));
+    video.addEventListener("error", (e) => {
+      reject(new Error("Error loading video for thumbnail generation"));
     });
 
     video.src = videoUrl;
@@ -68,7 +68,7 @@ export const getVideoThumbnail = async (
   timeInSeconds: number = 0
 ): Promise<string | null> => {
   const cacheKey = `${videoUrl}-${timeInSeconds}`;
-  
+
   // Check cache first
   if (thumbnailCache.has(cacheKey)) {
     return thumbnailCache.get(cacheKey)!;

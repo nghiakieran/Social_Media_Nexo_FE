@@ -12,19 +12,18 @@ import { Loader } from "@/components/common/Loader";
 // Interface for UI form data
 interface CreatePostFormData {
   content: string;
-  privacy: 'public' | 'private';
+  privacy: "public" | "private";
   taggedUsers: number[];
   media: File[];
 }
 
-
 export const CreatePostPage = () => {
   const dispatch = useAppDispatch();
-  const { isCreating, error } = useAppSelector(state => state.post);
-  const { user } = useAppSelector(state => state.auth);
+  const { isCreating, error } = useAppSelector((state) => state.post);
+  const { user } = useAppSelector((state) => state.auth);
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [uploadMessage, setUploadMessage] = useState<string>('');
+  const [uploadMessage, setUploadMessage] = useState<string>("");
 
   const handleSubmit = async (postData: CreatePostFormData) => {
     if (!user) {
@@ -33,7 +32,7 @@ export const CreatePostPage = () => {
         title: "Lỗi",
         description: "Bạn cần đăng nhập để tạo bài viết.",
       });
-      navigate('/login');
+      navigate("/login");
       return;
     }
 
@@ -43,27 +42,31 @@ export const CreatePostPage = () => {
         postId: 0,
         userId: user.id,
         caption: postData.content,
-        visibility: postData.privacy.toUpperCase() as 'PUBLIC' | 'PRIVATE',
-        tag: postData.taggedUsers.join(','),
+        visibility: postData.privacy.toUpperCase() as "PUBLIC" | "PRIVATE",
+        tag: postData.taggedUsers.join(","),
       };
 
       const files = postData.media || [];
-      
+
       // Check file size and type for better message
-      const hasVideo = files.some(file => file.type.startsWith('video/'));
+      const hasVideo = files.some((file) => file.type.startsWith("video/"));
       const totalSize = files.reduce((sum, file) => sum + file.size, 0);
       const sizeMB = totalSize / (1024 * 1024);
-      
+
       // Set appropriate message based on content
       if (hasVideo && sizeMB > 50) {
-        setUploadMessage('📹 Đang đăng bài viết... Video lớn có thể mất vài phút');
+        setUploadMessage(
+          "📹 Đang đăng bài viết... Video lớn có thể mất vài phút"
+        );
       } else if (hasVideo || sizeMB > 10) {
-        setUploadMessage('📤 Đang đăng bài viết... Vui lòng chờ');
+        setUploadMessage("📤 Đang đăng bài viết... Vui lòng chờ");
       } else {
-        setUploadMessage('⏳ Đang đăng bài viết...');
+        setUploadMessage("⏳ Đang đăng bài viết...");
       }
 
-      await dispatch(createPostThunk({ files, postData: createPostRequest })).unwrap();
+      await dispatch(
+        createPostThunk({ files, postData: createPostRequest })
+      ).unwrap();
 
       toast({
         title: "Đăng bài thành công!",
@@ -73,14 +76,17 @@ export const CreatePostPage = () => {
       // Navigate back to feed
       navigate("/");
     } catch (error) {
-      console.error('Create post error:', error);
+      console.error("Create post error:", error);
       toast({
         variant: "destructive",
         title: "Lỗi",
-        description: error instanceof Error ? error.message : "Không thể đăng bài. Vui lòng thử lại.",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Không thể đăng bài. Vui lòng thử lại.",
       });
     } finally {
-      setUploadMessage('');
+      setUploadMessage("");
     }
   };
 
@@ -136,7 +142,7 @@ export const CreatePostPage = () => {
                 </div>
                 <div className="text-center space-y-2">
                   <p className="text-xl font-semibold text-foreground">
-                    {uploadMessage || 'Đang đăng bài...'}
+                    {uploadMessage || "Đang đăng bài..."}
                   </p>
                   <p className="text-sm text-muted-foreground">
                     Vui lòng không tắt trang này

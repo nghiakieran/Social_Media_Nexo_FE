@@ -1,14 +1,14 @@
-import React, { useState } from 'react';
-import { useAppDispatch } from '../../../store';
-import { deleteCollection } from '../savedSlice';
-import { AlertTriangle } from 'lucide-react';
-import { Button } from '../../../components/ui/button';
+import React, { useState } from "react";
+import { useAppDispatch } from "../../../store";
+import { deleteCollection } from "../savedSlice";
+import { AlertTriangle } from "lucide-react";
+import { Button } from "../../../components/ui/button";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-} from '../../../components/ui/dialog';
+} from "../../../components/ui/dialog";
 
 interface DeleteCollectionDialogProps {
   isOpen: boolean;
@@ -30,13 +30,13 @@ export const DeleteCollectionDialog: React.FC<DeleteCollectionDialogProps> = ({
 
   const handleDelete = async () => {
     setIsLoading(true);
-    
+
     try {
       dispatch(deleteCollection(collectionId));
       onDeleted?.();
       onClose();
     } catch (error) {
-      console.error('Error deleting collection:', error);
+      console.error("Error deleting collection:", error);
     } finally {
       setIsLoading(false);
     }
@@ -60,13 +60,14 @@ export const DeleteCollectionDialog: React.FC<DeleteCollectionDialogProps> = ({
             <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <AlertTriangle className="w-8 h-8 text-red-600" />
             </div>
-            
+
             <h3 className="text-lg font-semibold text-foreground mb-2">
               Xóa "{collectionName}"?
             </h3>
-            
+
             <p className="text-muted-foreground text-sm">
-              Bộ sưu tập này sẽ bị xóa vĩnh viễn. Các bài viết trong bộ sưu tập sẽ được chuyển về "Tất cả bài viết".
+              Bộ sưu tập này sẽ bị xóa vĩnh viễn. Các bài viết trong bộ sưu tập
+              sẽ được chuyển về "Tất cả bài viết".
             </p>
           </div>
 
@@ -87,7 +88,7 @@ export const DeleteCollectionDialog: React.FC<DeleteCollectionDialogProps> = ({
               disabled={isLoading}
               className="flex-1"
             >
-              {isLoading ? 'Đang xóa...' : 'Xóa'}
+              {isLoading ? "Đang xóa..." : "Xóa"}
             </Button>
           </div>
         </div>

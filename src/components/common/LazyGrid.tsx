@@ -1,12 +1,12 @@
-import { ReactNode } from 'react';
-import { useLazyLoading } from '@/hooks/use-lazy-loading';
-import { LazyImage } from './LazyImage';
-import { SimpleVideoPreview } from './SimpleVideoPreview';
+import { ReactNode } from "react";
+import { useLazyLoading } from "@/hooks/use-lazy-loading";
+import { LazyImage } from "./LazyImage";
+import { SimpleVideoPreview } from "./SimpleVideoPreview";
 
 interface LazyGridItem {
   id: string;
   thumbnail: string;
-  type?: 'photo' | 'video' | 'reel';
+  type?: "photo" | "video" | "reel";
   caption?: string;
   likesCount?: number;
   commentsCount?: number;
@@ -21,7 +21,7 @@ interface LazyGridProps {
   itemClassName?: string;
   // Grid configuration
   columns?: 1 | 2 | 3 | 4 | 5 | 6;
-  gap?: 'sm' | 'md' | 'lg';
+  gap?: "sm" | "md" | "lg";
   // Lazy loading options
   rootMargin?: string;
   threshold?: number;
@@ -38,17 +38,17 @@ interface LazyGridProps {
 export const LazyGrid = ({
   items,
   onItemClick,
-  className = '',
-  itemClassName = '',
+  className = "",
+  itemClassName = "",
   columns = 3,
-  gap = 'md',
-  rootMargin = '200px',
+  gap = "md",
+  rootMargin = "200px",
   threshold = 0.1,
   preloadNearby = true,
   enableProgressiveLoading = true,
   enableBlurToSharp = false,
   renderOverlay,
-  renderPlaceholder
+  renderPlaceholder,
 }: LazyGridProps) => {
   const { visibleItems, setItemRef, isVisible, isNearVisible } = useLazyLoading(
     items,
@@ -56,34 +56,34 @@ export const LazyGrid = ({
   );
 
   const gridClasses = {
-    1: 'grid-cols-1',
-    2: 'grid-cols-2',
-    3: 'grid-cols-3',
-    4: 'grid-cols-4',
-    5: 'grid-cols-5',
-    6: 'grid-cols-6'
+    1: "grid-cols-1",
+    2: "grid-cols-2",
+    3: "grid-cols-3",
+    4: "grid-cols-4",
+    5: "grid-cols-5",
+    6: "grid-cols-6",
   };
 
   const gapClasses = {
-    sm: 'gap-1',
-    md: 'gap-1 md:gap-2',
-    lg: 'gap-2 md:gap-4'
+    sm: "gap-1",
+    md: "gap-1 md:gap-2",
+    lg: "gap-2 md:gap-4",
   };
 
   const defaultOverlay = (item: LazyGridItem, isVisible: boolean) => {
     if (!isVisible) return null;
-    
+
     return (
       <>
         {/* Video/Reel indicator */}
-        {(item.type === 'video' || item.type === 'reel') && (
+        {(item.type === "video" || item.type === "reel") && (
           <div className="absolute top-2 right-2">
             <div className="w-4 h-4 bg-white/80 rounded-full flex items-center justify-center">
               <div className="w-0 h-0 border-l-[6px] border-l-black border-y-[3px] border-y-transparent ml-0.5" />
             </div>
           </div>
         )}
-        
+
         {/* Hover overlay with stats */}
         <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
           <div className="flex items-center gap-4 text-white">
@@ -108,12 +108,14 @@ export const LazyGrid = ({
   );
 
   return (
-    <div className={`grid ${gridClasses[columns]} ${gapClasses[gap]} ${className}`}>
+    <div
+      className={`grid ${gridClasses[columns]} ${gapClasses[gap]} ${className}`}
+    >
       {items.map((item) => {
         const itemVisible = isVisible(item.id);
         const itemNearVisible = isNearVisible(item.id, items);
         const shouldLoad = itemVisible || itemNearVisible;
-        
+
         return (
           <div
             key={item.id}
@@ -123,12 +125,13 @@ export const LazyGrid = ({
             onClick={() => onItemClick?.(item)}
           >
             {/* Placeholder */}
-            {!shouldLoad && (renderPlaceholder?.(item) || defaultPlaceholder(item))}
-            
+            {!shouldLoad &&
+              (renderPlaceholder?.(item) || defaultPlaceholder(item))}
+
             {/* Media - Video or Image */}
             {shouldLoad && (
               <>
-                {item.type === 'video' || item.type === 'reel' ? (
+                {item.type === "video" || item.type === "reel" ? (
                   <SimpleVideoPreview
                     videoUrl={item.thumbnail}
                     className="w-full h-full"
@@ -136,7 +139,7 @@ export const LazyGrid = ({
                 ) : (
                   <LazyImage
                     src={item.thumbnail}
-                    alt={item.caption || 'Post image'}
+                    alt={item.caption || "Post image"}
                     className="w-full h-full"
                     loading="lazy"
                     decoding="async"
@@ -148,9 +151,11 @@ export const LazyGrid = ({
                 )}
               </>
             )}
-            
+
             {/* Overlay */}
-            {shouldLoad && (renderOverlay?.(item, itemVisible) || defaultOverlay(item, itemVisible))}
+            {shouldLoad &&
+              (renderOverlay?.(item, itemVisible) ||
+                defaultOverlay(item, itemVisible))}
           </div>
         );
       })}

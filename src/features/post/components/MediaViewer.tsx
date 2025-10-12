@@ -356,12 +356,21 @@ export const MediaViewer = ({ media, isOpen, onClose }: MediaViewerProps) => {
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-7xl w-full h-[90vh] p-0 bg-black border-0">
         <DialogTitle className="sr-only">
-          {media.type === "image" ? "Xem ảnh" : "Xem video"} - {media.file?.name || 'Media'}
+          {media.type === "image" ? "Xem ảnh" : "Xem video"} -{" "}
+          {media.file?.name || "Media"}
         </DialogTitle>
         <DialogDescription className="sr-only">
           {media.type === "image"
-            ? `Ảnh ${media.file?.name || 'Media'}${media.file ? ` với kích thước ${formatFileSize(media.file.size)}` : ''}`
-            : `Video ${media.file?.name || 'Media'}${media.file ? ` với kích thước ${formatFileSize(media.file.size)}` : ''} và thời lượng ${formatTime(videoDuration)}`}
+            ? `Ảnh ${media.file?.name || "Media"}${
+                media.file
+                  ? ` với kích thước ${formatFileSize(media.file.size)}`
+                  : ""
+              }`
+            : `Video ${media.file?.name || "Media"}${
+                media.file
+                  ? ` với kích thước ${formatFileSize(media.file.size)}`
+                  : ""
+              } và thời lượng ${formatTime(videoDuration)}`}
         </DialogDescription>
         <div className="relative w-full h-full flex items-center justify-center">
           {/* Close Button */}
@@ -391,11 +400,13 @@ export const MediaViewer = ({ media, isOpen, onClose }: MediaViewerProps) => {
                     <div className="text-center max-w-sm">
                       <Loader2 className="w-12 h-12 text-white animate-spin mx-auto mb-4" />
                       <p className="text-white text-lg mb-2">
-                        {media.file ? getLoadingMessage(media.file.size) : 'Đang tải video...'}
+                        {media.file
+                          ? getLoadingMessage(media.file.size)
+                          : "Đang tải video..."}
                       </p>
                       <p className="text-gray-300 text-sm mb-3">
-                        {media.file && formatFileSize(media.file.size)} • Chất lượng:{" "}
-                        {videoQuality}
+                        {media.file && formatFileSize(media.file.size)} • Chất
+                        lượng: {videoQuality}
                       </p>
                       {bufferedProgress > 0 && (
                         <div className="w-full bg-gray-700 rounded-full h-2 mb-2">
@@ -547,17 +558,17 @@ export const MediaViewer = ({ media, isOpen, onClose }: MediaViewerProps) => {
                   </span>
                 )}
               </p>
-            {media.type === "video" && videoDuration > 0 && (
-              <p className="text-xs text-gray-400">
-                {formatTime(videoDuration)} •
-                {isVideoLoading
-                  ? " Đang tải..."
-                  : bufferedProgress > 0
-                  ? ` ${Math.round(bufferedProgress)}% đã tải`
-                  : ""}
-              </p>
-            )}
-          </div>
+              {media.type === "video" && videoDuration > 0 && (
+                <p className="text-xs text-gray-400">
+                  {formatTime(videoDuration)} •
+                  {isVideoLoading
+                    ? " Đang tải..."
+                    : bufferedProgress > 0
+                    ? ` ${Math.round(bufferedProgress)}% đã tải`
+                    : ""}
+                </p>
+              )}
+            </div>
           )}
         </div>
       </DialogContent>

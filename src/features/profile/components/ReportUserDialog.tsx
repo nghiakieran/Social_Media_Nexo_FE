@@ -92,7 +92,7 @@ export const ReportUserDialog = ({ isOpen, onClose, user }: ReportUserDialogProp
           )}
         </div>
 
-        <DialogFooter className="space-y-2">
+        <DialogFooter>
           <Button 
             variant="destructive" 
             onClick={handleSubmit}

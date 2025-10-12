@@ -1,15 +1,15 @@
-import { NavLink, useNavigate } from 'react-router-dom';
-import { useState, useRef } from 'react';
-import { useAppDispatch, useAppSelector } from '@/store';
-import { logoutAsync } from '@/features/auth/authSlice';
-import { 
-  Home, 
-  Search, 
-  Compass, 
-  Film, 
-  MessageCircle, 
-  Heart, 
-  PlusSquare, 
+import { NavLink, useNavigate } from "react-router-dom";
+import { useState, useRef } from "react";
+import { useAppDispatch, useAppSelector } from "@/store";
+import { logoutAsync } from "@/features/auth/authSlice";
+import {
+  Home,
+  Search,
+  Compass,
+  Film,
+  MessageCircle,
+  Heart,
+  PlusSquare,
   User,
   MoreHorizontal,
   Settings,
@@ -19,28 +19,32 @@ import {
   LogOut,
   Users,
   Shield,
-  ChevronLeft
-} from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { Logo } from './Logo';
-import { Button } from '@/components/ui/button';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { SwitchAccountDialog } from '@/features/auth';
+  ChevronLeft,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Logo } from "./Logo";
+import { Button } from "@/components/ui/button";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { SwitchAccountDialog } from "@/features/auth";
 
 const navigation = [
-  { name: 'Trang chủ', href: '/', icon: Home },
-  { name: 'Tìm kiếm', href: '/search', icon: Search },
-  { name: 'Khám phá', href: '/explore', icon: Compass },
-  { name: 'Reels', href: '/reels', icon: Film },
-  { name: 'Tin nhắn', href: '/messages', icon: MessageCircle },
-  { name: 'Thông báo', href: '/notifications', icon: Heart },
-  { name: 'Tạo', href: '/create', icon: PlusSquare },
-  { name: 'Hồ sơ', href: '/profile', icon: User, dynamic: true },
+  { name: "Trang chủ", href: "/", icon: Home },
+  { name: "Tìm kiếm", href: "/search", icon: Search },
+  { name: "Khám phá", href: "/explore", icon: Compass },
+  { name: "Reels", href: "/reels", icon: Film },
+  { name: "Tin nhắn", href: "/messages", icon: MessageCircle },
+  { name: "Thông báo", href: "/notifications", icon: Heart },
+  { name: "Tạo", href: "/create", icon: PlusSquare },
+  { name: "Hồ sơ", href: "/profile", icon: User, dynamic: true },
 ];
 
 const mlFeatures = [
-  { name: 'Gợi ý kết bạn', href: '/people/suggestions', icon: Users },
-  { name: 'Kiểm duyệt nội dung', href: '/admin/moderation', icon: Shield },
+  { name: "Gợi ý kết bạn", href: "/people/suggestions", icon: Users },
+  { name: "Kiểm duyệt nội dung", href: "/admin/moderation", icon: Shield },
 ];
 
 export const Sidebar = () => {
@@ -56,9 +60,9 @@ export const Sidebar = () => {
     dispatch(logoutAsync());
   };
 
-  const handleThemeToggle = (theme: 'light' | 'dark') => {
+  const handleThemeToggle = (theme: "light" | "dark") => {
     // TODO: Implement theme switching logic
-    console.log('Theme changed to:', theme);
+    console.log("Theme changed to:", theme);
     setIsThemeMenuOpen(false);
   };
 
@@ -66,8 +70,8 @@ export const Sidebar = () => {
     <>
       {/* Logo Section */}
       <div className="p-4 border-b border-border">
-        <button 
-          onClick={() => navigate('/')} 
+        <button
+          onClick={() => navigate("/")}
           className="cursor-pointer hover:opacity-80 transition-opacity"
         >
           <Logo size="xl" />
@@ -79,17 +83,17 @@ export const Sidebar = () => {
           {navigation.map((item) => {
             // For profile link, use current user's username
             const href = item.dynamic && user ? `/${user.username}` : item.href;
-            
+
             return (
               <li key={item.name}>
                 <NavLink
                   to={href}
                   className={({ isActive }) =>
                     cn(
-                      'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200',
+                      "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200",
                       isActive
-                        ? 'bg-primary text-primary-foreground shadow-glow'
-                        : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
+                        ? "bg-primary text-primary-foreground shadow-glow"
+                        : "text-muted-foreground hover:bg-secondary hover:text-foreground"
                     )
                   }
                 >
@@ -112,10 +116,10 @@ export const Sidebar = () => {
                   to={item.href}
                   className={({ isActive }) =>
                     cn(
-                      'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200',
+                      "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200",
                       isActive
-                        ? 'bg-gradient-instagram text-white shadow-glow'
-                        : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
+                        ? "bg-gradient-instagram text-white shadow-glow"
+                        : "text-muted-foreground hover:bg-secondary hover:text-foreground"
                     )
                   }
                 >
@@ -127,7 +131,7 @@ export const Sidebar = () => {
           </ul>
         </div>
       </nav>
-      
+
       <div className="p-4 border-t border-border">
         <Popover open={isMoreMenuOpen} onOpenChange={setIsMoreMenuOpen}>
           <PopoverTrigger asChild>
@@ -146,7 +150,7 @@ export const Sidebar = () => {
                 variant="ghost"
                 className="w-full justify-start gap-3 px-3 py-2.5 text-sm"
                 onClick={() => {
-                  navigate('/account/settings');
+                  navigate("/account/settings");
                   setIsMoreMenuOpen(false);
                 }}
               >
@@ -159,7 +163,7 @@ export const Sidebar = () => {
                 variant="ghost"
                 className="w-full justify-start gap-3 px-3 py-2.5 text-sm"
                 onClick={() => {
-                  const profileUrl = user ? `/${user.username}?tab=saved` : '/';
+                  const profileUrl = user ? `/${user.username}?tab=saved` : "/";
                   navigate(profileUrl);
                   setIsMoreMenuOpen(false);
                 }}
@@ -215,18 +219,14 @@ export const Sidebar = () => {
       {/* Theme Menu Popover - Using Popover component with proper positioning */}
       <Popover open={isThemeMenuOpen} onOpenChange={setIsThemeMenuOpen}>
         <PopoverTrigger asChild>
-          <Button
-            ref={themeButtonRef}
-            className="hidden"
-            aria-hidden="true"
-          />
+          <Button ref={themeButtonRef} className="hidden" aria-hidden="true" />
         </PopoverTrigger>
-        <PopoverContent 
-          className="w-64 p-0"  
-          side="right" 
+        <PopoverContent
+          className="w-64 p-0"
+          side="right"
           sideOffset={15}
           style={{
-            translate: "0% 234%"
+            translate: "0% 234%",
           }}
         >
           {/* Header with back button */}
@@ -251,39 +251,34 @@ export const Sidebar = () => {
               <Button
                 variant="ghost"
                 className="w-full justify-start gap-3 px-3 py-3 text-sm h-auto"
-                onClick={() => handleThemeToggle('light')}
+                onClick={() => handleThemeToggle("light")}
               >
                 <Sun className="h-5 w-5" />
-                <div className="text-left font-medium">
-                  Chế độ sáng
-                </div>
+                <div className="text-left font-medium">Chế độ sáng</div>
               </Button>
-              
+
               <Button
                 variant="ghost"
                 className="w-full justify-start gap-3 px-3 py-3 text-sm h-auto"
-                onClick={() => handleThemeToggle('dark')}
+                onClick={() => handleThemeToggle("dark")}
               >
                 <Moon className="h-5 w-5" />
-                <div className="text-left font-medium">
-                  Chế độ tối
-                </div>
+                <div className="text-left font-medium">Chế độ tối</div>
               </Button>
             </div>
           </div>
         </PopoverContent>
       </Popover>
-
     </>
   );
 
   // Mobile bottom navigation items: Home, Search, Reels, Messages, Profile
   const mobileNavItems = [
-    { name: 'Trang chủ', href: '/', icon: Home },
-    { name: 'Tìm kiếm', href: '/search', icon: Search },
-    { name: 'Reels', href: '/reels', icon: Film },
-    { name: 'Tin nhắn', href: '/messages', icon: MessageCircle },
-    { name: 'Hồ sơ', href: '/profile', icon: User, dynamic: true },
+    { name: "Trang chủ", href: "/", icon: Home },
+    { name: "Tìm kiếm", href: "/search", icon: Search },
+    { name: "Reels", href: "/reels", icon: Film },
+    { name: "Tin nhắn", href: "/messages", icon: MessageCircle },
+    { name: "Hồ sơ", href: "/profile", icon: User, dynamic: true },
   ];
 
   return (
@@ -291,8 +286,8 @@ export const Sidebar = () => {
       {/* Mobile Header */}
       <header className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-sm border-b border-border">
         <div className="flex items-center justify-between px-4 py-3">
-          <button 
-            onClick={() => navigate('/')} 
+          <button
+            onClick={() => navigate("/")}
             className="cursor-pointer hover:opacity-80 transition-opacity"
           >
             <Logo size="md" />
@@ -302,10 +297,8 @@ export const Sidebar = () => {
               to="/create"
               className={({ isActive }) =>
                 cn(
-                  'p-2 rounded-lg transition-all duration-200',
-                  isActive
-                    ? 'text-primary'
-                    : 'text-muted-foreground'
+                  "p-2 rounded-lg transition-all duration-200",
+                  isActive ? "text-primary" : "text-muted-foreground"
                 )
               }
             >
@@ -315,10 +308,8 @@ export const Sidebar = () => {
               to="/notifications"
               className={({ isActive }) =>
                 cn(
-                  'p-2 rounded-lg transition-all duration-200',
-                  isActive
-                    ? 'text-primary'
-                    : 'text-muted-foreground'
+                  "p-2 rounded-lg transition-all duration-200",
+                  isActive ? "text-primary" : "text-muted-foreground"
                 )
               }
             >
@@ -334,17 +325,15 @@ export const Sidebar = () => {
           {mobileNavItems.map((item) => {
             // For profile link, use current user's username
             const href = item.dynamic && user ? `/${user.username}` : item.href;
-            
+
             return (
               <NavLink
                 key={item.name}
                 to={href}
                 className={({ isActive }) =>
                   cn(
-                    'flex flex-col items-center gap-1 p-2 rounded-lg transition-all duration-200',
-                    isActive
-                      ? 'text-primary'
-                      : 'text-muted-foreground'
+                    "flex flex-col items-center gap-1 p-2 rounded-lg transition-all duration-200",
+                    isActive ? "text-primary" : "text-muted-foreground"
                   )
                 }
               >

@@ -31,21 +31,37 @@ interface EditPostDialogProps {
   postId: number;
   userId: number;
   initialContent: string;
-  initialVisibility: 'PUBLIC' | 'PRIVATE';
+  initialVisibility: "PUBLIC" | "PRIVATE";
   initialMediaUrl: string[];
   onSave: (files: File[], updateData: UpdatePostRequest) => void;
 }
 
 // Helper to detect media type from URL
-const getMediaType = (url: string): 'image' | 'video' => {
-  const videoExtensions = ['.mp4', '.webm', '.ogg', '.mov', '.avi', '.mkv', '.m3u8', '.mpd', '.ts'];
+const getMediaType = (url: string): "image" | "video" => {
+  const videoExtensions = [
+    ".mp4",
+    ".webm",
+    ".ogg",
+    ".mov",
+    ".avi",
+    ".mkv",
+    ".m3u8",
+    ".mpd",
+    ".ts",
+  ];
   const lowerUrl = url.toLowerCase();
-  
-  if (lowerUrl.includes('.m3u8') || lowerUrl.includes('.mpd') || lowerUrl.includes('m3u8')) {
-    return 'video';
+
+  if (
+    lowerUrl.includes(".m3u8") ||
+    lowerUrl.includes(".mpd") ||
+    lowerUrl.includes("m3u8")
+  ) {
+    return "video";
   }
-  
-  return videoExtensions.some(ext => lowerUrl.includes(ext)) ? 'video' : 'image';
+
+  return videoExtensions.some((ext) => lowerUrl.includes(ext))
+    ? "video"
+    : "image";
 };
 
 export const EditPostDialog = ({
@@ -59,30 +75,30 @@ export const EditPostDialog = ({
   onSave,
 }: EditPostDialogProps) => {
   const [content, setContent] = useState(initialContent);
-  const [visibility, setVisibility] = useState<'public' | 'private'>(
-    initialVisibility.toLowerCase() as 'public' | 'private'
+  const [visibility, setVisibility] = useState<"public" | "private">(
+    initialVisibility.toLowerCase() as "public" | "private"
   );
   const [media, setMedia] = useState<MediaItem[]>([]);
   const [taggedFriendIds, setTaggedFriendIds] = useState<number[]>([]);
   const [showTagFriends, setShowTagFriends] = useState(false);
   const [selectedMedia, setSelectedMedia] = useState<MediaItem | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { toast } = useToast();
-  
-  const { mutualFollowers } = useAppSelector(state => state.post);
+
+  const { mutualFollowers } = useAppSelector((state) => state.post);
 
   // Initialize form when dialog opens (only once when opening)
   useEffect(() => {
     if (isOpen) {
       // Set content and visibility
       setContent(initialContent);
-      setVisibility(initialVisibility.toLowerCase() as 'public' | 'private');
+      setVisibility(initialVisibility.toLowerCase() as "public" | "private");
       setTaggedFriendIds([]);
       setShowTagFriends(false);
-      
+
       // Initialize media from initialMediaUrl (only on open)
       const existingMedia: MediaItem[] = initialMediaUrl.map((url, index) => ({
         id: `existing_${index}_${url}`,
@@ -180,34 +196,33 @@ export const EditPostDialog = ({
 
     // Get all new files (files that were uploaded, not existing URLs)
     const newFiles = media
-      .filter(item => !item.isExisting && item.file)
-      .map(item => item.file!);
+      .filter((item) => !item.isExisting && item.file)
+      .map((item) => item.file!);
 
     // Get remaining existing media URLs (URLs that weren't removed)
     const remainingExistingUrls = media
-      .filter(item => item.isExisting)
-      .map(item => item.url);
+      .filter((item) => item.isExisting)
+      .map((item) => item.url);
 
     // Prepare tag string (comma-separated user IDs)
-    const tagString = taggedFriendIds.length > 0 
-      ? taggedFriendIds.join(',') 
-      : '';
+    const tagString =
+      taggedFriendIds.length > 0 ? taggedFriendIds.join(",") : "";
 
     const updateData: UpdatePostRequest = {
       postId,
       userId,
       caption: content.trim(),
-      visibility: visibility.toUpperCase() as 'PUBLIC' | 'PRIVATE',
+      visibility: visibility.toUpperCase() as "PUBLIC" | "PRIVATE",
       tag: tagString,
       mediaUrl: remainingExistingUrls, // Only existing URLs that weren't removed
     };
 
     // Show upload message for large files
     if (newFiles.length > 0) {
-      const hasVideo = newFiles.some(file => file.type.startsWith('video/'));
+      const hasVideo = newFiles.some((file) => file.type.startsWith("video/"));
       const totalSize = newFiles.reduce((sum, file) => sum + file.size, 0);
       const sizeMB = totalSize / (1024 * 1024);
-      
+
       if (hasVideo && sizeMB > 50) {
         toast({
           title: "Đang cập nhật bài viết...",
@@ -229,14 +244,14 @@ export const EditPostDialog = ({
 
   const handleClose = () => {
     if (isSubmitting) return;
-    
+
     // Clean up object URLs for newly uploaded files
-    media.forEach(item => {
+    media.forEach((item) => {
       if (!item.isExisting && item.url) {
         URL.revokeObjectURL(item.url);
       }
     });
-    
+
     setContent(initialContent);
     setMedia([]);
     setTaggedFriendIds([]);
@@ -246,17 +261,19 @@ export const EditPostDialog = ({
 
   // Get tagged friend names for display
   const taggedFriendNames = mutualFollowers
-    .filter(user => taggedFriendIds.includes(user.userId))
-    .map(user => user.userName);
+    .filter((user) => taggedFriendIds.includes(user.userId))
+    .map((user) => user.userName);
 
   return (
     <>
-    <Dialog open={isOpen} onOpenChange={handleClose}>
+      <Dialog open={isOpen} onOpenChange={handleClose}>
         <DialogContent className="max-w-3xl w-full max-h-[90vh] overflow-y-auto">
-          <DialogTitle className="text-2xl font-bold">Chỉnh sửa bài viết</DialogTitle>
-        <DialogDescription>
+          <DialogTitle className="text-2xl font-bold text-center">
+            Chỉnh sửa bài viết
+          </DialogTitle>
+          <DialogDescription className="text-center">
             Cập nhật nội dung, media hoặc quyền riêng tư của bài viết
-        </DialogDescription>
+          </DialogDescription>
 
           <div className="space-y-6 py-4">
             {/* Privacy Selection */}
@@ -264,18 +281,18 @@ export const EditPostDialog = ({
               <span className="text-sm font-medium">Quyền riêng tư:</span>
               <PrivacySelect
                 value={visibility}
-                onChange={(val) => setVisibility(val as 'public' | 'private')}
+                onChange={(val) => setVisibility(val as "public" | "private")}
                 className="w-auto"
               />
             </div>
 
             {/* Content Input */}
             <div>
-          <Textarea
+              <Textarea
                 ref={textareaRef}
-            value={content}
+                value={content}
                 onChange={handleContentChange}
-            placeholder="Viết gì đó..."
+                placeholder="Viết gì đó..."
                 className="min-h-[150px] max-h-[300px] resize-none text-base focus-visible:ring-0 scrollbar-thin"
                 maxLength={2000}
               />
@@ -291,7 +308,10 @@ export const EditPostDialog = ({
                 <span className="text-muted-foreground">Gắn thẻ:</span>
                 <div className="flex flex-wrap gap-2">
                   {taggedFriendNames.map((name, idx) => (
-                    <span key={idx} className="font-medium text-foreground px-2 py-1 bg-primary/10 rounded-full text-xs">
+                    <span
+                      key={idx}
+                      className="font-medium text-foreground px-2 py-1 bg-primary/10 rounded-full text-xs"
+                    >
                       @{name}
                     </span>
                   ))}
@@ -329,7 +349,8 @@ export const EditPostDialog = ({
                             alt="Media preview"
                             className="w-full h-full object-cover hover:scale-105 transition-transform duration-200"
                           />
-                        ) : item.url.includes('.m3u8') || item.url.includes('index.m3u8') ? (
+                        ) : item.url.includes(".m3u8") ||
+                          item.url.includes("index.m3u8") ? (
                           <div className="w-full h-full bg-black flex items-center justify-center">
                             <VideoThumbnail
                               videoUrl={item.url}
@@ -355,7 +376,9 @@ export const EditPostDialog = ({
                       </button>
                       <div className="absolute bottom-2 left-2 bg-black/70 text-white text-xs px-2 py-1 rounded-full flex items-center gap-1">
                         {item.type === "image" ? "📷" : "🎥"}
-                        {!item.isExisting && <span className="text-green-400">Mới</span>}
+                        {!item.isExisting && (
+                          <span className="text-green-400">Mới</span>
+                        )}
                       </div>
                     </div>
                   ))}
@@ -410,21 +433,21 @@ export const EditPostDialog = ({
               </div>
 
               <div className="flex gap-3">
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   onClick={handleClose}
                   disabled={isSubmitting}
                 >
-              Hủy
-            </Button>
-            <Button
-              onClick={handleSave}
+                  Hủy
+                </Button>
+                <Button
+                  onClick={handleSave}
                   disabled={
                     isSubmitting ||
                     !content.trim() ||
-                    (content === initialContent && 
-                     media.length === initialMediaUrl.length &&
-                     taggedFriendIds.length === 0)
+                    (content === initialContent &&
+                      media.length === initialMediaUrl.length &&
+                      taggedFriendIds.length === 0)
                   }
                   className="px-6 bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90"
                 >
@@ -436,12 +459,12 @@ export const EditPostDialog = ({
                   ) : (
                     "Lưu thay đổi"
                   )}
-            </Button>
+                </Button>
               </div>
+            </div>
           </div>
-        </div>
-      </DialogContent>
-    </Dialog>
+        </DialogContent>
+      </Dialog>
 
       {/* Media Viewer Modal */}
       {selectedMedia && (

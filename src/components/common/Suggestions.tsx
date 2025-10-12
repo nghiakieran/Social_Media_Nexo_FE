@@ -1,24 +1,24 @@
-import { useState } from "react"
-import { useNavigate } from "react-router-dom"
-import { Button } from "@/components/ui/button"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Dialog, DialogContent } from "@/components/ui/dialog"
-import { useAppSelector } from "@/store"
-import { SwitchAccountDialog } from "@/features/auth"
-import { getAvatarUrl, getAvatarInitials } from "@/utils/avatar"
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { useAppSelector } from "@/store";
+import { SwitchAccountDialog } from "@/features/auth";
+import { getAvatarUrl, getAvatarInitials } from "@/utils/avatar";
 
 interface SuggestionUser {
-  id: string
-  username: string
-  displayName: string
-  avatar: string
-  mutualFollowers?: string
-  isFollowing?: boolean
-  posts?: number
-  followers?: number
-  following?: number
-  bio?: string
-  profileImages?: string[]
+  id: string;
+  username: string;
+  displayName: string;
+  avatar: string;
+  mutualFollowers?: string;
+  isFollowing?: boolean;
+  posts?: number;
+  followers?: number;
+  following?: number;
+  bio?: string;
+  profileImages?: string[];
 }
 
 const mockSuggestions: SuggestionUser[] = [
@@ -80,7 +80,10 @@ const mockSuggestions: SuggestionUser[] = [
     posts: 67,
     followers: 567,
     following: 234,
-    profileImages: ["https://picsum.photos/200/200?random=41", "https://picsum.photos/200/200?random=42"],
+    profileImages: [
+      "https://picsum.photos/200/200?random=41",
+      "https://picsum.photos/200/200?random=42",
+    ],
   },
   {
     id: "5",
@@ -106,7 +109,10 @@ const mockSuggestions: SuggestionUser[] = [
     posts: 67,
     followers: 567,
     following: 234,
-    profileImages: ["https://picsum.photos/200/200?random=41", "https://picsum.photos/200/200?random=42"],
+    profileImages: [
+      "https://picsum.photos/200/200?random=41",
+      "https://picsum.photos/200/200?random=42",
+    ],
   },
   {
     id: "7",
@@ -132,7 +138,10 @@ const mockSuggestions: SuggestionUser[] = [
     posts: 67,
     followers: 567,
     following: 234,
-    profileImages: ["https://picsum.photos/200/200?random=41", "https://picsum.photos/200/200?random=42"],
+    profileImages: [
+      "https://picsum.photos/200/200?random=41",
+      "https://picsum.photos/200/200?random=42",
+    ],
   },
   {
     id: "9",
@@ -149,16 +158,20 @@ const mockSuggestions: SuggestionUser[] = [
       "https://picsum.photos/200/200?random=53",
     ],
   },
-]
+];
 
 interface AllSuggestionsModalProps {
-  isOpen: boolean
-  onClose: () => void
-  onUserClick: (user: SuggestionUser) => void
+  isOpen: boolean;
+  onClose: () => void;
+  onUserClick: (user: SuggestionUser) => void;
 }
 
-const AllSuggestionsModal = ({ isOpen, onClose, onUserClick }: AllSuggestionsModalProps) => {
-  const [hoveredUser, setHoveredUser] = useState<string | null>(null)
+const AllSuggestionsModal = ({
+  isOpen,
+  onClose,
+  onUserClick,
+}: AllSuggestionsModalProps) => {
+  const [hoveredUser, setHoveredUser] = useState<string | null>(null);
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -179,14 +192,18 @@ const AllSuggestionsModal = ({ isOpen, onClose, onUserClick }: AllSuggestionsMod
                   onMouseEnter={() => setHoveredUser(user.id)}
                   onMouseLeave={() => setHoveredUser(null)}
                   onClick={() => {
-                    onUserClick(user)
-                    onClose()
+                    onUserClick(user);
+                    onClose();
                   }}
                 >
                   <div className="flex items-center gap-3">
                     <div className="relative">
                       <Avatar
-                        className={`h-12 w-12 transition-all duration-300 ${hoveredUser === user.id ? "ring-2 ring-gradient-instagram scale-110" : ""}`}
+                        className={`h-12 w-12 transition-all duration-300 ${
+                          hoveredUser === user.id
+                            ? "ring-2 ring-gradient-instagram scale-110"
+                            : ""
+                        }`}
                       >
                         <AvatarImage src={getAvatarUrl(user.avatar)} />
                         <AvatarFallback className="bg-gradient-to-br from-muted to-secondary text-foreground font-semibold">
@@ -201,19 +218,24 @@ const AllSuggestionsModal = ({ isOpen, onClose, onUserClick }: AllSuggestionsMod
                       <p className="font-bold text-sm text-foreground group-hover:bg-gradient-instagram group-hover:bg-clip-text group-hover:text-transparent transition-all duration-300">
                         {user.username}
                       </p>
-                      <p className="text-muted-foreground text-xs">{user.displayName}</p>
-                      <p className="text-muted-foreground text-xs">{user.mutualFollowers}</p>
+                      <p className="text-muted-foreground text-xs">
+                        {user.displayName}
+                      </p>
+                      <p className="text-muted-foreground text-xs">
+                        {user.mutualFollowers}
+                      </p>
                     </div>
                   </div>
                   <Button
                     variant="ghost"
                     size="sm"
-                    className={`font-bold text-sm px-4 py-2 rounded-lg transition-all duration-300 ${hoveredUser === user.id
+                    className={`font-bold text-sm px-4 py-2 rounded-lg transition-all duration-300 ${
+                      hoveredUser === user.id
                         ? "bg-gradient-instagram text-white hover:opacity-90 scale-110 shadow-glow"
                         : "text-blue-500 hover:text-blue-600 hover:bg-blue-50"
-                      }`}
+                    }`}
                     onClick={(e) => {
-                      e.stopPropagation()
+                      e.stopPropagation();
                       // Handle follow action
                     }}
                   >
@@ -226,37 +248,39 @@ const AllSuggestionsModal = ({ isOpen, onClose, onUserClick }: AllSuggestionsMod
         </div>
       </DialogContent>
     </Dialog>
-  )
-}
-
+  );
+};
 
 export const Suggestions = () => {
-  const navigate = useNavigate()
-  const [hoveredUser, setHoveredUser] = useState<string | null>(null)
-  const [showAllSuggestions, setShowAllSuggestions] = useState(false)
-  const [isSwitchAccountOpen, setIsSwitchAccountOpen] = useState(false)
-  const user = useAppSelector((state) => state.auth.user)
+  const navigate = useNavigate();
+  const [hoveredUser, setHoveredUser] = useState<string | null>(null);
+  const [showAllSuggestions, setShowAllSuggestions] = useState(false);
+  const [isSwitchAccountOpen, setIsSwitchAccountOpen] = useState(false);
+  const user = useAppSelector((state) => state.auth.user);
 
-  const displayedSuggestions = mockSuggestions.slice(0, 5)
+  const displayedSuggestions = mockSuggestions.slice(0, 5);
 
   const handleSeeAll = () => {
-    setShowAllSuggestions(true)
-  }
+    setShowAllSuggestions(true);
+  };
 
   const handleUserClick = (user: SuggestionUser) => {
-    navigate(`/${user.username}`)
-  }
+    navigate(`/${user.username}`);
+  };
 
   const handleSwitchAccount = () => {
-    setIsSwitchAccountOpen(true)
-  }
+    setIsSwitchAccountOpen(true);
+  };
 
   return (
     <>
       <div className="fixed right-4 top-4 w-[22rem] h-[calc(100vh)] overflow-y-auto p-4 space-y-6 bg-background border-l border-border/30">
         {/* Current User Profile */}
         <div className="flex items-center justify-between p-3 rounded-xl bg-gradient-to-r from-muted/50 to-background border border-border/50 shadow-glow">
-          <div className="flex items-center gap-3">
+          <div
+            className="flex items-center gap-3 cursor-pointer flex-1 hover:opacity-80 transition-opacity"
+            onClick={() => user?.username && navigate(`/${user.username}`)}
+          >
             <div className="relative">
               <Avatar className="h-14 w-14 ring-2 ring-gradient-instagram">
                 <AvatarImage src={getAvatarUrl(user?.avatar)} />
@@ -267,8 +291,12 @@ export const Suggestions = () => {
               <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-gradient-story rounded-full border-2 border-background"></div>
             </div>
             <div className="flex-1">
-              <p className="font-bold text-sm text-foreground">{user?.username || "username"}</p>
-              <p className="text-muted-foreground text-sm">{user?.fullName || "Full Name"}</p>
+              <p className="font-bold text-sm text-foreground hover:underline">
+                {user?.username || "username"}
+              </p>
+              <p className="text-muted-foreground text-sm">
+                {user?.fullName || "Full Name"}
+              </p>
             </div>
           </div>
           <Button
@@ -284,7 +312,9 @@ export const Suggestions = () => {
         {/* Suggestions Section */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-muted-foreground font-bold text-sm">Gợi ý cho bạn</h3>
+            <h3 className="text-muted-foreground font-bold text-sm">
+              Gợi ý cho bạn
+            </h3>
             <Button
               variant="ghost"
               size="sm"
@@ -307,7 +337,11 @@ export const Suggestions = () => {
                 <div className="flex items-center gap-3">
                   <div className="relative">
                     <Avatar
-                      className={`h-11 w-11 transition-all duration-300 ${hoveredUser === user.id ? "ring-2 ring-gradient-instagram scale-110" : ""}`}
+                      className={`h-11 w-11 transition-all duration-300 ${
+                        hoveredUser === user.id
+                          ? "ring-2 ring-gradient-instagram scale-110"
+                          : ""
+                      }`}
                     >
                       <AvatarImage src={getAvatarUrl(user.avatar)} />
                       <AvatarFallback className="bg-gradient-to-br from-muted to-secondary text-foreground font-semibold">
@@ -322,18 +356,21 @@ export const Suggestions = () => {
                     <p className="font-bold text-sm text-foreground group-hover:bg-gradient-instagram group-hover:bg-clip-text group-hover:text-transparent transition-all duration-300">
                       {user.username}
                     </p>
-                    <p className="text-muted-foreground text-xs">{user.mutualFollowers}</p>
+                    <p className="text-muted-foreground text-xs">
+                      {user.mutualFollowers}
+                    </p>
                   </div>
                 </div>
                 <Button
                   variant="ghost"
                   size="sm"
-                  className={`font-bold text-sm px-4 py-2 rounded-lg transition-all duration-300 ${hoveredUser === user.id
+                  className={`font-bold text-sm px-4 py-2 rounded-lg transition-all duration-300 ${
+                    hoveredUser === user.id
                       ? "bg-gradient-instagram text-white hover:opacity-90 scale-110 shadow-glow"
                       : "text-blue-500 hover:text-blue-600 hover:bg-blue-50"
-                    }`}
+                  }`}
                   onClick={(e) => {
-                    e.stopPropagation()
+                    e.stopPropagation();
                     // Handle follow action
                   }}
                 >
@@ -348,33 +385,53 @@ export const Suggestions = () => {
         <div className="space-y-4 pt-4 border-t border-border/50">
           <div className="text-xs text-muted-foreground space-y-2">
             <div className="flex flex-wrap gap-x-3 gap-y-1">
-              <a href="#" className="hover:underline hover:text-foreground transition-colors hover:font-semibold">
+              <a
+                href="#"
+                className="hover:underline hover:text-foreground transition-colors hover:font-semibold"
+              >
                 Giới thiệu
               </a>
               <span>·</span>
-              <a href="#" className="hover:underline hover:text-foreground transition-colors hover:font-semibold">
+              <a
+                href="#"
+                className="hover:underline hover:text-foreground transition-colors hover:font-semibold"
+              >
                 Trợ giúp
               </a>
               <span>·</span>
-              <a href="#" className="hover:underline hover:text-foreground transition-colors hover:font-semibold">
+              <a
+                href="#"
+                className="hover:underline hover:text-foreground transition-colors hover:font-semibold"
+              >
                 Điều khoản
               </a>
             </div>
             <div className="flex flex-wrap gap-x-3 gap-y-1">
-              <a href="#" className="hover:underline hover:text-foreground transition-colors hover:font-semibold">
+              <a
+                href="#"
+                className="hover:underline hover:text-foreground transition-colors hover:font-semibold"
+              >
                 Quyền riêng tư
               </a>
               <span>·</span>
-              <a href="#" className="hover:underline hover:text-foreground transition-colors hover:font-semibold">
+              <a
+                href="#"
+                className="hover:underline hover:text-foreground transition-colors hover:font-semibold"
+              >
                 Vị trí
               </a>
               <span>·</span>
-              <a href="#" className="hover:underline hover:text-foreground transition-colors hover:font-semibold">
+              <a
+                href="#"
+                className="hover:underline hover:text-foreground transition-colors hover:font-semibold"
+              >
                 Ngôn ngữ
               </a>
             </div>
           </div>
-          <p className="text-xs text-muted-foreground font-medium">© 2025 Nexo</p>
+          <p className="text-xs text-muted-foreground font-medium">
+            © 2025 Nexo
+          </p>
         </div>
       </div>
 
@@ -391,5 +448,5 @@ export const Suggestions = () => {
         onClose={() => setIsSwitchAccountOpen(false)}
       />
     </>
-  )
-}
+  );
+};

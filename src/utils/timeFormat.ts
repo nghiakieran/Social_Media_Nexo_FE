@@ -63,6 +63,7 @@ export const formatTimeAgoShort = (dateString: string): string => {
   if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h`;
   if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)}d`;
   if (diffInSeconds < 2592000) return `${Math.floor(diffInSeconds / 604800)}w`;
-  if (diffInSeconds < 31536000) return `${Math.floor(diffInSeconds / 2592000)}mo`;
+  if (diffInSeconds < 31536000)
+    return `${Math.floor(diffInSeconds / 2592000)}mo`;
   return `${Math.floor(diffInSeconds / 31536000)}y`;
 };

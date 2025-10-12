@@ -19,7 +19,13 @@ import {
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "@/store";
-import { getPostDetailThunk, getMutualFollowersThunk, deletePostThunk, updatePostThunk, togglePostActiveThunk } from "../postSlice";
+import {
+  getPostDetailThunk,
+  getMutualFollowersThunk,
+  deletePostThunk,
+  updatePostThunk,
+  togglePostActiveThunk,
+} from "../postSlice";
 import type { UpdatePostRequest } from "../types";
 import { ActionMenuDialog } from "../components/ActionMenuDialog";
 import { formatTimeAgo } from "@/utils/timeFormat";
@@ -50,7 +56,8 @@ const mockPost = {
   id: "1",
   userId: "1",
   userName: "nguyenvana",
-  avatarUrl: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=32&h=32&fit=crop&crop=face",
+  avatarUrl:
+    "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=32&h=32&fit=crop&crop=face",
   caption: `Chào mọi người! Hôm nay mình có cơ hội được tham quan một công ty công nghệ rất thú vị. Không gian làm việc hiện đại, team trẻ trung và năng động. Đặc biệt là phòng chill với view thành phố rất đẹp! 
 
 Các bạn có kinh nghiệm nào về việc chọn môi trường làm việc không? Mình đang cân nhắc giữa startup và công ty lớn. 🤔
@@ -108,8 +115,10 @@ export const PostDetailPage = () => {
   const dispatch = useAppDispatch();
   const { toast } = useToast();
   const { isBookmarked, toggleBookmark } = useBookmark();
-  const { currentPost, isLoading, error } = useAppSelector(state => state.post);
-  const { user } = useAppSelector(state => state.auth);
+  const { currentPost, isLoading, error } = useAppSelector(
+    (state) => state.post
+  );
+  const { user } = useAppSelector((state) => state.auth);
 
   const [post, setPost] = useState<UIPost | null>(null);
   const [interactions, setInteractions] = useState({
@@ -140,7 +149,7 @@ export const PostDetailPage = () => {
           isBookmarked: currentPost.isBookmarked,
           isShared: false,
         },
-        taggedFriends: currentPost.taggedUsers.map(t => t.userName),
+        taggedFriends: currentPost.taggedUsers.map((t) => t.userName),
       };
       setPost(uiPost);
       setInteractions({
@@ -206,10 +215,10 @@ export const PostDetailPage = () => {
           toast({ title: "Đã xóa", description: "Bài viết đã được xóa." });
           navigate(-1);
         } catch (error) {
-          toast({ 
-            title: "Lỗi", 
+          toast({
+            title: "Lỗi",
             description: "Không thể xóa bài viết. Vui lòng thử lại.",
-            variant: "destructive"
+            variant: "destructive",
           });
         }
         break;
@@ -222,8 +231,8 @@ export const PostDetailPage = () => {
           const isNowHidden = !post.isActive;
           toast({
             title: isNowHidden ? "Đã ẩn bài viết" : "Đã hiển thị bài viết",
-            description: isNowHidden 
-              ? "Bài viết sẽ không hiển thị trên trang cá nhân của bạn." 
+            description: isNowHidden
+              ? "Bài viết sẽ không hiển thị trên trang cá nhân của bạn."
               : "Bài viết đã được hiển thị lại trên trang cá nhân.",
           });
           // Refresh post detail
@@ -234,7 +243,7 @@ export const PostDetailPage = () => {
           toast({
             title: "Lỗi",
             description: "Không thể thay đổi trạng thái bài viết.",
-            variant: "destructive"
+            variant: "destructive",
           });
         }
         break;
@@ -331,8 +340,8 @@ export const PostDetailPage = () => {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <p className="text-red-500 mb-4">{error}</p>
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             onClick={() => {
               if (postId) {
                 dispatch(getPostDetailThunk(parseInt(postId)));
@@ -432,7 +441,7 @@ export const PostDetailPage = () => {
                           @{post.userName}
                         </span>
                         <span>•</span>
-                        {post.visibility === 'private' ? (
+                        {post.visibility === "private" ? (
                           <Lock className="w-3 h-3 text-muted-foreground" />
                         ) : (
                           <Globe className="w-3 h-3 text-muted-foreground" />
@@ -636,8 +645,10 @@ export const PostDetailPage = () => {
         postId={parseInt(post.id)}
         userId={parseInt(post.userId)}
         initialContent={post.caption}
-        initialVisibility={post.visibility.toUpperCase() as 'PUBLIC' | 'PRIVATE'}
-        initialMediaUrl={post.media.map(m => m.url)}
+        initialVisibility={
+          post.visibility.toUpperCase() as "PUBLIC" | "PRIVATE"
+        }
+        initialMediaUrl={post.media.map((m) => m.url)}
         onSave={handleEditPost}
       />
     </div>

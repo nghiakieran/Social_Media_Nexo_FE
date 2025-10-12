@@ -1,31 +1,38 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useState, useEffect } from 'react';
-import { PostCard } from '../components/PostCard';
-import { EditPostDialog } from '../components/EditPostDialog';
-import { ReportPostDialog } from '../components/ReportPostDialog';
-import { ShareDialog } from '../components/ShareDialog';
-import { Stories } from '@/components/common/Stories';
-import { StoryViewer } from '@/features/story/components';
-import { mockStories, mockStoriesData } from '../__mocks__/stories';
-import { mockComments } from '@/features/interaction/__mocks__/comments';
-import { useToast } from '@/hooks/use-toast';
-import { useAppDispatch, useAppSelector } from '@/store';
-import { getFeedThunk, updatePostThunk, deletePostThunk, togglePostActiveThunk } from '../postSlice';
-import { Loader } from '@/components/common/Loader';
-import { useInfiniteScroll } from '@/hooks/use-infinite-scroll';
-import type { UpdatePostRequest } from '../types';
+import { useState, useEffect } from "react";
+import { PostCard } from "../components/PostCard";
+import { EditPostDialog } from "../components/EditPostDialog";
+import { ReportPostDialog } from "../components/ReportPostDialog";
+import { ShareDialog } from "../components/ShareDialog";
+import { Stories } from "@/components/common/Stories";
+import { StoryViewer } from "@/features/story/components";
+import { mockStories, mockStoriesData } from "../__mocks__/stories";
+import { mockComments } from "@/features/interaction/__mocks__/comments";
+import { useToast } from "@/hooks/use-toast";
+import { useAppDispatch, useAppSelector } from "@/store";
+import {
+  getFeedThunk,
+  updatePostThunk,
+  deletePostThunk,
+  togglePostActiveThunk,
+} from "../postSlice";
+import { Loader } from "@/components/common/Loader";
+import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
+import type { UpdatePostRequest } from "../types";
 
 interface MediaItem {
   id: string;
-  type: 'image' | 'video';
+  type: "image" | "video";
   url: string;
   file: File;
 }
 
 export const FeedPage = () => {
   const dispatch = useAppDispatch();
-  const { user } = useAppSelector(state => state.auth);
-  const { posts, isLoading, error, hasMore, currentPage } = useAppSelector(state => state.post);
+  const { user } = useAppSelector((state) => state.auth);
+  const { posts, isLoading, error, hasMore, currentPage } = useAppSelector(
+    (state) => state.post
+  );
   const [editingPost, setEditingPost] = useState<any>(null);
   const [reportingPost, setReportingPost] = useState<string | null>(null);
   const [showStoryViewer, setShowStoryViewer] = useState(false);
@@ -57,19 +64,18 @@ export const FeedPage = () => {
     threshold: 200, // Trigger earlier for smoother experience
   });
 
-
   const handleLike = (postId: string) => {
     // TODO: Dispatch likePostThunk
-    console.log('Like post:', postId);
+    console.log("Like post:", postId);
   };
 
   const handleBookmark = (postId: string) => {
     // TODO: Dispatch bookmarkPostThunk
-    console.log('Bookmark post:', postId);
+    console.log("Bookmark post:", postId);
   };
 
   const handleEdit = (postId: string) => {
-    const post = posts.find(p => p.id === postId);
+    const post = posts.find((p) => p.id === postId);
     if (post) {
       setEditingPost(post);
     }
@@ -100,7 +106,7 @@ export const FeedPage = () => {
   };
 
   const handleDelete = (postId: string) => {
-    if (window.confirm('Bạn có chắc chắn muốn xóa bài viết này?')) {
+    if (window.confirm("Bạn có chắc chắn muốn xóa bài viết này?")) {
       dispatch(deletePostThunk(parseInt(postId)))
         .unwrap()
         .then(() => {
@@ -120,20 +126,20 @@ export const FeedPage = () => {
   };
 
   const handleReport = (postId: string, reason: string, details?: string) => {
-    console.log('Report post:', { postId, reason, details });
+    console.log("Report post:", { postId, reason, details });
     setReportingPost(null);
   };
 
   const handleShare = (postId: string, userIds: string[], message: string) => {
     // In a real app, this would send the share data to the backend
-    console.log('Sharing post:', { postId, userIds, message });
-    
+    console.log("Sharing post:", { postId, userIds, message });
+
     toast({
       title: "Chia sẻ thành công!",
       description: `Đã gửi bài viết đến ${userIds.length} người`,
       duration: 2000,
     });
-    
+
     setShowShareDialog(false);
     setSharePost(null);
   };
@@ -147,9 +153,9 @@ export const FeedPage = () => {
     const newComment = {
       id: `comment_${Date.now()}`,
       postId,
-      userId: 'current_user',
-      userName: 'Bạn',
-      avatarUrl: 'https://picsum.photos/40/40?random=999',
+      userId: "current_user",
+      userName: "Bạn",
+      avatarUrl: "https://picsum.photos/40/40?random=999",
       content,
       likesCount: 0,
       isLiked: false,
@@ -157,32 +163,36 @@ export const FeedPage = () => {
       updatedAt: new Date().toISOString(),
       replies: [],
     };
-    
-    setComments(prev => [...prev, newComment]);
-    
+
+    setComments((prev) => [...prev, newComment]);
+
     // TODO: Update post comment count via API
-    console.log('Comment added to post:', postId);
+    console.log("Comment added to post:", postId);
   };
 
   const handleLikeComment = (commentId: string) => {
-    setComments(prev => prev.map(comment => 
-      comment.id === commentId 
-        ? { 
-            ...comment, 
-            isLiked: !comment.isLiked,
-            likesCount: comment.isLiked ? comment.likesCount - 1 : comment.likesCount + 1
-          }
-        : comment
-    ));
+    setComments((prev) =>
+      prev.map((comment) =>
+        comment.id === commentId
+          ? {
+              ...comment,
+              isLiked: !comment.isLiked,
+              likesCount: comment.isLiked
+                ? comment.likesCount - 1
+                : comment.likesCount + 1,
+            }
+          : comment
+      )
+    );
   };
 
   const handleReplyComment = (commentId: string, content: string) => {
     const newReply = {
       id: `reply_${Date.now()}`,
-      postId: 'post1', // Use a default postId since we're working with mock data
-      userId: 'current_user',
-      userName: 'Bạn',
-      avatarUrl: 'https://picsum.photos/40/40?random=999',
+      postId: "post1", // Use a default postId since we're working with mock data
+      userId: "current_user",
+      userName: "Bạn",
+      avatarUrl: "https://picsum.photos/40/40?random=999",
       content,
       parentId: commentId,
       likesCount: 0,
@@ -190,16 +200,18 @@ export const FeedPage = () => {
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
-    
-    setComments(prev => prev.map(comment => 
-      comment.id === commentId 
-        ? { ...comment, replies: [...(comment.replies || []), newReply] }
-        : comment
-    ));
+
+    setComments((prev) =>
+      prev.map((comment) =>
+        comment.id === commentId
+          ? { ...comment, replies: [...(comment.replies || []), newReply] }
+          : comment
+      )
+    );
   };
 
   const handleStoryClick = (story: any) => {
-    const storyIndex = mockStories.findIndex(s => s.id === story.id);
+    const storyIndex = mockStories.findIndex((s) => s.id === story.id);
     if (storyIndex !== -1) {
       setCurrentStoryIndex(storyIndex);
       setShowStoryViewer(true);
@@ -217,9 +229,12 @@ export const FeedPage = () => {
       <div className="w-full min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <p className="text-red-500 mb-4">{error}</p>
-          <button 
+          <button
             className="px-4 py-2 bg-primary text-white rounded-lg"
-            onClick={() => user && dispatch(getFeedThunk({ userId: user.id, page: 0, limit: 10 }))}
+            onClick={() =>
+              user &&
+              dispatch(getFeedThunk({ userId: user.id, page: 0, limit: 10 }))
+            }
           >
             Thử lại
           </button>
@@ -233,95 +248,97 @@ export const FeedPage = () => {
       {/* Stories */}
       <Stories stories={mockStories} onStoryClick={handleStoryClick} />
 
-        {/* Posts Feed */}
-        <div className="space-y-6 p-4">
-          {posts.map((post, index) => {
-            const isLastItem = index === posts.length - 1;
-            
-            return (
-              <div key={post.id} ref={isLastItem ? lastElementRef : null}>
-                <PostCard
-                  post={post as any}
-                  onLike={handleLike}
-                  onEdit={handleEdit}
-                  onDelete={handleDelete}
-                  onReport={(postId) => setReportingPost(postId)}
-                  onShare={handleShare}
-                  onOpenShareDialog={() => handleOpenShareDialog(post)}
-                  isShareDialogOpen={showShareDialog && sharePost?.id === post.id}
-                  comments={comments.filter(comment => comment.postId === post.id)}
-                  onAddComment={handleAddComment}
-                  onLikeComment={handleLikeComment}
-                  onReplyComment={handleReplyComment}
-                  isOwnPost={post.userId === user?.id.toString()}
-                  isInProfilePage={false}
-                />
-              </div>
-            );
-          })}
+      {/* Posts Feed */}
+      <div className="space-y-6 p-4">
+        {posts.map((post, index) => {
+          const isLastItem = index === posts.length - 1;
 
-          {/* Load more indicator */}
-          {isLoading && posts.length > 0 && (
-            <div className="flex justify-center items-center py-8">
-              <Loader />
+          return (
+            <div key={post.id} ref={isLastItem ? lastElementRef : null}>
+              <PostCard
+                post={post as any}
+                onLike={handleLike}
+                onEdit={handleEdit}
+                onDelete={handleDelete}
+                onReport={(postId) => setReportingPost(postId)}
+                onShare={handleShare}
+                onOpenShareDialog={() => handleOpenShareDialog(post)}
+                isShareDialogOpen={showShareDialog && sharePost?.id === post.id}
+                comments={comments.filter(
+                  (comment) => comment.postId === post.id
+                )}
+                onAddComment={handleAddComment}
+                onLikeComment={handleLikeComment}
+                onReplyComment={handleReplyComment}
+                isOwnPost={post.userId === user?.id.toString()}
+                isInProfilePage={false}
+              />
             </div>
-          )}
+          );
+        })}
 
-          {posts.length === 0 && (
-            <div className="text-center py-12">
-              <p className="text-muted-foreground mb-4">
-                Chưa có bài viết nào.
-              </p>
-            </div>
-          )}
-        </div>
-
-        {/* Edit Post Dialog */}
-        {editingPost && (
-          <EditPostDialog
-            isOpen={!!editingPost}
-            onClose={() => setEditingPost(null)}
-            postId={parseInt(editingPost.id)}
-            userId={user?.id || 0}
-            initialContent={editingPost.caption}
-            initialVisibility={editingPost.visibility.toUpperCase() as 'PUBLIC' | 'PRIVATE'}
-            initialMediaUrl={editingPost.media.map((m: any) => m.url)}
-            onSave={handleSaveEdit}
-          />
+        {/* Load more indicator */}
+        {isLoading && posts.length > 0 && (
+          <div className="flex justify-center items-center py-8">
+            <Loader />
+          </div>
         )}
 
-        {/* Report Post Dialog */}
-        {reportingPost && (
-          <ReportPostDialog
-            isOpen={!!reportingPost}
-            onClose={() => setReportingPost(null)}
-            postId={reportingPost}
-            onReport={handleReport}
-          />
+        {posts.length === 0 && (
+          <div className="text-center py-12">
+            <p className="text-muted-foreground mb-4">Chưa có bài viết nào.</p>
+          </div>
         )}
+      </div>
 
-        {/* Story Viewer */}
-        {showStoryViewer && (
-          <StoryViewer
-            isOpen={showStoryViewer}
-            onClose={() => setShowStoryViewer(false)}
-            stories={mockStoriesData}
-            initialStoryIndex={currentStoryIndex}
-          />
-        )}
+      {/* Edit Post Dialog */}
+      {editingPost && (
+        <EditPostDialog
+          isOpen={!!editingPost}
+          onClose={() => setEditingPost(null)}
+          postId={parseInt(editingPost.id)}
+          userId={user?.id || 0}
+          initialContent={editingPost.caption}
+          initialVisibility={
+            editingPost.visibility.toUpperCase() as "PUBLIC" | "PRIVATE"
+          }
+          initialMediaUrl={editingPost.media.map((m: any) => m.url)}
+          onSave={handleSaveEdit}
+        />
+      )}
 
-        {/* Share Dialog */}
-        {sharePost && (
-          <ShareDialog
-            isOpen={showShareDialog}
-            onClose={() => {
-              setShowShareDialog(false);
-              setSharePost(null);
-            }}
-            post={sharePost}
-            onShare={handleShare}
-          />
-        )}
+      {/* Report Post Dialog */}
+      {reportingPost && (
+        <ReportPostDialog
+          isOpen={!!reportingPost}
+          onClose={() => setReportingPost(null)}
+          postId={reportingPost}
+          onReport={handleReport}
+        />
+      )}
+
+      {/* Story Viewer */}
+      {showStoryViewer && (
+        <StoryViewer
+          isOpen={showStoryViewer}
+          onClose={() => setShowStoryViewer(false)}
+          stories={mockStoriesData}
+          initialStoryIndex={currentStoryIndex}
+        />
+      )}
+
+      {/* Share Dialog */}
+      {sharePost && (
+        <ShareDialog
+          isOpen={showShareDialog}
+          onClose={() => {
+            setShowShareDialog(false);
+            setSharePost(null);
+          }}
+          post={sharePost}
+          onShare={handleShare}
+        />
+      )}
     </div>
   );
 };

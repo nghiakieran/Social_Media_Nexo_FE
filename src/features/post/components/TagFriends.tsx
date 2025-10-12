@@ -1,12 +1,13 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Check, Search, Users, X } from "lucide-react";
-import { useState, useEffect } from "react";
+import { Check, Users, X } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
 import { useAppDispatch, useAppSelector } from "@/store";
 import { getMutualFollowersThunk } from "../postSlice";
 import { Loader } from "@/components/common/Loader";
 import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
+import { useDebouncedSearch } from "@/hooks/use-debounce-search";
+import { SearchInput } from "@/components/common/SearchInput";
 import type { MutualUser } from "../types";
 
 interface TagFriendsProps {
@@ -21,38 +22,56 @@ export const TagFriends = ({
   onClose,
 }: TagFriendsProps) => {
   const dispatch = useAppDispatch();
-  const { 
-    mutualFollowers, 
-    isLoadingMutuals, 
+  const {
+    mutualFollowers,
+    isLoadingMutuals,
     mutualFollowersHasMore,
-    mutualFollowersPage 
-  } = useAppSelector(state => state.post);
-  const [searchTerm, setSearchTerm] = useState("");
+    mutualFollowersPage,
+  } = useAppSelector((state) => state.post);
+  const {
+    searchValue,
+    debouncedValue,
+    setSearchValue,
+    clearSearch,
+    isDebouncing,
+  } = useDebouncedSearch("", 400);
 
-  // Load mutual followers when component mounts
+  // Load mutual followers when component mounts or search changes
   useEffect(() => {
-    dispatch(getMutualFollowersThunk({ pageNo: 0, pageSize: 10 }));
-  }, [dispatch]);
+    dispatch(
+      getMutualFollowersThunk({
+        pageNo: 0,
+        pageSize: 10,
+        search: debouncedValue || undefined,
+      })
+    );
+  }, [dispatch, debouncedValue]);
 
   // Infinite scroll handler
-  const handleLoadMore = () => {
+  const handleLoadMore = useCallback(() => {
     if (!isLoadingMutuals && mutualFollowersHasMore) {
       const nextPage = mutualFollowersPage + 1;
-      dispatch(getMutualFollowersThunk({ pageNo: nextPage, pageSize: 10 }));
+      dispatch(
+        getMutualFollowersThunk({
+          pageNo: nextPage,
+          pageSize: 10,
+          search: debouncedValue || undefined,
+        })
+      );
     }
-  };
+  }, [
+    isLoadingMutuals,
+    mutualFollowersHasMore,
+    mutualFollowersPage,
+    dispatch,
+    debouncedValue,
+  ]);
 
   // Use infinite scroll hook
   const { lastElementRef } = useInfiniteScroll(handleLoadMore, {
     hasMore: mutualFollowersHasMore,
     isLoading: isLoadingMutuals,
   });
-
-  const filteredFriends = mutualFollowers.filter(
-    (friend) =>
-      friend.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      friend.userName.toLowerCase().includes(searchTerm.toLowerCase())
-  );
 
   const toggleFriend = (friendUserId: number) => {
     if (selectedFriends.includes(friendUserId)) {
@@ -61,7 +80,6 @@ export const TagFriends = ({
       onSelectionChange([...selectedFriends, friendUserId]);
     }
   };
-
 
   return (
     <div className="space-y-6 p-6 border border-border/50 rounded-2xl bg-card/80 backdrop-blur-sm shadow-lg">
@@ -88,15 +106,14 @@ export const TagFriends = ({
       </div>
 
       {/* Search */}
-      <div className="relative">
-        <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder="Tìm kiếm bạn bè..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="pl-12 h-12 rounded-xl border-border/50 focus:border-primary/50 focus:ring-primary/20"
-        />
-      </div>
+      <SearchInput
+        value={searchValue}
+        onChange={setSearchValue}
+        onClear={clearSearch}
+        placeholder="Tìm kiếm bạn bè..."
+        isDebouncing={isDebouncing}
+        className="h-12"
+      />
 
       {/* Selected Friends */}
       {selectedFriends.length > 0 && (
@@ -116,9 +133,11 @@ export const TagFriends = ({
           </div>
           <div className="flex flex-wrap gap-2">
             {selectedFriends.map((friendUserId) => {
-              const friend = mutualFollowers.find(f => f.userId === friendUserId);
+              const friend = mutualFollowers.find(
+                (f) => f.userId === friendUserId
+              );
               if (!friend) return null;
-              
+
               return (
                 <Badge
                   key={friend.userId}
@@ -146,14 +165,19 @@ export const TagFriends = ({
 
       {/* Friends List */}
       <div className="max-h-80 overflow-y-auto space-y-2 scrollbar-thin scrollbar-thumb-muted-foreground/30 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/50">
-        {isLoadingMutuals ? (
+        {isLoadingMutuals && mutualFollowers.length === 0 ? (
           <div className="flex justify-center items-center py-8">
             <Loader />
           </div>
+        ) : mutualFollowers.length === 0 ? (
+          <div className="text-center py-12 text-muted-foreground">
+            <Users className="w-12 h-12 mx-auto mb-3 opacity-50" />
+            <p>{searchValue ? "Không tìm thấy kết quả" : "Chưa có bạn bè"}</p>
+          </div>
         ) : (
-          filteredFriends.map((friend, index) => {
+          mutualFollowers.map((friend, index) => {
             const isSelected = selectedFriends.includes(friend.userId);
-            const isLastItem = index === filteredFriends.length - 1;
+            const isLastItem = index === mutualFollowers.length - 1;
 
             return (
               <div
@@ -209,28 +233,14 @@ export const TagFriends = ({
             );
           })
         )}
-        
+
         {/* Load more indicator */}
-        {isLoadingMutuals && filteredFriends.length > 0 && (
+        {isLoadingMutuals && mutualFollowers.length > 0 && (
           <div className="flex justify-center items-center py-4">
             <Loader />
           </div>
         )}
       </div>
-
-      {!isLoadingMutuals && filteredFriends.length === 0 && (
-        <div className="text-center py-12">
-          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-muted/50 flex items-center justify-center">
-            <Search className="w-8 h-8 text-muted-foreground" />
-          </div>
-          <p className="text-muted-foreground font-medium">
-            Không tìm thấy bạn bè nào
-          </p>
-          <p className="text-sm text-muted-foreground mt-1">
-            Thử tìm kiếm với từ khóa khác
-          </p>
-        </div>
-      )}
 
       {/* Actions */}
       <div className="flex justify-end gap-3 pt-4 border-t border-border/50">

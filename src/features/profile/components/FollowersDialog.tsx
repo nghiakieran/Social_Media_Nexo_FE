@@ -1,14 +1,23 @@
-import { useEffect, useState, useCallback, useRef } from 'react';
-import { Search, UserPlus, UserMinus, X, AlertTriangle, Loader2, UserCheck } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
-import { useAppDispatch, useAppSelector } from '@/store';
-import { useInfiniteScroll } from '@/hooks/use-infinite-scroll';
+import { useEffect, useState, useCallback, useRef } from "react";
+import {
+  Search,
+  UserPlus,
+  UserMinus,
+  X,
+  AlertTriangle,
+  Loader2,
+  UserCheck,
+} from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { useAppDispatch, useAppSelector } from "@/store";
+import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
+import { useDebouncedSearch } from "@/hooks/use-debounce-search";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
+} from "@/components/ui/dialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -18,15 +27,20 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { UserProfile, FollowerUser, FollowingUser } from '../types';
-import { useToast } from '@/hooks/use-toast';
-import { followUserAsync, unfollowUserAsync, fetchFollowersByUsernameAsync, fetchFollowingByUsernameAsync } from '../profileSlice';
-import { navigateToProfile } from '@/utils/navigation';
-import { getAvatarUrl, getAvatarInitials } from '@/utils/avatar';
+} from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { UserProfile, FollowerUser, FollowingUser } from "../types";
+import { useToast } from "@/hooks/use-toast";
+import {
+  followUserAsync,
+  unfollowUserAsync,
+  fetchFollowersByUsernameAsync,
+  fetchFollowingByUsernameAsync,
+} from "../profileSlice";
+import { navigateToProfile } from "@/utils/navigation";
+import { getAvatarUrl, getAvatarInitials } from "@/utils/avatar";
+import { SearchInput } from "@/components/common/SearchInput";
 
 interface FollowersDialogProps {
   isOpen: boolean;
@@ -43,51 +57,117 @@ export const FollowersDialog = ({
   users,
   title,
   isCurrentUser = false,
-  username
+  username,
 }: FollowersDialogProps) => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
-  const [searchTerm, setSearchTerm] = useState('');
-  const [localUsers, setLocalUsers] = useState<FollowerUser[] | FollowingUser[]>([]);
+  const {
+    searchValue,
+    debouncedValue,
+    setSearchValue,
+    clearSearch,
+    isDebouncing,
+  } = useDebouncedSearch("", 400);
+  const [localUsers, setLocalUsers] = useState<
+    FollowerUser[] | FollowingUser[]
+  >([]);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [userToDelete, setUserToDelete] = useState<FollowerUser | FollowingUser | null>(null);
+  const [userToDelete, setUserToDelete] = useState<
+    FollowerUser | FollowingUser | null
+  >(null);
   const [showUnfollowConfirm, setShowUnfollowConfirm] = useState(false);
-  const [userToUnfollow, setUserToUnfollow] = useState<FollowerUser | FollowingUser | null>(null);
+  const [userToUnfollow, setUserToUnfollow] = useState<
+    FollowerUser | FollowingUser | null
+  >(null);
   const { toast } = useToast();
   const { isLoading } = useAppSelector((state) => state.profile);
+  const currentUser = useAppSelector((state) => state.auth.user);
 
-  // Keep local users in sync with props when dialog opens or data changes
+  // Keep local users in sync with props
   useEffect(() => {
-    if (isOpen && Array.isArray(users)) {
+    if (Array.isArray(users)) {
       setLocalUsers(users);
-      setSearchTerm('');
     }
-  }, [isOpen, users, title]);
+  }, [users]);
 
   // Get pagination state from store
-  const {
-    followersHasMore,
-    followersPage,
-    followingHasMore,
-    followingPage
-  } = useAppSelector((state) => state.profile);
+  const { followersHasMore, followersPage, followingHasMore, followingPage } =
+    useAppSelector((state) => state.profile);
 
-  const isFollowersDialog = title === 'Người theo dõi';
-  const currentHasMore = isFollowersDialog ? followersHasMore : followingHasMore;
+  const isFollowersDialog = title === "Người theo dõi";
+  const currentHasMore = isFollowersDialog
+    ? followersHasMore
+    : followingHasMore;
   const currentPageNum = isFollowersDialog ? followersPage : followingPage;
+
+  // Clear search when dialog opens
+  useEffect(() => {
+    if (isOpen) {
+      clearSearch();
+    }
+  }, [isOpen, clearSearch]);
+
+  // Search effect - trigger API call when debounced value changes
+  // Gọi API kể cả khi search rỗng (để load lại toàn bộ danh sách)
+  useEffect(() => {
+    if (!username || !isOpen) return;
+
+    // Reset to first page when search changes
+    if (isFollowersDialog) {
+      dispatch(
+        fetchFollowersByUsernameAsync({
+          username,
+          pageNo: 0,
+          pageSize: 10,
+          search: debouncedValue || undefined,
+        })
+      );
+    } else {
+      dispatch(
+        fetchFollowingByUsernameAsync({
+          username,
+          pageNo: 0,
+          pageSize: 10,
+          search: debouncedValue || undefined,
+        })
+      );
+    }
+  }, [debouncedValue, username, isOpen, isFollowersDialog, dispatch]);
 
   // Load more handler for infinite scroll
   const handleLoadMore = useCallback(() => {
     if (!username || !currentHasMore || isLoading) return;
 
     const nextPage = currentPageNum + 1;
-    
+
     if (isFollowersDialog) {
-      dispatch(fetchFollowersByUsernameAsync({ username, pageNo: nextPage, pageSize: 10 }));
+      dispatch(
+        fetchFollowersByUsernameAsync({
+          username,
+          pageNo: nextPage,
+          pageSize: 10,
+          search: debouncedValue || undefined,
+        })
+      );
     } else {
-      dispatch(fetchFollowingByUsernameAsync({ username, pageNo: nextPage, pageSize: 10 }));
+      dispatch(
+        fetchFollowingByUsernameAsync({
+          username,
+          pageNo: nextPage,
+          pageSize: 10,
+          search: debouncedValue || undefined,
+        })
+      );
     }
-  }, [username, currentHasMore, isLoading, currentPageNum, isFollowersDialog, dispatch]);
+  }, [
+    username,
+    currentHasMore,
+    isLoading,
+    currentPageNum,
+    isFollowersDialog,
+    dispatch,
+    debouncedValue,
+  ]);
 
   // Use infinite scroll hook
   const { lastElementRef } = useInfiniteScroll(handleLoadMore, {
@@ -96,19 +176,18 @@ export const FollowersDialog = ({
     threshold: 100,
   });
 
-  // Filter users based on search term (frontend filtering for now)
-  // TODO: If user count > 50, consider implementing backend search API
-  const filteredUsers = Array.isArray(localUsers) ? localUsers.filter(user => {
-    // For Following dialog of current user, only show users that are actually following (isFollowing = true)
-    // Filter out pending requests (hasRequestedFollow = true but isFollowing = false)
-    if (title === 'Đang theo dõi' && isCurrentUser && !user.isFollowing) {
-      return false;
-    }
-    
-    // Apply search filter
-    return user.userName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.fullName?.toLowerCase().includes(searchTerm.toLowerCase());
-  }) : [];
+  // Filter users - backend search is now handling the search
+  // Only apply frontend filter for following status
+  const filteredUsers = Array.isArray(localUsers)
+    ? localUsers.filter((user) => {
+        // For Following dialog of current user, only show users that are actually following (isFollowing = true)
+        // Filter out pending requests (hasRequestedFollow = true but isFollowing = false)
+        if (title === "Đang theo dõi" && isCurrentUser && !user.isFollowing) {
+          return false;
+        }
+        return true;
+      })
+    : [];
 
   // Navigate to user profile
   const handleNavigateToProfile = (userName: string) => {
@@ -118,20 +197,20 @@ export const FollowersDialog = ({
 
   const handleFollow = async (userId: number) => {
     if (!Array.isArray(localUsers)) return;
-    
-    const user = localUsers.find(u => u.userId === userId);
+
+    const user = localUsers.find((u) => u.userId === userId);
     if (!user) return;
-    
+
     try {
       // For Following dialog, show confirmation for unfollow
-      if (title === 'Đang theo dõi') {
+      if (title === "Đang theo dõi") {
         setUserToUnfollow(user);
         setShowUnfollowConfirm(true);
         return;
       } else {
         // For Followers dialog, toggle follow status
         const isCurrentlyFollowing = user.isFollowing;
-        
+
         if (isCurrentlyFollowing) {
           // Show confirmation dialog for unfollow
           setUserToUnfollow(user);
@@ -141,41 +220,39 @@ export const FollowersDialog = ({
           // Follow user
           const resultAction = await dispatch(followUserAsync(user.userName));
           if (followUserAsync.fulfilled.match(resultAction)) {
-            setLocalUsers(prev => {
+            setLocalUsers((prev) => {
               if (!Array.isArray(prev)) return [];
-              return prev.map(u => 
-                u.userId === userId 
-                  ? { ...u, isFollowing: true }
-                  : u
+              return prev.map((u) =>
+                u.userId === userId ? { ...u, isFollowing: true } : u
               );
             });
-            
+
             toast({
-              title: 'Đã theo dõi',
+              title: "Đã theo dõi",
               description: `Bạn đã theo dõi ${user.userName}`,
             });
           } else {
             toast({
-              title: 'Lỗi',
+              title: "Lỗi",
               description: `Không thể theo dõi người dùng này`,
-              variant: 'destructive',
+              variant: "destructive",
             });
           }
         }
       }
     } catch (error) {
       toast({
-        title: 'Lỗi',
-        description: 'Đã xảy ra lỗi không mong muốn',
-        variant: 'destructive',
+        title: "Lỗi",
+        description: "Đã xảy ra lỗi không mong muốn",
+        variant: "destructive",
       });
     }
   };
 
   const handleRemoveFollower = (userId: number) => {
     if (!Array.isArray(localUsers)) return;
-    
-    const user = localUsers.find(u => u.userId === userId);
+
+    const user = localUsers.find((u) => u.userId === userId);
     if (user) {
       setUserToDelete(user);
       setShowDeleteConfirm(true);
@@ -185,25 +262,31 @@ export const FollowersDialog = ({
   const confirmRemoveFollower = async () => {
     if (userToDelete) {
       try {
-        const resultAction = await dispatch(unfollowUserAsync(userToDelete.userName));
+        const resultAction = await dispatch(
+          unfollowUserAsync(userToDelete.userName)
+        );
         if (unfollowUserAsync.fulfilled.match(resultAction)) {
-          setLocalUsers(prev => Array.isArray(prev) ? prev.filter(user => user.userId !== userToDelete.userId) : []);
+          setLocalUsers((prev) =>
+            Array.isArray(prev)
+              ? prev.filter((user) => user.userId !== userToDelete.userId)
+              : []
+          );
           toast({
-            title: 'Đã xóa người theo dõi',
+            title: "Đã xóa người theo dõi",
             description: `Đã xóa ${userToDelete.userName} khỏi danh sách người theo dõi`,
           });
         } else {
           toast({
-            title: 'Lỗi',
-            description: 'Không thể xóa người theo dõi này',
-            variant: 'destructive',
+            title: "Lỗi",
+            description: "Không thể xóa người theo dõi này",
+            variant: "destructive",
           });
         }
       } catch (error) {
         toast({
-          title: 'Lỗi',
-          description: 'Đã xảy ra lỗi không mong muốn',
-          variant: 'destructive',
+          title: "Lỗi",
+          description: "Đã xảy ra lỗi không mong muốn",
+          variant: "destructive",
         });
       }
       setShowDeleteConfirm(false);
@@ -219,38 +302,46 @@ export const FollowersDialog = ({
   const confirmUnfollow = async () => {
     if (userToUnfollow) {
       try {
-        const resultAction = await dispatch(unfollowUserAsync(userToUnfollow.userName));
+        const resultAction = await dispatch(
+          unfollowUserAsync(userToUnfollow.userName)
+        );
         if (unfollowUserAsync.fulfilled.match(resultAction)) {
           // If in Following dialog, reload the following list to get fresh data
-          if (title === 'Đang theo dõi' && username) {
-            dispatch(fetchFollowingByUsernameAsync({ username, pageNo: 0, pageSize: 10 }));
+          if (title === "Đang theo dõi" && username) {
+            dispatch(
+              fetchFollowingByUsernameAsync({
+                username,
+                pageNo: 0,
+                pageSize: 10,
+              })
+            );
           } else {
             // Otherwise, update local state
-            setLocalUsers(prev => {
+            setLocalUsers((prev) => {
               if (!Array.isArray(prev)) return [];
-              return prev.map(u => 
-                u.userId === userToUnfollow.userId 
+              return prev.map((u) =>
+                u.userId === userToUnfollow.userId
                   ? { ...u, isFollowing: false }
                   : u
               );
             });
           }
           toast({
-            title: 'Đã bỏ theo dõi',
+            title: "Đã bỏ theo dõi",
             description: `Bạn đã bỏ theo dõi ${userToUnfollow.userName}`,
           });
         } else {
           toast({
-            title: 'Lỗi',
-            description: 'Không thể bỏ theo dõi người dùng này',
-            variant: 'destructive',
+            title: "Lỗi",
+            description: "Không thể bỏ theo dõi người dùng này",
+            variant: "destructive",
           });
         }
       } catch (error) {
         toast({
-          title: 'Lỗi',
-          description: 'Đã xảy ra lỗi không mong muốn',
-          variant: 'destructive',
+          title: "Lỗi",
+          description: "Đã xảy ra lỗi không mong muốn",
+          variant: "destructive",
         });
       }
       setShowUnfollowConfirm(false);
@@ -268,102 +359,105 @@ export const FollowersDialog = ({
       <Dialog open={isOpen} onOpenChange={onClose}>
         <DialogContent className="w-[90vw] max-w-[560px] mx-auto bg-background p-0 overflow-hidden">
           <DialogHeader className="relative border-b border-border p-3">
-            <DialogTitle className="text-center text-base font-semibold">{title}</DialogTitle>
+            <DialogTitle className="text-center text-base font-semibold">
+              {title}
+            </DialogTitle>
           </DialogHeader>
 
           <div className="space-y-3 p-3 pt-0">
             {/* Search */}
             <div className="space-y-2">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                  placeholder="Tìm kiếm theo tên hoặc username"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 bg-muted/50"
-                />
-              </div>
-              {/* Search info - show when there are many users */}
-              {localUsers.length > 50 && !searchTerm && (
-                <p className="text-xs text-muted-foreground px-1">
-                  💡 Tip: Sử dụng tìm kiếm để tìm nhanh trong {localUsers.length} người
-                </p>
-              )}
-              {searchTerm && filteredUsers.length > 0 && (
-                <p className="text-xs text-muted-foreground px-1">
-                  Tìm thấy {filteredUsers.length} kết quả
-                </p>
-              )}
+              <SearchInput
+                value={searchValue}
+                onChange={setSearchValue}
+                onClear={clearSearch}
+                placeholder="Tìm kiếm theo tên hoặc username..."
+                isDebouncing={isDebouncing}
+                className="bg-muted/50"
+              />
             </div>
 
             {/* User List - fixed height for stable UX */}
-            <div 
-              className="h-[340px] overflow-y-auto space-y-1.5"
-            >
+            <div className="h-[340px] overflow-y-auto space-y-1.5">
               {filteredUsers.length === 0 ? (
                 <div className="h-full flex items-center justify-center text-muted-foreground">
-                  {searchTerm ? 'Không tìm thấy kết quả' : 'Danh sách trống'}
+                  {searchValue ? "Không tìm thấy kết quả" : "Danh sách trống"}
                 </div>
               ) : (
                 filteredUsers.map((user, index) => {
                   const isLastItem = index === filteredUsers.length - 1;
-                  
+
                   return (
-                  <div 
-                    key={user.userId} 
-                    ref={isLastItem ? lastElementRef : null}
-                    className="flex items-center justify-between px-2 py-2 hover:bg-muted/40 rounded-lg transition-colors"
-                  >
-                    <div className="flex items-center gap-3 flex-1 min-w-0 cursor-pointer" onClick={() => handleNavigateToProfile(user.userName)}>
-                      <Avatar className="w-11 h-11 hover:opacity-80 transition-opacity">
-                        <AvatarImage src={getAvatarUrl(user.avatar)} alt={user.userName} />
-                        <AvatarFallback>
-                          {getAvatarInitials(user.userName)}
-                        </AvatarFallback>
-                      </Avatar>
+                    <div
+                      key={user.userId}
+                      ref={isLastItem ? lastElementRef : null}
+                      className="flex items-center justify-between px-2 py-2 hover:bg-muted/40 rounded-lg transition-colors"
+                    >
+                      <div
+                        className="flex items-center gap-3 flex-1 min-w-0 cursor-pointer"
+                        onClick={() => handleNavigateToProfile(user.userName)}
+                      >
+                        <Avatar className="w-11 h-11 hover:opacity-80 transition-opacity">
+                          <AvatarImage
+                            src={getAvatarUrl(user.avatar)}
+                            alt={user.userName}
+                          />
+                          <AvatarFallback>
+                            {getAvatarInitials(user.userName)}
+                          </AvatarFallback>
+                        </Avatar>
                         <div className="flex-1 min-w-0">
-                          <div className="font-semibold text-sm leading-5 hover:underline">{user.userName}</div>
+                          <div className="font-semibold text-sm leading-5 hover:underline">
+                            {user.userName}
+                          </div>
                           <div className="text-xs text-muted-foreground truncate">
-                            {user.fullName || (user.closeFriend ? 'Bạn thân' : (title === 'Đang theo dõi' ? 'Đang theo dõi' : 'Người theo dõi'))}
+                            {user.fullName ||
+                              (user.closeFriend
+                                ? "Bạn thân"
+                                : title === "Đang theo dõi"
+                                ? "Đang theo dõi"
+                                : "Người theo dõi")}
                           </div>
                         </div>
-                    </div>
+                      </div>
 
-                    <div className="flex items-center gap-2">
-                      {title === 'Người theo dõi' && isCurrentUser ? (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleRemoveFollower(user.userId)}
-                          className="text-xs"
-                        >
-                          Xóa
-                        </Button>
-                      ) : title === 'Người theo dõi' ? (
-                        // Show follow/unfollow button based on isFollowing status
-                        user.isFollowing ? (
+                      <div className="flex items-center gap-2">
+                        {/* Không hiển thị nút nếu là chính mình */}
+                        {currentUser &&
+                        user.userId === currentUser.id ? null : title ===
+                            "Người theo dõi" && isCurrentUser ? (
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => handleFollow(user.userId)}
-                            className="text-xs gap-1"
+                            onClick={() => handleRemoveFollower(user.userId)}
+                            className="text-xs"
                           >
-                            <UserMinus className="w-3 h-3" />
-                            Đang theo dõi
+                            Xóa
                           </Button>
-                        ) : (
-                          <Button
-                            variant="instagram"
-                            size="sm"
-                            onClick={() => handleFollow(user.userId)}
-                            className="text-xs gap-1"
-                          >
-                            <UserPlus className="w-3 h-3" />
-                            Theo dõi
-                          </Button>
-                        )
-                      ) : (
-                        // Following dialog
+                        ) : title === "Người theo dõi" ? (
+                          // Show follow/unfollow button based on isFollowing status
+                          user.isFollowing ? (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleFollow(user.userId)}
+                              className="text-xs gap-1"
+                            >
+                              <UserMinus className="w-3 h-3" />
+                              Đang theo dõi
+                            </Button>
+                          ) : (
+                            <Button
+                              variant="instagram"
+                              size="sm"
+                              onClick={() => handleFollow(user.userId)}
+                              className="text-xs gap-1"
+                            >
+                              <UserPlus className="w-3 h-3" />
+                              Theo dõi
+                            </Button>
+                          )
+                        ) : // Following dialog
                         user.hasRequestedFollow && !user.isFollowing ? (
                           // Show "Đang yêu cầu" for pending requests
                           <Button
@@ -386,19 +480,20 @@ export const FollowersDialog = ({
                             <UserMinus className="w-3 h-3" />
                             Đang theo dõi
                           </Button>
-                        )
-                      )}
+                        )}
+                      </div>
                     </div>
-                  </div>
                   );
                 })
               )}
-              
+
               {/* Loading indicator for infinite scroll */}
               {isLoading && filteredUsers.length > 0 && (
                 <div className="flex items-center justify-center py-4">
                   <Loader2 className="w-5 h-5 animate-spin" />
-                  <span className="ml-2 text-sm text-muted-foreground">Đang tải...</span>
+                  <span className="ml-2 text-sm text-muted-foreground">
+                    Đang tải...
+                  </span>
                 </div>
               )}
             </div>
@@ -419,17 +514,18 @@ export const FollowersDialog = ({
               </AlertDialogTitle>
             </div>
             <AlertDialogDescription className="text-sm text-muted-foreground">
-              Ứng dụng sẽ không cho {userToDelete?.userName} biết rằng bạn đã xóa họ khỏi danh sách người theo dõi mình.
+              Ứng dụng sẽ không cho {userToDelete?.userName} biết rằng bạn đã
+              xóa họ khỏi danh sách người theo dõi mình.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="flex gap-2">
-            <AlertDialogCancel 
+            <AlertDialogCancel
               onClick={cancelRemoveFollower}
               className="flex-1"
             >
               Hủy
             </AlertDialogCancel>
-            <AlertDialogAction 
+            <AlertDialogAction
               onClick={confirmRemoveFollower}
               className="flex-1 bg-red-600 hover:bg-red-700"
             >
@@ -440,12 +536,18 @@ export const FollowersDialog = ({
       </AlertDialog>
 
       {/* Unfollow Confirmation Dialog */}
-      <AlertDialog open={showUnfollowConfirm} onOpenChange={setShowUnfollowConfirm}>
+      <AlertDialog
+        open={showUnfollowConfirm}
+        onOpenChange={setShowUnfollowConfirm}
+      >
         <AlertDialogContent className="max-w-md mx-auto">
           <AlertDialogHeader>
             <div className="flex items-center gap-3 mb-2">
               <Avatar className="w-12 h-12">
-                <AvatarImage src={getAvatarUrl(userToUnfollow?.avatar)} alt={userToUnfollow?.userName} />
+                <AvatarImage
+                  src={getAvatarUrl(userToUnfollow?.avatar)}
+                  alt={userToUnfollow?.userName}
+                />
                 <AvatarFallback>
                   {getAvatarInitials(userToUnfollow?.userName)}
                 </AvatarFallback>
@@ -455,17 +557,15 @@ export const FollowersDialog = ({
               Bỏ theo dõi @{userToUnfollow?.userName}?
             </AlertDialogTitle>
             <AlertDialogDescription className="text-sm text-muted-foreground text-center">
-              Bạn sẽ không còn thấy bài đăng của @{userToUnfollow?.userName} trong bảng tin.
+              Bạn sẽ không còn thấy bài đăng của @{userToUnfollow?.userName}{" "}
+              trong bảng tin.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="flex gap-2">
-            <AlertDialogCancel 
-              onClick={cancelUnfollow}
-              className="flex-1"
-            >
+            <AlertDialogCancel onClick={cancelUnfollow} className="flex-1">
               Hủy
             </AlertDialogCancel>
-            <AlertDialogAction 
+            <AlertDialogAction
               onClick={confirmUnfollow}
               className="flex-1 bg-red-600 hover:bg-red-700"
             >

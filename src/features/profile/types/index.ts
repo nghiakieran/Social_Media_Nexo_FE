@@ -36,7 +36,7 @@ export interface UserProfile {
 }
 
 // Use Post from post feature directly
-export type { Post as ProfilePost } from '@/features/post/types';
+export type { Post as ProfilePost } from "@/features/post/types";
 
 export interface StoryHighlight {
   id: string;
@@ -119,6 +119,26 @@ export interface CloseFriendsResponse {
   };
 }
 
+// Blocked Users Types
+export interface BlockedUser {
+  id: number;
+  username: string;
+  fullName: string;
+  avatar: string;
+  bio: string;
+  isPrivate: boolean;
+  followers: number;
+  following: number;
+}
+
+export interface BlockedUsersResponse {
+  pageNo: number;
+  pageSize: number;
+  totalElements: number;
+  totalPages: number;
+  content: BlockedUser[];
+}
+
 // API Request Types
 export interface GetProfileRequest {
   username?: string; // Optional - if not provided, gets current user's profile
@@ -143,8 +163,8 @@ export const transformProfileData = (apiData: ProfileData): UserProfile => ({
   id: apiData.id.toString(),
   username: apiData.username,
   name: apiData.fullName,
-  avatar: apiData.avatar || '',
-  bio: apiData.bio || '',
+  avatar: apiData.avatar || "",
+  bio: apiData.bio || "",
   isPrivate: apiData.isPrivate,
   postsCount: 0, // Will be fetched separately
   followersCount: apiData.followers,

@@ -155,6 +155,7 @@ export interface MutualUser {
 export interface GetMutualFollowersRequest {
   pageNo?: number;
   pageSize?: number;
+  search?: string;
 }
 
 export interface GetMutualFollowersResponse {

@@ -1,4 +1,4 @@
-import { DEFAULT_AVATAR_URL } from './constants';
+import { DEFAULT_AVATAR_URL } from "./constants";
 
 /**
  * Get avatar URL with fallback to default avatar
@@ -6,7 +6,7 @@ import { DEFAULT_AVATAR_URL } from './constants';
  * @returns Valid avatar URL or default fallback
  */
 export const getAvatarUrl = (avatarUrl?: string | null): string => {
-  if (!avatarUrl || avatarUrl.trim() === '') {
+  if (!avatarUrl || avatarUrl.trim() === "") {
     return DEFAULT_AVATAR_URL;
   }
   return avatarUrl;
@@ -18,8 +18,8 @@ export const getAvatarUrl = (avatarUrl?: string | null): string => {
  * @returns First 2 uppercase letters
  */
 export const getAvatarInitials = (name?: string | null): string => {
-  if (!name || name.trim() === '') {
-    return 'U';
+  if (!name || name.trim() === "") {
+    return "U";
   }
   return name.slice(0, 2).toUpperCase();
 };

@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
-import Hls from 'hls.js';
-import { Loader2, Play } from 'lucide-react';
-import { getVideoThumbnail } from '@/utils/videoUtils';
+import { useEffect, useRef, useState } from "react";
+import Hls from "hls.js";
+import { Loader2, Play } from "lucide-react";
+import { getVideoThumbnail } from "@/utils/videoUtils";
 
 interface HLSVideoPlayerProps {
   src: string;
@@ -11,8 +11,8 @@ interface HLSVideoPlayerProps {
   muted?: boolean;
   loop?: boolean;
   playsInline?: boolean;
-  preload?: 'none' | 'metadata' | 'auto';
-  crossOrigin?: 'anonymous' | 'use-credentials';
+  preload?: "none" | "metadata" | "auto";
+  crossOrigin?: "anonymous" | "use-credentials";
   onClick?: () => void;
   onLoadedData?: () => void;
   onCanPlay?: () => void;
@@ -23,13 +23,13 @@ interface HLSVideoPlayerProps {
 
 export const HLSVideoPlayer = ({
   src,
-  className = '',
+  className = "",
   controls = true,
   autoPlay = false,
   muted = false,
   loop = false,
   playsInline = false,
-  preload = 'metadata',
+  preload = "metadata",
   crossOrigin,
   onClick,
   onLoadedData,
@@ -50,18 +50,20 @@ export const HLSVideoPlayer = ({
   useEffect(() => {
     if (!src || poster) return;
 
-    const isHLS = src.includes('.m3u8') || src.includes('m3u8');
-    
+    const isHLS = src.includes(".m3u8") || src.includes("m3u8");
+
     // For regular videos, generate thumbnail
     // For HLS, we'll rely on preload="metadata" to show first frame
     if (!isHLS) {
-      getVideoThumbnail(src, 1).then((thumbnailUrl) => {
-        if (thumbnailUrl) {
-          setGeneratedPoster(thumbnailUrl);
-        }
-      }).catch(() => {
-        // Ignore errors
-      });
+      getVideoThumbnail(src, 1)
+        .then((thumbnailUrl) => {
+          if (thumbnailUrl) {
+            setGeneratedPoster(thumbnailUrl);
+          }
+        })
+        .catch(() => {
+          // Ignore errors
+        });
     }
   }, [src, poster]);
 
@@ -75,7 +77,7 @@ export const HLSVideoPlayer = ({
     setError(null);
 
     // Check if URL is HLS (.m3u8)
-    const isHLS = src.includes('.m3u8') || src.includes('m3u8');
+    const isHLS = src.includes(".m3u8") || src.includes("m3u8");
 
     if (isHLS) {
       // HLS format - use hls.js
@@ -105,7 +107,7 @@ export const HLSVideoPlayer = ({
 
         hls.on(Hls.Events.MANIFEST_PARSED, () => {
           setIsLoading(false);
-          
+
           if (autoPlay) {
             video.play().catch(() => {
               // Auto-play prevented
@@ -147,50 +149,49 @@ export const HLSVideoPlayer = ({
             }
           }
         });
-
-      } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+      } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
         // Native HLS support (Safari)
         video.src = src;
-        
+
         const handleLoadedMetadata = () => {
           setIsLoading(false);
         };
-        
+
         const handleError = () => {
-          setError('Lỗi tải video');
+          setError("Lỗi tải video");
           setIsLoading(false);
         };
-        
-        video.addEventListener('loadedmetadata', handleLoadedMetadata);
-        video.addEventListener('error', handleError);
-        
+
+        video.addEventListener("loadedmetadata", handleLoadedMetadata);
+        video.addEventListener("error", handleError);
+
         return () => {
-          video.removeEventListener('loadedmetadata', handleLoadedMetadata);
-          video.removeEventListener('error', handleError);
+          video.removeEventListener("loadedmetadata", handleLoadedMetadata);
+          video.removeEventListener("error", handleError);
         };
       } else {
-        setError('Trình duyệt không hỗ trợ phát video HLS');
+        setError("Trình duyệt không hỗ trợ phát video HLS");
         setIsLoading(false);
       }
     } else {
       // Regular video formats (MP4, WebM, etc.)
       video.src = src;
-      
+
       const handleLoadedMetadata = () => {
         setIsLoading(false);
       };
-      
+
       const handleError = () => {
-        setError('Lỗi tải video');
+        setError("Lỗi tải video");
         setIsLoading(false);
       };
-      
-      video.addEventListener('loadedmetadata', handleLoadedMetadata);
-      video.addEventListener('error', handleError);
-      
+
+      video.addEventListener("loadedmetadata", handleLoadedMetadata);
+      video.addEventListener("error", handleError);
+
       return () => {
-        video.removeEventListener('loadedmetadata', handleLoadedMetadata);
-        video.removeEventListener('error', handleError);
+        video.removeEventListener("loadedmetadata", handleLoadedMetadata);
+        video.removeEventListener("error", handleError);
       };
     }
 
@@ -233,7 +234,7 @@ export const HLSVideoPlayer = ({
           <Loader2 className="w-8 h-8 text-white animate-spin" />
         </div>
       )}
-      
+
       {/* Error overlay */}
       {error && (
         <div className="absolute inset-0 flex items-center justify-center bg-gray-900 z-10">
