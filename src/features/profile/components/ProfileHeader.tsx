@@ -11,7 +11,8 @@ import {
   UserX,
   Edit3,
   Link as LinkIcon,
-  ChevronDown
+  ChevronDown,
+  Archive
 } from 'lucide-react';
 import { NotesDialog } from './NotesDialog';
 import { FollowingOptionsDialog } from './FollowingOptionsDialog';
@@ -156,8 +157,18 @@ export const ProfileHeader = ({
                 <Button 
                   variant="outline" 
                   size="sm"
+                  onClick={() => navigate('/archive/stories')}
+                  className='bg-gray-200'
+                  title="Xem kho lưu trữ"
+                >
+                  <Archive className="w-4 h-4" />
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm"
                   onClick={() => navigate('/account/settings')}
                   className='bg-gray-200'
+                  title="Cài đặt"
                 >
                   <Settings className="w-4 h-4" />
                 </Button>
