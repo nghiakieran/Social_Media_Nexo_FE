@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from "react"
 import { cn } from "@/lib/utils"
-import { ChevronLeft, ChevronRight } from "lucide-react"
+import { ChevronLeft, ChevronRight, Plus } from "lucide-react"
 import { LazyImage } from "@/components/common/LazyImage"
+import { useNavigate } from "react-router-dom"
 
 interface Story {
   id: string
@@ -16,9 +17,12 @@ interface Story {
 interface StoriesProps {
   stories: Story[]
   onStoryClick?: (story: Story) => void
+  showCreateButton?: boolean
+  currentUserAvatar?: string
 }
 
-export function Stories({ stories, onStoryClick }: StoriesProps) {
+export function Stories({ stories, onStoryClick, showCreateButton = false, currentUserAvatar }: StoriesProps) {
+  const navigate = useNavigate()
   const [hoveredStory, setHoveredStory] = useState<string | null>(null)
   const [canScrollLeft, setCanScrollLeft] = useState(false)
   const [canScrollRight, setCanScrollRight] = useState(true)
@@ -77,6 +81,49 @@ export function Stories({ stories, onStoryClick }: StoriesProps) {
         className="flex gap-4 overflow-x-auto px-4 scrollbar-hide"
         onScroll={checkScrollPosition}
       >
+        {/* Create Story Button - Desktop only */}
+        {showCreateButton && (
+          <div
+            className="hidden md:flex flex-col items-center gap-2 min-w-fit cursor-pointer group p-0.5"
+            onClick={() => navigate('/stories/create')}
+          >
+            {/* Story Ring Container */}
+            <div className="relative">
+              {/* Outer Ring with Gradient */}
+              <div className="w-20 h-20 rounded-full p-0.5 transition-all duration-200 bg-gradient-to-tr from-purple-400 via-pink-500 to-orange-400 group-hover:scale-105">
+                {/* Inner Ring - White Border */}
+                <div className="w-full h-full rounded-full bg-background p-0.5">
+                  {/* Profile Picture or Placeholder */}
+                  <div className="w-full h-full rounded-full overflow-hidden bg-muted flex items-center justify-center">
+                    {currentUserAvatar ? (
+                      <LazyImage
+                        src={currentUserAvatar}
+                        alt="Your profile"
+                        className="w-full h-full"
+                        loading="lazy"
+                        decoding="async"
+                        enableProgressiveLoading
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-gradient-to-br from-purple-400 to-pink-400" />
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Plus Icon */}
+              <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-blue-500 rounded-full border-2 border-background flex items-center justify-center group-hover:bg-blue-600 transition-colors">
+                <Plus className="w-4 h-4 text-white" />
+              </div>
+            </div>
+
+            {/* Label */}
+            <span className="text-xs font-medium text-center max-w-[80px] truncate text-foreground group-hover:text-primary transition-colors duration-200">
+              Tạo tin
+            </span>
+          </div>
+        )}
+
         {stories.map((story) => (
           <div
             key={story.id}
@@ -179,4 +226,3 @@ if (typeof document !== "undefined") {
   style.textContent = scrollbarHideStyles
   document.head.appendChild(style)
 }
-

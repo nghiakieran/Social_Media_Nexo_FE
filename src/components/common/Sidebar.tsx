@@ -30,6 +30,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { SwitchAccountDialog } from "@/features/auth";
+import { CreateContentDialog } from "@/features/story/components/CreateContentDialog";
 
 const navigation = [
   { name: "Trang chủ", href: "/", icon: Home },
@@ -54,6 +55,7 @@ export const Sidebar = () => {
   const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
   const [isThemeMenuOpen, setIsThemeMenuOpen] = useState(false);
   const [isSwitchAccountOpen, setIsSwitchAccountOpen] = useState(false);
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
   const themeButtonRef = useRef<HTMLButtonElement>(null);
 
   const handleLogout = () => {
@@ -293,17 +295,12 @@ export const Sidebar = () => {
             <Logo size="md" />
           </button>
           <div className="flex items-center gap-4">
-            <NavLink
-              to="/create"
-              className={({ isActive }) =>
-                cn(
-                  "p-2 rounded-lg transition-all duration-200",
-                  isActive ? "text-primary" : "text-muted-foreground"
-                )
-              }
+            <button
+              onClick={() => setShowCreateDialog(true)}
+              className="p-2 rounded-lg transition-all duration-200 text-muted-foreground hover:text-primary"
             >
               <PlusSquare className="h-6 w-6" />
-            </NavLink>
+            </button>
             <NavLink
               to="/notifications"
               className={({ isActive }) =>
@@ -354,6 +351,12 @@ export const Sidebar = () => {
       <SwitchAccountDialog
         isOpen={isSwitchAccountOpen}
         onClose={() => setIsSwitchAccountOpen(false)}
+      />
+
+      {/* Create Content Dialog */}
+      <CreateContentDialog
+        isOpen={showCreateDialog}
+        onClose={() => setShowCreateDialog(false)}
       />
     </>
   );

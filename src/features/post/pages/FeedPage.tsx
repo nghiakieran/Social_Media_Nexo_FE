@@ -246,7 +246,12 @@ export const FeedPage = () => {
   return (
     <div className="w-full min-h-screen bg-background pt-4">
       {/* Stories */}
-      <Stories stories={mockStories} onStoryClick={handleStoryClick} />
+      <Stories 
+        stories={mockStories} 
+        onStoryClick={handleStoryClick}
+        showCreateButton={true}
+        currentUserAvatar={user?.avatar}
+      />
 
       {/* Posts Feed */}
       <div className="space-y-6 p-4">

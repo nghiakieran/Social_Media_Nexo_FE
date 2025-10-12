@@ -64,6 +64,7 @@ import { ProfilePage } from "./features/profile/pages/ProfilePage";
 
 // Story Pages
 import { ArchivePage } from "./features/story/pages/ArchivePage";
+import { StoryCreatePage } from "./features/story/pages/StoryCreatePage";
 
 const queryClient = new QueryClient();
 
@@ -149,6 +150,7 @@ const App = () => (
                   element={<CloseFriendsPage />}
                 />
                 <Route path="archive/stories" element={<ArchivePage />} />
+                <Route path="stories/create" element={<StoryCreatePage />} />
                 <Route path=":username" element={<ProfilePage />} />
                 <Route path="settings" element={<AccountSettingsPage />} />
 
