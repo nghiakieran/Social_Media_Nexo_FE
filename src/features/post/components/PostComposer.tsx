@@ -2,11 +2,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Image, MapPin, Play, Users, X } from "lucide-react";
+import { Image, MapPin, Users, X } from "lucide-react";
 import { useRef, useState } from "react";
 import { MediaUploader } from "./MediaUploader";
 import { MediaViewer } from "./MediaViewer";
 import { PrivacySelect } from "./PrivacySelect";
+import { VideoThumbnail } from "@/components/common/VideoThumbnail";
 import { TagFriends } from "./TagFriends";
 
 interface MediaItem {
@@ -30,8 +31,7 @@ export const PostComposer = ({
   const [privacy, setPrivacy] = useState<"public" | "friends" | "private">(
     "public"
   );
-  const [taggedFriends, setTaggedFriends] = useState<string[]>([]);
-  const [location, setLocation] = useState("");
+  const [taggedFriends, setTaggedFriends] = useState<number[]>([]);
   const [showMediaUploader, setShowMediaUploader] = useState(false);
   const [showTagFriends, setShowTagFriends] = useState(false);
   const [selectedMedia, setSelectedMedia] = useState<MediaItem | null>(null);
@@ -49,19 +49,19 @@ export const PostComposer = ({
     }
 
     try {
+      const files = media.map(item => item.file);
+      
       await onSubmit({
         content: content.trim(),
-        media,
+        media: files,
         privacy,
-        taggedUsers: taggedFriends,
-        location: location.trim(),
+        taggedUsers: taggedFriends
       });
 
       // Reset form
       setContent("");
       setMedia([]);
       setTaggedFriends([]);
-      setLocation("");
       setPrivacy("public");
     } catch (error) {
       console.error("Post submission error:", error);
@@ -138,17 +138,6 @@ export const PostComposer = ({
                   </span>
                 </div>
               )}
-
-              {/* Location */}
-              {location && (
-                <div className="flex items-center gap-2 text-sm">
-                  <MapPin className="w-4 h-4 text-accent" />
-                  <span className="text-muted-foreground">Địa điểm:</span>
-                  <span className="font-medium text-foreground">
-                    {location}
-                  </span>
-                </div>
-              )}
             </div>
 
             {/* Media Preview */}
@@ -181,18 +170,10 @@ export const PostComposer = ({
                             className="w-full h-full object-cover hover:scale-105 transition-transform duration-200"
                           />
                         ) : (
-                          <div className="relative w-full h-full">
-                            <video
-                              src={item.url}
-                              className="w-full h-full object-cover hover:scale-105 transition-transform duration-200"
-                              muted
-                            />
-                            <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/10 transition-colors">
-                              <div className="w-12 h-12 rounded-full bg-black/50 flex items-center justify-center group-hover:bg-black/70 transition-colors">
-                                <Play className="w-6 h-6 text-white ml-1" />
-                              </div>
-                            </div>
-                          </div>
+                          <VideoThumbnail
+                            videoUrl={item.url}
+                            className="hover:scale-105 transition-transform duration-200"
+                          />
                         )}
                       </div>
                       <button

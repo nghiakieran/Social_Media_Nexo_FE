@@ -1,9 +1,10 @@
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
-import { Image, Play, Upload, Video, X } from "lucide-react";
+import { Image, Upload, Video, X } from "lucide-react";
 import { useRef, useState } from "react";
 import { MediaViewer } from "./MediaViewer";
+import { VideoThumbnail } from "@/components/common/VideoThumbnail";
 
 interface MediaItem {
   id: string;
@@ -244,18 +245,10 @@ export const MediaUploader = ({
                       className="w-full h-full object-cover hover:scale-105 transition-transform duration-200"
                     />
                   ) : (
-                    <div className="relative w-full h-full">
-                      <video
-                        src={item.url}
-                        className="w-full h-full object-cover hover:scale-105 transition-transform duration-200"
-                        muted
-                      />
-                      <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/10 transition-colors">
-                        <div className="w-12 h-12 rounded-full bg-black/50 flex items-center justify-center group-hover:bg-black/70 transition-colors">
-                          <Play className="w-6 h-6 text-white ml-1" />
-                        </div>
-                      </div>
-                    </div>
+                    <VideoThumbnail
+                      videoUrl={item.url}
+                      className="hover:scale-105 transition-transform duration-200"
+                    />
                   )}
                 </div>
                 <button

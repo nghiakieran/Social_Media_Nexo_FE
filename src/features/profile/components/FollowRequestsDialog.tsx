@@ -1,15 +1,19 @@
-import { useEffect, useState } from 'react';
-import { UserCheck, UserX, Clock, X } from 'lucide-react';
+import { useEffect, useState, useCallback } from "react";
+import { UserCheck, UserX, Clock, Loader2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { FollowRequestUser } from '../types';
-import { useToast } from '@/hooks/use-toast';
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { FollowRequestUser } from "../types";
+import { useToast } from "@/hooks/use-toast";
+import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
+import { formatTimeAgoShort } from "@/utils/timeFormat";
+import { useAppDispatch, useAppSelector } from "@/store";
+import { fetchFollowRequestsAsync } from "../profileSlice";
 
 interface FollowRequestsDialogProps {
   isOpen: boolean;
@@ -28,8 +32,14 @@ export const FollowRequestsDialog = ({
   onReject,
   isLoading = false,
 }: FollowRequestsDialogProps) => {
+  const dispatch = useAppDispatch();
   const [localRequests, setLocalRequests] = useState(followRequests);
   const { toast } = useToast();
+
+  // Get pagination state from store
+  const { requestsHasMore, requestsPage } = useAppSelector(
+    (state) => state.profile
+  );
 
   useEffect(() => {
     if (isOpen) {
@@ -37,36 +47,45 @@ export const FollowRequestsDialog = ({
     }
   }, [isOpen, followRequests]);
 
+  // Load more handler for infinite scroll
+  const handleLoadMore = useCallback(() => {
+    if (!requestsHasMore || isLoading) return;
+
+    const nextPage = requestsPage + 1;
+    dispatch(fetchFollowRequestsAsync({ pageNo: nextPage, pageSize: 10 }));
+  }, [requestsHasMore, isLoading, requestsPage, dispatch]);
+
+  // Use infinite scroll hook
+  const { lastElementRef } = useInfiniteScroll(handleLoadMore, {
+    hasMore: requestsHasMore,
+    isLoading,
+    threshold: 100,
+  });
+
   const handleAccept = (username: string) => {
     onAccept(username);
-    setLocalRequests(prev => prev.filter(request => request.userName !== username));
-    
-    const user = localRequests.find(r => r.userName === username);
+    setLocalRequests((prev) =>
+      prev.filter((request) => request.userName !== username)
+    );
+
+    const user = localRequests.find((r) => r.userName === username);
     toast({
-      title: 'Đã chấp nhận',
+      title: "Đã chấp nhận",
       description: `Bạn đã chấp nhận ${user?.userName} theo dõi`,
     });
   };
 
   const handleReject = (username: string) => {
     onReject(username);
-    setLocalRequests(prev => prev.filter(request => request.userName !== username));
-    
-    const user = localRequests.find(r => r.userName === username);
+    setLocalRequests((prev) =>
+      prev.filter((request) => request.userName !== username)
+    );
+
+    const user = localRequests.find((r) => r.userName === username);
     toast({
-      title: 'Đã từ chối',
+      title: "Đã từ chối",
       description: `Bạn đã từ chối ${user?.userName} theo dõi`,
     });
-  };
-
-  const formatTimeAgo = (dateString: string) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
-    
-    if (diffInHours < 1) return 'Vừa xong';
-    if (diffInHours < 24) return `${diffInHours}h`;
-    return `${Math.floor(diffInHours / 24)}d`;
   };
 
   return (
@@ -88,47 +107,70 @@ export const FollowRequestsDialog = ({
             </div>
           ) : (
             <div className="h-[340px] overflow-y-auto space-y-1.5">
-              {localRequests.map((request) => (
-                <div key={request.userName} className="flex items-center justify-between px-2 py-3 hover:bg-muted/40 rounded-lg transition-colors">
-                  <div className="flex items-center gap-3">
-                    <Avatar className="w-11 h-11">
-                      <AvatarImage src={request.avatar} alt={request.userName} />
-                      <AvatarFallback>
-                        {request.userName.charAt(0).toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1 min-w-0">
-                      <div className="font-semibold text-sm leading-5">{request.userName}</div>
-                      <div className="text-xs text-muted-foreground">
-                        {formatTimeAgo(request.requestedAt)}
+              {localRequests.map((request, index) => {
+                const isLastItem = index === localRequests.length - 1;
+
+                return (
+                  <div
+                    key={request.userName}
+                    ref={isLastItem ? lastElementRef : null}
+                    className="flex items-center justify-between px-2 py-3 hover:bg-muted/40 rounded-lg transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <Avatar className="w-11 h-11">
+                        <AvatarImage
+                          src={request.avatar}
+                          alt={request.userName}
+                        />
+                        <AvatarFallback>
+                          {request.userName.charAt(0).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <div className="font-semibold text-sm leading-5">
+                          {request.userName}
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          {request.fullName}
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="instagram"
-                      size="sm"
-                      onClick={() => handleAccept(request.userName)}
-                      disabled={isLoading}
-                      className="text-xs gap-1"
-                    >
-                      <UserCheck className="w-3 h-3" />
-                      Chấp nhận
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleReject(request.userName)}
-                      disabled={isLoading}
-                      className="text-xs gap-1"
-                    >
-                      <UserX className="w-3 h-3" />
-                      Từ chối
-                    </Button>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="instagram"
+                        size="sm"
+                        onClick={() => handleAccept(request.userName)}
+                        disabled={isLoading}
+                        className="text-xs gap-1"
+                      >
+                        <UserCheck className="w-3 h-3" />
+                        Chấp nhận
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleReject(request.userName)}
+                        disabled={isLoading}
+                        className="text-xs gap-1"
+                      >
+                        <UserX className="w-3 h-3" />
+                        Từ chối
+                      </Button>
+                    </div>
                   </div>
+                );
+              })}
+
+              {/* Loading indicator */}
+              {isLoading && localRequests.length > 0 && (
+                <div className="flex items-center justify-center py-4">
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  <span className="ml-2 text-sm text-muted-foreground">
+                    Đang tải...
+                  </span>
                 </div>
-              ))}
+              )}
             </div>
           )}
         </div>

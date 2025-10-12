@@ -1,4 +1,4 @@
-import api from '@/lib/axios';
+import api from "@/lib/axios";
 import type {
   ProfileResponse,
   ProfileData,
@@ -11,14 +11,16 @@ import type {
   FollowRequestsResponse,
   FollowRequestUser,
   CloseFriendsResponse,
-  CloseFriendUser
-} from '../types';
+  CloseFriendUser,
+  BlockedUsersResponse,
+  BlockedUser,
+} from "../types";
 
 /**
  * Get current user's profile
  */
 export const getCurrentUserProfile = async (): Promise<ProfileData> => {
-  const response = await api.get<ProfileResponse>('/users/profile');
+  const response = await api.get<ProfileResponse>("/users/profile");
   return response.data.data;
 };
 
@@ -26,7 +28,9 @@ export const getCurrentUserProfile = async (): Promise<ProfileData> => {
  * Get user profile by username
  * @param username - The username to fetch profile for
  */
-export const getUserProfileByUsername = async (username: string): Promise<ProfileData> => {
+export const getUserProfileByUsername = async (
+  username: string
+): Promise<ProfileData> => {
   const response = await api.get<ProfileResponse>(`/users/profile/${username}`);
   return response.data.data;
 };
@@ -45,59 +49,112 @@ export const getProfile = async (username?: string): Promise<ProfileData> => {
 /**
  * Get followers list for a user
  * @param username - The username to fetch followers for
+ * @param pageNo - Page number
+ * @param pageSize - Page size
+ * @param search - Search query (optional)
  */
-export const getFollowersByUsername = async (username: string, page: number = 0, limit: number = 10): Promise<FollowerUser[]> => {
-  const response = await api.get<{status: number, message: string, data: FollowersResponse}>(`/users/followers/${username}?page=${page}&size=${limit}`);
-  return response.data.data.content;
+export const getFollowersByUsername = async (
+  username: string,
+  pageNo: number = 0,
+  pageSize: number = 10,
+  search?: string
+): Promise<FollowersResponse> => {
+  const params: Record<string, string | number> = { pageNo, pageSize };
+  if (search) {
+    params.search = encodeURIComponent(search);
+  }
+
+  const response = await api.get<{
+    status: number;
+    message: string;
+    data: FollowersResponse;
+  }>(`/users/followers/${username}`, {
+    params,
+  });
+  return response.data.data;
 };
 
 /**
  * Get following list for a user
  * @param username - The username to fetch following for
+ * @param pageNo - Page number
+ * @param pageSize - Page size
+ * @param search - Search query (optional)
  */
-export const getFollowingByUsername = async (username: string, page: number = 0, limit: number = 10): Promise<FollowingUser[]> => {
-  const response = await api.get<{status: number, message: string, data: FollowingResponse}>(`/users/followings/${username}?page=${page}&size=${limit}`);
-  return response.data.data.content;
+export const getFollowingByUsername = async (
+  username: string,
+  pageNo: number = 0,
+  pageSize: number = 10,
+  search?: string
+): Promise<FollowingResponse> => {
+  const params: Record<string, string | number> = { pageNo, pageSize };
+  if (search) {
+    params.search = encodeURIComponent(search);
+  }
+
+  const response = await api.get<{
+    status: number;
+    message: string;
+    data: FollowingResponse;
+  }>(`/users/followings/${username}`, {
+    params,
+  });
+  return response.data.data;
 };
 
 /**
  * Update user profile
  */
-export const updateUserProfile = async (profileData: UpdateProfileRequest): Promise<ProfileData> => {
+export const updateUserProfile = async (
+  profileData: UpdateProfileRequest
+): Promise<ProfileData> => {
   const formData = new FormData();
-  
+
   const payload = {
     username: profileData.username,
     fullName: profileData.fullName,
     bio: profileData.bio,
     isPrivate: profileData.isPrivate,
   };
-  
-  formData.append('request', JSON.stringify(payload));
-  
+
+  formData.append("request", JSON.stringify(payload));
+
   if (profileData.avatar !== undefined) {
     if (profileData.avatar instanceof File) {
-      formData.append('avatarFile', profileData.avatar);
+      formData.append("avatarFile", profileData.avatar);
     } else {
-      formData.append('avatarFile', profileData.avatar);
+      formData.append("avatarFile", profileData.avatar);
     }
   }
 
-  const response = await api.put<UpdateProfileResponse>('/users/profile', formData, {
-    headers: {
-      'Content-Type': 'multipart/form-data',
-    },
-  });
-  
+  const response = await api.put<UpdateProfileResponse>(
+    "/users/profile",
+    formData,
+    {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    }
+  );
+
   return response.data.data;
 };
 
 /**
  * Get follow requests for current user
  */
-export const getFollowRequests = async (page: number = 0, limit: number = 10): Promise<FollowRequestUser[]> => {
-  const response = await api.get<{status: number, message: string, data: FollowRequestsResponse}>(`/users/requests?page=${page}&size=${limit}`);
-  return response.data.data.content;
+export const getFollowRequests = async (
+  pageNo: number = 0,
+  pageSize: number = 10
+): Promise<FollowRequestsResponse> => {
+  const response = await api.get<{
+    status: number;
+    message: string;
+    data: FollowRequestsResponse;
+  }>(`/users/requests`, {
+    params: { pageNo, pageSize },
+  });
+  return response.data.data;
 };
 
 /**
@@ -130,9 +187,27 @@ export const unfollowUser = async (username: string): Promise<void> => {
 
 /**
  * Get close friends list for current user
+ * @param page - Page number
+ * @param limit - Page size
+ * @param search - Search query (optional)
  */
-export const getCloseFriends = async (page: number = 0, limit: number = 20): Promise<CloseFriendUser[]> => {
-  const response = await api.get<{status: number, message: string, data: CloseFriendsResponse}>(`/users/close-friends?page=${page}&size=${limit}`);
+export const getCloseFriends = async (
+  page: number = 0,
+  limit: number = 10,
+  search?: string
+): Promise<CloseFriendUser[]> => {
+  const params: Record<string, string | number> = { page, size: limit };
+  if (search) {
+    params.search = encodeURIComponent(search);
+  }
+
+  const response = await api.get<{
+    status: number;
+    message: string;
+    data: CloseFriendsResponse;
+  }>("/users/close-friends", {
+    params,
+  });
   return response.data.data.content;
 };
 
@@ -141,4 +216,53 @@ export const getCloseFriends = async (page: number = 0, limit: number = 20): Pro
  */
 export const toggleCloseFriend = async (username: string): Promise<void> => {
   await api.put(`/users/close-friend/${username}`);
+};
+
+/**
+ * Get blocked users list for current user
+ * @param page - Page number
+ * @param limit - Page size
+ * @param search - Search query (optional)
+ */
+export const getBlockedUsers = async (
+  page: number = 0,
+  limit: number = 10,
+  search?: string
+): Promise<BlockedUsersResponse> => {
+  const params: Record<string, string | number> = { page, limit };
+  if (search) {
+    params.search = encodeURIComponent(search);
+  }
+
+  const response = await api.get<{
+    status: number;
+    message: string;
+    data: BlockedUsersResponse;
+  }>("/users/blocked-users", {
+    params,
+  });
+  return response.data.data;
+};
+
+/**
+ * Block user
+ * @param username - Username to block
+ */
+export const blockUser = async (username: string): Promise<void> => {
+  await api.post(`/users/${username}/block`);
+};
+
+/**
+ * Unblock user
+ * @param username - Username to unblock
+ */
+export const unblockUser = async (username: string): Promise<void> => {
+  await api.delete(`/users/${username}/block`);
+};
+
+/**
+ * Delete/Remove avatar
+ */
+export const deleteAvatar = async (): Promise<void> => {
+  await api.delete('/users/profile/avatar');
 };

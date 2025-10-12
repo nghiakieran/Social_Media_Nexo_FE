@@ -11,12 +11,15 @@ import {
   AlertTriangle,
   ChevronLeft,
   ChevronRight,
-  Smile
+  Smile,
+  EyeOff,
+  Eye
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { getAvatarUrl, getAvatarInitials } from '@/utils/avatar';
 import {
   Tooltip,
   TooltipContent,
@@ -25,12 +28,18 @@ import {
 } from '@/components/ui/tooltip';
 import { CommentDialog } from './CommentDialog';
 import { LazyImage } from '@/components/common/LazyImage';
+import { HLSVideoPlayer } from '@/components/common/HLSVideoPlayer';
 import { ShareDialog } from './ShareDialog';
 import { EmojiPicker } from '@/components/common/EmojiPicker';
 import { useToast } from '@/hooks/use-toast';
 import { LikesDialog } from './LikesDialog';
 import { ActionMenu } from '@/components/common/ActionMenu';
 import { useBookmark } from '@/features/saved/hooks/useBookmark';
+import { useNavigate } from 'react-router-dom';
+import { navigateToPost, navigateToProfile } from '@/utils/navigation';
+import { formatTimeAgoShort } from '@/utils/timeFormat';
+import { useAppDispatch } from '@/store';
+import { togglePostActiveThunk } from '../postSlice';
 
 interface MediaItem {
   id: string;
@@ -40,41 +49,47 @@ interface MediaItem {
   alt?: string;
 }
 
+interface TaggedUser {
+  userId: number;
+  userName: string;
+}
+
 interface Post {
   id: string;
   userId: string;
   userName: string;
-  userAvatar: string;
-  content: string;
+  avatarUrl: string;
+  caption: string;
   media: MediaItem[];
-  privacy: 'public' | 'friends' | 'private';
-  taggedUsers: string[];
+  visibility: 'public' | 'private';
+  taggedUsers: TaggedUser[];
   hashtags: string[];
-  location?: string;
   createdAt: string;
+  updatedAt: string;
   likesCount: number;
   commentsCount: number;
   sharesCount: number;
   isLiked: boolean;
   isBookmarked: boolean;
+  isActive: boolean;
   violationScore?: number;
   violationType?: string;
 }
 
-interface Comment {
+interface CommentType {
   id: string;
   userId: string;
   userName: string;
-  userAvatar: string;
+  avatarUrl: string;
   content: string;
   likesCount: number;
   isLiked: boolean;
   createdAt: string;
-  replies?: Comment[];
+  replies?: CommentType[];
 }
 
 interface PostCardProps {
-  post: Omit<Post, 'isBookmarked'>;
+  post: Post;
   onLike: (postId: string) => void;
   onEdit: (postId: string) => void;
   onDelete: (postId: string) => void;
@@ -82,10 +97,12 @@ interface PostCardProps {
   onShare?: (postId: string, userIds: string[], message: string) => void;
   onOpenShareDialog?: () => void;
   isShareDialogOpen?: boolean;
-  comments?: Comment[];
+  comments?: CommentType[];
   onAddComment?: (postId: string, content: string) => void;
   onLikeComment?: (commentId: string) => void;
   onReplyComment?: (commentId: string, content: string) => void;
+  isOwnPost?: boolean; // Để biết có phải post của mình không
+  isInProfilePage?: boolean; // Để biết có đang ở profile page không
 }
 
 export const PostCard = ({ 
@@ -100,7 +117,9 @@ export const PostCard = ({
   comments = [],
   onAddComment,
   onLikeComment,
-  onReplyComment
+  onReplyComment,
+  isOwnPost = false,
+  isInProfilePage = false
 }: PostCardProps) => {
   const [currentMediaIndex, setCurrentMediaIndex] = useState(0);
   const [showReactions, setShowReactions] = useState(false);
@@ -112,18 +131,30 @@ export const PostCard = ({
   const [inlineComment, setInlineComment] = useState('');
   const [showActionMenu, setShowActionMenu] = useState(false);
   const [actionMenuPosition, setActionMenuPosition] = useState<{ top: number; left?: number; right?: number } | null>(null);
-  const [isAuthorFollowed, setIsAuthorFollowed] = useState(false);
+  const navigate = useNavigate();
+  const dispatch = useAppDispatch();
   
   // Use bookmark hook
   const { isBookmarked, toggleBookmark } = useBookmark();
 
   const privacyIcons = {
     public: Globe,
-    friends: Users,
     private: Lock,
   };
 
-  const PrivacyIcon = privacyIcons[post.privacy];
+  const PrivacyIcon = privacyIcons[post.visibility] || Globe;
+
+  const handleProfileClick = () => {
+    navigateToProfile(navigate, post.userName);
+  };
+
+  const handleTagClick = (userName: string) => {
+    navigateToProfile(navigate, userName);
+  };
+
+  const handleGoToPost = (postId: string) => {
+    navigateToPost(navigate, postId);
+  };
 
   const handleAction = (action: string, actionFn: (id: string) => void) => {
     actionFn(post.id);
@@ -222,13 +253,31 @@ export const PostCard = ({
 
   const handleCloseActionMenu = () => setShowActionMenu(false);
 
-  const handlePostAction = (action: string) => {
+  const handlePostAction = async (action: string) => {
     switch (action) {
+      case 'toggleHidePost':
+        try {
+          await dispatch(togglePostActiveThunk(parseInt(post.id))).unwrap();
+          const isNowHidden = !post.isActive;
+          toast({
+            title: isNowHidden ? "Đã ẩn bài viết" : "Đã hiển thị bài viết",
+            description: isNowHidden 
+              ? "Bài viết sẽ không hiển thị trên trang cá nhân của bạn." 
+              : "Bài viết đã được hiển thị lại trên trang cá nhân.",
+          });
+        } catch (error) {
+          toast({
+            title: "Lỗi",
+            description: "Không thể thay đổi trạng thái bài viết.",
+            variant: "destructive"
+          });
+        }
+        break;
       case 'report':
         onReport(post.id);
         break;
       case 'goToPost':
-        // In a real app navigate to post detail
+        handleGoToPost(post.id);
         break;
       case 'share':
         if (onOpenShareDialog) onOpenShareDialog();
@@ -244,16 +293,6 @@ export const PostCard = ({
         break;
     }
     handleCloseActionMenu();
-  };
-
-  const formatTimeAgo = (dateString: string) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
-    
-    if (diffInHours < 1) return 'Vừa xong';
-    if (diffInHours < 24) return `${diffInHours}h`;
-    return `${Math.floor(diffInHours / 24)}d`;
   };
 
   const nextMedia = () => {
@@ -274,27 +313,37 @@ export const PostCard = ({
         {/* Header */}
         <div className="flex items-center justify-between p-4">
           <div className="flex items-center gap-3">
-            <Avatar className="w-8 h-8">
-              <AvatarImage src={post.userAvatar} alt={post.userName} />
-              <AvatarFallback>{post.userName?.charAt(0) || 'U'}</AvatarFallback>
+            <Avatar className="w-10 h-10 cursor-pointer hover:opacity-80 transition-opacity" onClick={handleProfileClick}>
+              <AvatarImage src={getAvatarUrl(post.avatarUrl)} alt={post.userName} />
+              <AvatarFallback>{getAvatarInitials(post.userName)}</AvatarFallback>
             </Avatar>
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <span className="font-semibold text-foreground text-sm">{post.userName}</span>
-              <span className="text-muted-foreground">•</span>
-              <span>{formatTimeAgo(post.createdAt)}</span>
+            <div className="flex flex-col">
+              <div className="flex items-center gap-2 mb-1">
+                <span 
+                  className="font-semibold text-foreground text-sm cursor-pointer hover:underline"
+                  onClick={handleProfileClick}
+                >
+                  {post.userName}
+                </span>
+              </div>
+              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                <span>{formatTimeAgoShort(post.updatedAt)}</span>
+                <span>•</span>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <PrivacyIcon className="w-3 h-3" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>{post.visibility === 'public' ? 'Công khai' : 'Riêng tư'}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
             </div>
           </div>
           
           <div className="flex items-center gap-2">
-            {!isAuthorFollowed && (
-              <button
-                type="button"
-                className="px-3 py-1.5 rounded-lg text-sm font-semibold text-white bg-gradient-instagram hover:opacity-90 active:opacity-85 shadow-glow transition-all"
-                onClick={() => setIsAuthorFollowed(true)}
-              >
-                Theo dõi
-              </button>
-            )}
             <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={handleOpenActionMenu} aria-label="Lựa chọn khác">
               <MoreHorizontal className="w-4 h-4" />
             </Button>
@@ -302,10 +351,10 @@ export const PostCard = ({
         </div>
 
         {/* Content */}
-        {post.content && (
+        {post.caption && (
           <div className="px-4 pb-3">
             <p className="text-sm leading-relaxed">
-              {post.content.split(' ').map((word, index) => 
+              {post.caption.split(' ').map((word, index) => 
                 word.startsWith('#') ? (
                   <span key={index} className="text-primary font-medium">
                     {word}{' '}
@@ -315,6 +364,25 @@ export const PostCard = ({
                 )
               )}
             </p>
+            
+            {/* Tagged Users */}
+            {post.taggedUsers && post.taggedUsers.length > 0 && (
+              <div className="mt-2 flex items-center gap-1 flex-wrap">
+                <Users className="w-3 h-3 text-muted-foreground" />
+                <span className="text-xs text-muted-foreground">với</span>
+                {post.taggedUsers.map((tag, index) => (
+                  <span key={index} className="text-xs">
+                    <span 
+                      className="font-medium text-primary hover:underline cursor-pointer"
+                      onClick={() => handleTagClick(tag.userName)}
+                    >
+                      {tag.userName}
+                    </span>
+                    {index < post.taggedUsers.length - 1 && <span className="text-muted-foreground">, </span>}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
@@ -352,11 +420,13 @@ export const PostCard = ({
                   enableProgressiveLoading
                 />
               ) : (
-                <video
+                <HLSVideoPlayer
                   src={post.media[currentMediaIndex].url}
                   className="w-full h-full object-cover"
                   controls
                   muted
+                  playsInline
+                  preload="metadata"
                 />
               )}
 
@@ -450,11 +520,6 @@ export const PostCard = ({
             </button>
           )}
 
-          {/* Post time under summary */}
-          <div className="mt-1 mb-2 text-[12px] text-gray-500">
-            <time>{formatTimeAgo(post.createdAt)} trước</time>
-          </div>
-
           {/* Comments Count */}
           {post.commentsCount > 0 && (
             <div className="mb-2">
@@ -539,7 +604,7 @@ export const PostCard = ({
         onClose={handleCloseLikesDialog}
         title="Lượt thích"
         infoText={undefined}
-        users={(comments.slice(0, 10).map((c) => ({ id: c.id, name: c.userName, avatar: c.userAvatar, subtitle: undefined, isVerified: false, isFollowing: false })))}
+        users={(comments.slice(0, 10).map((c) => ({ id: c.id, name: c.userName, avatar: c.avatarUrl, subtitle: undefined, isVerified: false, isFollowing: false })))}
       />
 
       {/* Action Menu */}
@@ -548,6 +613,11 @@ export const PostCard = ({
         onClose={handleCloseActionMenu}
         position={actionMenuPosition}
         items={[
+          // Show "Hide/Show Post" only for own posts in profile page
+          ...(isOwnPost && isInProfilePage ? [{
+            label: post.isActive ? '🙈 Ẩn bài viết khỏi trang cá nhân' : '👁️ Hiển thị bài viết',
+            action: () => handlePostAction('toggleHidePost')
+          }] : []),
           { label: 'Báo cáo', action: () => handlePostAction('report'), isDestructive: true },
           { label: 'Đi đến bài viết', action: () => handlePostAction('goToPost') },
           { label: 'Chia sẻ lên...', action: () => handlePostAction('share') },

@@ -1,10 +1,10 @@
-import { Grid3X3, Film, Bookmark } from 'lucide-react';
+import { Grid3X3, Film, Bookmark, EyeOff } from 'lucide-react';
 import type { ComponentType, SVGProps } from 'react';
 import { cn } from '@/lib/utils';
 
 interface ProfileTabsProps {
-  activeTab: 'posts' | 'reels' | 'saved';
-  onTabChange: (tab: 'posts' | 'reels' | 'saved') => void;
+  activeTab: 'posts' | 'reels' | 'saved' | 'hidden';
+  onTabChange: (tab: 'posts' | 'reels' | 'saved' | 'hidden') => void;
   isCurrentUser: boolean;
 }
 
@@ -33,6 +33,11 @@ export const ProfileTabs = ({ activeTab, onTabChange, isCurrentUser }: ProfileTa
           id: 'saved' as const,
           label: 'ĐÃ LƯU',
           icon: Bookmark,
+        },
+        {
+          id: 'hidden' as const,
+          label: 'ĐÃ ẨN',
+          icon: EyeOff,
         }
       ]
     : baseTabs;

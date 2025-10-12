@@ -97,7 +97,7 @@ const NotificationPage: React.FC = () => {
               variant="ghost"
               size="sm"
               onClick={handleMarkAllAsRead}
-              className="text-primary hover:text-primary/80 transition-colors duration-200"
+              className="text-primary hover:text-white transition-colors duration-200"
             >
               <Check className="w-4 h-4 mr-2" />
               Đánh dấu tất cả
@@ -128,7 +128,7 @@ const NotificationPage: React.FC = () => {
                   variant="ghost"
                   size="sm"
                   onClick={handleShowFollowRequests}
-                  className="text-primary hover:text-primary/80"
+                  className="text-primary hover:text-white"
                 >
                   Xem tất cả
                 </Button>

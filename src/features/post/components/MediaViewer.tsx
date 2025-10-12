@@ -17,6 +17,7 @@ import {
   X,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { HLSVideoPlayer } from "@/components/common/HLSVideoPlayer";
 // Utility functions for video optimization
 const formatFileSize = (bytes: number): string => {
   if (bytes === 0) return "0 B";
@@ -58,7 +59,7 @@ interface MediaViewerProps {
     id: string;
     type: "image" | "video";
     url: string;
-    file: File;
+    file?: File;
   };
   isOpen: boolean;
   onClose: () => void;
@@ -317,14 +318,14 @@ export const MediaViewer = ({ media, isOpen, onClose }: MediaViewerProps) => {
   const handleDownload = () => {
     const link = document.createElement("a");
     link.href = media.url;
-    link.download = media.file.name;
+    link.download = media.file?.name || `media_${media.id}`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
   };
 
   const handleShare = async () => {
-    if (navigator.share) {
+    if (navigator.share && media.file) {
       try {
         await navigator.share({
           title: "Media từ Social Media Nexo",
@@ -355,16 +356,21 @@ export const MediaViewer = ({ media, isOpen, onClose }: MediaViewerProps) => {
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-7xl w-full h-[90vh] p-0 bg-black border-0">
         <DialogTitle className="sr-only">
-          {media.type === "image" ? "Xem ảnh" : "Xem video"} - {media.file.name}
+          {media.type === "image" ? "Xem ảnh" : "Xem video"} -{" "}
+          {media.file?.name || "Media"}
         </DialogTitle>
         <DialogDescription className="sr-only">
           {media.type === "image"
-            ? `Ảnh ${media.file.name} với kích thước ${formatFileSize(
-                media.file.size
-              )}`
-            : `Video ${media.file.name} với kích thước ${formatFileSize(
-                media.file.size
-              )} và thời lượng ${formatTime(videoDuration)}`}
+            ? `Ảnh ${media.file?.name || "Media"}${
+                media.file
+                  ? ` với kích thước ${formatFileSize(media.file.size)}`
+                  : ""
+              }`
+            : `Video ${media.file?.name || "Media"}${
+                media.file
+                  ? ` với kích thước ${formatFileSize(media.file.size)}`
+                  : ""
+              } và thời lượng ${formatTime(videoDuration)}`}
         </DialogDescription>
         <div className="relative w-full h-full flex items-center justify-center">
           {/* Close Button */}
@@ -394,11 +400,13 @@ export const MediaViewer = ({ media, isOpen, onClose }: MediaViewerProps) => {
                     <div className="text-center max-w-sm">
                       <Loader2 className="w-12 h-12 text-white animate-spin mx-auto mb-4" />
                       <p className="text-white text-lg mb-2">
-                        {getLoadingMessage(media.file.size)}
+                        {media.file
+                          ? getLoadingMessage(media.file.size)
+                          : "Đang tải video..."}
                       </p>
                       <p className="text-gray-300 text-sm mb-3">
-                        {formatFileSize(media.file.size)} • Chất lượng:{" "}
-                        {videoQuality}
+                        {media.file && formatFileSize(media.file.size)} • Chất
+                        lượng: {videoQuality}
                       </p>
                       {bufferedProgress > 0 && (
                         <div className="w-full bg-gray-700 rounded-full h-2 mb-2">
@@ -420,8 +428,8 @@ export const MediaViewer = ({ media, isOpen, onClose }: MediaViewerProps) => {
                 )}
 
                 <div className="relative">
-                  <video
-                    ref={videoRef}
+                  <HLSVideoPlayer
+                    videoRef={videoRef}
                     src={media.url}
                     className="max-w-full max-h-full object-contain cursor-pointer"
                     style={{ maxHeight: "calc(90vh - 80px)" }}
@@ -539,27 +547,29 @@ export const MediaViewer = ({ media, isOpen, onClose }: MediaViewerProps) => {
           </div>
 
           {/* Media Info */}
-          <div className="absolute bottom-4 left-4 bg-black/70 text-white px-3 py-2 rounded-lg">
-            <p className="text-sm font-medium">{media.file.name}</p>
-            <p className="text-xs text-gray-300">
-              {formatFileSize(media.file.size)}
-              {media.type === "video" && (
-                <span className="ml-2">
-                  • {videoQuality === "auto" ? "Tự động" : videoQuality}
-                </span>
-              )}
-            </p>
-            {media.type === "video" && videoDuration > 0 && (
-              <p className="text-xs text-gray-400">
-                {formatTime(videoDuration)} •
-                {isVideoLoading
-                  ? " Đang tải..."
-                  : bufferedProgress > 0
-                  ? ` ${Math.round(bufferedProgress)}% đã tải`
-                  : ""}
+          {media.file && (
+            <div className="absolute bottom-4 left-4 bg-black/70 text-white px-3 py-2 rounded-lg">
+              <p className="text-sm font-medium">{media.file.name}</p>
+              <p className="text-xs text-gray-300">
+                {formatFileSize(media.file.size)}
+                {media.type === "video" && (
+                  <span className="ml-2">
+                    • {videoQuality === "auto" ? "Tự động" : videoQuality}
+                  </span>
+                )}
               </p>
-            )}
-          </div>
+              {media.type === "video" && videoDuration > 0 && (
+                <p className="text-xs text-gray-400">
+                  {formatTime(videoDuration)} •
+                  {isVideoLoading
+                    ? " Đang tải..."
+                    : bufferedProgress > 0
+                    ? ` ${Math.round(bufferedProgress)}% đã tải`
+                    : ""}
+                </p>
+              )}
+            </div>
+          )}
         </div>
       </DialogContent>
     </Dialog>

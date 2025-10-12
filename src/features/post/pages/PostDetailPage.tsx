@@ -8,33 +8,57 @@ import { navigateToProfile } from "@/utils/navigation";
 import {
   ArrowLeft,
   Bookmark,
+  Globe,
   Heart,
+  Lock,
   MessageCircle,
   MoreHorizontal,
   Share2,
   Users,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { useAppDispatch, useAppSelector } from "@/store";
+import {
+  getPostDetailThunk,
+  getMutualFollowersThunk,
+  deletePostThunk,
+  updatePostThunk,
+  togglePostActiveThunk,
+} from "../postSlice";
+import type { UpdatePostRequest } from "../types";
 import { ActionMenuDialog } from "../components/ActionMenuDialog";
+import { formatTimeAgo } from "@/utils/timeFormat";
 import { CommentSection } from "../components/CommentSection";
 import { EditPostDialog } from "../components/EditPostDialog";
 import { LikesDialog } from "../components/LikesDialog";
 import { MediaSlider } from "../components/MediaSlider";
 import { ShareDialog } from "../components/ShareDialog";
+import { Loader } from "@/components/common/Loader";
+import type { Post } from "../types";
+
+// Interface for UI Post (extends API Post with additional UI properties)
+interface UIPost extends Post {
+  stats: {
+    likes: number;
+    comments: number;
+  };
+  interactions: {
+    isLiked: boolean;
+    isBookmarked: boolean;
+    isShared: boolean;
+  };
+  taggedFriends: string[];
+}
 
 // Mock data - replace with actual API call
 const mockPost = {
   id: "1",
-  author: {
-    id: "1",
-    name: "Nguyễn Văn A",
-    username: "nguyenvana",
-    avatar:
-      "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=32&h=32&fit=crop&crop=face",
-    isOnline: true,
-  },
-  content: `Chào mọi người! Hôm nay mình có cơ hội được tham quan một công ty công nghệ rất thú vị. Không gian làm việc hiện đại, team trẻ trung và năng động. Đặc biệt là phòng chill với view thành phố rất đẹp! 
+  userId: "1",
+  userName: "nguyenvana",
+  avatarUrl:
+    "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=32&h=32&fit=crop&crop=face",
+  caption: `Chào mọi người! Hôm nay mình có cơ hội được tham quan một công ty công nghệ rất thú vị. Không gian làm việc hiện đại, team trẻ trung và năng động. Đặc biệt là phòng chill với view thành phố rất đẹp! 
 
 Các bạn có kinh nghiệm nào về việc chọn môi trường làm việc không? Mình đang cân nhắc giữa startup và công ty lớn. 🤔
 
@@ -81,7 +105,6 @@ Các bạn có kinh nghiệm nào về việc chọn môi trường làm việc 
     isShared: false,
   },
   taggedFriends: ["nguyenvanb", "tranthic"],
-  location: "TP. Hồ Chí Minh",
   createdAt: "2024-01-15T10:30:00Z",
   privacy: "public" as const,
 };
@@ -89,11 +112,53 @@ Các bạn có kinh nghiệm nào về việc chọn môi trường làm việc 
 export const PostDetailPage = () => {
   const { postId } = useParams();
   const navigate = useNavigate();
+  const dispatch = useAppDispatch();
   const { toast } = useToast();
   const { isBookmarked, toggleBookmark } = useBookmark();
+  const { currentPost, isLoading, error } = useAppSelector(
+    (state) => state.post
+  );
+  const { user } = useAppSelector((state) => state.auth);
 
-  const [post, setPost] = useState(mockPost);
-  const [interactions, setInteractions] = useState(post.interactions);
+  const [post, setPost] = useState<UIPost | null>(null);
+  const [interactions, setInteractions] = useState({
+    isLiked: false,
+    isBookmarked: false,
+    isShared: false,
+  });
+
+  // Load post detail when component mounts
+  useEffect(() => {
+    if (postId && user) {
+      dispatch(getPostDetailThunk(parseInt(postId)));
+      dispatch(getMutualFollowersThunk({ pageNo: 0, pageSize: 10 }));
+    }
+  }, [dispatch, user, postId]);
+
+  // Map currentPost to UIPost when loaded
+  useEffect(() => {
+    if (currentPost) {
+      const uiPost: UIPost = {
+        ...currentPost,
+        stats: {
+          likes: currentPost.likesCount,
+          comments: currentPost.commentsCount,
+        },
+        interactions: {
+          isLiked: currentPost.isLiked,
+          isBookmarked: currentPost.isBookmarked,
+          isShared: false,
+        },
+        taggedFriends: currentPost.taggedUsers.map((t) => t.userName),
+      };
+      setPost(uiPost);
+      setInteractions({
+        isLiked: currentPost.isLiked,
+        isBookmarked: currentPost.isBookmarked,
+        isShared: false,
+      });
+    }
+  }, [currentPost]);
   const [showShareDialog, setShowShareDialog] = useState(false);
   const [showLikesDialog, setShowLikesDialog] = useState<null | {
     targetId: string;
@@ -102,17 +167,9 @@ export const PostDetailPage = () => {
   const [showActionMenu, setShowActionMenu] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
 
-  const formatTimeAgo = (dateString: string) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-
-    if (diffInSeconds < 60) return "Vừa xong";
-    if (diffInSeconds < 3600)
-      return `${Math.floor(diffInSeconds / 60)} phút trước`;
-    if (diffInSeconds < 86400)
-      return `${Math.floor(diffInSeconds / 3600)} giờ trước`;
-    return `${Math.floor(diffInSeconds / 86400)} ngày trước`;
+  const privacyIcons = {
+    public: Globe,
+    private: Lock,
   };
 
   const handleLike = () => {
@@ -150,14 +207,45 @@ export const PostDetailPage = () => {
     setShowActionMenu(false);
   };
 
-  const handleActionMenuAction = (action: string) => {
+  const handleActionMenuAction = async (action: string) => {
     switch (action) {
       case "delete":
-        toast({ title: "Đã xóa", description: "Bài viết đã được xóa." });
-        navigate(-1);
+        try {
+          await dispatch(deletePostThunk(parseInt(post.id))).unwrap();
+          toast({ title: "Đã xóa", description: "Bài viết đã được xóa." });
+          navigate(-1);
+        } catch (error) {
+          toast({
+            title: "Lỗi",
+            description: "Không thể xóa bài viết. Vui lòng thử lại.",
+            variant: "destructive",
+          });
+        }
         break;
       case "edit":
         setShowEditDialog(true);
+        break;
+      case "toggleHidePost":
+        try {
+          await dispatch(togglePostActiveThunk(parseInt(post.id))).unwrap();
+          const isNowHidden = !post.isActive;
+          toast({
+            title: isNowHidden ? "Đã ẩn bài viết" : "Đã hiển thị bài viết",
+            description: isNowHidden
+              ? "Bài viết sẽ không hiển thị trên trang cá nhân của bạn."
+              : "Bài viết đã được hiển thị lại trên trang cá nhân.",
+          });
+          // Refresh post detail
+          if (postId) {
+            dispatch(getPostDetailThunk(parseInt(postId)));
+          }
+        } catch (error) {
+          toast({
+            title: "Lỗi",
+            description: "Không thể thay đổi trạng thái bài viết.",
+            variant: "destructive",
+          });
+        }
         break;
       case "hideLikes":
         toast({
@@ -182,8 +270,28 @@ export const PostDetailPage = () => {
     }
   };
 
-  const handleEditPost = (newContent: string) => {
-    setPost((prev) => ({ ...prev, content: newContent }));
+  const handleEditPost = (files: File[], updateData: UpdatePostRequest) => {
+    dispatch(updatePostThunk({ files, postData: updateData }))
+      .unwrap()
+      .then(() => {
+        toast({
+          title: "Cập nhật thành công!",
+          description: "Bài viết đã được cập nhật.",
+        });
+        setShowEditDialog(false);
+        // Refresh post detail
+        if (postId) {
+          dispatch(getPostDetailThunk(parseInt(postId)));
+        }
+      })
+      .catch((error) => {
+        toast({
+          variant: "destructive",
+          title: "Lỗi",
+          description: error || "Không thể cập nhật bài viết.",
+        });
+        setShowEditDialog(false);
+      });
   };
 
   const handleSharePost = (
@@ -210,12 +318,56 @@ export const PostDetailPage = () => {
   };
 
   const handleProfileClick = () => {
-    navigateToProfile(navigate, post.author.username);
+    navigateToProfile(navigate, post.userName);
+  };
+
+  const handleTagClick = (userName: string) => {
+    navigateToProfile(navigate, userName);
   };
 
   const handleBack = () => {
     navigate(-1);
   };
+
+  // Show loading state
+  if (isLoading) {
+    return <Loader overlay />;
+  }
+
+  // Show error state
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-500 mb-4">{error}</p>
+          <Button
+            variant="outline"
+            onClick={() => {
+              if (postId) {
+                dispatch(getPostDetailThunk(parseInt(postId)));
+              }
+            }}
+          >
+            Thử lại
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // Show not found state if post doesn't exist
+  if (!post || !postId) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-gray-500 mb-4">Không tìm thấy bài viết</p>
+          <Button variant="outline" onClick={() => navigate(-1)}>
+            Quay lại
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
@@ -261,13 +413,10 @@ export const PostDetailPage = () => {
                       onClick={handleProfileClick}
                     >
                       <img
-                        src={post.author.avatar}
-                        alt={post.author.name}
+                        src={post.avatarUrl}
+                        alt={post.userName}
                         className="w-12 h-12 rounded-full object-cover hover:opacity-80 transition-opacity"
                       />
-                      {post.author.isOnline && (
-                        <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-success rounded-full border-2 border-background"></div>
-                      )}
                     </div>
 
                     <div className="flex-1 min-w-0">
@@ -276,7 +425,7 @@ export const PostDetailPage = () => {
                           className="font-semibold text-foreground truncate cursor-pointer hover:underline"
                           onClick={handleProfileClick}
                         >
-                          {post.author.name}
+                          {post.userName}
                         </h3>
                         <span className="text-muted-foreground">•</span>
                         <span className="text-sm text-muted-foreground">
@@ -289,29 +438,42 @@ export const PostDetailPage = () => {
                           className="text-sm text-muted-foreground cursor-pointer hover:text-foreground transition-colors"
                           onClick={handleProfileClick}
                         >
-                          @{post.author.username}
+                          @{post.userName}
                         </span>
-                        {post.privacy === "public" && (
-                          <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
-                            Công khai
-                          </span>
+                        <span>•</span>
+                        {post.visibility === "private" ? (
+                          <Lock className="w-3 h-3 text-muted-foreground" />
+                        ) : (
+                          <Globe className="w-3 h-3 text-muted-foreground" />
                         )}
                       </div>
                     </div>
                   </div>
+
+                  {/* More Options Button */}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleOpenActionMenu}
+                    className="h-8 w-8 p-0 rounded-full hover:bg-muted/80 hover:text-gray-400"
+                  >
+                    <MoreHorizontal className="w-5 h-5" />
+                  </Button>
                 </div>
               </div>
 
               {/* Post Text */}
-              <div className="px-6 pb-4">
-                <div className="prose prose-sm max-w-none text-foreground">
-                  {post.content.split("\n").map((line, index) => (
-                    <p key={index} className="mb-2 last:mb-0">
-                      {line}
-                    </p>
-                  ))}
+              {post.caption && (
+                <div className="px-6 pb-4">
+                  <div className="prose prose-sm max-w-none text-foreground">
+                    {post.caption.split("\n").map((line, index) => (
+                      <p key={index} className="mb-2 last:mb-0">
+                        {line}
+                      </p>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Media Slider */}
               {post.media && post.media.length > 0 && (
@@ -331,12 +493,22 @@ export const PostDetailPage = () => {
               {/* Tagged Friends */}
               {post.taggedFriends && post.taggedFriends.length > 0 && (
                 <div className="px-6 pb-4">
-                  <div className="flex items-center gap-2 text-sm">
+                  <div className="flex items-center gap-2 text-sm flex-wrap">
                     <Users className="w-4 h-4 text-primary" />
-                    <span className="text-muted-foreground">Gắn thẻ:</span>
-                    <span className="font-medium text-foreground">
-                      {post.taggedFriends.join(", ")}
-                    </span>
+                    <span className="text-muted-foreground">với</span>
+                    {post.taggedFriends.map((userName, index) => (
+                      <span key={index}>
+                        <span
+                          className="font-medium text-primary hover:underline cursor-pointer"
+                          onClick={() => handleTagClick(userName)}
+                        >
+                          {userName}
+                        </span>
+                        {index < post.taggedFriends.length - 1 && (
+                          <span className="text-muted-foreground">, </span>
+                        )}
+                      </span>
+                    ))}
                   </div>
                 </div>
               )}
@@ -408,17 +580,6 @@ export const PostDetailPage = () => {
                       <span className="hidden sm:inline">Lưu</span>
                     </Button>
                   </div>
-
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={handleOpenActionMenu}
-                      className="flex items-center gap-2 px-3 py-2 rounded-full hover:text-gray-600"
-                    >
-                      <MoreHorizontal className="w-5 h-5" />
-                    </Button>
-                  </div>
                 </div>
 
                 {/* Likes summary */}
@@ -448,10 +609,10 @@ export const PostDetailPage = () => {
         onClose={() => setShowShareDialog(false)}
         post={{
           id: post.id,
-          content: post.content,
+          content: post.caption,
           media: post.media || [],
-          userName: post.author.name,
-          userAvatar: post.author.avatar,
+          userName: post.userName,
+          avatarUrl: post.avatarUrl,
           createdAt: post.createdAt,
         }}
         onShare={handleSharePost}
@@ -473,13 +634,21 @@ export const PostDetailPage = () => {
         isOpen={showActionMenu}
         onClose={handleCloseActionMenu}
         onAction={handleActionMenuAction}
+        isOwnPost={post.userId === user?.id.toString()}
+        isPostHidden={!post.isActive}
       />
 
       {/* Edit Post Dialog */}
       <EditPostDialog
         isOpen={showEditDialog}
         onClose={() => setShowEditDialog(false)}
-        initialContent={post.content}
+        postId={parseInt(post.id)}
+        userId={parseInt(post.userId)}
+        initialContent={post.caption}
+        initialVisibility={
+          post.visibility.toUpperCase() as "PUBLIC" | "PRIVATE"
+        }
+        initialMediaUrl={post.media.map((m) => m.url)}
         onSave={handleEditPost}
       />
     </div>

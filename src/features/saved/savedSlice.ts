@@ -85,7 +85,7 @@ const savedSlice = createSlice({
           id: postId,
           userId: 'current-user',
           userName: 'me',
-          userAvatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face',
+          avatarUrl: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face',
           content: `Mock post content for ${postId}`,
           media: [{
             id: `media-${Date.now()}`,

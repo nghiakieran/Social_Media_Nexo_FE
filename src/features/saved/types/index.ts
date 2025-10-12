@@ -7,7 +7,7 @@ export interface SavedPost {
     id: string;
     userId: string;
     userName: string;
-    userAvatar: string;
+    avatarUrl: string;
     content: string;
     media: Array<{
       id: string;

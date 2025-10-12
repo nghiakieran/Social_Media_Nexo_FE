@@ -13,6 +13,8 @@ export interface ProfileData {
   isPrivate: boolean;
   followers: number;
   following: number;
+  isFollowing?: boolean;
+  hasRequestedFollow?: boolean;
 }
 
 // Local State Types (for profile slice)
@@ -33,16 +35,8 @@ export interface UserProfile {
   hasRequestedFollow: boolean; // Whether current user has sent follow request to this private account
 }
 
-export interface ProfilePost {
-  id: string;
-  type: 'photo' | 'video' | 'reel';
-  thumbnail: string;
-  url: string;
-  likesCount: number;
-  commentsCount: number;
-  caption: string;
-  createdAt: string;
-}
+// Use Post from post feature directly
+export type { Post as ProfilePost } from "@/features/post/types";
 
 export interface StoryHighlight {
   id: string;
@@ -53,23 +47,19 @@ export interface StoryHighlight {
 
 // Followers/Followings API Response Types
 export interface FollowersResponse {
-  content: FollowerUser[];
+  pageNo: number;
+  pageSize: number;
   totalElements: number;
   totalPages: number;
-  pageable: {
-    pageNumber: number;
-    pageSize: number;
-  };
+  content: FollowerUser[];
 }
 
 export interface FollowingResponse {
-  content: FollowingUser[];
+  pageNo: number;
+  pageSize: number;
   totalElements: number;
   totalPages: number;
-  pageable: {
-    pageNumber: number;
-    pageSize: number;
-  };
+  content: FollowingUser[];
 }
 
 export interface FollowerUser {
@@ -77,9 +67,9 @@ export interface FollowerUser {
   userName: string;
   fullName: string;
   avatar: string;
+  isFollowing: boolean;
+  hasRequestedFollow: boolean;
   closeFriend: boolean;
-  isFollowing: boolean; // Whether current user is following this follower
-  isPrivate: boolean; // Whether this user's account is private
 }
 
 export interface FollowingUser {
@@ -87,27 +77,28 @@ export interface FollowingUser {
   userName: string;
   fullName: string;
   avatar: string;
+  isFollowing: boolean;
+  hasRequestedFollow: boolean;
   closeFriend: boolean;
-  isFollowing: boolean; // Always true for following users, but needed for consistency
-  isPrivate: boolean; // Whether this user's account is private
 }
 
 // Follow Request Types
 export interface FollowRequestUser {
   userId: number;
   userName: string;
+  fullName: string;
   avatar: string;
-  requestedAt: string;
+  isFollowing: boolean;
+  hasRequestedFollow: boolean;
+  closeFriend: boolean;
 }
 
 export interface FollowRequestsResponse {
-  content: FollowRequestUser[];
+  pageNo: number;
+  pageSize: number;
   totalElements: number;
   totalPages: number;
-  pageable: {
-    pageNumber: number;
-    pageSize: number;
-  };
+  content: FollowRequestUser[];
 }
 
 // Close Friends Types
@@ -126,6 +117,26 @@ export interface CloseFriendsResponse {
     pageNumber: number;
     pageSize: number;
   };
+}
+
+// Blocked Users Types
+export interface BlockedUser {
+  id: number;
+  username: string;
+  fullName: string;
+  avatar: string;
+  bio: string;
+  isPrivate: boolean;
+  followers: number;
+  following: number;
+}
+
+export interface BlockedUsersResponse {
+  pageNo: number;
+  pageSize: number;
+  totalElements: number;
+  totalPages: number;
+  content: BlockedUser[];
 }
 
 // API Request Types
@@ -152,15 +163,15 @@ export const transformProfileData = (apiData: ProfileData): UserProfile => ({
   id: apiData.id.toString(),
   username: apiData.username,
   name: apiData.fullName,
-  avatar: apiData.avatar || '',
-  bio: apiData.bio || '',
+  avatar: apiData.avatar || "",
+  bio: apiData.bio || "",
   isPrivate: apiData.isPrivate,
   postsCount: 0, // Will be fetched separately
   followersCount: apiData.followers,
   followingCount: apiData.following,
-  isFollowing: false, // Will be determined by relationship data
+  isFollowing: apiData.isFollowing ?? false, // Get from API or default to false
   isFollowedBy: false, // Will be determined by relationship data
   isBlocked: false,
   isMuted: false,
-  hasRequestedFollow: false,
+  hasRequestedFollow: apiData.hasRequestedFollow ?? false, // Get from API or default to false
 });

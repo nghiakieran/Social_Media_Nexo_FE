@@ -1,7 +1,33 @@
-import { createSlice, PayloadAction, createAsyncThunk } from '@reduxjs/toolkit';
-import { getProfile, getFollowersByUsername, getFollowingByUsername, updateUserProfile, getFollowRequests, acceptFollowRequest, rejectFollowRequest, followUser, unfollowUser, getCloseFriends, toggleCloseFriend } from './api/profileApi';
-import { transformProfileData } from './types';
-import type { UserProfile, ProfilePost, StoryHighlight, FollowerUser, FollowingUser, UpdateProfileRequest, FollowRequestUser, CloseFriendUser } from './types';
+import { createSlice, PayloadAction, createAsyncThunk } from "@reduxjs/toolkit";
+import {
+  getProfile,
+  getFollowersByUsername,
+  getFollowingByUsername,
+  updateUserProfile,
+  getFollowRequests,
+  acceptFollowRequest,
+  rejectFollowRequest,
+  followUser,
+  unfollowUser,
+  getCloseFriends,
+  toggleCloseFriend,
+  getBlockedUsers,
+  blockUser,
+  unblockUser,
+  deleteAvatar,
+} from "./api/profileApi";
+import { transformProfileData } from "./types";
+import type {
+  UserProfile,
+  ProfilePost,
+  StoryHighlight,
+  FollowerUser,
+  FollowingUser,
+  UpdateProfileRequest,
+  FollowRequestUser,
+  CloseFriendUser,
+  BlockedUser,
+} from "./types";
 
 interface ProfileState {
   currentProfile: UserProfile | null;
@@ -13,7 +39,8 @@ interface ProfileState {
   following: FollowingUser[];
   followRequests: FollowRequestUser[];
   closeFriends: CloseFriendUser[];
-  activeTab: 'posts' | 'reels' | 'saved';
+  blockedUsers: BlockedUser[];
+  activeTab: "posts" | "reels" | "saved" | "hidden";
   isLoading: boolean;
   error: string | null;
   showFollowersDialog: boolean;
@@ -23,6 +50,19 @@ interface ProfileState {
   showReportDialog: boolean;
   showAvatarDialog: boolean;
   showCreateHighlightDialog: boolean;
+  // Pagination
+  followersPage: number;
+  followersTotalPages: number;
+  followersHasMore: boolean;
+  followingPage: number;
+  followingTotalPages: number;
+  followingHasMore: boolean;
+  requestsPage: number;
+  requestsTotalPages: number;
+  requestsHasMore: boolean;
+  blockedPage: number;
+  blockedTotalPages: number;
+  blockedHasMore: boolean;
 }
 
 const initialState: ProfileState = {
@@ -35,7 +75,8 @@ const initialState: ProfileState = {
   following: [],
   followRequests: [],
   closeFriends: [],
-  activeTab: 'posts',
+  blockedUsers: [],
+  activeTab: "posts",
   isLoading: false,
   error: null,
   showFollowersDialog: false,
@@ -45,179 +86,360 @@ const initialState: ProfileState = {
   showReportDialog: false,
   showAvatarDialog: false,
   showCreateHighlightDialog: false,
+  // Pagination
+  followersPage: 0,
+  followersTotalPages: 0,
+  followersHasMore: false,
+  followingPage: 0,
+  followingTotalPages: 0,
+  followingHasMore: false,
+  requestsPage: 0,
+  requestsTotalPages: 0,
+  requestsHasMore: false,
+  blockedPage: 0,
+  blockedTotalPages: 0,
+  blockedHasMore: false,
 };
 
 // Async thunks for API calls
 export const fetchCurrentUserProfileAsync = createAsyncThunk(
-  'profile/fetchCurrentUserProfile',
+  "profile/fetchCurrentUserProfile",
   async (_, { rejectWithValue }) => {
     try {
       const profileData = await getProfile();
       return transformProfileData(profileData);
     } catch (error: unknown) {
-      const axiosError = error as { response?: { data?: { message?: string } } };
-      const message = axiosError?.response?.data?.message || 'Không thể tải thông tin profile';
+      const axiosError = error as {
+        response?: { data?: { message?: string } };
+      };
+      const message =
+        axiosError?.response?.data?.message ||
+        "Không thể tải thông tin profile";
       return rejectWithValue(message);
     }
   }
 );
 
 export const fetchUserProfileByUsernameAsync = createAsyncThunk(
-  'profile/fetchUserProfileByUsername',
+  "profile/fetchUserProfileByUsername",
   async (username: string, { rejectWithValue }) => {
     try {
       const profileData = await getProfile(username);
       return transformProfileData(profileData);
     } catch (error: unknown) {
-      const axiosError = error as { response?: { data?: { message?: string } } };
-      const message = axiosError?.response?.data?.message || 'Không thể tải thông tin profile';
+      const axiosError = error as {
+        response?: { data?: { message?: string } };
+      };
+      const message =
+        axiosError?.response?.data?.message ||
+        "Không thể tải thông tin profile";
       return rejectWithValue(message);
     }
   }
 );
 
 export const fetchFollowersByUsernameAsync = createAsyncThunk(
-  'profile/fetchFollowersByUsername',
-  async ({ username, page = 0, limit = 10 }: { username: string; page?: number; limit?: number }, { rejectWithValue }) => {
+  "profile/fetchFollowersByUsername",
+  async (
+    {
+      username,
+      pageNo = 0,
+      pageSize = 10,
+      search,
+    }: {
+      username: string;
+      pageNo?: number;
+      pageSize?: number;
+      search?: string;
+    },
+    { rejectWithValue }
+  ) => {
     try {
-      const followers = await getFollowersByUsername(username, page, limit);
-      return followers;
+      const response = await getFollowersByUsername(
+        username,
+        pageNo,
+        pageSize,
+        search
+      );
+      return response;
     } catch (error: unknown) {
-      const axiosError = error as { response?: { data?: { message?: string } } };
-      const message = axiosError?.response?.data?.message || 'Không thể tải danh sách followers';
+      const axiosError = error as {
+        response?: { data?: { message?: string } };
+      };
+      const message =
+        axiosError?.response?.data?.message ||
+        "Không thể tải danh sách followers";
       return rejectWithValue(message);
     }
   }
 );
 
 export const fetchFollowingByUsernameAsync = createAsyncThunk(
-  'profile/fetchFollowingByUsername',
-  async ({ username, page = 0, limit = 10 }: { username: string; page?: number; limit?: number }, { rejectWithValue }) => {
+  "profile/fetchFollowingByUsername",
+  async (
+    {
+      username,
+      pageNo = 0,
+      pageSize = 10,
+      search,
+    }: {
+      username: string;
+      pageNo?: number;
+      pageSize?: number;
+      search?: string;
+    },
+    { rejectWithValue }
+  ) => {
     try {
-      const following = await getFollowingByUsername(username, page, limit);
-      return following;
+      const response = await getFollowingByUsername(
+        username,
+        pageNo,
+        pageSize,
+        search
+      );
+      return response;
     } catch (error: unknown) {
-      const axiosError = error as { response?: { data?: { message?: string } } };
-      const message = axiosError?.response?.data?.message || 'Không thể tải danh sách following';
+      const axiosError = error as {
+        response?: { data?: { message?: string } };
+      };
+      const message =
+        axiosError?.response?.data?.message ||
+        "Không thể tải danh sách following";
       return rejectWithValue(message);
     }
   }
 );
 
 export const updateUserProfileAsync = createAsyncThunk(
-  'profile/updateUserProfile',
+  "profile/updateUserProfile",
   async (profileData: UpdateProfileRequest, { rejectWithValue }) => {
     try {
       const updatedProfileData = await updateUserProfile(profileData);
       return transformProfileData(updatedProfileData);
     } catch (error: unknown) {
-      const axiosError = error as { response?: { data?: { message?: string } } };
-      const message = axiosError?.response?.data?.message || 'Không thể cập nhật profile';
+      const axiosError = error as {
+        response?: { data?: { message?: string } };
+      };
+      const message =
+        axiosError?.response?.data?.message || "Không thể cập nhật profile";
       return rejectWithValue(message);
     }
   }
 );
 
 export const fetchFollowRequestsAsync = createAsyncThunk(
-  'profile/fetchFollowRequests',
-  async ({ page = 0, limit = 10 }: { page?: number; limit?: number } = {}, { rejectWithValue }) => {
+  "profile/fetchFollowRequests",
+  async (
+    { pageNo = 0, pageSize = 10 }: { pageNo?: number; pageSize?: number } = {},
+    { rejectWithValue }
+  ) => {
     try {
-      const followRequests = await getFollowRequests(page, limit);
-      return followRequests;
+      const response = await getFollowRequests(pageNo, pageSize);
+      return response;
     } catch (error: unknown) {
-      const axiosError = error as { response?: { data?: { message?: string } } };
-      const message = axiosError?.response?.data?.message || 'Không thể tải danh sách yêu cầu theo dõi';
+      const axiosError = error as {
+        response?: { data?: { message?: string } };
+      };
+      const message =
+        axiosError?.response?.data?.message ||
+        "Không thể tải danh sách yêu cầu theo dõi";
       return rejectWithValue(message);
     }
   }
 );
 
 export const acceptFollowRequestAsync = createAsyncThunk(
-  'profile/acceptFollowRequest',
+  "profile/acceptFollowRequest",
   async (username: string, { rejectWithValue }) => {
     try {
       await acceptFollowRequest(username);
       return username;
     } catch (error: unknown) {
-      const axiosError = error as { response?: { data?: { message?: string } } };
-      const message = axiosError?.response?.data?.message || 'Không thể chấp nhận yêu cầu theo dõi';
+      const axiosError = error as {
+        response?: { data?: { message?: string } };
+      };
+      const message =
+        axiosError?.response?.data?.message ||
+        "Không thể chấp nhận yêu cầu theo dõi";
       return rejectWithValue(message);
     }
   }
 );
 
 export const rejectFollowRequestAsync = createAsyncThunk(
-  'profile/rejectFollowRequest',
+  "profile/rejectFollowRequest",
   async (username: string, { rejectWithValue }) => {
     try {
       await rejectFollowRequest(username);
       return username;
     } catch (error: unknown) {
-      const axiosError = error as { response?: { data?: { message?: string } } };
-      const message = axiosError?.response?.data?.message || 'Không thể từ chối yêu cầu theo dõi';
+      const axiosError = error as {
+        response?: { data?: { message?: string } };
+      };
+      const message =
+        axiosError?.response?.data?.message ||
+        "Không thể từ chối yêu cầu theo dõi";
       return rejectWithValue(message);
     }
   }
 );
 
 export const followUserAsync = createAsyncThunk(
-  'profile/followUser',
+  "profile/followUser",
   async (username: string, { rejectWithValue }) => {
     try {
       await followUser(username);
       return username;
     } catch (error: unknown) {
-      const axiosError = error as { response?: { data?: { message?: string } } };
-      const message = axiosError?.response?.data?.message || 'Không thể theo dõi người dùng';
+      const axiosError = error as {
+        response?: { data?: { message?: string } };
+      };
+      const message =
+        axiosError?.response?.data?.message || "Không thể theo dõi người dùng";
       return rejectWithValue(message);
     }
   }
 );
 
 export const unfollowUserAsync = createAsyncThunk(
-  'profile/unfollowUser',
+  "profile/unfollowUser",
   async (username: string, { rejectWithValue }) => {
     try {
       await unfollowUser(username);
       return username;
     } catch (error: unknown) {
-      const axiosError = error as { response?: { data?: { message?: string } } };
-      const message = axiosError?.response?.data?.message || 'Không thể bỏ theo dõi người dùng';
+      const axiosError = error as {
+        response?: { data?: { message?: string } };
+      };
+      const message =
+        axiosError?.response?.data?.message ||
+        "Không thể bỏ theo dõi người dùng";
       return rejectWithValue(message);
     }
   }
 );
 
 export const fetchCloseFriendsAsync = createAsyncThunk(
-  'profile/fetchCloseFriends',
-  async ({ page = 0, limit = 20 }: { page?: number; limit?: number } = {}, { rejectWithValue }) => {
+  "profile/fetchCloseFriends",
+  async (
+    {
+      page = 0,
+      limit = 10,
+      search,
+    }: { page?: number; limit?: number; search?: string } = {},
+    { rejectWithValue }
+  ) => {
     try {
-      const closeFriends = await getCloseFriends(page, limit);
+      const closeFriends = await getCloseFriends(page, limit, search);
       return { closeFriends, page, limit };
     } catch (error: unknown) {
-      const axiosError = error as { response?: { data?: { message?: string } } };
-      const message = axiosError?.response?.data?.message || 'Không thể tải danh sách bạn thân';
+      const axiosError = error as {
+        response?: { data?: { message?: string } };
+      };
+      const message =
+        axiosError?.response?.data?.message ||
+        "Không thể tải danh sách bạn thân";
       return rejectWithValue(message);
     }
   }
 );
 
 export const toggleCloseFriendAsync = createAsyncThunk(
-  'profile/toggleCloseFriend',
+  "profile/toggleCloseFriend",
   async (username: string, { rejectWithValue }) => {
     try {
       await toggleCloseFriend(username);
       return username;
     } catch (error: unknown) {
-      const axiosError = error as { response?: { data?: { message?: string } } };
-      const message = axiosError?.response?.data?.message || 'Không thể thay đổi trạng thái bạn thân';
+      const axiosError = error as {
+        response?: { data?: { message?: string } };
+      };
+      const message =
+        axiosError?.response?.data?.message ||
+        "Không thể thay đổi trạng thái bạn thân";
+      return rejectWithValue(message);
+    }
+  }
+);
+
+export const fetchBlockedUsersAsync = createAsyncThunk(
+  "profile/fetchBlockedUsers",
+  async (
+    {
+      page = 0,
+      limit = 10,
+      search,
+    }: { page?: number; limit?: number; search?: string } = {},
+    { rejectWithValue }
+  ) => {
+    try {
+      const response = await getBlockedUsers(page, limit, search);
+      return response;
+    } catch (error: unknown) {
+      const axiosError = error as {
+        response?: { data?: { message?: string } };
+      };
+      const message =
+        axiosError?.response?.data?.message ||
+        "Không thể tải danh sách người đã chặn";
+      return rejectWithValue(message);
+    }
+  }
+);
+
+export const blockUserAsync = createAsyncThunk(
+  "profile/blockUser",
+  async (username: string, { rejectWithValue }) => {
+    try {
+      await blockUser(username);
+      return username;
+    } catch (error: unknown) {
+      const axiosError = error as {
+        response?: { data?: { message?: string } };
+      };
+      const message =
+        axiosError?.response?.data?.message || "Không thể chặn người dùng";
+      return rejectWithValue(message);
+    }
+  }
+);
+
+export const unblockUserAsync = createAsyncThunk(
+  "profile/unblockUser",
+  async (username: string, { rejectWithValue }) => {
+    try {
+      await unblockUser(username);
+      return username;
+    } catch (error: unknown) {
+      const axiosError = error as {
+        response?: { data?: { message?: string } };
+      };
+      const message =
+        axiosError?.response?.data?.message || "Không thể bỏ chặn người dùng";
+      return rejectWithValue(message);
+    }
+  }
+);
+
+export const deleteAvatarAsync = createAsyncThunk(
+  "profile/deleteAvatar",
+  async (_, { rejectWithValue }) => {
+    try {
+      await deleteAvatar();
+      return;
+    } catch (error: unknown) {
+      const axiosError = error as {
+        response?: { data?: { message?: string } };
+      };
+      const message =
+        axiosError?.response?.data?.message || "Không thể gỡ ảnh đại diện";
       return rejectWithValue(message);
     }
   }
 );
 
 const profileSlice = createSlice({
-  name: 'profile',
+  name: "profile",
   initialState,
   reducers: {
     setProfile: (state, action: PayloadAction<UserProfile>) => {
@@ -250,13 +472,21 @@ const profileSlice = createSlice({
     setCloseFriends: (state, action: PayloadAction<CloseFriendUser[]>) => {
       state.closeFriends = action.payload;
     },
-    setActiveTab: (state, action: PayloadAction<'posts' | 'reels' | 'saved'>) => {
+    setBlockedUsers: (state, action: PayloadAction<BlockedUser[]>) => {
+      state.blockedUsers = action.payload;
+    },
+    setActiveTab: (
+      state,
+      action: PayloadAction<"posts" | "reels" | "saved" | "hidden">
+    ) => {
       state.activeTab = action.payload;
     },
     toggleFollow: (state) => {
       if (state.currentProfile) {
         state.currentProfile.isFollowing = !state.currentProfile.isFollowing;
-        state.currentProfile.followersCount += state.currentProfile.isFollowing ? 1 : -1;
+        state.currentProfile.followersCount += state.currentProfile.isFollowing
+          ? 1
+          : -1;
       }
     },
     toggleBlock: (state) => {
@@ -343,7 +573,17 @@ const profileSlice = createSlice({
       })
       .addCase(fetchFollowersByUsernameAsync.fulfilled, (state, action) => {
         state.isLoading = false;
-        state.followers = action.payload;
+        const { content, pageNo, totalPages } = action.payload;
+
+        if (pageNo === 0) {
+          state.followers = content;
+        } else {
+          state.followers.push(...content);
+        }
+
+        state.followersPage = pageNo;
+        state.followersTotalPages = totalPages;
+        state.followersHasMore = pageNo < totalPages - 1;
         state.error = null;
       })
       .addCase(fetchFollowersByUsernameAsync.rejected, (state, action) => {
@@ -357,7 +597,17 @@ const profileSlice = createSlice({
       })
       .addCase(fetchFollowingByUsernameAsync.fulfilled, (state, action) => {
         state.isLoading = false;
-        state.following = action.payload;
+        const { content, pageNo, totalPages } = action.payload;
+
+        if (pageNo === 0) {
+          state.following = content;
+        } else {
+          state.following.push(...content);
+        }
+
+        state.followingPage = pageNo;
+        state.followingTotalPages = totalPages;
+        state.followingHasMore = pageNo < totalPages - 1;
         state.error = null;
       })
       .addCase(fetchFollowingByUsernameAsync.rejected, (state, action) => {
@@ -383,7 +633,17 @@ const profileSlice = createSlice({
       })
       .addCase(fetchFollowRequestsAsync.fulfilled, (state, action) => {
         state.isLoading = false;
-        state.followRequests = action.payload;
+        const { content, pageNo, totalPages } = action.payload;
+
+        if (pageNo === 0) {
+          state.followRequests = content;
+        } else {
+          state.followRequests.push(...content);
+        }
+
+        state.requestsPage = pageNo;
+        state.requestsTotalPages = totalPages;
+        state.requestsHasMore = pageNo < totalPages - 1;
         state.error = null;
       })
       .addCase(fetchFollowRequestsAsync.rejected, (state, action) => {
@@ -393,7 +653,7 @@ const profileSlice = createSlice({
       .addCase(acceptFollowRequestAsync.fulfilled, (state, action) => {
         // Remove the accepted request from the list
         state.followRequests = state.followRequests.filter(
-          request => request.userName !== action.payload
+          (request) => request.userName !== action.payload
         );
         // Update followers count
         if (state.currentProfile) {
@@ -403,17 +663,24 @@ const profileSlice = createSlice({
       .addCase(rejectFollowRequestAsync.fulfilled, (state, action) => {
         // Remove the rejected request from the list
         state.followRequests = state.followRequests.filter(
-          request => request.userName !== action.payload
+          (request) => request.userName !== action.payload
         );
       })
       .addCase(followUserAsync.fulfilled, (state, action) => {
         // Update current profile follow state
         if (state.currentProfile) {
-          state.currentProfile.isFollowing = true;
-          // If following current user, increase followers count
-          const currentUser = state.currentProfile;
-          if (currentUser.username === action.payload) {
-            state.currentProfile.followersCount += 1;
+          // If it's a private account, set hasRequestedFollow instead of isFollowing
+          if (state.currentProfile.isPrivate) {
+            state.currentProfile.hasRequestedFollow = true;
+            // Don't set isFollowing to true yet - wait for request approval
+          } else {
+            // For public accounts, set isFollowing immediately
+            state.currentProfile.isFollowing = true;
+            // If following current user, increase followers count
+            const currentUser = state.currentProfile;
+            if (currentUser.username === action.payload) {
+              state.currentProfile.followersCount += 1;
+            }
           }
         }
       })
@@ -424,7 +691,10 @@ const profileSlice = createSlice({
           // If unfollowing current user, decrease followers count
           const currentUser = state.currentProfile;
           if (currentUser.username === action.payload) {
-            state.currentProfile.followersCount = Math.max(0, state.currentProfile.followersCount - 1);
+            state.currentProfile.followersCount = Math.max(
+              0,
+              state.currentProfile.followersCount - 1
+            );
           }
         }
       })
@@ -441,9 +711,58 @@ const profileSlice = createSlice({
       .addCase(toggleCloseFriendAsync.fulfilled, (state, action) => {
         // Toggle close friend status - this will be handled by refetching the list
         // or we can update the local state if we know the current status
+      })
+      // fetchBlockedUsersAsync
+      .addCase(fetchBlockedUsersAsync.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(fetchBlockedUsersAsync.fulfilled, (state, action) => {
+        state.isLoading = false;
+        const { content, pageNo, totalPages } = action.payload;
+
+        if (pageNo === 0) {
+          state.blockedUsers = content;
+        } else {
+          state.blockedUsers.push(...content);
+        }
+
+        state.blockedPage = pageNo;
+        state.blockedTotalPages = totalPages;
+        state.blockedHasMore = pageNo < totalPages - 1;
+        state.error = null;
+      })
+      .addCase(fetchBlockedUsersAsync.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload as string;
+      })
+      // blockUserAsync
+      .addCase(blockUserAsync.fulfilled, (state, action) => {
+        // User blocked - will refetch the list
+      })
+      // unblockUserAsync
+      .addCase(unblockUserAsync.fulfilled, (state, action) => {
+        // Remove unblocked user from the list
+        state.blockedUsers = state.blockedUsers.filter(
+          (user) => user.username !== action.payload
+        );
+      })
+      // deleteAvatarAsync
+      .addCase(deleteAvatarAsync.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(deleteAvatarAsync.fulfilled, (state) => {
+        state.isLoading = false;
+        // Don't update profile here - will be refreshed by calling fetchProfile
+        state.error = null;
+      })
+      .addCase(deleteAvatarAsync.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload as string;
       });
-      },
-    });
+  },
+});
 
 export const {
   setProfile,
@@ -456,6 +775,7 @@ export const {
   setFollowing,
   setFollowRequests,
   setCloseFriends,
+  setBlockedUsers,
   setActiveTab,
   toggleFollow,
   toggleBlock,
@@ -476,6 +796,13 @@ export const {
 // Async thunks are already exported inline above
 
 // Re-export types from types folder
-export type { UserProfile, ProfilePost, StoryHighlight, FollowerUser, FollowingUser, FollowRequestUser } from './types';
+export type {
+  UserProfile,
+  ProfilePost,
+  StoryHighlight,
+  FollowerUser,
+  FollowingUser,
+  FollowRequestUser,
+} from "./types";
 
 export default profileSlice.reducer;
