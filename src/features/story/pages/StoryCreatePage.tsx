@@ -320,6 +320,7 @@ export const StoryCreatePage = () => {
         createStoryThunk({
           file: finalFile,
           storyData: {
+            storyId: 0,
             userId: currentUser.id,
             isClosedFriend: isCloseFriend,
             isArchive: false, // Always false when creating

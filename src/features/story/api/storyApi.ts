@@ -37,7 +37,7 @@ export const createStory = async (
       timeout = 120000; // 2 minutes for medium files
     }
 
-    const response = await api.post<CreateStoryResponse>("/story", formData, {
+    const response = await api.post<CreateStoryResponse>("/posts/story", formData, {
       headers: {
         "Content-Type": "multipart/form-data",
       },
@@ -72,7 +72,7 @@ export const deleteStory = async (
   storyId: number
 ): Promise<DeleteStoryResponse> => {
   try {
-    const response = await api.delete<DeleteStoryResponse>(`/story/${storyId}`);
+    const response = await api.delete<DeleteStoryResponse>(`/posts/story/${storyId}`);
     return response.data;
   } catch (error: unknown) {
     if (error && typeof error === "object" && "response" in error) {
@@ -91,7 +91,7 @@ export const archiveStory = async (
   storyId: number
 ): Promise<ArchiveStoryResponse> => {
   try {
-    const response = await api.put<ArchiveStoryResponse>(`/story/${storyId}`);
+    const response = await api.put<ArchiveStoryResponse>(`/posts/story/${storyId}`);
     return response.data;
   } catch (error: unknown) {
     if (error && typeof error === "object" && "response" in error) {
@@ -110,7 +110,7 @@ export const viewStory = async (
   storyId: number
 ): Promise<ViewStoryResponse> => {
   try {
-    const response = await api.post<ViewStoryResponse>(`/story/view/${storyId}`);
+    const response = await api.post<ViewStoryResponse>(`/posts/story/view/${storyId}`);
     return response.data;
   } catch (error: unknown) {
     if (error && typeof error === "object" && "response" in error) {
@@ -131,7 +131,7 @@ export const getFriendStories = async (
   try {
     const { userId, pageNo = 0, pageSize = 10 } = params;
 
-    const response = await api.get<GetStoriesApiResponse>(`/story/view/${userId}`, {
+    const response = await api.get<GetStoriesApiResponse>(`/posts/story/view/${userId}`, {
       params: {
         pageNo,
         pageSize,
@@ -157,7 +157,7 @@ export const getUserStories = async (
   try {
     const { userId, pageNo = 0, pageSize = 10 } = params;
 
-    const response = await api.get<GetStoriesApiResponse>(`/story/${userId}`, {
+    const response = await api.get<GetStoriesApiResponse>(`/posts/story/${userId}`, {
       params: {
         pageNo,
         pageSize,
@@ -183,7 +183,7 @@ export const getAllUserStories = async (
   try {
     const { userId, pageNo = 0, pageSize = 10 } = params;
 
-    const response = await api.get<GetStoriesApiResponse>(`/story/all/${userId}`, {
+    const response = await api.get<GetStoriesApiResponse>(`/posts/story/all/${userId}`, {
       params: {
         pageNo,
         pageSize,
