@@ -55,6 +55,7 @@ export interface ViewStoryResponse {
 
 // API Request Types
 export interface CreateStoryRequest {
+  storyId: number;
   userId: number;
   isClosedFriend: boolean;
   isArchive: boolean;

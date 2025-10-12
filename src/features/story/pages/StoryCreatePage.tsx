@@ -134,7 +134,7 @@ export const StoryCreatePage = () => {
 
   const handleDownload = () => {
     if (!file) return;
-    
+
     const url = URL.createObjectURL(file);
     const a = document.createElement("a");
     a.href = url;
@@ -143,7 +143,7 @@ export const StoryCreatePage = () => {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    
+
     toast({
       title: "Đã tải xuống",
       description: "File đã được tải về máy",
@@ -231,11 +231,11 @@ export const StoryCreatePage = () => {
       // Draw text overlays
       textOverlays.forEach((overlay) => {
         ctx.save();
-        
+
         // Position
         const x = (overlay.x / 100) * canvas.width;
         const y = (overlay.y / 100) * canvas.height;
-        
+
         ctx.translate(x, y);
         ctx.scale(overlay.scale, overlay.scale);
         ctx.rotate((overlay.rotation * Math.PI) / 180);
@@ -246,13 +246,13 @@ export const StoryCreatePage = () => {
         ctx.fillStyle = overlay.style.color;
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
-        
+
         // Text shadow
         ctx.shadowColor = "rgba(0,0,0,0.8)";
         ctx.shadowBlur = 4;
         ctx.shadowOffsetX = 2;
         ctx.shadowOffsetY = 2;
-        
+
         ctx.fillText(overlay.text, 0, 0);
         ctx.restore();
       });
@@ -260,10 +260,10 @@ export const StoryCreatePage = () => {
       // Draw stickers/emojis
       stickers.forEach((sticker) => {
         ctx.save();
-        
+
         const x = (sticker.x / 100) * canvas.width;
         const y = (sticker.y / 100) * canvas.height;
-        
+
         ctx.translate(x, y);
         ctx.scale(sticker.scale, sticker.scale);
         ctx.rotate((sticker.rotation * Math.PI) / 180);
@@ -271,7 +271,7 @@ export const StoryCreatePage = () => {
         ctx.font = `${sticker.size}px Arial`;
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
-        
+
         ctx.fillText(sticker.content, 0, 0);
         ctx.restore();
       });
@@ -305,7 +305,7 @@ export const StoryCreatePage = () => {
           title: "Đang xử lý...",
           description: "Đang tạo story của bạn",
         });
-        
+
         const composedBlob = await composeStoryImage();
         if (composedBlob) {
           finalFile = new File([composedBlob], file.name, {
@@ -320,6 +320,7 @@ export const StoryCreatePage = () => {
         createStoryThunk({
           file: finalFile,
           storyData: {
+            storyId: 0,
             userId: currentUser.id,
             isClosedFriend: isCloseFriend,
             isArchive: false, // Always false when creating
@@ -427,7 +428,7 @@ export const StoryCreatePage = () => {
               if (rect) {
                 const x = ((e.clientX - rect.left) / rect.width) * 100;
                 const y = ((e.clientY - rect.top) / rect.height) * 100;
-                
+
                 // Delete if dragged outside or to delete zone
                 if (x < 0 || x > 100 || y < 0 || y > 100 || y > 85) {
                   setTextOverlays(textOverlays.filter((o) => o.id !== overlay.id));
@@ -505,7 +506,7 @@ export const StoryCreatePage = () => {
               if (rect) {
                 const x = ((e.clientX - rect.left) / rect.width) * 100;
                 const y = ((e.clientY - rect.top) / rect.height) * 100;
-                
+
                 // Delete if dragged outside or to delete zone
                 if (x < 0 || x > 100 || y < 0 || y > 100 || y > 85) {
                   setStickers(stickers.filter((s) => s.id !== sticker.id));
@@ -559,7 +560,7 @@ export const StoryCreatePage = () => {
               <div className="flex items-center gap-2">
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <button 
+                    <button
                       onClick={() => setShowTextEditor(true)}
                       className="p-2 text-white hover:bg-white/20 rounded-full transition-colors"
                     >
@@ -573,7 +574,7 @@ export const StoryCreatePage = () => {
 
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <button 
+                    <button
                       className="p-2 text-white hover:bg-white/20 rounded-full transition-colors opacity-50 cursor-not-allowed"
                       disabled
                     >
@@ -587,7 +588,7 @@ export const StoryCreatePage = () => {
 
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <button 
+                    <button
                       onClick={() => setShowEmojiPicker(!showEmojiPicker)}
                       className="p-2 text-white hover:bg-white/20 rounded-full transition-colors"
                     >
@@ -601,7 +602,7 @@ export const StoryCreatePage = () => {
 
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <button 
+                    <button
                       className="p-2 text-white hover:bg-white/20 rounded-full transition-colors opacity-50 cursor-not-allowed"
                       disabled
                     >
