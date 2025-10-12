@@ -16,6 +16,10 @@ import {
   deletePostThunk,
   togglePostActiveThunk,
 } from "../postSlice";
+import {
+  getUserStoriesThunk,
+  getFriendStoriesThunk,
+} from "@/features/story/storySlice";
 import { Loader } from "@/components/common/Loader";
 import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
 import type { UpdatePostRequest } from "../types";
@@ -33,6 +37,12 @@ export const FeedPage = () => {
   const { posts, isLoading, error, hasMore, currentPage } = useAppSelector(
     (state) => state.post
   );
+  const { 
+    userStories, 
+    friendStories, 
+    isLoading: isLoadingStories,
+    hasMore: hasMoreStories 
+  } = useAppSelector((state) => state.story);
   const [editingPost, setEditingPost] = useState<any>(null);
   const [reportingPost, setReportingPost] = useState<string | null>(null);
   const [showStoryViewer, setShowStoryViewer] = useState(false);
@@ -42,18 +52,39 @@ export const FeedPage = () => {
   const [sharePost, setSharePost] = useState<any>(null);
   const { toast } = useToast();
 
-  // Load feed when component mounts
+  // Load feed and stories when component mounts
   useEffect(() => {
     if (user) {
       dispatch(getFeedThunk({ userId: user.id, page: 0, limit: 10 }));
+      // Load current user's stories
+      dispatch(
+        getUserStoriesThunk({ userId: user.id, pageNo: 0, pageSize: 10 })
+      );
+      // Load friends' stories
+      dispatch(
+        getFriendStoriesThunk({ userId: user.id, pageNo: 0, pageSize: 10 })
+      );
     }
   }, [dispatch, user]);
 
-  // Infinite scroll handler
+  // Infinite scroll handler for posts
   const handleLoadMore = () => {
     if (user && !isLoading && hasMore) {
       const nextPage = currentPage + 1;
       dispatch(getFeedThunk({ userId: user.id, page: nextPage, limit: 10 }));
+    }
+  };
+
+  // Infinite scroll handler for stories
+  const handleLoadMoreStories = () => {
+    if (user && !isLoadingStories && hasMoreStories) {
+      // Get current page from store - need to create a selector or use a ref
+      // For simplicity, we'll track it locally
+      dispatch(getFriendStoriesThunk({ 
+        userId: user.id, 
+        pageNo: friendStories.length / 10, // Estimate page from length
+        pageSize: 10 
+      }));
     }
   };
 
@@ -211,7 +242,9 @@ export const FeedPage = () => {
   };
 
   const handleStoryClick = (story: any) => {
-    const storyIndex = mockStories.findIndex((s) => s.id === story.id);
+    // Combine user stories + friend stories
+    const allStories = [...userStories, ...friendStories];
+    const storyIndex = allStories.findIndex((s) => s.id === story.id);
     if (storyIndex !== -1) {
       setCurrentStoryIndex(storyIndex);
       setShowStoryViewer(true);
@@ -243,14 +276,31 @@ export const FeedPage = () => {
     );
   }
 
+  // Combine user stories + friend stories for display
+  const allStories = [...userStories, ...friendStories];
+
+  // Transform to Stories component format
+  const displayStories = allStories.map((story) => ({
+    id: story.id,
+    username: story.username,
+    profileImage: story.profileImage,
+    hasNewStory: story.content.length > 0,
+    isViewed: story.isViewed || false,
+    isOwnStory: story.isOwnStory,
+    isCloseFriend: story.isCloseFriend,
+  }));
+
   return (
     <div className="w-full min-h-screen bg-background pt-4">
       {/* Stories */}
       <Stories 
-        stories={mockStories} 
+        stories={displayStories} 
         onStoryClick={handleStoryClick}
         showCreateButton={true}
         currentUserAvatar={user?.avatar}
+        onLoadMore={handleLoadMoreStories}
+        hasMore={hasMoreStories}
+        isLoading={isLoadingStories}
       />
 
       {/* Posts Feed */}
@@ -327,7 +377,7 @@ export const FeedPage = () => {
         <StoryViewer
           isOpen={showStoryViewer}
           onClose={() => setShowStoryViewer(false)}
-          stories={mockStoriesData}
+          stories={allStories}
           initialStoryIndex={currentStoryIndex}
         />
       )}

@@ -19,14 +19,26 @@ interface StoriesProps {
   onStoryClick?: (story: Story) => void
   showCreateButton?: boolean
   currentUserAvatar?: string
+  onLoadMore?: () => void
+  hasMore?: boolean
+  isLoading?: boolean
 }
 
-export function Stories({ stories, onStoryClick, showCreateButton = false, currentUserAvatar }: StoriesProps) {
+export function Stories({ 
+  stories, 
+  onStoryClick, 
+  showCreateButton = false, 
+  currentUserAvatar,
+  onLoadMore,
+  hasMore = false,
+  isLoading = false
+}: StoriesProps) {
   const navigate = useNavigate()
   const [hoveredStory, setHoveredStory] = useState<string | null>(null)
   const [canScrollLeft, setCanScrollLeft] = useState(false)
   const [canScrollRight, setCanScrollRight] = useState(true)
   const scrollContainerRef = useRef<HTMLDivElement>(null)
+  const lastStoryRef = useRef<HTMLDivElement>(null)
 
   const checkScrollPosition = () => {
     if (scrollContainerRef.current) {
@@ -51,6 +63,31 @@ export function Stories({ stories, onStoryClick, showCreateButton = false, curre
   useEffect(() => {
     checkScrollPosition()
   }, [stories])
+
+  // Intersection Observer for infinite scroll
+  useEffect(() => {
+    if (!onLoadMore || !hasMore || isLoading) return
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore && !isLoading) {
+          onLoadMore()
+        }
+      },
+      { threshold: 0.5 }
+    )
+
+    const currentRef = lastStoryRef.current
+    if (currentRef) {
+      observer.observe(currentRef)
+    }
+
+    return () => {
+      if (currentRef) {
+        observer.unobserve(currentRef)
+      }
+    }
+  }, [onLoadMore, hasMore, isLoading])
 
   return (
     <div className="w-full overflow-hidden bg-background py-4 relative">
@@ -124,14 +161,17 @@ export function Stories({ stories, onStoryClick, showCreateButton = false, curre
           </div>
         )}
 
-        {stories.map((story) => (
-          <div
-            key={story.id}
-            className="flex flex-col items-center gap-2 min-w-fit cursor-pointer group p-0.5"
-            onClick={() => onStoryClick?.(story)}
-            onMouseEnter={() => setHoveredStory(story.id)}
-            onMouseLeave={() => setHoveredStory(null)}
-          >
+        {stories.map((story, index) => {
+          const isLastStory = index === stories.length - 1
+          return (
+            <div
+              key={story.id}
+              ref={isLastStory ? lastStoryRef : null}
+              className="flex flex-col items-center gap-2 min-w-fit cursor-pointer group p-0.5"
+              onClick={() => onStoryClick?.(story)}
+              onMouseEnter={() => setHoveredStory(story.id)}
+              onMouseLeave={() => setHoveredStory(null)}
+            >
             {/* Story Ring Container */}
             <div className="relative">
               {/* Outer Ring - Story Indicator */}
@@ -203,7 +243,16 @@ export function Stories({ stories, onStoryClick, showCreateButton = false, curre
               {story.username}
             </span>
           </div>
-        ))}
+        )})}
+
+        {/* Loading More Indicator */}
+        {isLoading && stories.length > 0 && (
+          <div className="flex items-center justify-center min-w-fit px-4">
+            <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )

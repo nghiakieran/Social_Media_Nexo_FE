@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback, memo } from "react"
 import { cn } from "@/lib/utils"
-import { X, ChevronLeft, ChevronRight, Flag, Share, UserMinus, Bookmark, Eye } from "lucide-react"
+import { X, ChevronLeft, ChevronRight, Flag, Share, UserMinus, Bookmark, Eye, Archive, Trash2 } from "lucide-react"
 import { StoryViewerProps, Story } from "../types"
 import { StoryThumbnail } from "./StoryThumbnail"
 import { StoryProgressBar } from "./StoryProgressBar"
@@ -8,6 +8,9 @@ import { StoryHeader } from "./StoryHeader"
 import { StoryContent } from "./StoryContent"
 import { StoryActions } from "./StoryActions"
 import { StorySkeleton } from "./StorySkeleton"
+import { useAppDispatch } from "@/store"
+import { deleteStoryThunk, archiveStoryThunk, viewStoryThunk } from "../storySlice"
+import { useToast } from "@/hooks/use-toast"
 
 export const StoryViewer = memo(({
   isOpen,
@@ -16,6 +19,8 @@ export const StoryViewer = memo(({
   initialStoryIndex,
   initialContentIndex = 0,
 }: StoryViewerProps) => {
+  const dispatch = useAppDispatch()
+  const { toast } = useToast()
   const [currentStoryIndex, setCurrentStoryIndex] = useState(initialStoryIndex)
   const [currentContentIndex, setCurrentContentIndex] = useState(initialContentIndex)
   const [isPaused, setIsPaused] = useState(false)
@@ -38,6 +43,17 @@ export const StoryViewer = memo(({
 
   const currentStory = stories[currentStoryIndex]
   const currentContent = currentStory?.content[currentContentIndex]
+
+  // Call View Story API when viewing a story
+  useEffect(() => {
+    if (currentStory && currentContent && !currentStory.isOwnStory) {
+      // Call view API for the current content being viewed
+      const storyId = parseInt(currentContent.id)
+      if (!isNaN(storyId)) {
+        dispatch(viewStoryThunk(storyId))
+      }
+    }
+  }, [currentStory, currentContent, dispatch])
 
   // Mobile detection
   useEffect(() => {
@@ -439,26 +455,62 @@ export const StoryViewer = memo(({
             // Own story menu
             <>
               <button
-                onClick={(e) => {
+                onClick={async (e) => {
                   e.stopPropagation()
                   setShowMenu(false)
-                  console.log("Delete story")
+                  setIsMenuLoading(true)
+                  
+                  try {
+                    await dispatch(deleteStoryThunk(parseInt(currentStory.id))).unwrap()
+                    toast({
+                      title: "Đã xóa tin",
+                      description: "Tin của bạn đã được xóa thành công",
+                    })
+                    onClose()
+                  } catch (error) {
+                    const err = error as { message?: string }
+                    toast({
+                      title: "Lỗi",
+                      description: err.message || "Không thể xóa tin",
+                      variant: "destructive",
+                    })
+                  } finally {
+                    setIsMenuLoading(false)
+                  }
                 }}
                 className="w-full px-4 py-3 text-left text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors text-sm flex items-center gap-3"
               >
-                <X className="w-4 h-4" />
-                Delete Story
+                <Trash2 className="w-4 h-4" />
+                Xóa tin
               </button>
               <button
-                onClick={(e) => {
+                onClick={async (e) => {
                   e.stopPropagation()
                   setShowMenu(false)
-                  console.log("Save to highlights")
+                  setIsMenuLoading(true)
+                  
+                  try {
+                    await dispatch(archiveStoryThunk(parseInt(currentStory.id))).unwrap()
+                    toast({
+                      title: "Đã lưu vào kho lưu trữ",
+                      description: "Tin đã được chuyển vào kho lưu trữ",
+                    })
+                    onClose()
+                  } catch (error) {
+                    const err = error as { message?: string }
+                    toast({
+                      title: "Lỗi",
+                      description: err.message || "Không thể lưu trữ tin",
+                      variant: "destructive",
+                    })
+                  } finally {
+                    setIsMenuLoading(false)
+                  }
                 }}
                 className="w-full px-4 py-3 text-left text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-sm flex items-center gap-3"
               >
-                <Bookmark className="w-4 h-4" />
-                Save to Highlights
+                <Archive className="w-4 h-4" />
+                Lưu vào kho lưu trữ
               </button>
               <div className="border-t border-gray-200 dark:border-gray-600 my-1"></div>
               <button
@@ -470,7 +522,7 @@ export const StoryViewer = memo(({
                 className="w-full px-4 py-3 text-left text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-sm flex items-center gap-3"
               >
                 <Eye className="w-4 h-4" />
-                View Story Insights
+                Xem thông tin chi tiết
               </button>
             </>
           ) : (
@@ -484,7 +536,7 @@ export const StoryViewer = memo(({
                 className="w-full px-4 py-3 text-left text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-sm flex items-center gap-3"
               >
                 <Flag className="w-4 h-4" />
-                Report Story
+                Báo cáo tin
               </button>
               <button
                 onClick={(e) => {
@@ -494,7 +546,7 @@ export const StoryViewer = memo(({
                 className="w-full px-4 py-3 text-left text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-sm flex items-center gap-3"
               >
                 <Share className="w-4 h-4" />
-                Copy Link
+                Sao chép liên kết
               </button>
               <button
                 onClick={(e) => {
@@ -504,7 +556,7 @@ export const StoryViewer = memo(({
                 className="w-full px-4 py-3 text-left text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-sm flex items-center gap-3"
               >
                 <UserMinus className="w-4 h-4" />
-                Mute {currentStory.username}
+                Tắt tiếng {currentStory.username}
               </button>
             </>
           )}

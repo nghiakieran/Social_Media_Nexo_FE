@@ -8,21 +8,31 @@ import {
   Music,
   ArrowLeft,
   Download,
+  Users,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { useAppSelector } from "@/store";
+import { useAppSelector, useAppDispatch } from "@/store";
 import { getAvatarUrl, getAvatarInitials } from "@/utils/avatar";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { StoryTextEditor } from "../components/StoryTextEditor";
 import { EmojiPicker } from "@/components/common/EmojiPicker";
+import { createStoryThunk } from "../storySlice";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 export const StoryCreatePage = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const dispatch = useAppDispatch();
   const { toast } = useToast();
   const currentUser = useAppSelector((state) => state.auth.user);
+  const { isUploading, uploadProgress } = useAppSelector((state) => state.story);
 
   const [file, setFile] = useState<File | null>(
     location.state?.file || null
@@ -33,6 +43,7 @@ export const StoryCreatePage = () => {
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [showDeleteZone, setShowDeleteZone] = useState(false);
+  const [isCloseFriend, setIsCloseFriend] = useState(false);
   const [textOverlays, setTextOverlays] = useState<Array<{
     id: number;
     text: string;
@@ -276,7 +287,7 @@ export const StoryCreatePage = () => {
   };
 
   const handleShare = async () => {
-    if (!file) {
+    if (!file || !currentUser) {
       toast({
         title: "Lỗi",
         description: "Vui lòng chọn ảnh hoặc video",
@@ -285,16 +296,16 @@ export const StoryCreatePage = () => {
       return;
     }
 
-    toast({
-      title: "Đang xử lý...",
-      description: "Đang tạo story của bạn",
-    });
-
     try {
       let finalFile = file;
 
       // If there are overlays, compose them into the image
       if (!isVideo && (textOverlays.length > 0 || stickers.length > 0)) {
+        toast({
+          title: "Đang xử lý...",
+          description: "Đang tạo story của bạn",
+        });
+        
         const composedBlob = await composeStoryImage();
         if (composedBlob) {
           finalFile = new File([composedBlob], file.name, {
@@ -304,26 +315,29 @@ export const StoryCreatePage = () => {
         }
       }
 
-      // TODO: Implement story upload API
-      console.log("Sharing story:", finalFile);
-      
+      // Call API to create story
+      await dispatch(
+        createStoryThunk({
+          file: finalFile,
+          storyData: {
+            userId: currentUser.id,
+            isClosedFriend: isCloseFriend,
+            isArchive: false, // Always false when creating
+          },
+        })
+      ).unwrap();
+
       toast({
-        title: "Đang tải lên...",
-        description: "Tin của bạn đang được tải lên",
+        title: "Đã chia sẻ tin",
+        description: "Tin của bạn đã được đăng thành công",
       });
 
-      // Simulate upload
-      setTimeout(() => {
-        toast({
-          title: "Đã chia sẻ tin",
-          description: "Tin của bạn đã được đăng thành công",
-        });
-        navigate(-1);
-      }, 2000);
+      navigate(-1);
     } catch (error) {
+      const err = error as { message?: string };
       toast({
         title: "Lỗi",
-        description: "Không thể tạo story",
+        description: err.message || "Không thể tạo story",
         variant: "destructive",
       });
     }
@@ -526,44 +540,81 @@ export const StoryCreatePage = () => {
 
         {/* Header with tools */}
         <header className="absolute top-0 left-0 right-0 p-4 bg-gradient-to-b from-black/50 to-transparent z-10">
-          <div className="flex items-center justify-between">
-            <button
-              onClick={handleClose}
-              className="p-2 text-white hover:bg-white/20 rounded-full transition-colors"
-            >
-              <X className="w-6 h-6" />
-            </button>
-            <div className="flex items-center gap-2">
-              <button 
-                onClick={() => setShowTextEditor(true)}
-                className="p-2 text-white hover:bg-white/20 rounded-full transition-colors"
-                title="Thêm văn bản"
-              >
-                <Type className="w-6 h-6" />
-              </button>
-              <button 
-                className="p-2 text-white hover:bg-white/20 rounded-full transition-colors opacity-50 cursor-not-allowed"
-                title="Sticker (Coming soon)"
-                disabled
-              >
-                <Sticker className="w-6 h-6" />
-              </button>
-              <button 
-                onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-                className="p-2 text-white hover:bg-white/20 rounded-full transition-colors"
-                title="Thêm emoji"
-              >
-                <Smile className="w-6 h-6" />
-              </button>
-              <button 
-                className="p-2 text-white hover:bg-white/20 rounded-full transition-colors opacity-50 cursor-not-allowed"
-                title="Nhạc (Coming soon)"
-                disabled
-              >
-                <Music className="w-6 h-6" />
-              </button>
+          <TooltipProvider>
+            <div className="flex items-center justify-between">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={handleClose}
+                    className="p-2 text-white hover:bg-white/20 rounded-full transition-colors"
+                  >
+                    <X className="w-6 h-6" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">
+                  <p>Đóng</p>
+                </TooltipContent>
+              </Tooltip>
+
+              <div className="flex items-center gap-2">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button 
+                      onClick={() => setShowTextEditor(true)}
+                      className="p-2 text-white hover:bg-white/20 rounded-full transition-colors"
+                    >
+                      <Type className="w-6 h-6" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom">
+                    <p>Thêm văn bản</p>
+                  </TooltipContent>
+                </Tooltip>
+
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button 
+                      className="p-2 text-white hover:bg-white/20 rounded-full transition-colors opacity-50 cursor-not-allowed"
+                      disabled
+                    >
+                      <Sticker className="w-6 h-6" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom">
+                    <p>Sticker (Sắp ra mắt)</p>
+                  </TooltipContent>
+                </Tooltip>
+
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button 
+                      onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                      className="p-2 text-white hover:bg-white/20 rounded-full transition-colors"
+                    >
+                      <Smile className="w-6 h-6" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom">
+                    <p>Thêm emoji</p>
+                  </TooltipContent>
+                </Tooltip>
+
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button 
+                      className="p-2 text-white hover:bg-white/20 rounded-full transition-colors opacity-50 cursor-not-allowed"
+                      disabled
+                    >
+                      <Music className="w-6 h-6" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom">
+                    <p>Nhạc (Sắp ra mắt)</p>
+                  </TooltipContent>
+                </Tooltip>
+              </div>
             </div>
-          </div>
+          </TooltipProvider>
         </header>
 
         {/* Emoji Picker */}
@@ -590,38 +641,70 @@ export const StoryCreatePage = () => {
         )}
 
         {/* Footer with share button */}
-        <footer className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/50 to-transparent">
-          <div className="flex items-center justify-between">
-            <button
-              onClick={handleShare}
-              className={cn(
-                "flex items-center gap-3 px-6 py-3 rounded-full",
-                "bg-white text-black hover:bg-gray-100 transition-colors",
-                "font-medium"
-              )}
-            >
-              <Avatar className="w-8 h-8 border-2 border-white">
-                <AvatarImage
-                  src={getAvatarUrl(currentUser?.avatar)}
-                  alt={currentUser?.username || "User"}
-                />
-                <AvatarFallback>
-                  {getAvatarInitials(
-                    currentUser?.fullName || currentUser?.username || "U"
-                  )}
-                </AvatarFallback>
-              </Avatar>
-              <span>Chia sẻ tin</span>
-            </button>
+        <footer className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/50 to-transparent z-10">
+          <TooltipProvider>
+            <div className="flex items-center justify-between">
+              <button
+                onClick={handleShare}
+                disabled={isUploading}
+                className={cn(
+                  "flex items-center gap-3 px-6 py-3 rounded-full",
+                  "bg-white text-black hover:bg-gray-100 transition-colors",
+                  "font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                )}
+              >
+                <Avatar className="w-8 h-8 border-2 border-white">
+                  <AvatarImage
+                    src={getAvatarUrl(currentUser?.avatar)}
+                    alt={currentUser?.username || "User"}
+                  />
+                  <AvatarFallback>
+                    {getAvatarInitials(
+                      currentUser?.fullName || currentUser?.username || "U"
+                    )}
+                  </AvatarFallback>
+                </Avatar>
+                <span>{isUploading ? `Đang tải... ${uploadProgress}%` : "Chia sẻ tin"}</span>
+              </button>
 
-            <button
-              onClick={handleDownload}
-              className="p-3 text-white hover:bg-white/20 rounded-full transition-colors"
-              title="Tải xuống"
-            >
-              <Download className="w-6 h-6" />
-            </button>
-          </div>
+              <div className="flex items-center gap-2">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      onClick={() => setIsCloseFriend(!isCloseFriend)}
+                      disabled={isUploading}
+                      className={cn(
+                        "p-3 rounded-full transition-all disabled:opacity-50",
+                        isCloseFriend
+                          ? "bg-green-500 hover:bg-green-600 text-white"
+                          : "bg-white/20 hover:bg-white/30 text-white"
+                      )}
+                    >
+                      <Users className="w-6 h-6" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top">
+                    <p>{isCloseFriend ? "Bỏ chỉ bạn thân" : "Chỉ bạn thân"}</p>
+                  </TooltipContent>
+                </Tooltip>
+
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      onClick={handleDownload}
+                      disabled={isUploading}
+                      className="p-3 text-white bg-white/20 hover:bg-white/30 rounded-full transition-colors disabled:opacity-50"
+                    >
+                      <Download className="w-6 h-6" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top">
+                    <p>Tải xuống</p>
+                  </TooltipContent>
+                </Tooltip>
+              </div>
+            </div>
+          </TooltipProvider>
         </footer>
       </div>
 

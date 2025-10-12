@@ -1,21 +1,50 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Archive as ArchiveIcon } from "lucide-react";
 import { StoryViewer } from "../components/StoryViewer";
-import { mockArchivedStories, ArchivedStoryGroup } from "../__mocks__/archivedStories";
 import { cn } from "@/lib/utils";
 import type { Story } from "../types";
+import { useAppDispatch, useAppSelector } from "@/store";
+import { getAllUserStoriesThunk } from "../storySlice";
+import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
+import { Loader } from "@/components/common/Loader";
+import { formatArchiveDate } from "@/utils/timeFormat";
 
 export const ArchivePage = () => {
   const navigate = useNavigate();
+  const dispatch = useAppDispatch();
+  const { user } = useAppSelector((state) => state.auth);
+  const { archivedStories, isLoading, archivedHasMore, archivedCurrentPage } = useAppSelector((state) => state.story);
+  
   const [openViewer, setOpenViewer] = useState(false);
   const [viewerData, setViewerData] = useState<{
     stories: Story[];
     index: number;
   }>({ stories: [], index: 0 });
 
-  const handleOpenArchive = (archive: ArchivedStoryGroup) => {
-    setViewerData({ stories: archive.stories, index: 0 });
+  // Load archived stories on mount
+  useEffect(() => {
+    if (user) {
+      dispatch(getAllUserStoriesThunk({ userId: user.id, pageNo: 0, pageSize: 10 }));
+    }
+  }, [dispatch, user]);
+
+  // Infinite scroll handler
+  const handleLoadMore = useCallback(() => {
+    if (user && !isLoading && archivedHasMore) {
+      const nextPage = archivedCurrentPage + 1;
+      dispatch(getAllUserStoriesThunk({ userId: user.id, pageNo: nextPage, pageSize: 10 }));
+    }
+  }, [user, isLoading, archivedHasMore, archivedCurrentPage, dispatch]);
+
+  const { lastElementRef } = useInfiniteScroll(handleLoadMore, {
+    hasMore: archivedHasMore,
+    isLoading,
+    threshold: 200,
+  });
+
+  const handleOpenArchive = (story: Story) => {
+    setViewerData({ stories: [story], index: 0 });
     setOpenViewer(true);
   };
 
@@ -66,65 +95,72 @@ export const ArchivePage = () => {
           </p>
         </div>
 
+        {/* Loading State */}
+        {isLoading && archivedStories.length === 0 && (
+          <div className="flex justify-center py-16">
+            <Loader />
+          </div>
+        )}
+
         {/* Archive Grid */}
-        <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-1 md:gap-2">
-          {mockArchivedStories.map((archive) => (
-            <button
-              key={archive.id}
-              onClick={() => handleOpenArchive(archive)}
-              className="relative aspect-[9/16] group cursor-pointer overflow-hidden rounded-sm hover:opacity-90 transition-opacity"
-            >
-              {/* Thumbnail */}
-              <img
-                src={archive.thumbnail}
-                alt={`Archive from ${archive.date}`}
-                className="absolute inset-0 w-full h-full object-cover"
-              />
+        {!isLoading && archivedStories.length > 0 && (
+          <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-1 md:gap-2">
+            {archivedStories.map((story, index) => {
+              const isLastItem = index === archivedStories.length - 1;
+              const firstContent = story.content[0];
+              const { day, month, year, showYear } = formatArchiveDate(story.timeAgo);
 
-              {/* Date Overlay */}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-              <div className="absolute bottom-2 left-2 right-2 text-white text-left">
-                <div className="text-lg font-bold leading-none">{archive.day}</div>
-                <div className="text-[10px] leading-none mt-0.5">{archive.month}</div>
-                {archive.year && (
-                  <div className="text-[10px] leading-none opacity-80">
-                    {archive.year}
-                  </div>
-                )}
-              </div>
+              return (
+                <button
+                  key={story.id}
+                  ref={isLastItem ? lastElementRef : null}
+                  onClick={() => handleOpenArchive(story)}
+                  className="relative aspect-[9/16] group cursor-pointer overflow-hidden rounded-sm hover:opacity-90 transition-opacity"
+                >
+                  {/* Thumbnail */}
+                  <img
+                    src={firstContent?.url || "/placeholder.svg"}
+                    alt={`Archive from ${story.timeAgo}`}
+                    className="absolute inset-0 w-full h-full object-cover"
+                  />
 
-              {/* Highlight Indicator */}
-              {archive.isInHighlight && (
-                <div className="absolute top-2 right-2">
-                  <div className="bg-black/60 rounded-full p-1">
-                    <svg
-                      aria-label="Tin tồn tại ở phần nổi bật"
-                      className="w-4 h-4 text-white"
-                      fill="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        d="M3.915 5.31q.337-.407.713-.779m-3.121 7.855Q1.5 12.194 1.5 12a10.505 10.505 0 0 1 .516-3.265m3.243 11.338a10.55 10.55 0 0 1-2.89-3.864m14.482 5.108a10.547 10.547 0 0 1-8.163.65M12.002 1.5a10.504 10.504 0 0 1 7.925 17.39"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                      />
-                      <path
-                        d="M12.002 9.201c-.005.003-.006.001-.008 0a2.555 2.555 0 0 0-2.201-1.157A2.92 2.92 0 0 0 7 11.072c0 1.528 1.122 2.504 2.207 3.447q.198.171.396.346l.473.424c.918.821 1.369 1.223 1.584 1.362a.628.628 0 0 0 .68 0c.205-.133.58-.465 1.633-1.406l.424-.38c.137-.122.275-.24.412-.36 1.077-.935 2.191-1.9 2.191-3.433a2.92 2.92 0 0 0-2.793-3.028 2.544 2.544 0 0 0-2.205 1.157Z"
-                        fillRule="evenodd"
-                      />
-                    </svg>
+                  {/* Date Overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+                  <div className="absolute bottom-2 left-2 right-2 text-white text-left">
+                    <div className="text-lg font-bold leading-none">{day}</div>
+                    <div className="text-[10px] leading-none mt-0.5">{month}</div>
+                    {showYear && (
+                      <div className="text-[10px] leading-none opacity-80">
+                        {year}
+                      </div>
+                    )}
                   </div>
-                </div>
-              )}
-            </button>
-          ))}
-        </div>
+
+                  {/* Multiple Stories Indicator */}
+                  {story.content.length > 1 && (
+                    <div className="absolute top-2 right-2">
+                      <div className="bg-black/60 rounded-full px-2 py-1">
+                        <span className="text-white text-xs font-bold">
+                          {story.content.length}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Loading More Indicator */}
+        {isLoading && archivedStories.length > 0 && (
+          <div className="flex justify-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          </div>
+        )}
 
         {/* Empty State */}
-        {mockArchivedStories.length === 0 && (
+        {!isLoading && archivedStories.length === 0 && (
           <div className="flex flex-col items-center justify-center py-16 text-center">
             <div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center mb-4">
               <ArchiveIcon className="w-10 h-10 text-muted-foreground" />
