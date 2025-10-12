@@ -1,6 +1,6 @@
 import { api } from "@/lib/axios";
-import type { 
-  CreateStoryRequest, 
+import type {
+  CreateStoryRequest,
   CreateStoryResponse,
   DeleteStoryResponse,
   ArchiveStoryResponse,
