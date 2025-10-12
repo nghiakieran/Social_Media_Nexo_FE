@@ -9,6 +9,7 @@ export {
   addHighlight,
   setFollowers,
   setFollowing,
+  setBlockedUsers,
   setActiveTab,
   toggleFollow,
   toggleBlock,
@@ -34,6 +35,12 @@ export {
   rejectFollowRequestAsync,
   followUserAsync,
   unfollowUserAsync,
+  fetchCloseFriendsAsync,
+  toggleCloseFriendAsync,
+  fetchBlockedUsersAsync,
+  blockUserAsync,
+  unblockUserAsync,
+  deleteAvatarAsync,
 } from './profileSlice';
 
 // Export types
@@ -51,6 +58,9 @@ export type {
   UpdateProfileResponse,
   FollowRequestUser,
   FollowRequestsResponse,
+  CloseFriendUser,
+  BlockedUser,
+  BlockedUsersResponse,
 } from './types';
 
 // Export API functions
@@ -66,4 +76,14 @@ export {
   rejectFollowRequest,
   followUser,
   unfollowUser,
+  getCloseFriends,
+  toggleCloseFriend,
+  getBlockedUsers,
+  blockUser,
+  unblockUser,
+  deleteAvatar,
 } from './api/profileApi';
+
+// Export components
+export { BlockedUsersSettings } from './components/BlockedUsersSettings';
+export { CloseFriendsSettings } from './components/CloseFriendsSettings';

@@ -21,7 +21,7 @@ interface Post {
     alt?: string;
   }>;
   userName: string;
-  userAvatar: string;
+  avatarUrl: string;
   createdAt: string;
 }
 

@@ -166,4 +166,14 @@
   .scrollbar-thin::-webkit-scrollbar-thumb:hover {
     @apply bg-muted-foreground;
   }
+
+  /* GPU acceleration for smooth animations */
+  .will-change-transform {
+    will-change: transform;
+  }
+  
+  /* Optimize touch scrolling */
+  .touch-pan-y {
+    touch-action: pan-y;
+  }
 }

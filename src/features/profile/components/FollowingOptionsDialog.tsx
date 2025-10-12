@@ -1,11 +1,11 @@
-import { useState } from 'react';
-import { Heart, UserPlus, Shield, Eye, ChevronRight, X } from 'lucide-react';
+import { useState } from "react";
+import { Heart, UserPlus, Shield, Eye, ChevronRight, X } from "lucide-react";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
+} from "@/components/ui/dialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -15,11 +15,11 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import { Button } from '@/components/ui/button';
-import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { UserProfile } from '../types';
-import { useToast } from '@/hooks/use-toast';
+} from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { UserProfile } from "../types";
+import { useToast } from "@/hooks/use-toast";
 
 interface FollowingOptionsDialogProps {
   isOpen: boolean;
@@ -52,7 +52,7 @@ export const FollowingOptionsDialog = ({
   const handleAddToCloseFriends = () => {
     onAddToCloseFriends();
     toast({
-      title: 'Đã thêm vào danh sách bạn thân',
+      title: "Đã thêm vào danh sách bạn thân",
       description: `${profile.name} đã được thêm vào danh sách bạn thân của bạn`,
     });
     onClose();
@@ -61,7 +61,7 @@ export const FollowingOptionsDialog = ({
   const handleAddToFavorites = () => {
     onAddToFavorites();
     toast({
-      title: 'Đã thêm vào mục yêu thích',
+      title: "Đã thêm vào mục yêu thích",
       description: `${profile.name} đã được thêm vào mục yêu thích`,
     });
     onClose();
@@ -70,7 +70,7 @@ export const FollowingOptionsDialog = ({
   const handleRestrict = () => {
     onRestrict();
     toast({
-      title: 'Đã hạn chế',
+      title: "Đã hạn chế",
       description: `${profile.name} đã bị hạn chế`,
     });
     onClose();
@@ -100,7 +100,9 @@ export const FollowingOptionsDialog = ({
                 </AvatarFallback>
               </Avatar>
               <div>
-                <div className="font-semibold text-base">{profile.username}</div>
+                <div className="font-semibold text-base">
+                  {profile.username}
+                </div>
               </div>
             </div>
           </div>
@@ -175,7 +177,10 @@ export const FollowingOptionsDialog = ({
       </Dialog>
 
       {/* Unfollow Confirmation Dialog */}
-      <AlertDialog open={showUnfollowConfirm} onOpenChange={setShowUnfollowConfirm}>
+      <AlertDialog
+        open={showUnfollowConfirm}
+        onOpenChange={setShowUnfollowConfirm}
+      >
         <AlertDialogContent className="max-w-md mx-auto">
           <AlertDialogHeader>
             <div className="flex flex-col items-center gap-4 py-4">
@@ -190,13 +195,14 @@ export const FollowingOptionsDialog = ({
                   Bỏ theo dõi @{profile.username}?
                 </AlertDialogTitle>
                 <AlertDialogDescription className="text-sm text-muted-foreground">
-                  Họ sẽ không còn thấy bài đăng của bạn trong bảng tin và bạn sẽ không thấy bài đăng của họ.
+                  Họ sẽ không còn thấy bài đăng của bạn trong bảng tin và bạn sẽ
+                  không thấy bài đăng của họ.
                 </AlertDialogDescription>
               </div>
             </div>
           </AlertDialogHeader>
           <AlertDialogFooter className="flex-col gap-2">
-            <AlertDialogAction 
+            <AlertDialogAction
               onClick={() => {
                 handleUnfollow();
                 setShowUnfollowConfirm(false);
@@ -205,7 +211,7 @@ export const FollowingOptionsDialog = ({
             >
               Bỏ theo dõi
             </AlertDialogAction>
-            <AlertDialogCancel 
+            <AlertDialogCancel
               onClick={() => setShowUnfollowConfirm(false)}
               className="w-full"
             >

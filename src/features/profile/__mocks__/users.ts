@@ -108,7 +108,7 @@ export const mockFollowers: FollowerUser[] = [
     avatar: 'https://picsum.photos/150/150?random=1',
     closeFriend: false,
     isFollowing: true, // Current user is following this follower
-    isPrivate: false,
+    hasRequestedFollow: false,
   },
   {
     userId: 2,
@@ -117,7 +117,7 @@ export const mockFollowers: FollowerUser[] = [
     avatar: 'https://picsum.photos/150/150?random=2',
     closeFriend: true,
     isFollowing: false, // Current user is not following this follower
-    isPrivate: true, // Private account
+    hasRequestedFollow: true, // Sent request to private account
   },
   {
     userId: 3,
@@ -126,7 +126,7 @@ export const mockFollowers: FollowerUser[] = [
     avatar: 'https://picsum.photos/150/150?random=3',
     closeFriend: false,
     isFollowing: true, // Current user is following this follower
-    isPrivate: false,
+    hasRequestedFollow: false,
   },
   {
     userId: 4,
@@ -135,7 +135,7 @@ export const mockFollowers: FollowerUser[] = [
     avatar: 'https://picsum.photos/150/150?random=4',
     closeFriend: false,
     isFollowing: false, // Current user is not following this follower
-    isPrivate: true, // Private account
+    hasRequestedFollow: false,
   },
   {
     userId: 5,
@@ -144,7 +144,7 @@ export const mockFollowers: FollowerUser[] = [
     avatar: 'https://picsum.photos/150/150?random=5',
     closeFriend: true,
     isFollowing: true, // Current user is following this follower
-    isPrivate: false,
+    hasRequestedFollow: false,
   },
 ];
 
@@ -157,7 +157,7 @@ export const mockFollowing: FollowingUser[] = [
     avatar: 'https://picsum.photos/150/150?random=6',
     closeFriend: false,
     isFollowing: true, // Always true for following users
-    isPrivate: false,
+    hasRequestedFollow: false,
   },
   {
     userId: 7,
@@ -166,7 +166,7 @@ export const mockFollowing: FollowingUser[] = [
     avatar: 'https://picsum.photos/150/150?random=7',
     closeFriend: true,
     isFollowing: true, // Always true for following users
-    isPrivate: true, // Private account
+    hasRequestedFollow: false,
   },
   {
     userId: 8,
@@ -175,7 +175,7 @@ export const mockFollowing: FollowingUser[] = [
     avatar: 'https://picsum.photos/150/150?random=8',
     closeFriend: false,
     isFollowing: true, // Always true for following users
-    isPrivate: false,
+    hasRequestedFollow: false,
   },
   {
     userId: 9,
@@ -184,7 +184,7 @@ export const mockFollowing: FollowingUser[] = [
     avatar: 'https://picsum.photos/150/150?random=9',
     closeFriend: false,
     isFollowing: true, // Always true for following users
-    isPrivate: true, // Private account
+    hasRequestedFollow: false,
   },
   {
     userId: 10,
@@ -193,7 +193,7 @@ export const mockFollowing: FollowingUser[] = [
     avatar: 'https://picsum.photos/150/150?random=10',
     closeFriend: true,
     isFollowing: true, // Always true for following users
-    isPrivate: false,
+    hasRequestedFollow: false,
   },
 ];
 
@@ -215,9 +215,9 @@ export const mockCurrentUser: UserProfile = {
 };
 
 export const mockFollowRequests: FollowRequestUser[] = [
-  { userId: 11, userName: 'new_user_1', avatar: 'https://picsum.photos/150/150?random=11', requestedAt: '2024-01-15T10:30:00Z' },
-  { userId: 12, userName: 'new_user_2', avatar: 'https://picsum.photos/150/150?random=12', requestedAt: '2024-01-14T15:45:00Z' },
-  { userId: 13, userName: 'new_user_3', avatar: 'https://picsum.photos/150/150?random=13', requestedAt: '2024-01-13T09:20:00Z' },
-  { userId: 14, userName: 'new_user_4', avatar: 'https://picsum.photos/150/150?random=14', requestedAt: '2024-01-12T14:10:00Z' },
-  { userId: 15, userName: 'new_user_5', avatar: 'https://picsum.photos/150/150?random=15', requestedAt: '2024-01-11T11:55:00Z' },
+  { userId: 11, userName: 'new_user_1', fullName: 'New User 1', avatar: 'https://picsum.photos/150/150?random=11', isFollowing: false, hasRequestedFollow: true, closeFriend: false },
+  { userId: 12, userName: 'new_user_2', fullName: 'New User 2', avatar: 'https://picsum.photos/150/150?random=12', isFollowing: false, hasRequestedFollow: true, closeFriend: false },
+  { userId: 13, userName: 'new_user_3', fullName: 'New User 3', avatar: 'https://picsum.photos/150/150?random=13', isFollowing: false, hasRequestedFollow: true, closeFriend: false },
+  { userId: 14, userName: 'new_user_4', fullName: 'New User 4', avatar: 'https://picsum.photos/150/150?random=14', isFollowing: false, hasRequestedFollow: true, closeFriend: false },
+  { userId: 15, userName: 'new_user_5', fullName: 'New User 5', avatar: 'https://picsum.photos/150/150?random=15', isFollowing: false, hasRequestedFollow: true, closeFriend: false },
 ];

@@ -1,14 +1,14 @@
-import React, { useState, useEffect } from 'react';
-import { useAppDispatch } from '../../../store';
-import { updateCollection } from '../savedSlice';
-import { Button } from '../../../components/ui/button';
-import { Input } from '../../../components/ui/input';
+import React, { useState, useEffect } from "react";
+import { useAppDispatch } from "../../../store";
+import { updateCollection } from "../savedSlice";
+import { Button } from "../../../components/ui/button";
+import { Input } from "../../../components/ui/input";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-} from '../../../components/ui/dialog';
+} from "../../../components/ui/dialog";
 
 interface EditCollectionDialogProps {
   isOpen: boolean;
@@ -35,22 +35,24 @@ export const EditCollectionDialog: React.FC<EditCollectionDialogProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!name.trim() || name.trim() === currentName) {
       onClose();
       return;
     }
 
     setIsLoading(true);
-    
+
     try {
-      dispatch(updateCollection({
-        id: collectionId,
-        updates: { name: name.trim() }
-      }));
+      dispatch(
+        updateCollection({
+          id: collectionId,
+          updates: { name: name.trim() },
+        })
+      );
       onClose();
     } catch (error) {
-      console.error('Error updating collection:', error);
+      console.error("Error updating collection:", error);
     } finally {
       setIsLoading(false);
     }
@@ -94,10 +96,12 @@ export const EditCollectionDialog: React.FC<EditCollectionDialogProps> = ({
             </Button>
             <Button
               type="submit"
-              disabled={!name.trim() || name.trim() === currentName || isLoading}
+              disabled={
+                !name.trim() || name.trim() === currentName || isLoading
+              }
               className="flex-1"
             >
-              {isLoading ? 'Đang lưu...' : 'Xong'}
+              {isLoading ? "Đang lưu..." : "Xong"}
             </Button>
           </div>
         </form>
