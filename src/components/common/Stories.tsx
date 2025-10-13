@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef, useEffect, useCallback } from "react"
 import { cn } from "@/lib/utils"
 import { ChevronLeft, ChevronRight, Plus } from "lucide-react"
 import { LazyImage } from "@/components/common/LazyImage"
@@ -39,6 +39,7 @@ export function Stories({
   const [canScrollRight, setCanScrollRight] = useState(true)
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const lastStoryRef = useRef<HTMLDivElement>(null)
+  const isLoadingRef = useRef(false) // Prevent duplicate calls
 
   const checkScrollPosition = () => {
     if (scrollContainerRef.current) {
@@ -64,17 +65,39 @@ export function Stories({
     checkScrollPosition()
   }, [stories])
 
+  // Debounced load more handler
+  const debouncedLoadMore = useCallback(() => {
+    if (isLoadingRef.current || !hasMore || isLoading) return
+    
+    isLoadingRef.current = true
+    onLoadMore?.()
+    
+    // Reset after a delay to prevent rapid calls
+    setTimeout(() => {
+      isLoadingRef.current = false
+    }, 1000)
+  }, [onLoadMore, hasMore, isLoading])
+
+  // Reset loading ref when isLoading changes
+  useEffect(() => {
+    if (!isLoading) {
+      isLoadingRef.current = false
+    }
+  }, [isLoading])
+
   // Intersection Observer for infinite scroll
   useEffect(() => {
-    if (!onLoadMore || !hasMore || isLoading) return
+    // Don't setup observer if conditions aren't met
+    if (!onLoadMore || !hasMore || isLoading || !lastStoryRef.current) return
 
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting && hasMore && !isLoading) {
-          onLoadMore()
+        // Only trigger if intersecting and not already loading
+        if (entries[0].isIntersecting && !isLoadingRef.current) {
+          debouncedLoadMore()
         }
       },
-      { threshold: 0.5 }
+      { threshold: 0.5, rootMargin: '50px' }
     )
 
     const currentRef = lastStoryRef.current
@@ -87,7 +110,7 @@ export function Stories({
         observer.unobserve(currentRef)
       }
     }
-  }, [onLoadMore, hasMore, isLoading])
+  }, [onLoadMore, hasMore, isLoading, stories.length, debouncedLoadMore])
 
   return (
     <div className="w-full overflow-hidden bg-background py-4 relative">
@@ -136,7 +159,7 @@ export function Stories({
                       <LazyImage
                         src={currentUserAvatar}
                         alt="Your profile"
-                        className="w-full h-full"
+                        className="w-full h-full rounded-full"
                         loading="lazy"
                         decoding="async"
                         enableProgressiveLoading
@@ -196,7 +219,7 @@ export function Stories({
                       src={story.profileImage || "/placeholder.svg"}
                       alt={`${story.username}'s profile picture`}
                       className={cn(
-                        "w-full h-full",
+                        "w-full h-full rounded-full",
                         story.isViewed && "opacity-70"
                       )}
                       loading="lazy"

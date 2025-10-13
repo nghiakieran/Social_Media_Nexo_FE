@@ -70,8 +70,8 @@ export interface GetStoriesRequest {
 // API Data Types - Story Item
 export interface StoryItemData {
   storyId: number;
-  mediaUrl: string;
-  mediaType: "PICTURE" | "VIDEO";
+  mediaUrl: string | null;
+  mediaType?: "PICTURE" | "VIDEO";
   isLike: boolean;
   createdAt: string;
   isActive: boolean;
@@ -103,27 +103,49 @@ export interface GetStoriesApiResponse {
   data: GetStoriesResponse;
 }
 
+// Helper function to detect media type from URL
+const detectMediaType = (url: string): "image" | "video" => {
+  const videoExtensions = ['.mp4', '.webm', '.ogg', '.mov', '.avi', '.mkv', '.m3u8'];
+  const lowerUrl = url.toLowerCase();
+  return videoExtensions.some(ext => lowerUrl.includes(ext)) ? 'video' : 'image';
+};
+
 // Transform function - Convert API UserStoriesData to Story for viewer
 export const transformUserStoriesToStory = (
   apiData: UserStoriesData,
   currentUserId?: number
 ): Story => {
-  // Convert all story items to StoryContent
-  const content: StoryContent[] = apiData.storyList.map((item) => ({
-    id: item.storyId.toString(),
-    type: item.mediaType === "VIDEO" ? "video" : "image",
-    url: item.mediaUrl,
-    duration: 5,
-  }));
+  // Ensure storyList is an array, default to empty array if undefined
+  const storyList = apiData.storyList || [];
+  
+  // Filter out stories with null mediaUrl and convert to StoryContent
+  const content: StoryContent[] = storyList
+    .filter((item) => item.mediaUrl !== null && item.mediaUrl !== undefined)
+    .map((item) => {
+      // Detect media type from URL if not provided or use provided type
+      let type: "image" | "video" = "image";
+      if (item.mediaType) {
+        type = item.mediaType === "VIDEO" ? "video" : "image";
+      } else if (item.mediaUrl) {
+        type = detectMediaType(item.mediaUrl);
+      }
+      
+      return {
+        id: item.storyId.toString(),
+        type,
+        url: item.mediaUrl as string,
+        duration: 5,
+      };
+    });
 
   return {
     id: apiData.userId.toString(),
-    username: apiData.userName,
-    profileImage: apiData.avatarUrl,
-    timeAgo: apiData.storyList[0]?.createdAt || "",
+    username: apiData.userName || "Unknown",
+    profileImage: apiData.avatarUrl || "/placeholder.svg",
+    timeAgo: storyList[0]?.createdAt || new Date().toISOString(),
     content,
-    isViewed: apiData.storyList.every((s) => s.isSeen),
+    isViewed: storyList.length > 0 ? storyList.every((s) => s.isSeen) : false,
     isOwnStory: currentUserId ? apiData.userId === currentUserId : false,
-    isCloseFriend: apiData.storyList.some((s) => s.isCloseFriend),
+    isCloseFriend: storyList.length > 0 ? storyList.some((s) => s.isCloseFriend) : false,
   };
 };

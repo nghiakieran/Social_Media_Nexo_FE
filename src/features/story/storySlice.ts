@@ -11,8 +11,13 @@ interface StoryState {
   userStories: Story[]; // Current user's stories
   friendStories: Story[]; // Friends' stories
   archivedStories: Story[]; // All stories including archived
-  hasMore: boolean;
-  currentPage: number;
+  // Separate pagination for user stories
+  userHasMore: boolean;
+  userCurrentPage: number;
+  // Separate pagination for friend stories
+  friendHasMore: boolean;
+  friendCurrentPage: number;
+  // Separate pagination for archived stories
   archivedHasMore: boolean;
   archivedCurrentPage: number;
 }
@@ -25,8 +30,10 @@ const initialState: StoryState = {
   userStories: [],
   friendStories: [],
   archivedStories: [],
-  hasMore: true,
-  currentPage: 0,
+  userHasMore: true,
+  userCurrentPage: 0,
+  friendHasMore: true,
+  friendCurrentPage: 0,
   archivedHasMore: true,
   archivedCurrentPage: 0,
 };
@@ -258,13 +265,15 @@ const storySlice = createSlice({
           state.userStories = [...state.userStories, ...stories];
         }
         
-        state.hasMore = !action.payload.data.last;
-        state.currentPage = action.payload.data.pageNo;
+        // Check if has more: not last page AND has content
+        state.userHasMore = !action.payload.data.last && stories.length > 0;
+        state.userCurrentPage = action.payload.data.pageNo;
         state.error = null;
       })
       .addCase(getUserStoriesThunk.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload as string;
+        state.userHasMore = false; // Stop loading more on error
       })
       // Get Friend Stories
       .addCase(getFriendStoriesThunk.pending, (state) => {
@@ -281,13 +290,15 @@ const storySlice = createSlice({
           state.friendStories = [...state.friendStories, ...stories];
         }
         
-        state.hasMore = !action.payload.data.last;
-        state.currentPage = action.payload.data.pageNo;
+        // Check if has more: not last page AND has content
+        state.friendHasMore = !action.payload.data.last && stories.length > 0;
+        state.friendCurrentPage = action.payload.data.pageNo;
         state.error = null;
       })
       .addCase(getFriendStoriesThunk.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload as string;
+        state.friendHasMore = false; // Stop loading more on error
       })
       // Get All User Stories (including archived)
       .addCase(getAllUserStoriesThunk.pending, (state) => {
@@ -307,13 +318,15 @@ const storySlice = createSlice({
           state.archivedStories = [...state.archivedStories, ...stories];
         }
         
-        state.archivedHasMore = !action.payload.data.last;
+        // Check if has more: not last page AND has content
+        state.archivedHasMore = !action.payload.data.last && stories.length > 0;
         state.archivedCurrentPage = action.payload.data.pageNo;
         state.error = null;
       })
       .addCase(getAllUserStoriesThunk.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload as string;
+        state.archivedHasMore = false; // Stop loading more on error
       });
   },
 });

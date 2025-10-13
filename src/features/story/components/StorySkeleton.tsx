@@ -94,9 +94,11 @@ export const StorySkeleton = memo(({ isMobile = false, showSideThumbnails = fals
                 <div className="w-12 h-12 rounded-full bg-gray-700 animate-pulse" />
                 <div className="w-12 h-12 rounded-full bg-gray-700 animate-pulse" />
               </div>
-              <div className="flex items-center justify-center mt-3">
-                <div className="h-6 w-20 bg-gray-700 rounded-full animate-pulse" />
-              </div>
+            </div>
+            
+            {/* Viewer count skeleton - bottom left corner */}
+            <div className="absolute bottom-4 left-4 z-30">
+              <div className="h-8 w-28 bg-gray-700 rounded-full animate-pulse" />
             </div>
 
             {/* Navigation arrows skeleton - desktop only */}

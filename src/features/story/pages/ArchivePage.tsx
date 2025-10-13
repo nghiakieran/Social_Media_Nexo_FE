@@ -105,50 +105,53 @@ export const ArchivePage = () => {
         {/* Archive Grid */}
         {!isLoading && archivedStories.length > 0 && (
           <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-1 md:gap-2">
-            {archivedStories.map((story, index) => {
-              const isLastItem = index === archivedStories.length - 1;
-              const firstContent = story.content[0];
-              const { day, month, year, showYear } = formatArchiveDate(story.timeAgo);
+            {archivedStories
+              .filter((story) => story.content && story.content.length > 0) // Filter out empty stories
+              .map((story, index) => {
+                const isLastItem = index === archivedStories.length - 1;
+                const firstContent = story.content[0];
+                const { day, month, year, showYear } = formatArchiveDate(story.timeAgo);
+                const contentLength = story.content?.length || 0;
 
-              return (
-                <button
-                  key={story.id}
-                  ref={isLastItem ? lastElementRef : null}
-                  onClick={() => handleOpenArchive(story)}
-                  className="relative aspect-[9/16] group cursor-pointer overflow-hidden rounded-sm hover:opacity-90 transition-opacity"
-                >
-                  {/* Thumbnail */}
-                  <img
-                    src={firstContent?.url || "/placeholder.svg"}
-                    alt={`Archive from ${story.timeAgo}`}
-                    className="absolute inset-0 w-full h-full object-cover"
-                  />
+                return (
+                  <button
+                    key={`${story.id}-${index}`}
+                    ref={isLastItem ? lastElementRef : null}
+                    onClick={() => handleOpenArchive(story)}
+                    className="relative aspect-[9/16] group cursor-pointer overflow-hidden rounded-sm hover:opacity-90 transition-opacity"
+                  >
+                    {/* Thumbnail */}
+                    <img
+                      src={firstContent?.url || "/placeholder.svg"}
+                      alt={`Archive from ${story.timeAgo}`}
+                      className="absolute inset-0 w-full h-full object-cover"
+                    />
 
-                  {/* Date Overlay */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-                  <div className="absolute bottom-2 left-2 right-2 text-white text-left">
-                    <div className="text-lg font-bold leading-none">{day}</div>
-                    <div className="text-[10px] leading-none mt-0.5">{month}</div>
-                    {showYear && (
-                      <div className="text-[10px] leading-none opacity-80">
-                        {year}
+                    {/* Date Overlay */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+                    <div className="absolute bottom-2 left-2 right-2 text-white text-left">
+                      <div className="text-lg font-bold leading-none">{day}</div>
+                      <div className="text-[10px] leading-none mt-0.5">{month}</div>
+                      {showYear && (
+                        <div className="text-[10px] leading-none opacity-80">
+                          {year}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Multiple Stories Indicator */}
+                    {contentLength > 1 && (
+                      <div className="absolute top-2 right-2">
+                        <div className="bg-black/60 rounded-full px-2 py-1">
+                          <span className="text-white text-xs font-bold">
+                            {contentLength}
+                          </span>
+                        </div>
                       </div>
                     )}
-                  </div>
-
-                  {/* Multiple Stories Indicator */}
-                  {story.content.length > 1 && (
-                    <div className="absolute top-2 right-2">
-                      <div className="bg-black/60 rounded-full px-2 py-1">
-                        <span className="text-white text-xs font-bold">
-                          {story.content.length}
-                        </span>
-                      </div>
-                    </div>
-                  )}
-                </button>
-              );
-            })}
+                  </button>
+                );
+              })}
           </div>
         )}
 

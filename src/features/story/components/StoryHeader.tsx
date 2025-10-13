@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom"
 import { Volume2, VolumeX, MoreHorizontal, Pause, Play, X } from "lucide-react"
 import { Story } from "../types"
 import { LazyImage } from "@/components/common/LazyImage"
+import { formatTimeAgo } from "@/utils/timeFormat"
 
 interface StoryHeaderProps {
   story: Story
@@ -33,7 +34,7 @@ export const StoryHeader = memo(({
 
   return (
     <div className="absolute top-8 left-4 right-4 z-30 flex items-center justify-between">
-      <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-transparent rounded-t-lg pointer-events-none" />
+      <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-transparent rounded-t-lg pointer-events-none" />
       
       <div className="flex items-center gap-3 flex-1 min-w-0">
         <button 
@@ -62,7 +63,7 @@ export const StoryHeader = memo(({
                 </svg>
               )}
               <span className="text-white/80 text-sm flex-shrink-0 drop-shadow-lg">
-                {story.timeAgo}
+                {formatTimeAgo(story.timeAgo)}
               </span>
             </div>
             {story.isCloseFriend && (

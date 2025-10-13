@@ -41,7 +41,8 @@ export const FeedPage = () => {
     userStories, 
     friendStories, 
     isLoading: isLoadingStories,
-    hasMore: hasMoreStories 
+    friendHasMore,
+    friendCurrentPage
   } = useAppSelector((state) => state.story);
   const [editingPost, setEditingPost] = useState<any>(null);
   const [reportingPost, setReportingPost] = useState<string | null>(null);
@@ -77,12 +78,12 @@ export const FeedPage = () => {
 
   // Infinite scroll handler for stories
   const handleLoadMoreStories = () => {
-    if (user && !isLoadingStories && hasMoreStories) {
-      // Get current page from store - need to create a selector or use a ref
-      // For simplicity, we'll track it locally
+    if (user && !isLoadingStories && friendHasMore) {
+      // Use the correct current page from store
+      const nextPage = friendCurrentPage + 1;
       dispatch(getFriendStoriesThunk({ 
         userId: user.id, 
-        pageNo: friendStories.length / 10, // Estimate page from length
+        pageNo: nextPage,
         pageSize: 10 
       }));
     }
@@ -276,19 +277,21 @@ export const FeedPage = () => {
     );
   }
 
-  // Combine user stories + friend stories for display
+  // Combine stories: user stories FIRST, then friend stories
   const allStories = [...userStories, ...friendStories];
 
   // Transform to Stories component format
-  const displayStories = allStories.map((story) => ({
-    id: story.id,
-    username: story.username,
-    profileImage: story.profileImage,
-    hasNewStory: story.content.length > 0,
-    isViewed: story.isViewed || false,
-    isOwnStory: story.isOwnStory,
-    isCloseFriend: story.isCloseFriend,
-  }));
+  const displayStories = allStories
+    .filter((story) => story.content && story.content.length > 0) // Filter out empty stories
+    .map((story) => ({
+      id: story.id,
+      username: story.username,
+      profileImage: story.profileImage,
+      hasNewStory: story.content.length > 0,
+      isViewed: story.isViewed || false,
+      isOwnStory: story.isOwnStory,
+      isCloseFriend: story.isCloseFriend,
+    }));
 
   return (
     <div className="w-full min-h-screen bg-background pt-4">
@@ -299,7 +302,7 @@ export const FeedPage = () => {
         showCreateButton={true}
         currentUserAvatar={user?.avatar}
         onLoadMore={handleLoadMoreStories}
-        hasMore={hasMoreStories}
+        hasMore={friendHasMore}
         isLoading={isLoadingStories}
       />
 

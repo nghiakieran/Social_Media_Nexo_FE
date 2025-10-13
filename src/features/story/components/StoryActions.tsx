@@ -79,8 +79,6 @@ export const StoryActions = memo(({
   return (
     <>
       <div className="absolute bottom-20 left-4 right-4 z-30">
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent rounded-b-lg pointer-events-none" />
-        
         {showReactions && (
           <div className="mb-4 animate-in slide-in-from-bottom-4 duration-300">
             <div className="bg-black/40 backdrop-blur-md rounded-3xl p-5 border border-white/10 shadow-2xl">
@@ -126,8 +124,6 @@ export const StoryActions = memo(({
       </div>
 
       <div className="absolute bottom-4 left-4 right-4 z-30">
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent rounded-b-lg pointer-events-none" />
-        
         {/* Message input - only show for other users' stories */}
         {!isOwnStory && (
           <div className="flex items-center gap-3">
@@ -184,25 +180,25 @@ export const StoryActions = memo(({
             </button>
           </div>
         )}
-
-        {/* Viewer count - only show for own stories */}
-        {isOwnStory && (
-          <div className="flex items-center justify-center mt-4">
-            <button
-              onClick={(e) => {
-                e.stopPropagation()
-                setShowViewerModal(true)
-              }}
-              className="flex items-center gap-2 text-white/90 hover:text-white text-sm bg-black/50 backdrop-blur-md rounded-full px-4 py-2.5 transition-all duration-200 hover:bg-black/60 border border-white/20 hover:border-white/30"
-            >
-              <Eye className="w-4 h-4" />
-              <span className="font-medium">
-                {viewerCount} {viewerCount === 1 ? "lượt xem" : "lượt xem"}
-              </span>
-            </button>
-          </div>
-        )}
       </div>
+
+      {/* Viewer count - only show for own stories - Bottom left corner like Facebook */}
+      {isOwnStory && (
+        <div className="absolute bottom-4 left-4 z-30">
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              setShowViewerModal(true)
+            }}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-black/50 backdrop-blur-md rounded-full border border-white/20 hover:bg-black/60 hover:border-white/30 transition-all duration-200 hover:scale-105 shadow-lg group"
+          >
+            <Eye className="w-4 h-4 text-white" />
+            <span className="font-medium text-white text-sm">
+              {viewerCount} người xem
+            </span>
+          </button>
+        </div>
+      )}
 
       {/* Viewer Modal */}
       {showViewerModal && (

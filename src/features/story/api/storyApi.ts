@@ -128,9 +128,9 @@ export const viewStory = async (
 export const getFriendStories = async (
   params: GetStoriesRequest
 ): Promise<GetStoriesApiResponse> => {
+  const { userId, pageNo = 0, pageSize = 10 } = params;
+  
   try {
-    const { userId, pageNo = 0, pageSize = 10 } = params;
-
     const response = await api.get<GetStoriesApiResponse>(`/posts/story/view/${userId}`, {
       params: {
         pageNo,
@@ -140,7 +140,25 @@ export const getFriendStories = async (
     return response.data;
   } catch (error: unknown) {
     if (error && typeof error === "object" && "response" in error) {
-      const apiError = error as { response?: { data?: { message?: string } } };
+      const apiError = error as { response?: { data?: { message?: string; status?: number }, status?: number } };
+      
+      // If 404 or no data, return empty response instead of throwing
+      if (apiError.response?.status === 404 || apiError.response?.status === 400) {
+        console.warn(`No more stories available for page ${pageNo}`);
+        return {
+          status: 200,
+          message: "No more data",
+          data: {
+            pageNo,
+            pageSize,
+            totalElements: 0,
+            totalPages: pageNo,
+            last: true,
+            content: [],
+          },
+        };
+      }
+      
       throw new Error(
         apiError.response?.data?.message || "Có lỗi xảy ra khi tải stories"
       );
@@ -154,9 +172,9 @@ export const getFriendStories = async (
 export const getUserStories = async (
   params: GetStoriesRequest
 ): Promise<GetStoriesApiResponse> => {
+  const { userId, pageNo = 0, pageSize = 10 } = params;
+  
   try {
-    const { userId, pageNo = 0, pageSize = 10 } = params;
-
     const response = await api.get<GetStoriesApiResponse>(`/posts/story/${userId}`, {
       params: {
         pageNo,
@@ -166,7 +184,25 @@ export const getUserStories = async (
     return response.data;
   } catch (error: unknown) {
     if (error && typeof error === "object" && "response" in error) {
-      const apiError = error as { response?: { data?: { message?: string } } };
+      const apiError = error as { response?: { data?: { message?: string; status?: number }, status?: number } };
+      
+      // If 404 or no data, return empty response instead of throwing
+      if (apiError.response?.status === 404 || apiError.response?.status === 400) {
+        console.warn(`No more stories available for page ${pageNo}`);
+        return {
+          status: 200,
+          message: "No more data",
+          data: {
+            pageNo,
+            pageSize,
+            totalElements: 0,
+            totalPages: pageNo,
+            last: true,
+            content: [],
+          },
+        };
+      }
+      
       throw new Error(
         apiError.response?.data?.message || "Có lỗi xảy ra khi tải stories"
       );
@@ -180,9 +216,9 @@ export const getUserStories = async (
 export const getAllUserStories = async (
   params: GetStoriesRequest
 ): Promise<GetStoriesApiResponse> => {
+  const { userId, pageNo = 0, pageSize = 10 } = params;
+  
   try {
-    const { userId, pageNo = 0, pageSize = 10 } = params;
-
     const response = await api.get<GetStoriesApiResponse>(`/posts/story/all/${userId}`, {
       params: {
         pageNo,
@@ -192,7 +228,25 @@ export const getAllUserStories = async (
     return response.data;
   } catch (error: unknown) {
     if (error && typeof error === "object" && "response" in error) {
-      const apiError = error as { response?: { data?: { message?: string } } };
+      const apiError = error as { response?: { data?: { message?: string; status?: number }, status?: number } };
+      
+      // If 404 or no data, return empty response instead of throwing
+      if (apiError.response?.status === 404 || apiError.response?.status === 400) {
+        console.warn(`No more stories available for page ${pageNo}`);
+        return {
+          status: 200,
+          message: "No more data",
+          data: {
+            pageNo,
+            pageSize,
+            totalElements: 0,
+            totalPages: pageNo,
+            last: true,
+            content: [],
+          },
+        };
+      }
+      
       throw new Error(
         apiError.response?.data?.message || "Có lỗi xảy ra khi tải stories"
       );
