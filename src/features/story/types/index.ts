@@ -4,6 +4,8 @@ export interface StoryContent {
   type: "image" | "video"
   url: string
   duration: number
+  isSeen?: boolean // Track if this specific story content has been viewed
+  createdAt?: string // Store creation date for each content
 }
 
 // Story Types (for viewer)
@@ -26,6 +28,7 @@ export interface StoryViewerProps {
   stories: Story[]
   initialStoryIndex: number
   initialContentIndex?: number
+  isArchivePage?: boolean
 }
 
 // API Response Types
@@ -135,6 +138,8 @@ export const transformUserStoriesToStory = (
         type,
         url: item.mediaUrl as string,
         duration: 5,
+        isSeen: item.isSeen, // Map isSeen from API
+        createdAt: item.createdAt, // Map createdAt for archive display
       };
     });
 

@@ -323,7 +323,7 @@ export const StoryCreatePage = () => {
             storyId: 0,
             userId: currentUser.id,
             isClosedFriend: isCloseFriend,
-            isArchive: false, // Always false when creating
+            isArchive: false,
           },
         })
       ).unwrap();

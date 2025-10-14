@@ -9,7 +9,7 @@ import { StoryContent } from "./StoryContent"
 import { StoryActions } from "./StoryActions"
 import { StorySkeleton } from "./StorySkeleton"
 import { useAppDispatch } from "@/store"
-import { deleteStoryThunk, archiveStoryThunk, viewStoryThunk } from "../storySlice"
+import { deleteStoryThunk, archiveStoryThunk, viewStoryThunk, markStoryAsSeen, removeStoryContent } from "../storySlice"
 import { useToast } from "@/hooks/use-toast"
 
 export const StoryViewer = memo(({
@@ -18,6 +18,7 @@ export const StoryViewer = memo(({
   stories,
   initialStoryIndex,
   initialContentIndex = 0,
+  isArchivePage = false,
 }: StoryViewerProps) => {
   const dispatch = useAppDispatch()
   const { toast } = useToast()
@@ -37,20 +38,54 @@ export const StoryViewer = memo(({
   const [isLoading, setIsLoading] = useState(true)
   const [isMenuLoading, setIsMenuLoading] = useState(false)
   const [showViewerList, setShowViewerList] = useState(false)
+  const [, forceUpdate] = useState({}) // Force re-render helper
   
   const holdTimeoutRef = useRef<NodeJS.Timeout>()
   const progressInterval = useRef<NodeJS.Timeout>()
+  // Track viewed stories in current session to prevent duplicate calls
+  const viewedStoriesRef = useRef<Set<string>>(new Set())
 
   const currentStory = stories[currentStoryIndex]
   const currentContent = currentStory?.content[currentContentIndex]
 
   // Call View Story API when viewing a story
   useEffect(() => {
-    if (currentStory && currentContent && !currentStory.isOwnStory) {
-      // Call view API for the current content being viewed
+    // Only call view API if ALL conditions are met:
+    // 1. Story exists
+    // 2. Content exists
+    // 3. NOT own story (don't track views on own stories)
+    // 4. NOT already seen from API (isSeen = false or undefined)
+    // 5. NOT already viewed in this session (prevent duplicate API calls)
+    //
+    // Example flow for user with 3 stories:
+    // Story 1 (isSeen: false) → Call API ✓
+    // Story 2 (isSeen: false) → Call API ✓
+    // Story 3 (isSeen: true)  → Skip API ✗
+    if (
+      currentStory && 
+      currentContent && 
+      !currentStory.isOwnStory && 
+      !currentContent.isSeen &&
+      !viewedStoriesRef.current.has(currentContent.id)
+    ) {
       const storyId = parseInt(currentContent.id)
       if (!isNaN(storyId)) {
+        // Mark as viewed in session to prevent duplicate calls
+        viewedStoriesRef.current.add(currentContent.id)
+        
+        // Call view API and update local state on success
         dispatch(viewStoryThunk(storyId))
+          .unwrap()
+          .then(() => {
+            // Cập nhật state sau khi xem, không cần gọi lại API get list
+            dispatch(markStoryAsSeen({ 
+              userId: currentStory.id, 
+              storyId: currentContent.id 
+            }))
+          })
+          .catch((error) => {
+            console.error(error)
+          })
       }
     }
   }, [currentStory, currentContent, dispatch])
@@ -461,12 +496,39 @@ export const StoryViewer = memo(({
                   setIsMenuLoading(true)
                   
                   try {
-                    await dispatch(deleteStoryThunk(parseInt(currentStory.id))).unwrap()
+                    const storyId = parseInt(currentContent.id)
+                    const totalStories = currentStory.content.length
+                    const currentIndex = currentContentIndex
+                    
+                    await dispatch(deleteStoryThunk(storyId)).unwrap()
+                    
+                    // Update local state - remove story content
+                    dispatch(removeStoryContent({ 
+                      userId: currentStory.id, 
+                      storyId: currentContent.id,
+                      fromArchive: isArchivePage
+                    }))
+                    
                     toast({
                       title: "Đã xóa tin",
                       description: "Tin của bạn đã được xóa thành công",
                     })
-                    onClose()
+
+                    // Navigate based on remaining stories (no loading state needed)
+                    if (totalStories <= 1) {
+                      // No more stories left, close viewer
+                      onClose()
+                    } else if (currentIndex < totalStories - 1) {
+                      // Story deleted is not the last one
+                      // Just reset progress, React will re-render with new story automatically
+                      setProgress(0)
+                    } else if (currentIndex > 0) {
+                      // Deleted last story, move to previous
+                      setCurrentContentIndex(currentIndex - 1)
+                      setProgress(0)
+                    } else {
+                      onClose()
+                    }
                   } catch (error) {
                     const err = error as { message?: string }
                     toast({
@@ -483,35 +545,71 @@ export const StoryViewer = memo(({
                 <Trash2 className="w-4 h-4" />
                 Xóa tin
               </button>
-              <button
-                onClick={async (e) => {
-                  e.stopPropagation()
-                  setShowMenu(false)
-                  setIsMenuLoading(true)
-                  
-                  try {
-                    await dispatch(archiveStoryThunk(parseInt(currentStory.id))).unwrap()
-                    toast({
-                      title: "Đã lưu vào kho lưu trữ",
-                      description: "Tin đã được chuyển vào kho lưu trữ",
-                    })
-                    onClose()
-                  } catch (error) {
-                    const err = error as { message?: string }
-                    toast({
-                      title: "Lỗi",
-                      description: err.message || "Không thể lưu trữ tin",
-                      variant: "destructive",
-                    })
-                  } finally {
-                    setIsMenuLoading(false)
-                  }
-                }}
-                className="w-full px-4 py-3 text-left text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-sm flex items-center gap-3"
-              >
-                <Archive className="w-4 h-4" />
-                Lưu vào kho lưu trữ
-              </button>
+              {!isArchivePage && (
+                <button
+                  onClick={async (e) => {
+                    e.stopPropagation()
+                    setShowMenu(false)
+                    setIsMenuLoading(true)
+                    
+                    try {
+                      // Archive the CURRENT story content being viewed
+                      const storyId = parseInt(currentContent.id)
+                      const totalStories = currentStory.content.length
+                      const currentIndex = currentContentIndex
+                      
+                      await dispatch(archiveStoryThunk(storyId)).unwrap()
+                      
+                      // Update local state - remove story content from active stories
+                      dispatch(removeStoryContent({ 
+                        userId: currentStory.id, 
+                        storyId: currentContent.id 
+                      }))
+                      
+                      toast({
+                        title: "Đã lưu vào kho lưu trữ",
+                        description: "Tin đã được chuyển vào kho lưu trữ",
+                      })
+                      
+                      // Wait a bit for Redux state to update and propagate to props
+                      setTimeout(() => {
+                        // Force re-render to get updated stories from props
+                        forceUpdate({})
+                        
+                        // Navigate based on remaining stories
+                        if (totalStories <= 1) {
+                          // No more stories left, close viewer
+                          onClose()
+                        } else if (currentIndex < totalStories - 1) {
+                          // We archived a story that's not the last one
+                          // Stay at same index (it will now show the next story)
+                          setProgress(0)
+                          setCurrentContentIndex(currentIndex)
+                        } else if (currentIndex > 0) {
+                          // We archived the last story, move to previous
+                          setCurrentContentIndex(currentIndex - 1)
+                          setProgress(0)
+                        } else {
+                          onClose()
+                        }
+                      }, 150)
+                    } catch (error) {
+                      const err = error as { message?: string }
+                      toast({
+                        title: "Lỗi",
+                        description: err.message || "Không thể lưu trữ tin",
+                        variant: "destructive",
+                      })
+                    } finally {
+                      setIsMenuLoading(false)
+                    }
+                  }}
+                  className="w-full px-4 py-3 text-left text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-sm flex items-center gap-3"
+                >
+                  <Archive className="w-4 h-4" />
+                  Lưu vào kho lưu trữ
+                </button>
+              )}
               <div className="border-t border-gray-200 dark:border-gray-600 my-1"></div>
               <button
                 onClick={(e) => {

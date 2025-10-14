@@ -188,6 +188,66 @@ const storySlice = createSlice({
     setArchivedStories: (state, action: PayloadAction<Story[]>) => {
       state.archivedStories = action.payload;
     },
+    // Mark a specific story content as seen (after viewing)
+    markStoryAsSeen: (state, action: PayloadAction<{ userId: string; storyId: string }>) => {
+      const { userId, storyId } = action.payload;
+      
+      // Update in friendStories
+      const friendStory = state.friendStories.find(s => s.id === userId);
+      if (friendStory) {
+        const content = friendStory.content.find(c => c.id === storyId);
+        if (content) {
+          content.isSeen = true;
+        }
+        // Check if all contents are seen to mark story as viewed
+        friendStory.isViewed = friendStory.content.every(c => c.isSeen);
+      }
+      
+      // Update in userStories (in case viewing own archived stories)
+      const userStory = state.userStories.find(s => s.id === userId);
+      if (userStory) {
+        const content = userStory.content.find(c => c.id === storyId);
+        if (content) {
+          content.isSeen = true;
+        }
+        userStory.isViewed = userStory.content.every(c => c.isSeen);
+      }
+    },
+    // Remove a story content from user's stories (after delete/archive)
+    removeStoryContent: (state, action: PayloadAction<{ userId: string; storyId: string; fromArchive?: boolean }>) => {
+      const { userId, storyId, fromArchive = false } = action.payload;
+      
+      if (fromArchive) {
+        // Remove from archivedStories
+        const archivedStory = state.archivedStories.find(s => s.id === userId);
+        if (archivedStory) {
+          archivedStory.content = archivedStory.content.filter(c => c.id !== storyId);
+          // If no content left, remove the entire story
+          if (archivedStory.content.length === 0) {
+            state.archivedStories = state.archivedStories.filter(s => s.id !== userId);
+          }
+        }
+      } else {
+        // Remove from userStories
+        const userStory = state.userStories.find(s => s.id === userId);
+        if (userStory) {
+          userStory.content = userStory.content.filter(c => c.id !== storyId);
+          // If no content left, remove the entire story
+          if (userStory.content.length === 0) {
+            state.userStories = state.userStories.filter(s => s.id !== userId);
+          }
+        }
+        
+        // Remove from friendStories (shouldn't happen, but for safety)
+        const friendStory = state.friendStories.find(s => s.id === userId);
+        if (friendStory) {
+          friendStory.content = friendStory.content.filter(c => c.id !== storyId);
+          if (friendStory.content.length === 0) {
+            state.friendStories = state.friendStories.filter(s => s.id !== userId);
+          }
+        }
+      }
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -337,7 +397,9 @@ export const {
   clearError,
   setUserStories,
   setFriendStories,
-  setArchivedStories
+  setArchivedStories,
+  markStoryAsSeen,
+  removeStoryContent
 } = storySlice.actions;
 
 export default storySlice.reducer;

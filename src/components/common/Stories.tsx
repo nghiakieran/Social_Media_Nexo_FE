@@ -240,13 +240,6 @@ export function Stories({
                 )} />
               )}
 
-              {/* Own Story Indicator */}
-              {story.isOwnStory && (
-                <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-blue-500 rounded-full border-2 border-background flex items-center justify-center">
-                  <span className="text-white text-xs font-bold">+</span>
-                </div>
-              )}
-
               {/* Close Friend Indicator */}
               {story.isCloseFriend && !story.isOwnStory && (
                 <div className="absolute -bottom-1 -left-1 w-5 h-5 bg-gradient-to-r from-green-400 to-blue-500 rounded-full border-2 border-background flex items-center justify-center">

@@ -2,6 +2,7 @@ import { memo } from "react"
 import { cn } from "@/lib/utils"
 import { Story } from "../types"
 import { LazyImage } from "@/components/common/LazyImage"
+import { formatTimeAgo } from "@/utils/timeFormat"
 
 interface StoryThumbnailProps {
   story: Story
@@ -11,6 +12,12 @@ interface StoryThumbnailProps {
 }
 
 export const StoryThumbnail = memo(({ story, onClick, style, zIndex }: StoryThumbnailProps) => {
+  // Safe check for content
+  const firstContent = story.content?.[0];
+  if (!firstContent) {
+    return null; // Don't render if no content
+  }
+
   return (
     <div className="absolute" style={{ ...style, zIndex }}>
       <button
@@ -28,7 +35,7 @@ export const StoryThumbnail = memo(({ story, onClick, style, zIndex }: StoryThum
         )}
       >
         <LazyImage
-          src={story.content[0].url || "/placeholder.svg"}
+          src={firstContent.url || "/placeholder.svg"}
           alt="Story thumbnail"
           className="w-full h-full"
           loading="lazy"
@@ -67,7 +74,7 @@ export const StoryThumbnail = memo(({ story, onClick, style, zIndex }: StoryThum
             {story.timeAgo === "Sponsored" ? (
               <div className="bg-white/20 px-2 py-1 rounded text-xs inline-block">Sponsored</div>
             ) : (
-              story.timeAgo
+              formatTimeAgo(story.timeAgo)
             )}
           </div>
         </div>
