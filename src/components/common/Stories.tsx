@@ -202,8 +202,8 @@ export function Stories({
                 className={cn(
                   "w-20 h-20 rounded-full p-0.5 transition-all duration-200",
                   story.hasNewStory && !story.isViewed
-                    ? story.isCloseFriend
-                      ? "bg-gradient-to-tr from-green-400 via-blue-500 to-purple-500" // Special gradient for close friends
+                    ? (story.isCloseFriend && !story.isOwnStory)
+                      ? "bg-gradient-to-tr from-green-400 via-blue-500 to-purple-500" // Special gradient for close friends (not own story)
                       : "bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-500" // Bright gradient for unviewed
                     : story.isViewed
                     ? "bg-gray-400" // Gray for viewed stories
@@ -234,8 +234,8 @@ export function Stories({
               {story.hasNewStory && !story.isViewed && (
                 <div className={cn(
                   "absolute -top-1 -right-1 w-4 h-4 rounded-full border-2 border-background animate-pulse",
-                  story.isCloseFriend
-                    ? "bg-gradient-to-r from-green-400 to-blue-500" // Special gradient for close friends
+                  (story.isCloseFriend && !story.isOwnStory)
+                    ? "bg-gradient-to-r from-green-400 to-blue-500" // Special gradient for close friends (not own story)
                     : "bg-gradient-to-r from-yellow-400 to-pink-500" // Default gradient
                 )} />
               )}

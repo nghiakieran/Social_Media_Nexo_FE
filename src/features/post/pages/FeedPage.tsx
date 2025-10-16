@@ -6,7 +6,7 @@ import { ReportPostDialog } from "../components/ReportPostDialog";
 import { ShareDialog } from "../components/ShareDialog";
 import { Stories } from "@/components/common/Stories";
 import { StoryViewer } from "@/features/story/components";
-import { mockStories, mockStoriesData } from "../__mocks__/stories";
+import { sortStoriesByViewedStatus } from "@/features/story/utils/sortStories";
 import { mockComments } from "@/features/interaction/__mocks__/comments";
 import { useToast } from "@/hooks/use-toast";
 import { useAppDispatch, useAppSelector } from "@/store";
@@ -243,9 +243,10 @@ export const FeedPage = () => {
   };
 
   const handleStoryClick = (story: any) => {
-    // Combine user stories + friend stories
+    // Use sorted stories for consistent order
     const allStories = [...userStories, ...friendStories];
-    const storyIndex = allStories.findIndex((s) => s.id === story.id);
+    const sortedStories = sortStoriesByViewedStatus(allStories);
+    const storyIndex = sortedStories.findIndex((s) => s.id === story.id);
     if (storyIndex !== -1) {
       setCurrentStoryIndex(storyIndex);
       setShowStoryViewer(true);
@@ -280,8 +281,11 @@ export const FeedPage = () => {
   // Combine stories: user stories FIRST, then friend stories
   const allStories = [...userStories, ...friendStories];
 
+  // Sort stories by viewed status
+  const sortedStories = sortStoriesByViewedStatus(allStories);
+
   // Transform to Stories component format
-  const displayStories = allStories
+  const displayStories = sortedStories
     .filter((story) => story.content && story.content.length > 0) // Filter out empty stories
     .map((story) => ({
       id: story.id,
@@ -343,7 +347,7 @@ export const FeedPage = () => {
         )}
 
         {posts.length === 0 && (
-          <div className="text-center py-12">
+          <div className="text-center py-40">
             <p className="text-muted-foreground mb-4">Chưa có bài viết nào.</p>
           </div>
         )}
@@ -380,7 +384,7 @@ export const FeedPage = () => {
         <StoryViewer
           isOpen={showStoryViewer}
           onClose={() => setShowStoryViewer(false)}
-          stories={allStories}
+          stories={sortedStories}
           initialStoryIndex={currentStoryIndex}
         />
       )}

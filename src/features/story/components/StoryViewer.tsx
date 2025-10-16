@@ -8,21 +8,31 @@ import { StoryHeader } from "./StoryHeader"
 import { StoryContent } from "./StoryContent"
 import { StoryActions } from "./StoryActions"
 import { StorySkeleton } from "./StorySkeleton"
+import { StoryViewersDialog } from "./StoryViewersDialog"
 import { useAppDispatch } from "@/store"
 import { deleteStoryThunk, archiveStoryThunk, viewStoryThunk, markStoryAsSeen, removeStoryContent } from "../storySlice"
 import { useToast } from "@/hooks/use-toast"
+import { sortStoriesByViewedStatus } from "../utils/sortStories"
 
 export const StoryViewer = memo(({
   isOpen,
   onClose,
-  stories,
+  stories: unsortedStories,
   initialStoryIndex,
   initialContentIndex = 0,
   isArchivePage = false,
 }: StoryViewerProps) => {
   const dispatch = useAppDispatch()
   const { toast } = useToast()
-  const [currentStoryIndex, setCurrentStoryIndex] = useState(initialStoryIndex)
+  
+  // Sort stories: Own story first, then unviewed stories, then viewed stories at the end
+  const stories = sortStoriesByViewedStatus(unsortedStories);
+  
+  // Find the new index of the initially selected story after sorting
+  const initialStory = unsortedStories[initialStoryIndex];
+  const sortedInitialIndex = stories.findIndex(s => s.id === initialStory?.id) ?? initialStoryIndex;
+  
+  const [currentStoryIndex, setCurrentStoryIndex] = useState(sortedInitialIndex)
   const [currentContentIndex, setCurrentContentIndex] = useState(initialContentIndex)
   const [isPaused, setIsPaused] = useState(false)
   const [isMuted, setIsMuted] = useState(false)
@@ -34,11 +44,11 @@ export const StoryViewer = memo(({
   const [isHolding, setIsHolding] = useState(false)
   const [isLiked, setIsLiked] = useState(false)
   const [showQuickReply, setShowQuickReply] = useState(false)
-  const [viewerCount, setViewerCount] = useState(Math.floor(Math.random() * 100) + 50)
   const [isLoading, setIsLoading] = useState(true)
   const [isMenuLoading, setIsMenuLoading] = useState(false)
   const [showViewerList, setShowViewerList] = useState(false)
   const [, forceUpdate] = useState({}) // Force re-render helper
+  const [shouldClose, setShouldClose] = useState(false)
   
   const holdTimeoutRef = useRef<NodeJS.Timeout>()
   const progressInterval = useRef<NodeJS.Timeout>()
@@ -132,7 +142,7 @@ export const StoryViewer = memo(({
             setCurrentContentIndex(0)
             return 0
           } else {
-            onClose()
+            setShouldClose(true)
             return 100
           }
         }
@@ -145,11 +155,18 @@ export const StoryViewer = memo(({
         clearInterval(progressInterval.current)
       }
     }
-  }, [isOpen, isPaused, currentContent, currentContentIndex, currentStoryIndex, stories.length, currentStory?.content.length, onClose])
+  }, [isOpen, isPaused, currentContent, currentContentIndex, currentStoryIndex, stories.length, currentStory?.content.length])
 
   useEffect(() => {
     setProgress(0)
   }, [currentContentIndex, currentStoryIndex])
+
+  // Handle close action separately to avoid setState during render
+  useEffect(() => {
+    if (shouldClose) {
+      onClose()
+    }
+  }, [shouldClose, onClose])
 
   // Simple navigation handlers
   const handlePrevious = useCallback(() => {
@@ -338,6 +355,7 @@ export const StoryViewer = memo(({
 
             <StoryHeader
               story={currentStory}
+              currentContent={currentContent}
               isMuted={isMuted}
               isPaused={isPaused}
               isMobile={isMobile}
@@ -361,7 +379,7 @@ export const StoryViewer = memo(({
             <StoryActions
               replyText={replyText}
               isLiked={isLiked}
-              viewerCount={viewerCount}
+              viewerCount={currentContent.quantitySeen || 0}
               showReactions={showReactions}
               showQuickReply={showQuickReply}
               isOwnStory={currentStory.isOwnStory}
@@ -662,6 +680,16 @@ export const StoryViewer = memo(({
       )}
 
       <div className="absolute inset-0 -z-10" onClick={onClose} />
+
+      {/* Story Viewers Dialog */}
+      {showViewerList && currentStory.isOwnStory && currentContent && (
+        <StoryViewersDialog
+          isOpen={showViewerList}
+          onClose={() => setShowViewerList(false)}
+          storyId={parseInt(currentContent.id)}
+          totalViewers={currentContent.quantitySeen || 0}
+        />
+      )}
     </div>
   )
 })

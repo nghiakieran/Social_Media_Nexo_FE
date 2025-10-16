@@ -23,4 +23,3 @@ export const StoryThumbnailSkeleton = memo(({ style, zIndex }: StoryThumbnailSke
 })
 
 StoryThumbnailSkeleton.displayName = "StoryThumbnailSkeleton"
-

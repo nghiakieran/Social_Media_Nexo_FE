@@ -1,12 +1,14 @@
 import { memo } from "react"
 import { useNavigate } from "react-router-dom"
 import { Volume2, VolumeX, MoreHorizontal, Pause, Play, X } from "lucide-react"
-import { Story } from "../types"
+import { Story, StoryContent } from "../types"
 import { LazyImage } from "@/components/common/LazyImage"
 import { formatTimeAgo } from "@/utils/timeFormat"
+import { navigateToProfile } from "@/utils/navigation"
 
 interface StoryHeaderProps {
   story: Story
+  currentContent: StoryContent
   isMuted: boolean
   isPaused: boolean
   isMobile: boolean
@@ -17,7 +19,8 @@ interface StoryHeaderProps {
 }
 
 export const StoryHeader = memo(({ 
-  story, 
+  story,
+  currentContent,
   isMuted, 
   isPaused, 
   isMobile, 
@@ -29,7 +32,7 @@ export const StoryHeader = memo(({
   const navigate = useNavigate()
 
   const handleProfileClick = () => {
-    navigate(`/${story.username}`)
+    navigateToProfile(navigate, `${story.username}`);
   }
 
   return (
@@ -63,7 +66,7 @@ export const StoryHeader = memo(({
                 </svg>
               )}
               <span className="text-white/80 text-sm flex-shrink-0 drop-shadow-lg">
-                {formatTimeAgo(story.timeAgo)}
+                {currentContent.createdAt ? formatTimeAgo(currentContent.createdAt) : formatTimeAgo(story.timeAgo)}
               </span>
             </div>
             {story.isCloseFriend && (

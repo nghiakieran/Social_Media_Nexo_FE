@@ -155,4 +155,3 @@ export const StorySkeleton = memo(({ isMobile = false, showSideThumbnails = fals
 })
 
 StorySkeleton.displayName = "StorySkeleton"
-

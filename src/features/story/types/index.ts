@@ -6,6 +6,7 @@ export interface StoryContent {
   duration: number
   isSeen?: boolean // Track if this specific story content has been viewed
   createdAt?: string // Store creation date for each content
+  quantitySeen?: number // Number of people who viewed this story
 }
 
 // Story Types (for viewer)
@@ -73,6 +74,7 @@ export interface GetStoriesRequest {
 // API Data Types - Story Item
 export interface StoryItemData {
   storyId: number;
+  quantitySeen: number;
   mediaUrl: string | null;
   mediaType?: "PICTURE" | "VIDEO";
   isLike: boolean;
@@ -104,6 +106,103 @@ export interface GetStoriesApiResponse {
   status: number;
   message: string;
   data: GetStoriesResponse;
+}
+
+// Collection (Highlight) Types
+export interface CreateCollectionRequest {
+  id: number; // Khi tạo 1 collection mới id = 0
+  userId: number;
+  collectionName: string;
+  storyList: number[];
+}
+
+export interface UpdateCollectionRequest {
+  id: number;
+  userId: number;
+  collectionName: string;
+  storyList: number[]; // Chỉ truyền stories muốn giữ, không truyền = xóa
+}
+
+export interface CreateCollectionResponse {
+  status: number;
+  message: string;
+  data: string;
+}
+
+export interface UpdateCollectionResponse {
+  status: number;
+  message: string;
+  data: string;
+}
+
+export interface CollectionItem {
+  id: number;
+  collectionName: string;
+  mediaUrl: string;
+  createdAt: string;
+}
+
+export interface GetCollectionsResponse {
+  pageNo: number;
+  pageSize: number;
+  totalElements: number;
+  totalPages: number;
+  content: CollectionItem[];
+}
+
+export interface GetCollectionsApiResponse {
+  status: number;
+  message: string;
+  data: GetCollectionsResponse;
+}
+
+// Collection Detail Types
+export interface CollectionDetailStory {
+  storyId: number;
+  quantitySeen: number;
+  mediaUrl: string;
+  isLike: boolean;
+  createdAt: string;
+  isActive: boolean;
+  isCloseFriend: boolean;
+  isSeen: boolean;
+}
+
+export interface CollectionDetail {
+  id: number;
+  collectionName: string;
+  stories: CollectionDetailStory[];
+  createdAt: string | null;
+}
+
+export interface GetCollectionDetailApiResponse {
+  status: number;
+  message: string;
+  data: CollectionDetail;
+}
+
+// Story Viewers Types
+export interface StoryViewer {
+  userName: string;
+  avatarUrl: string;
+  createdAt: string;
+  isLike: boolean;
+  isCloseFriend: boolean;
+}
+
+export interface GetStoryViewersResponse {
+  pageNo: number;
+  pageSize: number;
+  totalElements: number;
+  totalPages: number;
+  last: boolean;
+  content: StoryViewer[];
+}
+
+export interface GetStoryViewersApiResponse {
+  status: number;
+  message: string;
+  data: GetStoryViewersResponse;
 }
 
 // Helper function to detect media type from URL
@@ -140,6 +239,7 @@ export const transformUserStoriesToStory = (
         duration: 5,
         isSeen: item.isSeen, // Map isSeen from API
         createdAt: item.createdAt, // Map createdAt for archive display
+        quantitySeen: item.quantitySeen, // Map quantitySeen for viewer count
       };
     });
 
@@ -151,6 +251,7 @@ export const transformUserStoriesToStory = (
     content,
     isViewed: storyList.length > 0 ? storyList.every((s) => s.isSeen) : false,
     isOwnStory: currentUserId ? apiData.userId === currentUserId : false,
-    isCloseFriend: storyList.length > 0 ? storyList.some((s) => s.isCloseFriend) : false,
+    // Only mark as close friend if ALL stories in the list are for close friends
+    isCloseFriend: storyList.length > 0 ? storyList.every((s) => s.isCloseFriend) : false,
   };
 };
