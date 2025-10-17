@@ -66,6 +66,8 @@ import { ProfilePage } from "./features/profile/pages/ProfilePage";
 import { ArchivePage } from "./features/story/pages/ArchivePage";
 import { StoryCreatePage } from "./features/story/pages/StoryCreatePage";
 
+import { WebSocketProvider } from "./utils/WebSocketProvider";
+
 const queryClient = new QueryClient();
 
 const NavigationBinder = () => {
@@ -98,6 +100,15 @@ const RequireAuth = ({ children }: { children: JSX.Element }) => {
   return children;
 };
 
+const AuthenticatedAppWrapper = ({ children }: { children: JSX.Element }) => {
+  const { isAuthenticated } = useAppSelector((state) => state.auth);
+  if (isAuthenticated) {
+    return <WebSocketProvider >{children}</WebSocketProvider>;
+  }
+
+  return children;
+};
+
 const App = () => (
   <ErrorBoundary>
     <Provider store={store}>
@@ -114,7 +125,9 @@ const App = () => (
                 path="/"
                 element={
                   <RequireAuth>
-                    <MainLayout />
+                    <AuthenticatedAppWrapper>
+                      <MainLayout />
+                    </AuthenticatedAppWrapper>
                   </RequireAuth>
                 }
               >

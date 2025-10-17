@@ -1,6 +1,6 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
-import { navigateToPost, navigateToProfile } from "@/utils/navigation";
+import { navigateToPost, navigateToPost2, navigateToProfile } from "@/utils/navigation";
 import { getAvatarUrl, getAvatarInitials } from "@/utils/avatar";
 import {
   Bell,
@@ -11,12 +11,14 @@ import {
   UserPlus,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { Notification } from "../notificationSlice";
+import { NotificationDTO } from "../types";
 import { formatTimeAgo } from "@/utils/timeFormat";
+import { readNotificationGroupThunk, readNotificationThunk } from "../notificationSlice";
+import { useAppDispatch } from "@/store";
 
 interface NotificationItemProps {
-  notification: Notification;
-  onMarkAsRead: (id: string) => void;
+  notification: NotificationDTO;
+  onMarkAsRead: (id: string | number) => void;
 }
 
 export const NotificationItem = ({
@@ -24,68 +26,73 @@ export const NotificationItem = ({
   onMarkAsRead,
 }: NotificationItemProps) => {
   const navigate = useNavigate();
+  const dispatch = useAppDispatch();
+  const user = notification.userList[0];
+
 
   const getNotificationIcon = () => {
-    switch (notification.type) {
-      case "like":
+    switch (notification.notificationType) {
+      case "LIKE_POST":
+      case "LIKE_STORY":
+      case "LIKE_COMMENT":
+      case "LIKE_REEL":
         return <Heart className="w-4 h-4 text-red-500" />;
-      case "comment":
+      case "COMMENT_POST":
+      case "COMMENT_REEL":
+      case "COMMENT_MENTION":
         return <MessageCircle className="w-4 h-4 text-blue-500" />;
-      case "follow":
+      case "FOLLOW":
         return <UserPlus className="w-4 h-4 text-purple-500" />;
-      case "hashtag":
+      case "TAG":
         return <Hash className="w-4 h-4 text-green-500" />;
-      case "system":
-        return <Bell className="w-4 h-4 text-orange-500" />;
+      case "MESSAGE":
+      case "SYSTEM":
       default:
-        return <ThumbsUp className="w-4 h-4 text-gray-500" />;
+        return <Bell className="w-4 h-4 text-orange-500" />;
     }
   };
 
-  const handleClick = () => {
-    // Mark as read
-    if (!notification.isRead) {
-      onMarkAsRead(notification.id);
-    }
-
-    // Navigate based on notification type
-    switch (notification.type) {
-      case "like":
-      case "comment":
-      case "hashtag":
-        if (notification.postId) {
-          navigateToPost(navigate, notification.postId);
+  const handleClick = async () => {
+    try {
+      if (!notification.isRead) {
+        if (notification.userList && notification.userList.length > 1) {
+          await dispatch(
+            readNotificationGroupThunk({
+              targetUrl: notification.targetUrl || "",
+              notificationType: notification.notificationType,
+            })
+          ).unwrap();
+        } else {
+          await dispatch(readNotificationThunk(Number(notification.id))).unwrap();
         }
-        break;
-      case "follow":
-        navigateToProfile(navigate, notification.userName);
-        break;
-      case "system":
-        // System notifications usually don't navigate anywhere
-        break;
-      default:
-        // Default action or no action
-        break;
+      }
+
+      if (notification.targetUrl) {
+        navigateToPost2(navigate, notification.targetUrl);
+      }
+    } catch (error) {
+      console.error("Đánh dấu thông báo lỗi:", error);
     }
   };
 
   const handleProfileClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    navigateToProfile(navigate, notification.userName);
+    if (user) {
+      navigateToProfile(navigate, user.userName);
+    }
   };
 
   return (
     <Card
-      className={`cursor-pointer transition-all hover:shadow-md ${
-        notification.isRead
-          ? "bg-card/50"
-          : "bg-primary/5 border-primary/20 shadow-sm"
-      }`}
+      className={`cursor-pointer transition-all hover:shadow-md ${notification.isRead
+        ? "bg-card/50"
+        : "bg-primary/5 border-primary/20 shadow-sm"
+        }`}
       onClick={handleClick}
     >
       <CardContent className="p-4">
         <div className="flex items-start gap-3">
-          {/* Notification Icon */}
+          {/* Icon */}
           <div className="flex-shrink-0 mt-1">{getNotificationIcon()}</div>
 
           {/* Avatar */}
@@ -93,11 +100,11 @@ export const NotificationItem = ({
             className="w-10 h-10 flex-shrink-0 cursor-pointer hover:ring-2 hover:ring-primary/20 transition-all"
             onClick={handleProfileClick}
           >
-            <AvatarImage
-              src={getAvatarUrl(notification.userAvatar)}
-              alt={notification.userName}
-            />
-            <AvatarFallback>{getAvatarInitials(notification.userName)}</AvatarFallback>
+            {user?.avatarUrl ? (
+              <AvatarImage src={getAvatarUrl(user.avatarUrl)} alt={user.userName} />
+            ) : (
+              <AvatarFallback>{getAvatarInitials(user?.userName || "U")}</AvatarFallback>
+            )}
           </Avatar>
 
           {/* Content */}
@@ -105,22 +112,31 @@ export const NotificationItem = ({
             <div className="flex items-start justify-between">
               <div className="flex-1 min-w-0">
                 <p className="text-sm text-foreground">
-                  <span
-                    className="font-semibold hover:text-primary cursor-pointer"
-                    onClick={handleProfileClick}
-                  >
-                    {notification.userName}
-                  </span>{" "}
-                  {notification.content}
+                  {notification.userList.length > 0 && (
+                    <span
+                      className="font-semibold hover:text-primary cursor-pointer"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigateToProfile(navigate, notification.userList[0].userName);
+                      }}
+                    >
+                      {notification.userList[0].userName}
+                    </span>
+                  )}
+                  {notification.userList.length > 1
+                    ? ``
+                    : " "}
+                  <span>
+                    {notification.message.replace(notification.userList[0].userName, "")}
+                  </span>
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  {formatTimeAgo(notification.timestamp)}
+                  {formatTimeAgo(new Date(notification.createdAt).toISOString())}
                 </p>
               </div>
 
-              {/* Unread indicator */}
               {!notification.isRead && (
-                <div className="w-2 h-2 bg-primary rounded-full flex-shrink-0 mt-2"></div>
+                <div className="w-2 h-2 bg-primary rounded-full flex-shrink-0 mt-2" />
               )}
             </div>
           </div>
