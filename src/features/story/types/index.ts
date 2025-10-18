@@ -9,6 +9,7 @@ export interface StoryContent {
   isSeen?: boolean // Track if this specific story content has been viewed
   createdAt?: string // Store creation date for each content
   quantitySeen?: number // Number of people who viewed this story
+  isLike?: boolean // Track if current user liked this story
 }
 
 // Story Types (for viewer)
@@ -54,6 +55,12 @@ export interface ArchiveStoryResponse {
 }
 
 export interface ViewStoryResponse {
+  status: number;
+  message: string;
+  data: string;
+}
+
+export interface LikeStoryResponse {
   status: number;
   message: string;
   data: string;
@@ -235,6 +242,7 @@ export const transformUserStoriesToStory = (
         isSeen: item.isSeen, // Map isSeen from API
         createdAt: item.createdAt, // Map createdAt for archive display
         quantitySeen: item.quantitySeen, // Map quantitySeen for viewer count
+        isLike: item.isLike, // Map isLike from API
       };
     });
 

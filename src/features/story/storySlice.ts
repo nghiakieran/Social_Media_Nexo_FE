@@ -117,6 +117,22 @@ export const viewStoryThunk = createAsyncThunk(
   }
 );
 
+// Like/Unlike Story Thunk
+export const likeStoryThunk = createAsyncThunk(
+  "story/likeStory",
+  async (storyId: number, { rejectWithValue }) => {
+    try {
+      const response = await storyApi.likeStory(storyId);
+      return { storyId, response };
+    } catch (error) {
+      if (error instanceof Error) {
+        return rejectWithValue(error.message);
+      }
+      return rejectWithValue("Có lỗi xảy ra khi like story");
+    }
+  }
+);
+
 // Get User Stories Thunk (current user's own stories)
 export const getUserStoriesThunk = createAsyncThunk(
   "story/getUserStories",
@@ -248,6 +264,37 @@ const storySlice = createSlice({
         }
       }
     },
+    // Toggle like state for a story content
+    toggleStoryLike: (state, action: PayloadAction<{ userId: string; storyId: string; isLiked: boolean }>) => {
+      const { userId, storyId, isLiked } = action.payload;
+      
+      // Update in friendStories
+      const friendStory = state.friendStories.find(s => s.id === userId);
+      if (friendStory) {
+        const content = friendStory.content.find(c => c.id === storyId);
+        if (content) {
+          content.isLike = isLiked;
+        }
+      }
+      
+      // Update in userStories
+      const userStory = state.userStories.find(s => s.id === userId);
+      if (userStory) {
+        const content = userStory.content.find(c => c.id === storyId);
+        if (content) {
+          content.isLike = isLiked;
+        }
+      }
+      
+      // Update in archivedStories
+      const archivedStory = state.archivedStories.find(s => s.id === userId);
+      if (archivedStory) {
+        const content = archivedStory.content.find(c => c.id === storyId);
+        if (content) {
+          content.isLike = isLiked;
+        }
+      }
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -304,6 +351,16 @@ const storySlice = createSlice({
         state.error = null;
       })
       .addCase(viewStoryThunk.rejected, (state, action) => {
+        state.error = action.payload as string;
+      })
+      // Like Story
+      .addCase(likeStoryThunk.pending, (state) => {
+        state.error = null;
+      })
+      .addCase(likeStoryThunk.fulfilled, (state) => {
+        state.error = null;
+      })
+      .addCase(likeStoryThunk.rejected, (state, action) => {
         state.error = action.payload as string;
       })
       // Get User Stories
@@ -399,7 +456,8 @@ export const {
   setFriendStories,
   setArchivedStories,
   markStoryAsSeen,
-  removeStoryContent
+  removeStoryContent,
+  toggleStoryLike
 } = storySlice.actions;
 
 export default storySlice.reducer;

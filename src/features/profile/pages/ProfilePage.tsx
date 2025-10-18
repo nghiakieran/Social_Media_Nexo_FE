@@ -377,6 +377,7 @@ export const ProfilePage = () => {
         isSeen: story.isSeen,
         createdAt: story.createdAt,
         quantitySeen: story.quantitySeen,
+        isLike: story.isLike,
       }));
 
       const story: Story = {

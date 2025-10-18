@@ -12,7 +12,7 @@ interface StoryContentProps {
   onTouchStart: (e: React.TouchEvent) => void
   onTouchEnd: (e: React.TouchEvent) => void
   onVideoDurationDetected?: (duration: number) => void
-  onVideoReady?: () => void
+  onVideoReady?: () => void // Callback when content (image/video) is ready
 }
 
 export const StoryContent = memo(({ 
@@ -27,6 +27,7 @@ export const StoryContent = memo(({
   onVideoReady
 }: StoryContentProps) => {
   const videoRef = useRef<HTMLVideoElement>(null)
+  const imageRef = useRef<HTMLImageElement>(null)
   const [videoObjectFit, setVideoObjectFit] = useState<"contain" | "fill">("contain")
 
   // Control video playback based on isPaused state
@@ -90,6 +91,28 @@ export const StoryContent = memo(({
     }
   }, [content.type, onVideoDurationDetected, onVideoReady])
 
+  // Detect when image is loaded
+  useEffect(() => {
+    if (content.type === "image" && imageRef.current) {
+      const img = imageRef.current;
+      
+      const handleImageLoad = () => {
+        // Image ready to display
+        if (onVideoReady) {
+          onVideoReady();
+        }
+      };
+      
+      if (img.complete && img.naturalWidth > 0) {
+        // Image already loaded
+        handleImageLoad();
+      } else {
+        img.addEventListener('load', handleImageLoad);
+        return () => img.removeEventListener('load', handleImageLoad);
+      }
+    }
+  }, [content.type, content.url, onVideoReady])
+
   return (
     <div
       className="absolute inset-0 flex items-center justify-center cursor-pointer"
@@ -100,6 +123,7 @@ export const StoryContent = memo(({
       <div className="relative w-full h-full">
         {content.type === "image" ? (
           <img
+            ref={imageRef}
             src={content.url || "/placeholder.svg"}
             alt={`${username}'s story content`}
             className="w-full h-full object-cover pointer-events-none"

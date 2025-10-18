@@ -10,7 +10,7 @@ import { StoryActions } from "./StoryActions"
 import { StorySkeleton } from "./StorySkeleton"
 import { StoryViewersDialog } from "./StoryViewersDialog"
 import { useAppDispatch } from "@/store"
-import { deleteStoryThunk, archiveStoryThunk, viewStoryThunk, markStoryAsSeen, removeStoryContent } from "../storySlice"
+import { deleteStoryThunk, archiveStoryThunk, viewStoryThunk, likeStoryThunk, markStoryAsSeen, removeStoryContent, toggleStoryLike } from "../storySlice"
 import { useToast } from "@/hooks/use-toast"
 import { sortStoriesByViewedStatus } from "../utils/sortStories"
 
@@ -42,7 +42,6 @@ export const StoryViewer = memo(({
   const [showReactions, setShowReactions] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
   const [isHolding, setIsHolding] = useState(false)
-  const [isLiked, setIsLiked] = useState(false)
   const [showQuickReply, setShowQuickReply] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [isMenuLoading, setIsMenuLoading] = useState(false)
@@ -50,7 +49,7 @@ export const StoryViewer = memo(({
   const [, forceUpdate] = useState({}) // Force re-render helper
   const [shouldClose, setShouldClose] = useState(false)
   const [videoDurations, setVideoDurations] = useState<Record<string, number>>({}) // Store actual video durations
-  const [isVideoReady, setIsVideoReady] = useState(false) // Track if video is ready to play
+  const [isContentReady, setIsContentReady] = useState(false) // Track if content (image/video) is ready to display
   
   const holdTimeoutRef = useRef<NodeJS.Timeout>()
   const progressInterval = useRef<NodeJS.Timeout>()
@@ -145,39 +144,33 @@ export const StoryViewer = memo(({
     }
   }, [currentContent])
 
-  // Callback when video is ready to play
-  const handleVideoReady = useCallback(() => {
-    setIsVideoReady(true)
+  // Callback when content (image/video) is ready
+  const handleContentReady = useCallback(() => {
+    setIsContentReady(true)
   }, [])
 
-  // Reset video ready state when content changes
+  // Reset content ready state when content URL changes (not when like state changes)
   useEffect(() => {
-    if (currentContent?.type === "video") {
-      setIsVideoReady(false)
-      // Pause while video is loading
-      setIsPaused(true)
-    } else {
-      // Images are always ready
-      setIsVideoReady(true)
-      setIsPaused(false)
-    }
-  }, [currentContent])
+    setIsContentReady(false)
+    // Pause while loading
+    setIsPaused(true)
+  }, [currentContent?.id, currentContent?.url]) // Only reset when id or url changes
 
-  // Auto-resume when video is ready
+  // Auto-resume when content is ready
   useEffect(() => {
-    if (isVideoReady && currentContent?.type === "video") {
+    if (isContentReady) {
       // Wait a bit then auto-resume
       const timer = setTimeout(() => {
         setIsPaused(false)
       }, 100)
       return () => clearTimeout(timer)
     }
-  }, [isVideoReady, currentContent])
+  }, [isContentReady])
 
   // Progress management
   useEffect(() => {
-    // Don't run progress if video not ready
-    if (!isOpen || isPaused || !currentContent || !isVideoReady) return
+    // Don't run progress if content not ready (wait for image/video to load)
+    if (!isOpen || isPaused || !currentContent || !isContentReady) return
 
     const duration = actualDuration * 1000
     const interval = 50
@@ -208,7 +201,7 @@ export const StoryViewer = memo(({
         clearInterval(progressInterval.current)
       }
     }
-  }, [isOpen, isPaused, currentContent, currentContentIndex, currentStoryIndex, stories.length, currentStory?.content.length, actualDuration, isVideoReady])
+  }, [isOpen, isPaused, currentContent, currentContentIndex, currentStoryIndex, stories.length, currentStory?.content.length, actualDuration, isContentReady])
 
   useEffect(() => {
     setProgress(0)
@@ -255,10 +248,38 @@ export const StoryViewer = memo(({
     }
   }, [replyText, currentStory?.username])
 
-  const handleLike = useCallback(() => {
-    setIsLiked(!isLiked)
-    console.log(`${isLiked ? "Unliked" : "Liked"} ${currentStory.username}'s story`)
-  }, [isLiked, currentStory?.username])
+  const handleLike = useCallback(async () => {
+    if (!currentContent || currentStory.isOwnStory) return
+    
+    const contentId = currentContent.id
+    const storyId = parseInt(contentId)
+    
+    if (isNaN(storyId)) return
+    
+    // Get current like state from Redux
+    const currentLikeState = currentContent.isLike ?? false
+    const newLikeState = !currentLikeState
+    
+    // Optimistic update to Redux state
+    dispatch(toggleStoryLike({
+      userId: currentStory.id,
+      storyId: contentId,
+      isLiked: newLikeState
+    }))
+    
+    try {
+      await dispatch(likeStoryThunk(storyId)).unwrap()
+      // Success - state already updated
+    } catch (error) {
+      // Revert on error
+      dispatch(toggleStoryLike({
+        userId: currentStory.id,
+        storyId: contentId,
+        isLiked: currentLikeState
+      }))
+      console.error("Failed to like story:", error)
+    }
+  }, [currentContent, currentStory, dispatch])
 
   const handleShare = useCallback(() => {
     console.log(`Shared ${currentStory.username}'s story`)
@@ -439,11 +460,11 @@ export const StoryViewer = memo(({
               onTouchStart={handleTouchStart}
               onTouchEnd={handleTouchEnd}
               onVideoDurationDetected={handleVideoDurationDetected}
-              onVideoReady={handleVideoReady}
+              onVideoReady={handleContentReady}
             />
             
-            {/* Video Loading Overlay */}
-            {currentContent.type === "video" && !isVideoReady && (
+            {/* Content Loading Overlay */}
+            {!isContentReady && (
               <div className="absolute inset-0 flex items-center justify-center bg-black/50 z-20">
                 <div className="w-12 h-12 border-4 border-white/30 border-t-white rounded-full animate-spin" />
               </div>
@@ -451,7 +472,7 @@ export const StoryViewer = memo(({
 
             <StoryActions
               replyText={replyText}
-              isLiked={isLiked}
+              isLiked={currentContent.isLike ?? false}
               viewerCount={currentContent.quantitySeen || 0}
               showReactions={showReactions}
               showQuickReply={showQuickReply}
