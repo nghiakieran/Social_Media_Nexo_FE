@@ -1,3 +1,5 @@
+import { getMediaType } from '@/utils/mediaUtils';
+
 // API Response Types
 export interface CreatePostResponse {
   status: number;
@@ -230,19 +232,6 @@ export interface BookmarkPostResponse {
     isBookmarked: boolean;
   };
 }
-
-// Helper function to detect media type from URL
-const getMediaType = (url: string): 'image' | 'video' => {
-  const videoExtensions = ['.mp4', '.webm', '.ogg', '.mov', '.avi', '.mkv', '.m3u8', '.mpd', '.ts'];
-  const lowerUrl = url.toLowerCase();
-  
-  // Check for HLS (.m3u8) or DASH (.mpd) streaming formats
-  if (lowerUrl.includes('.m3u8') || lowerUrl.includes('.mpd') || lowerUrl.includes('m3u8')) {
-    return 'video';
-  }
-  
-  return videoExtensions.some(ext => lowerUrl.includes(ext)) ? 'video' : 'image';
-};
 
 // Transform function to convert API response to local state
 export const transformPostData = (apiData: PostData): Post => ({

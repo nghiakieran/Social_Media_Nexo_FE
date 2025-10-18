@@ -49,15 +49,15 @@ export const createStoryThunk = createAsyncThunk(
       file: File;
       storyData: CreateStoryRequest;
     },
-    { rejectWithValue }
+    { rejectWithValue, dispatch }
   ) => {
     try {
       const response = await storyApi.createStory(file, storyData, (progressEvent) => {
-        // Progress will be handled by reducer
+        // Dispatch progress to Redux state
         const progress = progressEvent.total
           ? Math.round((progressEvent.loaded * 100) / progressEvent.total)
           : 0;
-        console.log("Upload progress:", progress);
+        dispatch(setUploadProgress(progress));
       });
       return response;
     } catch (error) {

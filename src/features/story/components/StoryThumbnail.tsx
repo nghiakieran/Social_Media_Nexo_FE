@@ -3,6 +3,7 @@ import { cn } from "@/lib/utils"
 import { Story } from "../types"
 import { LazyImage } from "@/components/common/LazyImage"
 import { formatTimeAgo } from "@/utils/timeFormat"
+import { VideoThumbnail } from "@/components/common/VideoThumbnail"
 
 interface StoryThumbnailProps {
   story: Story
@@ -17,6 +18,8 @@ export const StoryThumbnail = memo(({ story, onClick, style, zIndex }: StoryThum
   if (!firstContent) {
     return null; // Don't render if no content
   }
+
+  const isVideo = firstContent.type === "video";
 
   return (
     <div className="absolute" style={{ ...style, zIndex }}>
@@ -34,14 +37,22 @@ export const StoryThumbnail = memo(({ story, onClick, style, zIndex }: StoryThum
             : "ring-2 ring-yellow-400" // Unviewed stories have bright ring
         )}
       >
-        <LazyImage
-          src={firstContent.url || "/placeholder.svg"}
-          alt="Story thumbnail"
-          className="w-full h-full"
-          loading="lazy"
-          decoding="async"
-          enableProgressiveLoading
-        />
+        {isVideo ? (
+          <VideoThumbnail
+            videoUrl={firstContent.url}
+            className="w-full h-full"
+            showPlayButton={true}
+          />
+        ) : (
+          <LazyImage
+            src={firstContent.url || "/placeholder.svg"}
+            alt="Story thumbnail"
+            className="w-full h-full object-cover"
+            loading="lazy"
+            decoding="async"
+            enableProgressiveLoading
+          />
+        )}
         <div className={cn(
           "absolute inset-0 transition-colors",
           story.isViewed 

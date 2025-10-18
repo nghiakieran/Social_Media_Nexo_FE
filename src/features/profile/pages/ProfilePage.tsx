@@ -3,6 +3,7 @@ import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { AppDispatch, useAppSelector } from "@/store";
 import { getPostsThunk } from "@/features/post/postSlice";
+import { getMediaType } from "@/utils/mediaUtils";
 import {
   setProfile,
   setPosts,
@@ -370,8 +371,7 @@ export const ProfilePage = () => {
       // Transform collection stories to Story format
       const contents = collectionDetail.stories.map((story) => ({
         id: story.storyId.toString(),
-        type: (story.mediaUrl.toLowerCase().includes('.mp4') || 
-               story.mediaUrl.toLowerCase().includes('.webm') ? 'video' : 'image') as 'image' | 'video',
+        type: getMediaType(story.mediaUrl),
         url: story.mediaUrl,
         duration: 5,
         isSeen: story.isSeen,

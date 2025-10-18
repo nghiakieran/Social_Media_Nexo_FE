@@ -49,6 +49,8 @@ export const StoryViewer = memo(({
   const [showViewerList, setShowViewerList] = useState(false)
   const [, forceUpdate] = useState({}) // Force re-render helper
   const [shouldClose, setShouldClose] = useState(false)
+  const [videoDurations, setVideoDurations] = useState<Record<string, number>>({}) // Store actual video durations
+  const [isVideoReady, setIsVideoReady] = useState(false) // Track if video is ready to play
   
   const holdTimeoutRef = useRef<NodeJS.Timeout>()
   const progressInterval = useRef<NodeJS.Timeout>()
@@ -57,6 +59,17 @@ export const StoryViewer = memo(({
 
   const currentStory = stories[currentStoryIndex]
   const currentContent = currentStory?.content[currentContentIndex]
+  
+  // Get actual duration for current content (use detected video duration if available)
+  const getActualDuration = (content: typeof currentContent) => {
+    if (!content) return 5
+    if (content.type === "video" && videoDurations[content.id]) {
+      return videoDurations[content.id]
+    }
+    return content.duration || 5
+  }
+  
+  const actualDuration = getActualDuration(currentContent)
 
   // Call View Story API when viewing a story
   useEffect(() => {
@@ -122,11 +135,51 @@ export const StoryViewer = memo(({
     }
   }, [isOpen, currentStory, currentContent])
 
+  // Callback to update video duration when detected
+  const handleVideoDurationDetected = useCallback((duration: number) => {
+    if (currentContent) {
+      setVideoDurations(prev => ({
+        ...prev,
+        [currentContent.id]: duration
+      }))
+    }
+  }, [currentContent])
+
+  // Callback when video is ready to play
+  const handleVideoReady = useCallback(() => {
+    setIsVideoReady(true)
+  }, [])
+
+  // Reset video ready state when content changes
+  useEffect(() => {
+    if (currentContent?.type === "video") {
+      setIsVideoReady(false)
+      // Pause while video is loading
+      setIsPaused(true)
+    } else {
+      // Images are always ready
+      setIsVideoReady(true)
+      setIsPaused(false)
+    }
+  }, [currentContent])
+
+  // Auto-resume when video is ready
+  useEffect(() => {
+    if (isVideoReady && currentContent?.type === "video") {
+      // Wait a bit then auto-resume
+      const timer = setTimeout(() => {
+        setIsPaused(false)
+      }, 100)
+      return () => clearTimeout(timer)
+    }
+  }, [isVideoReady, currentContent])
+
   // Progress management
   useEffect(() => {
-    if (!isOpen || isPaused || !currentContent) return
+    // Don't run progress if video not ready
+    if (!isOpen || isPaused || !currentContent || !isVideoReady) return
 
-    const duration = currentContent.duration * 1000
+    const duration = actualDuration * 1000
     const interval = 50
 
     progressInterval.current = setInterval(() => {
@@ -155,7 +208,7 @@ export const StoryViewer = memo(({
         clearInterval(progressInterval.current)
       }
     }
-  }, [isOpen, isPaused, currentContent, currentContentIndex, currentStoryIndex, stories.length, currentStory?.content.length])
+  }, [isOpen, isPaused, currentContent, currentContentIndex, currentStoryIndex, stories.length, currentStory?.content.length, actualDuration, isVideoReady])
 
   useEffect(() => {
     setProgress(0)
@@ -347,6 +400,15 @@ export const StoryViewer = memo(({
           }}
         >
           <div className="relative w-full h-full">
+            <div 
+              className="absolute top-0 left-0 right-0 z-10 pointer-events-none"
+              style={{
+                height: '98px',
+                backgroundImage: 'linear-gradient(180deg, #262626cc, #26262600)',
+
+              }}
+            />
+            
             <StoryProgressBar
               content={currentStory.content}
               currentContentIndex={currentContentIndex}
@@ -371,10 +433,21 @@ export const StoryViewer = memo(({
             <StoryContent
               content={currentContent}
               username={currentStory.username}
+              isMuted={isMuted}
+              isPaused={isPaused}
               onStoryClick={handleStoryClick}
               onTouchStart={handleTouchStart}
               onTouchEnd={handleTouchEnd}
+              onVideoDurationDetected={handleVideoDurationDetected}
+              onVideoReady={handleVideoReady}
             />
+            
+            {/* Video Loading Overlay */}
+            {currentContent.type === "video" && !isVideoReady && (
+              <div className="absolute inset-0 flex items-center justify-center bg-black/50 z-20">
+                <div className="w-12 h-12 border-4 border-white/30 border-t-white rounded-full animate-spin" />
+              </div>
+            )}
 
             <StoryActions
               replyText={replyText}
@@ -394,37 +467,6 @@ export const StoryViewer = memo(({
               onViewerListToggle={() => setShowViewerList(!showViewerList)}
             />
 
-            {/* Navigation arrows - desktop only */}
-            <div className="hidden lg:block absolute left-4 top-1/2 -translate-y-1/2 z-30">
-              {currentStoryIndex > 0 && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    handlePrevious()
-                  }}
-                  className="p-3 text-white/80 hover:text-white transition-all duration-200 bg-black/40 backdrop-blur-sm rounded-full hover:bg-black/60 shadow-lg"
-                  aria-label="Quay lại"
-                >
-                  <ChevronLeft className="w-6 h-6" />
-                </button>
-              )}
-            </div>
-
-            <div className="hidden lg:block absolute right-4 top-1/2 -translate-y-1/2 z-30">
-              {currentStoryIndex < stories.length - 1 && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    handleNext()
-                  }}
-                  className="p-3 text-white/80 hover:text-white transition-all duration-200 bg-black/40 backdrop-blur-sm rounded-full hover:bg-black/60 shadow-lg"
-                  aria-label="Tiếp"
-                >
-                  <ChevronRight className="w-6 h-6" />
-                </button>
-              )}
-            </div>
-
             {/* Mobile navigation areas */}
             <div
               className="lg:hidden absolute left-0 top-0 w-1/3 h-full z-20"
@@ -442,6 +484,43 @@ export const StoryViewer = memo(({
             />
           </div>
         </div>
+
+        {/* Navigation arrows in gap - desktop only */}
+        {/* Left navigation arrow */}
+        {(currentContentIndex > 0 || currentStoryIndex > 0) && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              handlePrevious()
+            }}
+            className="hidden lg:block absolute top-1/2 -translate-y-1/2 z-40 p-2.5 text-white/80 hover:text-white transition-all duration-200 bg-gray-500/50 backdrop-blur-sm rounded-full hover:bg-gray-500/80 shadow-lg"
+            style={{
+              left: "0px",
+              transform: "translateX(calc(-50% + 430px)) translateY(-50%)",
+            }}
+            aria-label="Quay lại"
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </button>
+        )}
+
+        {/* Right navigation arrow */}
+        {(currentContentIndex < currentStory.content.length - 1 || currentStoryIndex < stories.length - 1) && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              handleNext()
+            }}
+            className="hidden lg:block absolute top-1/2 -translate-y-1/2 z-40 p-2.5 text-white/80 hover:text-white transition-all duration-200 bg-gray-500/50 backdrop-blur-sm rounded-full hover:bg-gray-500/80 shadow-lg"
+            style={{
+              left: "0px",
+              transform: "translateX(calc(-50% + 868px)) translateY(-50%)",
+            }}
+            aria-label="Tiếp"
+          >
+            <ChevronRight className="w-4 h-4" />
+          </button>
+        )}
 
         {/* Right side thumbnails - desktop only */}
         <div className="hidden lg:block">

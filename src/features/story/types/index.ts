@@ -1,3 +1,5 @@
+import { getMediaType } from '@/utils/mediaUtils';
+
 // Story Content Types (for viewer)
 export interface StoryContent {
   id: string
@@ -205,13 +207,6 @@ export interface GetStoryViewersApiResponse {
   data: GetStoryViewersResponse;
 }
 
-// Helper function to detect media type from URL
-const detectMediaType = (url: string): "image" | "video" => {
-  const videoExtensions = ['.mp4', '.webm', '.ogg', '.mov', '.avi', '.mkv', '.m3u8'];
-  const lowerUrl = url.toLowerCase();
-  return videoExtensions.some(ext => lowerUrl.includes(ext)) ? 'video' : 'image';
-};
-
 // Transform function - Convert API UserStoriesData to Story for viewer
 export const transformUserStoriesToStory = (
   apiData: UserStoriesData,
@@ -229,7 +224,7 @@ export const transformUserStoriesToStory = (
       if (item.mediaType) {
         type = item.mediaType === "VIDEO" ? "video" : "image";
       } else if (item.mediaUrl) {
-        type = detectMediaType(item.mediaUrl);
+        type = getMediaType(item.mediaUrl);
       }
       
       return {

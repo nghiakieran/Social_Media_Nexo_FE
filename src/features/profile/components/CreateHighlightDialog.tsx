@@ -7,6 +7,7 @@ import { getAllUserStories, createCollection } from '@/features/story/api/storyA
 import { transformUserStoriesToStory } from '@/features/story/types';
 import type { StoryContent } from '@/features/story/types';
 import { useToast } from '@/hooks/use-toast';
+import { VideoThumbnail } from '@/components/common/VideoThumbnail';
 
 interface CreateHighlightDialogProps {
   isOpen: boolean;
@@ -266,34 +267,37 @@ export const CreateHighlightDialog = ({ isOpen, onClose, userId, onSuccess }: Cr
                   <p className="text-muted-foreground">Không có tin nào</p>
                 </div>
               ) : (
-                <div className="h-[340px] overflow-y-auto">
+                <div className="h-[340px] overflow-y-auto p-0.5">
                   <div className="grid grid-cols-3 gap-2">
                     {stories.map((story) => {
                       const isActive = !!selected[story.id];
+                      const isVideo = story.type === 'video';
                       return (
                         <button
                           key={story.id}
                           type="button"
                           onClick={() => toggle(story.id)}
-                          className={`relative w-full pb-[100%] rounded-md overflow-hidden ring-1 ring-border ${isActive ? 'outline outline-2 outline-primary' : ''}`}
+                          className={`relative aspect-[9/16] w-full rounded-md overflow-hidden ring-1 ring-border ${isActive ? 'outline outline-2 outline-primary' : ''}`}
                           aria-pressed={isActive}
                         >
-                          {story.type === 'video' ? (
-                            <video
-                              src={story.url}
-                              className="absolute inset-0 w-full h-full object-cover"
-                              muted
+                          {isVideo ? (
+                            <VideoThumbnail
+                              videoUrl={story.url}
+                              className="w-full h-full"
+                              showPlayButton={!isActive}
                             />
                           ) : (
                             <img
                               src={story.url}
                               alt="story"
-                              className="absolute inset-0 w-full h-full object-cover"
+                              className="w-full h-full object-cover"
                               loading="lazy"
                             />
                           )}
+                          
+                          {/* Selected Checkmark */}
                           {isActive && (
-                            <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
+                            <div className="absolute inset-0 bg-black/20 flex items-center justify-center z-10">
                               <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center">
                                 <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />

@@ -16,6 +16,7 @@ import { VideoThumbnail } from "@/components/common/VideoThumbnail";
 import { MediaViewer } from "./MediaViewer";
 import { HLSVideoPlayer } from "@/components/common/HLSVideoPlayer";
 import { useAppSelector } from "@/store";
+import { getMediaType } from "@/utils/mediaUtils";
 
 interface MediaItem {
   id: string;
@@ -35,34 +36,6 @@ interface EditPostDialogProps {
   initialMediaUrl: string[];
   onSave: (files: File[], updateData: UpdatePostRequest) => void;
 }
-
-// Helper to detect media type from URL
-const getMediaType = (url: string): "image" | "video" => {
-  const videoExtensions = [
-    ".mp4",
-    ".webm",
-    ".ogg",
-    ".mov",
-    ".avi",
-    ".mkv",
-    ".m3u8",
-    ".mpd",
-    ".ts",
-  ];
-  const lowerUrl = url.toLowerCase();
-
-  if (
-    lowerUrl.includes(".m3u8") ||
-    lowerUrl.includes(".mpd") ||
-    lowerUrl.includes("m3u8")
-  ) {
-    return "video";
-  }
-
-  return videoExtensions.some((ext) => lowerUrl.includes(ext))
-    ? "video"
-    : "image";
-};
 
 export const EditPostDialog = ({
   isOpen,

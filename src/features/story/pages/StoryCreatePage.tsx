@@ -119,13 +119,82 @@ export const StoryCreatePage = () => {
     navigate(-1);
   };
 
-  const handleFileSelect = () => {
+  // Validate video duration
+  const validateVideoDuration = (file: File): Promise<boolean> => {
+    return new Promise((resolve) => {
+      const video = document.createElement("video");
+      video.preload = "metadata";
+      
+      // Set timeout in case metadata never loads
+      const timeoutId = setTimeout(() => {
+        URL.revokeObjectURL(video.src);
+        toast({
+          title: "Lỗi",
+          description: "Không thể đọc thông tin video",
+          variant: "destructive",
+        });
+        resolve(false);
+      }, 10000); // 10 second timeout
+      
+      video.onloadedmetadata = () => {
+        clearTimeout(timeoutId);
+        const duration = video.duration;
+        URL.revokeObjectURL(video.src);
+        
+        // Check if duration is valid
+        if (isNaN(duration) || !isFinite(duration)) {
+          toast({
+            title: "Lỗi",
+            description: "Không thể xác định độ dài video",
+            variant: "destructive",
+          });
+          resolve(false);
+          return;
+        }
+        
+        // Max 60 seconds (1 minute)
+        if (duration > 60) {
+          toast({
+            title: "Video quá dài",
+            description: `Video story tối đa 60 giây (1 phút). Video của bạn dài ${Math.round(duration)} giây.`,
+            variant: "destructive",
+          });
+          resolve(false);
+        } else {
+          resolve(true);
+        }
+      };
+      
+      video.onerror = () => {
+        clearTimeout(timeoutId);
+        URL.revokeObjectURL(video.src);
+        toast({
+          title: "Lỗi",
+          description: "Không thể đọc video",
+          variant: "destructive",
+        });
+        resolve(false);
+      };
+      
+      video.src = URL.createObjectURL(file);
+    });
+  };
+
+  const handleFileSelect = async () => {
     const input = document.createElement("input");
     input.type = "file";
     input.accept = "image/*,video/*";
-    input.onchange = (e) => {
+    input.onchange = async (e) => {
       const selectedFile = (e.target as HTMLInputElement).files?.[0];
       if (selectedFile) {
+        // Validate video duration if it's a video
+        if (selectedFile.type.startsWith("video/")) {
+          const isValid = await validateVideoDuration(selectedFile);
+          if (!isValid) {
+            return; // Don't proceed if validation fails
+          }
+        }
+        
         setFile(selectedFile);
       }
     };
@@ -378,7 +447,7 @@ export const StoryCreatePage = () => {
   return (
     <div className="fixed inset-0 z-50 bg-black flex flex-col">
       {/* Preview Canvas */}
-      <div className="flex-1 relative overflow-hidden flex items-center justify-center">
+      <div className="flex-1 relative overflow-hidden flex items-center justify-center pb-[70px] pt-2">
         {isVideo ? (
           <video
             ref={videoRef}
@@ -642,9 +711,10 @@ export const StoryCreatePage = () => {
         )}
 
         {/* Footer with share button */}
-        <footer className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/50 to-transparent z-10">
+        <footer className="absolute bottom-0 left-0 right-0 z-10 pointer-events-none">
+          <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent -z-10" />
           <TooltipProvider>
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between p-4 pointer-events-auto">
               <button
                 onClick={handleShare}
                 disabled={isUploading}

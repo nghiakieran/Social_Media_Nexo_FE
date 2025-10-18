@@ -36,9 +36,7 @@ export const StoryHeader = memo(({
   }
 
   return (
-    <div className="absolute top-8 left-4 right-4 z-30 flex items-center justify-between">
-      <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-transparent rounded-t-lg pointer-events-none" />
-      
+    <div className="absolute top-8 left-4 right-4 z-30 flex items-center justify-between">  
       <div className="flex items-center gap-3 flex-1 min-w-0">
         <button 
           onClick={handleProfileClick}
@@ -80,15 +78,18 @@ export const StoryHeader = memo(({
       </div>
 
       <div className="flex items-center gap-1 flex-shrink-0">
-        <button
-          onClick={(e) => {
-            e.stopPropagation()
-            onMuteToggle()
-          }}
-          className="p-2.5 text-white/90 hover:text-white hover:bg-white/10 rounded-full transition-all duration-200 bg-black/30 backdrop-blur-sm"
-        >
-          {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
-        </button>
+        {/* Mute/Unmute - Only show for video content */}
+        {currentContent.type === "video" && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              onMuteToggle()
+            }}
+            className="p-2.5 text-white/90 hover:text-white hover:bg-white/10 rounded-full transition-all duration-200 bg-black/30 backdrop-blur-sm"
+          >
+            {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+          </button>
+        )}
 
         {!isMobile && (
           <button
@@ -97,6 +98,7 @@ export const StoryHeader = memo(({
               onPauseToggle()
             }}
             className="p-2.5 text-white/90 hover:text-white hover:bg-white/10 rounded-full transition-all duration-200 bg-black/30 backdrop-blur-sm"
+            title={isPaused ? "Phát" : "Tạm dừng"}
           >
             {isPaused ? <Play className="w-5 h-5" /> : <Pause className="w-5 h-5" />}
           </button>
