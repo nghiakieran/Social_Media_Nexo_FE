@@ -204,6 +204,28 @@ const storySlice = createSlice({
     setArchivedStories: (state, action: PayloadAction<Story[]>) => {
       state.archivedStories = action.payload;
     },
+    // Upsert a profile story into friendStories or userStories
+    upsertProfileStory: (state, action: PayloadAction<Story>) => {
+      const story = action.payload;
+      
+      if (story.isOwnStory) {
+        // Add/update in userStories
+        const existingIndex = state.userStories.findIndex(s => s.id === story.id);
+        if (existingIndex >= 0) {
+          state.userStories[existingIndex] = story;
+        } else {
+          state.userStories.push(story);
+        }
+      } else {
+        // Add/update in friendStories
+        const existingIndex = state.friendStories.findIndex(s => s.id === story.id);
+        if (existingIndex >= 0) {
+          state.friendStories[existingIndex] = story;
+        } else {
+          state.friendStories.push(story);
+        }
+      }
+    },
     // Mark a specific story content as seen (after viewing)
     markStoryAsSeen: (state, action: PayloadAction<{ userId: string; storyId: string }>) => {
       const { userId, storyId } = action.payload;
@@ -455,6 +477,7 @@ export const {
   setUserStories,
   setFriendStories,
   setArchivedStories,
+  upsertProfileStory,
   markStoryAsSeen,
   removeStoryContent,
   toggleStoryLike

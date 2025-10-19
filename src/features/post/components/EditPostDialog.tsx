@@ -56,6 +56,7 @@ export const EditPostDialog = ({
   const [showTagFriends, setShowTagFriends] = useState(false);
   const [selectedMedia, setSelectedMedia] = useState<MediaItem | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [uploadMessage, setUploadMessage] = useState<string>("");
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -190,29 +191,24 @@ export const EditPostDialog = ({
       mediaUrl: remainingExistingUrls, // Only existing URLs that weren't removed
     };
 
-    // Show upload message for large files
+    // Set upload message for large files
     if (newFiles.length > 0) {
       const hasVideo = newFiles.some((file) => file.type.startsWith("video/"));
       const totalSize = newFiles.reduce((sum, file) => sum + file.size, 0);
       const sizeMB = totalSize / (1024 * 1024);
 
       if (hasVideo && sizeMB > 50) {
-        toast({
-          title: "Đang cập nhật bài viết...",
-          description: "Video lớn có thể mất vài phút. Vui lòng đợi.",
-          duration: 5000,
-        });
+        setUploadMessage("📹 Đang cập nhật bài viết... Video lớn có thể mất vài phút");
       } else if (hasVideo || sizeMB > 10) {
-        toast({
-          title: "Đang cập nhật bài viết...",
-          description: "Vui lòng đợi upload hoàn tất.",
-          duration: 5000,
-        });
+        setUploadMessage("📤 Đang cập nhật bài viết... Vui lòng chờ");
+      } else {
+        setUploadMessage("⏳ Đang cập nhật bài viết...");
       }
+    } else {
+      setUploadMessage("⏳ Đang cập nhật bài viết...");
     }
 
     onSave(newFiles, updateData);
-    setIsSubmitting(false);
   };
 
   const handleClose = () => {
@@ -236,6 +232,14 @@ export const EditPostDialog = ({
   const taggedFriendNames = mutualFollowers
     .filter((user) => taggedFriendIds.includes(user.userId))
     .map((user) => user.userName);
+
+  // Reset upload state when dialog closes
+  useEffect(() => {
+    if (!isOpen) {
+      setIsSubmitting(false);
+      setUploadMessage("");
+    }
+  }, [isOpen]);
 
   return (
     <>
@@ -285,7 +289,7 @@ export const EditPostDialog = ({
                       key={idx}
                       className="font-medium text-foreground px-2 py-1 bg-primary/10 rounded-full text-xs"
                     >
-                      @{name}
+                      {name}
                     </span>
                   ))}
                 </div>
@@ -446,6 +450,30 @@ export const EditPostDialog = ({
           isOpen={!!selectedMedia}
           onClose={() => setSelectedMedia(null)}
         />
+      )}
+
+      {/* Loading Overlay with Upload Message */}
+      {isSubmitting && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center">
+          <div className="bg-background/95 backdrop-blur-md rounded-2xl shadow-2xl p-8 max-w-md w-full mx-4">
+            <div className="flex flex-col items-center gap-6">
+              <div className="relative">
+                <div className="w-20 h-20 border-4 border-primary/30 border-t-primary rounded-full animate-spin"></div>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="w-12 h-12 bg-primary/10 rounded-full"></div>
+                </div>
+              </div>
+              <div className="text-center space-y-2">
+                <p className="text-xl font-semibold text-foreground">
+                  {uploadMessage || "Đang cập nhật..."}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  Vui lòng không tắt trang này
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </>
   );

@@ -67,7 +67,7 @@ export const StoryHeader = memo(({
                 {currentContent.createdAt ? formatTimeAgo(currentContent.createdAt) : formatTimeAgo(story.timeAgo)}
               </span>
             </div>
-            {story.isCloseFriend && (
+            {currentContent.isCloseFriend && (
               <div className="bg-gradient-to-r from-green-400 to-blue-500 text-white px-2 py-0.5 rounded-full text-xs font-semibold flex items-center gap-1 shadow-lg backdrop-blur-sm border border-white/20 w-fit">
                 <span className="text-xs animate-bounce">♥</span>
                 <span>Bạn thân</span>

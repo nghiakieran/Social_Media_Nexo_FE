@@ -419,7 +419,7 @@ export const StoryCreatePage = () => {
         <header className="border-b px-4 py-3 flex items-center justify-between">
           <button
             onClick={handleClose}
-            className="p-2 hover:bg-accent rounded-full transition-colors"
+            className="p-2 hover:bg-accent hover:text-white rounded-full transition-colors"
           >
             <ArrowLeft className="w-5 h-5" />
           </button>

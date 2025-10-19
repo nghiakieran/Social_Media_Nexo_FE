@@ -10,6 +10,7 @@ export interface StoryContent {
   createdAt?: string // Store creation date for each content
   quantitySeen?: number // Number of people who viewed this story
   isLike?: boolean // Track if current user liked this story
+  isCloseFriend?: boolean // Track if this specific content is for close friends only
 }
 
 // Story Types (for viewer)
@@ -23,7 +24,6 @@ export interface Story {
   isViewed?: boolean
   isOwnStory?: boolean
   viewerCount?: number
-  isCloseFriend?: boolean
 }
 
 export interface StoryViewerProps {
@@ -243,6 +243,7 @@ export const transformUserStoriesToStory = (
         createdAt: item.createdAt, // Map createdAt for archive display
         quantitySeen: item.quantitySeen, // Map quantitySeen for viewer count
         isLike: item.isLike, // Map isLike from API
+        isCloseFriend: item.isCloseFriend,
       };
     });
 
@@ -254,7 +255,6 @@ export const transformUserStoriesToStory = (
     content,
     isViewed: storyList.length > 0 ? storyList.every((s) => s.isSeen) : false,
     isOwnStory: currentUserId ? apiData.userId === currentUserId : false,
-    // Only mark as close friend if ALL stories in the list are for close friends
-    isCloseFriend: storyList.length > 0 ? storyList.every((s) => s.isCloseFriend) : false,
+    // isCloseFriend is now tracked per content, not per story
   };
 };

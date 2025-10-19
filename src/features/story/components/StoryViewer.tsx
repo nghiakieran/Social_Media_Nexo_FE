@@ -43,7 +43,7 @@ export const StoryViewer = memo(({
   const [isMobile, setIsMobile] = useState(false)
   const [isHolding, setIsHolding] = useState(false)
   const [showQuickReply, setShowQuickReply] = useState(false)
-  const [isLoading, setIsLoading] = useState(true)
+  const [isInitialLoading, setIsInitialLoading] = useState(true) // Only for initial open
   const [isMenuLoading, setIsMenuLoading] = useState(false)
   const [showViewerList, setShowViewerList] = useState(false)
   const [, forceUpdate] = useState({}) // Force re-render helper
@@ -122,17 +122,16 @@ export const StoryViewer = memo(({
     return () => window.removeEventListener("resize", checkMobile)
   }, [])
 
-  // Loading simulation
+  // Initial loading - show skeleton only when first opening viewer
   useEffect(() => {
-    if (isOpen && currentStory && currentContent) {
+    if (isOpen) {
+      setIsInitialLoading(true)
       const timer = setTimeout(() => {
-        setIsLoading(false)
-      }, 800) // Simulate loading time
+        setIsInitialLoading(false)
+      }, 500) // Show skeleton for 500ms on initial open
       return () => clearTimeout(timer)
-    } else {
-      setIsLoading(true)
     }
-  }, [isOpen, currentStory, currentContent])
+  }, [isOpen]) // Only depend on isOpen, not on story changes
 
   // Callback to update video duration when detected
   const handleVideoDurationDetected = useCallback((duration: number) => {
@@ -154,6 +153,13 @@ export const StoryViewer = memo(({
     setIsContentReady(false)
     // Pause while loading
     setIsPaused(true)
+    
+    // Fallback: Auto-set ready after 1s if callback not triggered (prevents infinite spinner)
+    const fallbackTimer = setTimeout(() => {
+      setIsContentReady(true)
+    }, 1000)
+    
+    return () => clearTimeout(fallbackTimer)
   }, [currentContent?.id, currentContent?.url]) // Only reset when id or url changes
 
   // Auto-resume when content is ready
@@ -357,8 +363,15 @@ export const StoryViewer = memo(({
 
   if (!isOpen || !currentStory || !currentContent) return null
 
-  if (isLoading) {
-    return <StorySkeleton isMobile={isMobile} showSideThumbnails={stories.length > 1} />
+  // Show skeleton only on initial load, not when navigating between stories
+  if (isInitialLoading) {
+    return (
+      <StorySkeleton 
+        isMobile={isMobile} 
+        showSideThumbnails={stories.length > 1}
+        totalStories={stories.length}
+      />
+    )
   }
 
   return (
@@ -477,7 +490,7 @@ export const StoryViewer = memo(({
               showReactions={showReactions}
               showQuickReply={showQuickReply}
               isOwnStory={currentStory.isOwnStory}
-              isCloseFriend={currentStory.isCloseFriend}
+              isCloseFriend={currentContent.isCloseFriend}
               onReplyChange={setReplyText}
               onSendReply={handleSendReply}
               onLike={handleLike}

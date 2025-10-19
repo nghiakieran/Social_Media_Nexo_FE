@@ -58,8 +58,9 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { StoryViewer } from "@/features/story/components/StoryViewer";
 import type { Story, CollectionItem } from "@/features/story/types";
-import { getCollections, getCollectionDetail, getUserCollectionDetail, updateCollection, deleteCollection } from "@/features/story/api/storyApi";
+import { getCollections, getCollectionDetail, getUserCollectionDetail, updateCollection, deleteCollection, getUserStories } from "@/features/story/api/storyApi";
 import { transformUserStoriesToStory } from "@/features/story/types";
+import { upsertProfileStory } from "@/features/story/storySlice";
 import { PrivateAccountMessage } from "../components/PrivateAccountMessage";
 import { SavedCollectionsContent } from "@/features/saved/components/SavedCollectionsContent";
 import { HiddenPostsContent } from "../components/HiddenPostsContent";
@@ -97,11 +98,106 @@ export const ProfilePage = () => {
   const hasMorePosts = useAppSelector((state) => state.post.hasMore);
   const [currentPage, setCurrentPage] = useState(0);
   
+  // Profile user's stories state
+  const [profileUserStory, setProfileUserStory] = useState<Story | null>(null);
+  const hasStory = !!profileUserStory && profileUserStory.content.length > 0;
+  const isStoryViewed = profileUserStory?.isViewed ?? false;
+  
+  // Get Redux stories to sync like state
+  const reduxUserStories = useAppSelector((state) => state.story.userStories);
+  const reduxFriendStories = useAppSelector((state) => state.story.friendStories);
+  
   // Collections (Highlights) state
   const [collections, setCollections] = useState<CollectionItem[]>([]);
   const [isLoadingCollections, setIsLoadingCollections] = useState(false);
   const [editingCollection, setEditingCollection] = useState<{ id: number; name: string } | null>(null);
   const [deletingCollectionId, setDeletingCollectionId] = useState<string | null>(null);
+
+  // Load user stories function
+  const loadUserStories = useCallback(async () => {
+    if (!currentProfile?.id) return;
+    
+    // Only load stories if we have access to the profile
+    const canAccessProfile =
+      isCurrentUser ||
+      !currentProfile.isPrivate ||
+      currentProfile.isFollowing;
+    
+    if (!canAccessProfile) {
+      setProfileUserStory(null);
+      return;
+    }
+    
+    try {
+      const response = await getUserStories({
+        userId: parseInt(currentProfile.id),
+        pageNo: 0,
+        pageSize: 10,
+      });
+      
+      // Transform API response to Story format
+      // response.data.content is UserStoriesData[]
+      const userStoriesData = response.data.content;
+      
+      // For profile, we only need the first user's stories
+      if (userStoriesData && userStoriesData.length > 0) {
+        const story = transformUserStoriesToStory(
+          userStoriesData[0],
+          currentUser?.id // Pass currentUserId to determine isOwnStory
+        );
+        setProfileUserStory(story);
+        
+        // Also add to Redux to enable like state sync
+        dispatch(upsertProfileStory(story));
+      } else {
+        setProfileUserStory(null);
+      }
+    } catch (error) {
+      console.error('Failed to load user stories:', error);
+      setProfileUserStory(null);
+    }
+  }, [currentProfile?.id, currentProfile?.isPrivate, currentProfile?.isFollowing, isCurrentUser, currentUser?.id, dispatch]);
+
+  // Load user stories when profile is loaded
+  useEffect(() => {
+    if (currentProfile?.id) {
+      loadUserStories();
+    }
+  }, [currentProfile?.id, loadUserStories]);
+  
+  // Sync like state from Redux to local profileUserStory and viewerData
+  useEffect(() => {
+    if (!currentProfile?.id) return;
+    
+    // Find matching story in Redux (could be in userStories or friendStories)
+    const allReduxStories = [...reduxUserStories, ...reduxFriendStories];
+    const matchingReduxStory = allReduxStories.find(
+      (s) => s.id === currentProfile.id.toString() || s.username === currentProfile.username
+    );
+    
+    if (matchingReduxStory) {
+      // Update local profileUserStory
+      setProfileUserStory(matchingReduxStory);
+      
+      // Also update viewerData if viewer is open
+      setViewerData((prev) => {
+        if (!prev.stories || prev.stories.length === 0) return prev;
+        
+        // Update the matching story in viewerData
+        const updatedStories = prev.stories.map((story) => {
+          if (story.id === matchingReduxStory.id || story.username === matchingReduxStory.username) {
+            return matchingReduxStory;
+          }
+          return story;
+        });
+        
+        return {
+          ...prev,
+          stories: updatedStories,
+        };
+      });
+    }
+  }, [reduxUserStories, reduxFriendStories, currentProfile?.id, currentProfile?.username]);
 
   // Load collections when profile is loaded
   useEffect(() => {
@@ -360,6 +456,15 @@ export const ProfilePage = () => {
     index: number;
   }>({ stories: [], index: 0 });
 
+  // Handle profile story click (when avatar clicked and has story)
+  const handleProfileStoryClick = () => {
+    if (profileUserStory) {
+      // Open story viewer with just this user's story
+      setViewerData({ stories: [profileUserStory], index: 0 });
+      setOpenViewer(true);
+    }
+  };
+
   const handleOpenHighlight = async (highlightId: string) => {
     try {
       const response = isCurrentUser 
@@ -378,6 +483,7 @@ export const ProfilePage = () => {
         createdAt: story.createdAt,
         quantitySeen: story.quantitySeen,
         isLike: story.isLike,
+        isCloseFriend: story.isCloseFriend,
       }));
 
       const story: Story = {
@@ -533,6 +639,9 @@ export const ProfilePage = () => {
         onAddToCloseFriends={handleAddToCloseFriends}
         onAddToFavorites={handleAddToFavorites}
         onRestrict={handleRestrict}
+        onStoryClick={handleProfileStoryClick}
+        hasStory={hasStory}
+        isStoryViewed={isStoryViewed}
       />
 
       {/* Story highlights - only show if we have access */}
@@ -653,7 +762,13 @@ export const ProfilePage = () => {
       {openViewer && (
         <StoryViewer
           isOpen={openViewer}
-          onClose={() => setOpenViewer(false)}
+          onClose={() => {
+            setOpenViewer(false);
+            // Reload user stories to update viewed status
+            if (currentProfile?.id) {
+              loadUserStories();
+            }
+          }}
           stories={viewerData.stories}
           initialStoryIndex={viewerData.index}
         />

@@ -9,12 +9,18 @@ import { MediaViewer } from "./MediaViewer";
 import { PrivacySelect } from "./PrivacySelect";
 import { VideoThumbnail } from "@/components/common/VideoThumbnail";
 import { TagFriends } from "./TagFriends";
+import { useAppSelector } from "@/store";
 
 interface MediaItem {
   id: string;
   type: "image" | "video";
   url: string;
   file: File;
+}
+
+interface TaggedUser {
+  id: number;
+  username: string;
 }
 
 interface PostComposerProps {
@@ -31,12 +37,14 @@ export const PostComposer = ({
   const [privacy, setPrivacy] = useState<"public" | "friends" | "private">(
     "public"
   );
-  const [taggedFriends, setTaggedFriends] = useState<number[]>([]);
+  const [taggedFriends, setTaggedFriends] = useState<TaggedUser[]>([]);
   const [showMediaUploader, setShowMediaUploader] = useState(false);
   const [showTagFriends, setShowTagFriends] = useState(false);
   const [selectedMedia, setSelectedMedia] = useState<MediaItem | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { toast } = useToast();
+
+  const { mutualFollowers } = useAppSelector((state) => state.post);
 
   const handleSubmit = async () => {
     if (!content.trim() && media.length === 0) {
@@ -55,7 +63,7 @@ export const PostComposer = ({
         content: content.trim(),
         media: files,
         privacy,
-        taggedUsers: taggedFriends
+        taggedUsers: taggedFriends.map(f => f.id)
       });
 
       // Reset form
@@ -130,12 +138,17 @@ export const PostComposer = ({
             <div className="space-y-3">
               {/* Tagged Friends */}
               {taggedFriends.length > 0 && (
-                <div className="flex items-center gap-2 text-sm">
-                  <Users className="w-4 h-4 text-primary" />
-                  <span className="text-muted-foreground">Gắn thẻ:</span>
-                  <span className="font-medium text-foreground">
-                    {taggedFriends.join(", ")}
-                  </span>
+                <div className="flex items-center gap-2 text-sm flex-wrap">
+                  <Users className="w-4 h-4 text-primary flex-shrink-0" />
+                  <span className="text-muted-foreground flex-shrink-0">Gắn thẻ:</span>
+                  <div className="flex flex-wrap gap-1">
+                    {taggedFriends.map((friend) => (
+                      <span key={friend.id} className="font-medium text-foreground">
+                        {friend.username}
+                        {taggedFriends.indexOf(friend) < taggedFriends.length - 1 && ","}
+                      </span>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
@@ -203,8 +216,17 @@ export const PostComposer = ({
             {/* Tag Friends */}
             {showTagFriends && (
               <TagFriends
-                selectedFriends={taggedFriends}
-                onSelectionChange={setTaggedFriends}
+                selectedFriends={taggedFriends.map(f => f.id)}
+                onSelectionChange={(ids) => {
+                  const selectedUsers = ids.map(id => {
+                    const user = mutualFollowers.find(u => u.userId === id);
+                    return {
+                      id,
+                      username: user?.userName || `user_${id}`
+                    };
+                  });
+                  setTaggedFriends(selectedUsers);
+                }}
                 onClose={() => setShowTagFriends(false)}
               />
             )}
