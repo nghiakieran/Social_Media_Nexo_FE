@@ -67,3 +67,23 @@ export const formatTimeAgoShort = (dateString: string): string => {
     return `${Math.floor(diffInSeconds / 2592000)}mo`;
   return `${Math.floor(diffInSeconds / 31536000)}y`;
 };
+
+/**
+ * Format date for archive display (day, month, year)
+ * @param dateString - ISO date string
+ * @returns Object with day, month, year, showYear
+ */
+export const formatArchiveDate = (dateString: string) => {
+  const date = new Date(dateString);
+  const day = date.getDate();
+  const month = date.toLocaleDateString('vi-VN', { month: 'long' });
+  const year = date.getFullYear();
+  const currentYear = new Date().getFullYear();
+  
+  return {
+    day,
+    month,
+    year,
+    showYear: year !== currentYear,
+  };
+};

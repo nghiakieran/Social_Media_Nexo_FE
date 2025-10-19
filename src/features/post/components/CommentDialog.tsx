@@ -10,6 +10,7 @@ import { LikesDialog } from './LikesDialog';
 import { useBookmark } from '@/features/saved/hooks/useBookmark';
 import { MediaSlider } from './MediaSlider';
 import { getAvatarUrl, getAvatarInitials } from '@/utils/avatar';
+import { formatTimeAgo } from '@/utils/timeFormat';
 
 interface Comment {
   id: string;
@@ -420,16 +421,6 @@ export const CommentDialog = ({
       await onDeletePost(post.id);
       onClose();
     }
-  };
-
-  const formatTimeAgo = (dateString: string) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
-    
-    if (diffInHours < 1) return 'Vừa xong';
-    if (diffInHours < 24) return `${diffInHours}h`;
-    return `${Math.floor(diffInHours / 24)}d`;
   };
 
   const handleProfileClick = (userName: string) => {
@@ -983,7 +974,7 @@ export const CommentDialog = ({
 
             {/* Post time under summary */}
             <div className="mt-1 mb-4 text-[12px] text-gray-500">
-              <time>{formatTimeAgo(post.updatedAt || post.createdAt)} trước</time>
+              <time>{formatTimeAgo(post.updatedAt || post.createdAt)}</time>
             </div>
 
             {/* Comment Form */}

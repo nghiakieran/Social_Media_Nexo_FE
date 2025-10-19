@@ -1,16 +1,17 @@
-import { configureStore } from '@reduxjs/toolkit';
-import { TypedUseSelectorHook, useDispatch, useSelector } from 'react-redux';
+import { configureStore } from "@reduxjs/toolkit";
+import { TypedUseSelectorHook, useDispatch, useSelector } from "react-redux";
 
 // Import feature slices
-import authSlice from '@/features/auth/authSlice';
-import postSlice from '@/features/post/postSlice';
-import interactionSlice from '@/features/interaction/interactionSlice';
-import notificationSlice from '@/features/notification/notificationSlice';
-import friendSlice from '@/features/friend/friendSlice';
-import messageSlice from '@/features/message/messageSlice';
-import exploreSlice from '@/features/explore/exploreSlice';
-import profileSlice from '@/features/profile/profileSlice';
-import savedSlice from '@/features/saved/savedSlice';
+import authSlice from "@/features/auth/authSlice";
+import postSlice from "@/features/post/postSlice";
+import interactionSlice from "@/features/interaction/interactionSlice";
+import notificationSlice from "@/features/notification/notificationSlice";
+import friendSlice from "@/features/friend/friendSlice";
+import messageSlice from "@/features/message/messageSlice";
+import exploreSlice from "@/features/explore/exploreSlice";
+import profileSlice from "@/features/profile/profileSlice";
+import savedSlice from "@/features/saved/savedSlice";
+import storySlice from "@/features/story/storySlice";
 
 export const store = configureStore({
   reducer: {
@@ -23,11 +24,12 @@ export const store = configureStore({
     explore: exploreSlice,
     profile: profileSlice,
     saved: savedSlice,
+    story: storySlice,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
       serializableCheck: {
-        ignoredActions: ['persist/PERSIST'],
+        ignoredActions: ["persist/PERSIST"],
       },
     }),
 });
