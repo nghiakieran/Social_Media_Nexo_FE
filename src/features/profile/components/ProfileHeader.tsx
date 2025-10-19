@@ -11,7 +11,8 @@ import {
   UserX,
   Edit3,
   Link as LinkIcon,
-  ChevronDown
+  ChevronDown,
+  Archive
 } from 'lucide-react';
 import { NotesDialog } from './NotesDialog';
 import { FollowingOptionsDialog } from './FollowingOptionsDialog';
@@ -46,6 +47,9 @@ interface ProfileHeaderProps {
   onAddToCloseFriends?: () => void;
   onAddToFavorites?: () => void;
   onRestrict?: () => void;
+  onStoryClick?: () => void;
+  hasStory?: boolean;
+  isStoryViewed?: boolean;
 }
 
 export const ProfileHeader = ({
@@ -65,6 +69,9 @@ export const ProfileHeader = ({
   onAddToCloseFriends,
   onAddToFavorites,
   onRestrict,
+  onStoryClick,
+  hasStory = false,
+  isStoryViewed = false,
 }: ProfileHeaderProps) => {
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -106,19 +113,52 @@ export const ProfileHeader = ({
       <div className="flex items-start gap-16">
         {/* Avatar Container */}
         <div className="relative">
-          {/* Avatar Button */}
+          {/* Avatar Button with Story Ring */}
           <button
-            onClick={isCurrentUser ? onAvatarClick : undefined}
-            className={isCurrentUser ? "cursor-pointer hover:opacity-80 transition-opacity" : "cursor-default"}
-            disabled={!isCurrentUser}
-            title={isCurrentUser ? "Thay đổi ảnh đại diện" : "Ảnh đại diện"}
+            onClick={() => {
+              // Priority: Story > Avatar Change (for own profile)
+              if (hasStory && onStoryClick) {
+                onStoryClick();
+              } else if (isCurrentUser && onAvatarClick) {
+                onAvatarClick();
+              }
+            }}
+            className={hasStory || isCurrentUser ? "cursor-pointer hover:opacity-80 transition-opacity" : "cursor-default"}
+            disabled={!hasStory && !isCurrentUser}
+            title={hasStory ? "Xem tin" : isCurrentUser ? "Thay đổi ảnh đại diện" : "Ảnh đại diện"}
           >
-            <Avatar className="w-20 h-20 md:w-44 md:h-44 ring-2 ring-primary/20">
-              <AvatarImage src={getAvatarUrl(profile.avatar)} alt={profile.username} />
-              <AvatarFallback className="text-xl font-semibold">
-                {getAvatarInitials(profile.name || profile.username)}
-              </AvatarFallback>
-            </Avatar>
+            {hasStory ? (
+              // Story Ring Structure: Outer gradient ring + White border + Avatar
+              <div className="relative">
+                {/* Outer Ring - Gradient (unseen) or Gray (seen) */}
+                <div 
+                  className={`rounded-full p-[2.5px] md:p-[3px] w-20 h-20 md:w-44 md:h-44 ${
+                    isStoryViewed 
+                      ? 'bg-gray-400' 
+                      : 'bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-600'
+                  }`}
+                >
+                  {/* White/Background Border (creates gap between gradient and avatar) */}
+                  <div className="w-full h-full rounded-full bg-background p-[2px] md:p-[2.5px]">
+                    {/* Avatar */}
+                    <Avatar className="w-full h-full">
+                      <AvatarImage src={getAvatarUrl(profile.avatar)} alt={profile.username} />
+                      <AvatarFallback className="text-xl font-semibold">
+                        {getAvatarInitials(profile.name || profile.username)}
+                      </AvatarFallback>
+                    </Avatar>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              // No Story - Normal Avatar with subtle ring
+              <Avatar className="w-20 h-20 md:w-44 md:h-44 ring-2 ring-primary/20">
+                <AvatarImage src={getAvatarUrl(profile.avatar)} alt={profile.username} />
+                <AvatarFallback className="text-xl font-semibold">
+                  {getAvatarInitials(profile.name || profile.username)}
+                </AvatarFallback>
+              </Avatar>
+            )}
           </button>
           
           {/* Notes Overlay - Separate clickable area */}
@@ -156,8 +196,18 @@ export const ProfileHeader = ({
                 <Button 
                   variant="outline" 
                   size="sm"
+                  onClick={() => navigate('/archive/stories')}
+                  className='bg-gray-200'
+                  title="Xem kho lưu trữ"
+                >
+                  <Archive className="w-4 h-4" />
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm"
                   onClick={() => navigate('/account/settings')}
                   className='bg-gray-200'
+                  title="Cài đặt"
                 >
                   <Settings className="w-4 h-4" />
                 </Button>

@@ -6,7 +6,7 @@ import { ReportPostDialog } from "../components/ReportPostDialog";
 import { ShareDialog } from "../components/ShareDialog";
 import { Stories } from "@/components/common/Stories";
 import { StoryViewer } from "@/features/story/components";
-import { mockStories, mockStoriesData } from "../__mocks__/stories";
+import { sortStoriesByViewedStatus } from "@/features/story/utils/sortStories";
 import { mockComments } from "@/features/interaction/__mocks__/comments";
 import { useToast } from "@/hooks/use-toast";
 import { useAppDispatch, useAppSelector } from "@/store";
@@ -16,6 +16,10 @@ import {
   deletePostThunk,
   togglePostActiveThunk,
 } from "../postSlice";
+import {
+  getUserStoriesThunk,
+  getFriendStoriesThunk,
+} from "@/features/story/storySlice";
 import { Loader } from "@/components/common/Loader";
 import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
 import type { UpdatePostRequest } from "../types";
@@ -33,6 +37,13 @@ export const FeedPage = () => {
   const { posts, isLoading, error, hasMore, currentPage } = useAppSelector(
     (state) => state.post
   );
+  const { 
+    userStories, 
+    friendStories, 
+    isLoading: isLoadingStories,
+    friendHasMore,
+    friendCurrentPage
+  } = useAppSelector((state) => state.story);
   const [editingPost, setEditingPost] = useState<any>(null);
   const [reportingPost, setReportingPost] = useState<string | null>(null);
   const [showStoryViewer, setShowStoryViewer] = useState(false);
@@ -42,18 +53,39 @@ export const FeedPage = () => {
   const [sharePost, setSharePost] = useState<any>(null);
   const { toast } = useToast();
 
-  // Load feed when component mounts
+  // Load feed and stories when component mounts
   useEffect(() => {
     if (user) {
       dispatch(getFeedThunk({ userId: user.id, page: 0, limit: 10 }));
+      // Load current user's stories
+      dispatch(
+        getUserStoriesThunk({ userId: user.id, pageNo: 0, pageSize: 10 })
+      );
+      // Load friends' stories
+      dispatch(
+        getFriendStoriesThunk({ userId: user.id, pageNo: 0, pageSize: 10 })
+      );
     }
   }, [dispatch, user]);
 
-  // Infinite scroll handler
+  // Infinite scroll handler for posts
   const handleLoadMore = () => {
     if (user && !isLoading && hasMore) {
       const nextPage = currentPage + 1;
       dispatch(getFeedThunk({ userId: user.id, page: nextPage, limit: 10 }));
+    }
+  };
+
+  // Infinite scroll handler for stories
+  const handleLoadMoreStories = () => {
+    if (user && !isLoadingStories && friendHasMore) {
+      // Use the correct current page from store
+      const nextPage = friendCurrentPage + 1;
+      dispatch(getFriendStoriesThunk({ 
+        userId: user.id, 
+        pageNo: nextPage,
+        pageSize: 10 
+      }));
     }
   };
 
@@ -211,7 +243,10 @@ export const FeedPage = () => {
   };
 
   const handleStoryClick = (story: any) => {
-    const storyIndex = mockStories.findIndex((s) => s.id === story.id);
+    // Use sorted stories for consistent order
+    const allStories = [...userStories, ...friendStories];
+    const sortedStories = sortStoriesByViewedStatus(allStories);
+    const storyIndex = sortedStories.findIndex((s) => s.id === story.id);
     if (storyIndex !== -1) {
       setCurrentStoryIndex(storyIndex);
       setShowStoryViewer(true);
@@ -243,10 +278,37 @@ export const FeedPage = () => {
     );
   }
 
+  // Combine stories: user stories FIRST, then friend stories
+  const allStories = [...userStories, ...friendStories];
+
+  // Sort stories by viewed status
+  const sortedStories = sortStoriesByViewedStatus(allStories);
+
+  // Transform to Stories component format
+  const displayStories = sortedStories
+    .filter((story) => story.content && story.content.length > 0) // Filter out empty stories
+    .map((story) => ({
+      id: story.id,
+      username: story.username,
+      profileImage: story.profileImage,
+      hasNewStory: story.content.length > 0,
+      isViewed: story.isViewed || false,
+      isOwnStory: story.isOwnStory,
+      isCloseFriend: story.isCloseFriend,
+    }));
+
   return (
     <div className="w-full min-h-screen bg-background pt-4">
       {/* Stories */}
-      <Stories stories={mockStories} onStoryClick={handleStoryClick} />
+      <Stories 
+        stories={displayStories} 
+        onStoryClick={handleStoryClick}
+        showCreateButton={true}
+        currentUserAvatar={user?.avatar}
+        onLoadMore={handleLoadMoreStories}
+        hasMore={friendHasMore}
+        isLoading={isLoadingStories}
+      />
 
       {/* Posts Feed */}
       <div className="space-y-6 p-4">
@@ -285,7 +347,7 @@ export const FeedPage = () => {
         )}
 
         {posts.length === 0 && (
-          <div className="text-center py-12">
+          <div className="text-center py-40">
             <p className="text-muted-foreground mb-4">Chưa có bài viết nào.</p>
           </div>
         )}
@@ -322,7 +384,7 @@ export const FeedPage = () => {
         <StoryViewer
           isOpen={showStoryViewer}
           onClose={() => setShowStoryViewer(false)}
-          stories={mockStoriesData}
+          stories={sortedStories}
           initialStoryIndex={currentStoryIndex}
         />
       )}

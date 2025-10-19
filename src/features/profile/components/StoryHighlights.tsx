@@ -1,4 +1,13 @@
 import { useMemo } from 'react';
+import { MoreVertical, Trash2, Edit } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { VideoThumbnail } from '@/components/common/VideoThumbnail';
+import { isVideoUrl } from '@/utils/mediaUtils';
 
 interface HighlightItem {
   id: string;
@@ -10,9 +19,12 @@ interface StoryHighlightsProps {
   highlights?: HighlightItem[];
   onAdd?: () => void;
   onOpen?: (id: string) => void;
+  onEdit?: (id: string) => void;
+  onDelete?: (id: string) => void;
+  canManage?: boolean; // Rename from canDelete to canManage
 }
 
-export const StoryHighlights = ({ highlights, onAdd, onOpen }: StoryHighlightsProps) => {
+export const StoryHighlights = ({ highlights, onAdd, onOpen, onEdit, onDelete, canManage }: StoryHighlightsProps) => {
   const items = useMemo<HighlightItem[]>(() => {
     if (highlights && highlights.length > 0) return highlights;
     return [];
@@ -38,28 +50,80 @@ export const StoryHighlights = ({ highlights, onAdd, onOpen }: StoryHighlightsPr
         </button>
 
         {/* Highlight items */}
-        {items.map((hl) => (
-          <button
-            key={hl.id}
-            onClick={() => onOpen?.(hl.id)}
-            className="flex flex-col items-center gap-2 focus:outline-none"
-            aria-label={hl.title}
-          >
-            <div className="w-[77px] h-[77px] rounded-full ring-1 ring-border overflow-hidden">
-              <img
-                src={hl.cover}
-                alt={hl.title}
-                className="w-full h-full object-cover"
-                loading="lazy"
-              />
+        {items.map((hl) => {
+          const isVideo = isVideoUrl(hl.cover);
+          return (
+            <div key={hl.id} className="relative group">
+              <button
+                onClick={() => onOpen?.(hl.id)}
+                className="flex flex-col items-center gap-2 focus:outline-none"
+                aria-label={hl.title}
+              >
+                <div className="w-[77px] h-[77px] rounded-full ring-1 ring-border overflow-hidden">
+                  {isVideo ? (
+                    <VideoThumbnail
+                      videoUrl={hl.cover}
+                      className="w-full h-full"
+                      showPlayButton={false}
+                    />
+                  ) : (
+                    <img
+                      src={hl.cover}
+                      alt={hl.title}
+                      className="w-full h-full object-cover"
+                      loading="lazy"
+                    />
+                  )}
+                </div>
+                <span className="text-xs truncate max-w-[77px]" title={hl.title}>{hl.title}</span>
+              </button>
+
+            {/* Management menu - only show for owner */}
+            {canManage && (onEdit || onDelete) && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    className="absolute top-0 right-0 p-1 bg-background/80 rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
+                    onClick={(e) => e.stopPropagation()}
+                    aria-label="Tùy chọn"
+                  >
+                    <MoreVertical className="w-4 h-4" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  {onEdit && (
+                    <DropdownMenuItem
+                      className="cursor-pointer"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onEdit(hl.id);
+                      }}
+                    >
+                      <Edit className="w-4 h-4 mr-2" />
+                      Chỉnh sửa
+                    </DropdownMenuItem>
+                  )}
+                  {onDelete && (
+                    <DropdownMenuItem
+                      className="text-red-600 focus:text-red-600 cursor-pointer"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onDelete(hl.id);
+                      }}
+                    >
+                      <Trash2 className="w-4 h-4 mr-2" />
+                      Xóa
+                    </DropdownMenuItem>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
             </div>
-            <span className="text-xs truncate max-w-[77px]" title={hl.title}>{hl.title}</span>
-          </button>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
 };
 
 export default StoryHighlights;
-

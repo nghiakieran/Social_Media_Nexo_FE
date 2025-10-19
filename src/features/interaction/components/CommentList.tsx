@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { LikeButton } from './LikeButton';
 import { useToast } from '@/hooks/use-toast';
+import { formatTimeAgo } from '@/utils/timeFormat';
 
 interface Comment {
   id: string;
@@ -45,17 +46,6 @@ export const CommentList = ({
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [replyContent, setReplyContent] = useState('');
   const { toast } = useToast();
-
-  const formatTimeAgo = (dateString: string) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
-    
-    if (diffInHours < 1) return 'Vừa xong';
-    if (diffInHours < 24) return `${diffInHours}h`;
-    if (diffInHours < 168) return `${Math.floor(diffInHours / 24)}d`;
-    return `${Math.floor(diffInHours / 168)}w`;
-  };
 
   const handleReplySubmit = (parentId: string) => {
     if (!replyContent.trim()) return;

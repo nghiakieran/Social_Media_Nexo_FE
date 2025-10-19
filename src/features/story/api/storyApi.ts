@@ -1,0 +1,466 @@
+import { api } from "@/lib/axios";
+import type {
+  CreateStoryRequest,
+  CreateStoryResponse,
+  DeleteStoryResponse,
+  ArchiveStoryResponse,
+  ViewStoryResponse,
+  LikeStoryResponse,
+  GetStoriesRequest,
+  GetStoriesApiResponse,
+  CreateCollectionRequest,
+  CreateCollectionResponse,
+  UpdateCollectionRequest,
+  UpdateCollectionResponse,
+  GetCollectionsApiResponse,
+  GetCollectionDetailApiResponse,
+  GetStoryViewersApiResponse
+} from "../types";
+
+// Create story API
+export const createStory = async (
+  file: File,
+  storyData: CreateStoryRequest,
+  onUploadProgress?: (progressEvent: { loaded: number; total?: number }) => void
+): Promise<CreateStoryResponse> => {
+  try {
+    const formData = new FormData();
+
+    // Append the file with key 'files'
+    formData.append("files", file);
+
+    // Append story data as JSON string
+    formData.append("storyRequestDTO", JSON.stringify(storyData));
+
+    // Calculate timeout based on file size and type
+    const fileSize = file.size;
+    const isVideo = file.type.startsWith("video/");
+
+    // Dynamic timeout based on file size and type
+    // Video: 5 minutes, Large files (>10MB): 2 minutes, Default: 30 seconds
+    let timeout = 30000; // 30 seconds default
+    if (isVideo || fileSize > 50 * 1024 * 1024) {
+      timeout = 300000; // 5 minutes for video or large files
+    } else if (fileSize > 10 * 1024 * 1024) {
+      timeout = 120000; // 2 minutes for medium files
+    }
+
+    const response = await api.post<CreateStoryResponse>("/posts/story", formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+      timeout, // Dynamic timeout
+      onUploadProgress, // Track upload progress
+    });
+
+    return response.data;
+  } catch (error: unknown) {
+    if (error && typeof error === "object" && "response" in error) {
+      const apiError = error as { response?: { data?: { message?: string } } };
+      throw new Error(
+        apiError.response?.data?.message || "Có lỗi xảy ra khi tạo story"
+      );
+    }
+
+    if (error && typeof error === "object" && "code" in error) {
+      const axiosError = error as { code?: string };
+      if (axiosError.code === "ECONNABORTED") {
+        throw new Error(
+          "Upload quá lâu. Vui lòng thử file nhỏ hơn hoặc kiểm tra kết nối mạng."
+        );
+      }
+    }
+
+    throw new Error("Không thể kết nối đến server. Vui lòng thử lại.");
+  }
+};
+
+// Delete story API
+export const deleteStory = async (
+  storyId: number
+): Promise<DeleteStoryResponse> => {
+  try {
+    const response = await api.delete<DeleteStoryResponse>(`/posts/story/${storyId}`);
+    return response.data;
+  } catch (error: unknown) {
+    if (error && typeof error === "object" && "response" in error) {
+      const apiError = error as { response?: { data?: { message?: string } } };
+      throw new Error(
+        apiError.response?.data?.message || "Có lỗi xảy ra khi xóa story"
+      );
+    }
+
+    throw new Error("Không thể kết nối đến server. Vui lòng thử lại.");
+  }
+};
+
+// Archive story API
+export const archiveStory = async (
+  storyId: number
+): Promise<ArchiveStoryResponse> => {
+  try {
+    const response = await api.put<ArchiveStoryResponse>(`/posts/story/${storyId}`);
+    return response.data;
+  } catch (error: unknown) {
+    if (error && typeof error === "object" && "response" in error) {
+      const apiError = error as { response?: { data?: { message?: string } } };
+      throw new Error(
+        apiError.response?.data?.message || "Có lỗi xảy ra khi lưu trữ story"
+      );
+    }
+
+    throw new Error("Không thể kết nối đến server. Vui lòng thử lại.");
+  }
+};
+
+// View story API
+export const viewStory = async (
+  storyId: number
+): Promise<ViewStoryResponse> => {
+  try {
+    const response = await api.post<ViewStoryResponse>(`/posts/story/view/${storyId}`);
+    return response.data;
+  } catch (error: unknown) {
+    if (error && typeof error === "object" && "response" in error) {
+      const apiError = error as { response?: { data?: { message?: string } } };
+      throw new Error(
+        apiError.response?.data?.message || "Có lỗi xảy ra khi xem story"
+      );
+    }
+
+    throw new Error("Không thể kết nối đến server. Vui lòng thử lại.");
+  }
+};
+
+// Like/Unlike story API
+export const likeStory = async (
+  storyId: number
+): Promise<LikeStoryResponse> => {
+  try {
+    const response = await api.post<LikeStoryResponse>(`/posts/story/like/${storyId}`);
+    return response.data;
+  } catch (error: unknown) {
+    if (error && typeof error === "object" && "response" in error) {
+      const apiError = error as { response?: { data?: { message?: string } } };
+      throw new Error(
+        apiError.response?.data?.message || "Có lỗi xảy ra khi like story"
+      );
+    }
+
+    throw new Error("Không thể kết nối đến server. Vui lòng thử lại.");
+  }
+};
+
+// Get all stories of friends (for feed)
+export const getFriendStories = async (
+  params: GetStoriesRequest
+): Promise<GetStoriesApiResponse> => {
+  const { userId, pageNo = 0, pageSize = 10 } = params;
+  
+  try {
+    const response = await api.get<GetStoriesApiResponse>(`/posts/story/view/${userId}`, {
+      params: {
+        pageNo,
+        pageSize,
+      },
+    });
+    return response.data;
+  } catch (error: unknown) {
+    if (error && typeof error === "object" && "response" in error) {
+      const apiError = error as { response?: { data?: { message?: string; status?: number }, status?: number } };
+      
+      // If 404 or no data, return empty response instead of throwing
+      if (apiError.response?.status === 404 || apiError.response?.status === 400) {
+        console.warn(`No more stories available for page ${pageNo}`);
+        return {
+          status: 200,
+          message: "No more data",
+          data: {
+            pageNo,
+            pageSize,
+            totalElements: 0,
+            totalPages: pageNo,
+            last: true,
+            content: [],
+          },
+        };
+      }
+      
+      throw new Error(
+        apiError.response?.data?.message || "Có lỗi xảy ra khi tải stories"
+      );
+    }
+
+    throw new Error("Không thể kết nối đến server. Vui lòng thử lại.");
+  }
+};
+
+// Get stories of specific user (current user's own stories)
+export const getUserStories = async (
+  params: GetStoriesRequest
+): Promise<GetStoriesApiResponse> => {
+  const { userId, pageNo = 0, pageSize = 10 } = params;
+  
+  try {
+    const response = await api.get<GetStoriesApiResponse>(`/posts/story/${userId}`, {
+      params: {
+        pageNo,
+        pageSize,
+      },
+    });
+    return response.data;
+  } catch (error: unknown) {
+    if (error && typeof error === "object" && "response" in error) {
+      const apiError = error as { response?: { data?: { message?: string; status?: number }, status?: number } };
+      
+      // If 404 or no data, return empty response instead of throwing
+      if (apiError.response?.status === 404 || apiError.response?.status === 400) {
+        console.warn(`No more stories available for page ${pageNo}`);
+        return {
+          status: 200,
+          message: "No more data",
+          data: {
+            pageNo,
+            pageSize,
+            totalElements: 0,
+            totalPages: pageNo,
+            last: true,
+            content: [],
+          },
+        };
+      }
+      
+      throw new Error(
+        apiError.response?.data?.message || "Có lỗi xảy ra khi tải stories"
+      );
+    }
+
+    throw new Error("Không thể kết nối đến server. Vui lòng thử lại.");
+  }
+};
+
+// Get all stories of user (including archived)
+export const getAllUserStories = async (
+  params: GetStoriesRequest
+): Promise<GetStoriesApiResponse> => {
+  const { userId, pageNo = 0, pageSize = 10 } = params;
+  
+  try {
+    const response = await api.get<GetStoriesApiResponse>(`/posts/story/all/${userId}`, {
+      params: {
+        pageNo,
+        pageSize,
+      },
+    });
+    return response.data;
+  } catch (error: unknown) {
+    if (error && typeof error === "object" && "response" in error) {
+      const apiError = error as { response?: { data?: { message?: string; status?: number }, status?: number } };
+      
+      // If 404 or no data, return empty response instead of throwing
+      if (apiError.response?.status === 404 || apiError.response?.status === 400) {
+        console.warn(`No more stories available for page ${pageNo}`);
+        return {
+          status: 200,
+          message: "No more data",
+          data: {
+            pageNo,
+            pageSize,
+            totalElements: 0,
+            totalPages: pageNo,
+            last: true,
+            content: [],
+          },
+        };
+      }
+      
+      throw new Error(
+        apiError.response?.data?.message || "Có lỗi xảy ra khi tải stories"
+      );
+    }
+
+    throw new Error("Không thể kết nối đến server. Vui lòng thử lại.");
+  }
+};
+
+// Create collection (Highlight) API
+export const createCollection = async (
+  collectionData: CreateCollectionRequest
+): Promise<CreateCollectionResponse> => {
+  try {
+    const response = await api.post<CreateCollectionResponse>("/posts/story/collections", collectionData);
+    return response.data;
+  } catch (error: unknown) {
+    if (error && typeof error === "object" && "response" in error) {
+      const apiError = error as { response?: { data?: { message?: string } } };
+      throw new Error(
+        apiError.response?.data?.message || "Có lỗi xảy ra khi tạo tin nổi bật"
+      );
+    }
+
+    throw new Error("Không thể kết nối đến server. Vui lòng thử lại.");
+  }
+};
+
+// Update collection (Highlight) API
+export const updateCollection = async (
+  collectionData: UpdateCollectionRequest
+): Promise<UpdateCollectionResponse> => {
+  try {
+    const response = await api.put<UpdateCollectionResponse>("/posts/story/collections", collectionData);
+    return response.data;
+  } catch (error: unknown) {
+    if (error && typeof error === "object" && "response" in error) {
+      const apiError = error as { response?: { data?: { message?: string } } };
+      throw new Error(
+        apiError.response?.data?.message || "Có lỗi xảy ra khi cập nhật tin nổi bật"
+      );
+    }
+
+    throw new Error("Không thể kết nối đến server. Vui lòng thử lại.");
+  }
+};
+
+// Get collections (Highlights) API
+export const getCollections = async (
+  userId: number,
+  pageNo: number = 0,
+  pageSize: number = 10
+): Promise<GetCollectionsApiResponse> => {
+  try {
+    const response = await api.get<GetCollectionsApiResponse>(`/posts/story/collections/${userId}`, {
+      params: {
+        pageNo,
+        pageSize,
+      },
+    });
+    return response.data;
+  } catch (error: unknown) {
+    if (error && typeof error === "object" && "response" in error) {
+      const apiError = error as { response?: { data?: { message?: string; status?: number }, status?: number } };
+      
+      // If 404 or no data, return empty response instead of throwing
+      if (apiError.response?.status === 404 || apiError.response?.status === 400) {
+        console.warn(`No collections available for user ${userId}`);
+        return {
+          status: 200,
+          message: "No collections found",
+          data: {
+            pageNo,
+            pageSize,
+            totalElements: 0,
+            totalPages: 0,
+            content: [],
+          },
+        };
+      }
+      
+      throw new Error(
+        apiError.response?.data?.message || "Có lỗi xảy ra khi tải tin nổi bật"
+      );
+    }
+
+    throw new Error("Không thể kết nối đến server. Vui lòng thử lại.");
+  }
+};
+
+// Get collection detail API (own profile)
+export const getCollectionDetail = async (
+  collectionId: number
+): Promise<GetCollectionDetailApiResponse> => {
+  try {
+    const response = await api.get<GetCollectionDetailApiResponse>(`/posts/story/collections/my/detail/${collectionId}`);
+    return response.data;
+  } catch (error: unknown) {
+    if (error && typeof error === "object" && "response" in error) {
+      const apiError = error as { response?: { data?: { message?: string } } };
+      throw new Error(
+        apiError.response?.data?.message || "Có lỗi xảy ra khi tải chi tiết tin nổi bật"
+      );
+    }
+
+    throw new Error("Không thể kết nối đến server. Vui lòng thử lại.");
+  }
+};
+
+// Get collection detail API (other user's profile)
+export const getUserCollectionDetail = async (
+  collectionId: number
+): Promise<GetCollectionDetailApiResponse> => {
+  try {
+    const response = await api.get<GetCollectionDetailApiResponse>(`/posts/story/collections/detail/${collectionId}`);
+    return response.data;
+  } catch (error: unknown) {
+    if (error && typeof error === "object" && "response" in error) {
+      const apiError = error as { response?: { data?: { message?: string } } };
+      throw new Error(
+        apiError.response?.data?.message || "Có lỗi xảy ra khi tải chi tiết tin nổi bật"
+      );
+    }
+
+    throw new Error("Không thể kết nối đến server. Vui lòng thử lại.");
+  }
+};
+
+// Delete collection API
+export const deleteCollection = async (
+  collectionId: number
+): Promise<{ status: number; message: string; data: string }> => {
+  try {
+    const response = await api.delete(`/posts/story/collections/${collectionId}`);
+    return response.data;
+  } catch (error: unknown) {
+    if (error && typeof error === "object" && "response" in error) {
+      const apiError = error as { response?: { data?: { message?: string } } };
+      throw new Error(
+        apiError.response?.data?.message || "Có lỗi xảy ra khi xóa tin nổi bật"
+      );
+    }
+
+    throw new Error("Không thể kết nối đến server. Vui lòng thử lại.");
+  }
+};
+
+// Get story viewers API
+export const getStoryViewers = async (
+  storyId: number,
+  pageNo: number = 0,
+  pageSize: number = 20
+): Promise<GetStoryViewersApiResponse> => {
+  try {
+    const response = await api.get<GetStoryViewersApiResponse>(`/posts/story/view/detail/${storyId}`, {
+      params: {
+        pageNo,
+        pageSize,
+      },
+    });
+    return response.data;
+  } catch (error: unknown) {
+    if (error && typeof error === "object" && "response" in error) {
+      const apiError = error as { response?: { data?: { message?: string; status?: number }, status?: number } };
+      
+      // If 404 or no data, return empty response instead of throwing
+      if (apiError.response?.status === 404 || apiError.response?.status === 400) {
+        console.warn(`No viewers for story ${storyId}`);
+        return {
+          status: 200,
+          message: "No viewers found",
+          data: {
+            pageNo,
+            pageSize,
+            totalElements: 0,
+            totalPages: 0,
+            last: true,
+            content: [],
+          },
+        };
+      }
+      
+      throw new Error(
+        apiError.response?.data?.message || "Có lỗi xảy ra khi tải danh sách người xem"
+      );
+    }
+
+    throw new Error("Không thể kết nối đến server. Vui lòng thử lại.");
+  }
+};

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback, memo } from "react"
 import { cn } from "@/lib/utils"
-import { X, ChevronLeft, ChevronRight, Flag, Share, UserMinus, Bookmark, Eye } from "lucide-react"
+import { X, ChevronLeft, ChevronRight, Flag, Share, UserMinus, Bookmark, Eye, Archive, Trash2 } from "lucide-react"
 import { StoryViewerProps, Story } from "../types"
 import { StoryThumbnail } from "./StoryThumbnail"
 import { StoryProgressBar } from "./StoryProgressBar"
@@ -8,15 +8,31 @@ import { StoryHeader } from "./StoryHeader"
 import { StoryContent } from "./StoryContent"
 import { StoryActions } from "./StoryActions"
 import { StorySkeleton } from "./StorySkeleton"
+import { StoryViewersDialog } from "./StoryViewersDialog"
+import { useAppDispatch } from "@/store"
+import { deleteStoryThunk, archiveStoryThunk, viewStoryThunk, likeStoryThunk, markStoryAsSeen, removeStoryContent, toggleStoryLike } from "../storySlice"
+import { useToast } from "@/hooks/use-toast"
+import { sortStoriesByViewedStatus } from "../utils/sortStories"
 
 export const StoryViewer = memo(({
   isOpen,
   onClose,
-  stories,
+  stories: unsortedStories,
   initialStoryIndex,
   initialContentIndex = 0,
+  isArchivePage = false,
 }: StoryViewerProps) => {
-  const [currentStoryIndex, setCurrentStoryIndex] = useState(initialStoryIndex)
+  const dispatch = useAppDispatch()
+  const { toast } = useToast()
+  
+  // Sort stories: Own story first, then unviewed stories, then viewed stories at the end
+  const stories = sortStoriesByViewedStatus(unsortedStories);
+  
+  // Find the new index of the initially selected story after sorting
+  const initialStory = unsortedStories[initialStoryIndex];
+  const sortedInitialIndex = stories.findIndex(s => s.id === initialStory?.id) ?? initialStoryIndex;
+  
+  const [currentStoryIndex, setCurrentStoryIndex] = useState(sortedInitialIndex)
   const [currentContentIndex, setCurrentContentIndex] = useState(initialContentIndex)
   const [isPaused, setIsPaused] = useState(false)
   const [isMuted, setIsMuted] = useState(false)
@@ -26,18 +42,75 @@ export const StoryViewer = memo(({
   const [showReactions, setShowReactions] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
   const [isHolding, setIsHolding] = useState(false)
-  const [isLiked, setIsLiked] = useState(false)
   const [showQuickReply, setShowQuickReply] = useState(false)
-  const [viewerCount, setViewerCount] = useState(Math.floor(Math.random() * 100) + 50)
-  const [isLoading, setIsLoading] = useState(true)
+  const [isInitialLoading, setIsInitialLoading] = useState(true) // Only for initial open
   const [isMenuLoading, setIsMenuLoading] = useState(false)
   const [showViewerList, setShowViewerList] = useState(false)
+  const [, forceUpdate] = useState({}) // Force re-render helper
+  const [shouldClose, setShouldClose] = useState(false)
+  const [videoDurations, setVideoDurations] = useState<Record<string, number>>({}) // Store actual video durations
+  const [isContentReady, setIsContentReady] = useState(false) // Track if content (image/video) is ready to display
   
   const holdTimeoutRef = useRef<NodeJS.Timeout>()
   const progressInterval = useRef<NodeJS.Timeout>()
+  // Track viewed stories in current session to prevent duplicate calls
+  const viewedStoriesRef = useRef<Set<string>>(new Set())
 
   const currentStory = stories[currentStoryIndex]
   const currentContent = currentStory?.content[currentContentIndex]
+  
+  // Get actual duration for current content (use detected video duration if available)
+  const getActualDuration = (content: typeof currentContent) => {
+    if (!content) return 5
+    if (content.type === "video" && videoDurations[content.id]) {
+      return videoDurations[content.id]
+    }
+    return content.duration || 5
+  }
+  
+  const actualDuration = getActualDuration(currentContent)
+
+  // Call View Story API when viewing a story
+  useEffect(() => {
+    // Only call view API if ALL conditions are met:
+    // 1. Story exists
+    // 2. Content exists
+    // 3. NOT own story (don't track views on own stories)
+    // 4. NOT already seen from API (isSeen = false or undefined)
+    // 5. NOT already viewed in this session (prevent duplicate API calls)
+    //
+    // Example flow for user with 3 stories:
+    // Story 1 (isSeen: false) → Call API ✓
+    // Story 2 (isSeen: false) → Call API ✓
+    // Story 3 (isSeen: true)  → Skip API ✗
+    if (
+      currentStory && 
+      currentContent && 
+      !currentStory.isOwnStory && 
+      !currentContent.isSeen &&
+      !viewedStoriesRef.current.has(currentContent.id)
+    ) {
+      const storyId = parseInt(currentContent.id)
+      if (!isNaN(storyId)) {
+        // Mark as viewed in session to prevent duplicate calls
+        viewedStoriesRef.current.add(currentContent.id)
+        
+        // Call view API and update local state on success
+        dispatch(viewStoryThunk(storyId))
+          .unwrap()
+          .then(() => {
+            // Cập nhật state sau khi xem, không cần gọi lại API get list
+            dispatch(markStoryAsSeen({ 
+              userId: currentStory.id, 
+              storyId: currentContent.id 
+            }))
+          })
+          .catch((error) => {
+            console.error(error)
+          })
+      }
+    }
+  }, [currentStory, currentContent, dispatch])
 
   // Mobile detection
   useEffect(() => {
@@ -49,23 +122,63 @@ export const StoryViewer = memo(({
     return () => window.removeEventListener("resize", checkMobile)
   }, [])
 
-  // Loading simulation
+  // Initial loading - show skeleton only when first opening viewer
   useEffect(() => {
-    if (isOpen && currentStory && currentContent) {
+    if (isOpen) {
+      setIsInitialLoading(true)
       const timer = setTimeout(() => {
-        setIsLoading(false)
-      }, 800) // Simulate loading time
+        setIsInitialLoading(false)
+      }, 500) // Show skeleton for 500ms on initial open
       return () => clearTimeout(timer)
-    } else {
-      setIsLoading(true)
     }
-  }, [isOpen, currentStory, currentContent])
+  }, [isOpen]) // Only depend on isOpen, not on story changes
+
+  // Callback to update video duration when detected
+  const handleVideoDurationDetected = useCallback((duration: number) => {
+    if (currentContent) {
+      setVideoDurations(prev => ({
+        ...prev,
+        [currentContent.id]: duration
+      }))
+    }
+  }, [currentContent])
+
+  // Callback when content (image/video) is ready
+  const handleContentReady = useCallback(() => {
+    setIsContentReady(true)
+  }, [])
+
+  // Reset content ready state when content URL changes (not when like state changes)
+  useEffect(() => {
+    setIsContentReady(false)
+    // Pause while loading
+    setIsPaused(true)
+    
+    // Fallback: Auto-set ready after 1s if callback not triggered (prevents infinite spinner)
+    const fallbackTimer = setTimeout(() => {
+      setIsContentReady(true)
+    }, 1000)
+    
+    return () => clearTimeout(fallbackTimer)
+  }, [currentContent?.id, currentContent?.url]) // Only reset when id or url changes
+
+  // Auto-resume when content is ready
+  useEffect(() => {
+    if (isContentReady) {
+      // Wait a bit then auto-resume
+      const timer = setTimeout(() => {
+        setIsPaused(false)
+      }, 100)
+      return () => clearTimeout(timer)
+    }
+  }, [isContentReady])
 
   // Progress management
   useEffect(() => {
-    if (!isOpen || isPaused || !currentContent) return
+    // Don't run progress if content not ready (wait for image/video to load)
+    if (!isOpen || isPaused || !currentContent || !isContentReady) return
 
-    const duration = currentContent.duration * 1000
+    const duration = actualDuration * 1000
     const interval = 50
 
     progressInterval.current = setInterval(() => {
@@ -81,7 +194,7 @@ export const StoryViewer = memo(({
             setCurrentContentIndex(0)
             return 0
           } else {
-            onClose()
+            setShouldClose(true)
             return 100
           }
         }
@@ -94,11 +207,18 @@ export const StoryViewer = memo(({
         clearInterval(progressInterval.current)
       }
     }
-  }, [isOpen, isPaused, currentContent, currentContentIndex, currentStoryIndex, stories.length, currentStory?.content.length, onClose])
+  }, [isOpen, isPaused, currentContent, currentContentIndex, currentStoryIndex, stories.length, currentStory?.content.length, actualDuration, isContentReady])
 
   useEffect(() => {
     setProgress(0)
   }, [currentContentIndex, currentStoryIndex])
+
+  // Handle close action separately to avoid setState during render
+  useEffect(() => {
+    if (shouldClose) {
+      onClose()
+    }
+  }, [shouldClose, onClose])
 
   // Simple navigation handlers
   const handlePrevious = useCallback(() => {
@@ -134,10 +254,38 @@ export const StoryViewer = memo(({
     }
   }, [replyText, currentStory?.username])
 
-  const handleLike = useCallback(() => {
-    setIsLiked(!isLiked)
-    console.log(`${isLiked ? "Unliked" : "Liked"} ${currentStory.username}'s story`)
-  }, [isLiked, currentStory?.username])
+  const handleLike = useCallback(async () => {
+    if (!currentContent || currentStory.isOwnStory) return
+    
+    const contentId = currentContent.id
+    const storyId = parseInt(contentId)
+    
+    if (isNaN(storyId)) return
+    
+    // Get current like state from Redux
+    const currentLikeState = currentContent.isLike ?? false
+    const newLikeState = !currentLikeState
+    
+    // Optimistic update to Redux state
+    dispatch(toggleStoryLike({
+      userId: currentStory.id,
+      storyId: contentId,
+      isLiked: newLikeState
+    }))
+    
+    try {
+      await dispatch(likeStoryThunk(storyId)).unwrap()
+      // Success - state already updated
+    } catch (error) {
+      // Revert on error
+      dispatch(toggleStoryLike({
+        userId: currentStory.id,
+        storyId: contentId,
+        isLiked: currentLikeState
+      }))
+      console.error("Failed to like story:", error)
+    }
+  }, [currentContent, currentStory, dispatch])
 
   const handleShare = useCallback(() => {
     console.log(`Shared ${currentStory.username}'s story`)
@@ -215,8 +363,15 @@ export const StoryViewer = memo(({
 
   if (!isOpen || !currentStory || !currentContent) return null
 
-  if (isLoading) {
-    return <StorySkeleton isMobile={isMobile} />
+  // Show skeleton only on initial load, not when navigating between stories
+  if (isInitialLoading) {
+    return (
+      <StorySkeleton 
+        isMobile={isMobile} 
+        showSideThumbnails={stories.length > 1}
+        totalStories={stories.length}
+      />
+    )
   }
 
   return (
@@ -279,6 +434,15 @@ export const StoryViewer = memo(({
           }}
         >
           <div className="relative w-full h-full">
+            <div 
+              className="absolute top-0 left-0 right-0 z-10 pointer-events-none"
+              style={{
+                height: '98px',
+                backgroundImage: 'linear-gradient(180deg, #262626cc, #26262600)',
+
+              }}
+            />
+            
             <StoryProgressBar
               content={currentStory.content}
               currentContentIndex={currentContentIndex}
@@ -287,6 +451,7 @@ export const StoryViewer = memo(({
 
             <StoryHeader
               story={currentStory}
+              currentContent={currentContent}
               isMuted={isMuted}
               isPaused={isPaused}
               isMobile={isMobile}
@@ -302,19 +467,30 @@ export const StoryViewer = memo(({
             <StoryContent
               content={currentContent}
               username={currentStory.username}
+              isMuted={isMuted}
+              isPaused={isPaused}
               onStoryClick={handleStoryClick}
               onTouchStart={handleTouchStart}
               onTouchEnd={handleTouchEnd}
+              onVideoDurationDetected={handleVideoDurationDetected}
+              onVideoReady={handleContentReady}
             />
+            
+            {/* Content Loading Overlay */}
+            {!isContentReady && (
+              <div className="absolute inset-0 flex items-center justify-center bg-black/50 z-20">
+                <div className="w-12 h-12 border-4 border-white/30 border-t-white rounded-full animate-spin" />
+              </div>
+            )}
 
             <StoryActions
               replyText={replyText}
-              isLiked={isLiked}
-              viewerCount={viewerCount}
+              isLiked={currentContent.isLike ?? false}
+              viewerCount={currentContent.quantitySeen || 0}
               showReactions={showReactions}
               showQuickReply={showQuickReply}
               isOwnStory={currentStory.isOwnStory}
-              isCloseFriend={currentStory.isCloseFriend}
+              isCloseFriend={currentContent.isCloseFriend}
               onReplyChange={setReplyText}
               onSendReply={handleSendReply}
               onLike={handleLike}
@@ -324,37 +500,6 @@ export const StoryViewer = memo(({
               onReactionClick={handleReactionClick}
               onViewerListToggle={() => setShowViewerList(!showViewerList)}
             />
-
-            {/* Navigation arrows - desktop only */}
-            <div className="hidden lg:block absolute left-4 top-1/2 -translate-y-1/2 z-30">
-              {currentStoryIndex > 0 && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    handlePrevious()
-                  }}
-                  className="p-3 text-white/80 hover:text-white transition-all duration-200 bg-black/40 backdrop-blur-sm rounded-full hover:bg-black/60 shadow-lg"
-                  aria-label="Quay lại"
-                >
-                  <ChevronLeft className="w-6 h-6" />
-                </button>
-              )}
-            </div>
-
-            <div className="hidden lg:block absolute right-4 top-1/2 -translate-y-1/2 z-30">
-              {currentStoryIndex < stories.length - 1 && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    handleNext()
-                  }}
-                  className="p-3 text-white/80 hover:text-white transition-all duration-200 bg-black/40 backdrop-blur-sm rounded-full hover:bg-black/60 shadow-lg"
-                  aria-label="Tiếp"
-                >
-                  <ChevronRight className="w-6 h-6" />
-                </button>
-              )}
-            </div>
 
             {/* Mobile navigation areas */}
             <div
@@ -373,6 +518,43 @@ export const StoryViewer = memo(({
             />
           </div>
         </div>
+
+        {/* Navigation arrows in gap - desktop only */}
+        {/* Left navigation arrow */}
+        {(currentContentIndex > 0 || currentStoryIndex > 0) && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              handlePrevious()
+            }}
+            className="hidden lg:block absolute top-1/2 -translate-y-1/2 z-40 p-2.5 text-white/80 hover:text-white transition-all duration-200 bg-gray-500/50 backdrop-blur-sm rounded-full hover:bg-gray-500/80 shadow-lg"
+            style={{
+              left: "0px",
+              transform: "translateX(calc(-50% + 430px)) translateY(-50%)",
+            }}
+            aria-label="Quay lại"
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </button>
+        )}
+
+        {/* Right navigation arrow */}
+        {(currentContentIndex < currentStory.content.length - 1 || currentStoryIndex < stories.length - 1) && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              handleNext()
+            }}
+            className="hidden lg:block absolute top-1/2 -translate-y-1/2 z-40 p-2.5 text-white/80 hover:text-white transition-all duration-200 bg-gray-500/50 backdrop-blur-sm rounded-full hover:bg-gray-500/80 shadow-lg"
+            style={{
+              left: "0px",
+              transform: "translateX(calc(-50% + 868px)) translateY(-50%)",
+            }}
+            aria-label="Tiếp"
+          >
+            <ChevronRight className="w-4 h-4" />
+          </button>
+        )}
 
         {/* Right side thumbnails - desktop only */}
         <div className="hidden lg:block">
@@ -439,27 +621,126 @@ export const StoryViewer = memo(({
             // Own story menu
             <>
               <button
-                onClick={(e) => {
+                onClick={async (e) => {
                   e.stopPropagation()
                   setShowMenu(false)
-                  console.log("Delete story")
+                  setIsMenuLoading(true)
+                  
+                  try {
+                    const storyId = parseInt(currentContent.id)
+                    const totalStories = currentStory.content.length
+                    const currentIndex = currentContentIndex
+                    
+                    await dispatch(deleteStoryThunk(storyId)).unwrap()
+                    
+                    // Update local state - remove story content
+                    dispatch(removeStoryContent({ 
+                      userId: currentStory.id, 
+                      storyId: currentContent.id,
+                      fromArchive: isArchivePage
+                    }))
+                    
+                    toast({
+                      title: "Đã xóa tin",
+                      description: "Tin của bạn đã được xóa thành công",
+                    })
+
+                    // Navigate based on remaining stories (no loading state needed)
+                    if (totalStories <= 1) {
+                      // No more stories left, close viewer
+                      onClose()
+                    } else if (currentIndex < totalStories - 1) {
+                      // Story deleted is not the last one
+                      // Just reset progress, React will re-render with new story automatically
+                      setProgress(0)
+                    } else if (currentIndex > 0) {
+                      // Deleted last story, move to previous
+                      setCurrentContentIndex(currentIndex - 1)
+                      setProgress(0)
+                    } else {
+                      onClose()
+                    }
+                  } catch (error) {
+                    const err = error as { message?: string }
+                    toast({
+                      title: "Lỗi",
+                      description: err.message || "Không thể xóa tin",
+                      variant: "destructive",
+                    })
+                  } finally {
+                    setIsMenuLoading(false)
+                  }
                 }}
                 className="w-full px-4 py-3 text-left text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors text-sm flex items-center gap-3"
               >
-                <X className="w-4 h-4" />
-                Delete Story
+                <Trash2 className="w-4 h-4" />
+                Xóa tin
               </button>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation()
-                  setShowMenu(false)
-                  console.log("Save to highlights")
-                }}
-                className="w-full px-4 py-3 text-left text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-sm flex items-center gap-3"
-              >
-                <Bookmark className="w-4 h-4" />
-                Save to Highlights
-              </button>
+              {!isArchivePage && (
+                <button
+                  onClick={async (e) => {
+                    e.stopPropagation()
+                    setShowMenu(false)
+                    setIsMenuLoading(true)
+                    
+                    try {
+                      // Archive the CURRENT story content being viewed
+                      const storyId = parseInt(currentContent.id)
+                      const totalStories = currentStory.content.length
+                      const currentIndex = currentContentIndex
+                      
+                      await dispatch(archiveStoryThunk(storyId)).unwrap()
+                      
+                      // Update local state - remove story content from active stories
+                      dispatch(removeStoryContent({ 
+                        userId: currentStory.id, 
+                        storyId: currentContent.id 
+                      }))
+                      
+                      toast({
+                        title: "Đã lưu vào kho lưu trữ",
+                        description: "Tin đã được chuyển vào kho lưu trữ",
+                      })
+                      
+                      // Wait a bit for Redux state to update and propagate to props
+                      setTimeout(() => {
+                        // Force re-render to get updated stories from props
+                        forceUpdate({})
+                        
+                        // Navigate based on remaining stories
+                        if (totalStories <= 1) {
+                          // No more stories left, close viewer
+                          onClose()
+                        } else if (currentIndex < totalStories - 1) {
+                          // We archived a story that's not the last one
+                          // Stay at same index (it will now show the next story)
+                          setProgress(0)
+                          setCurrentContentIndex(currentIndex)
+                        } else if (currentIndex > 0) {
+                          // We archived the last story, move to previous
+                          setCurrentContentIndex(currentIndex - 1)
+                          setProgress(0)
+                        } else {
+                          onClose()
+                        }
+                      }, 150)
+                    } catch (error) {
+                      const err = error as { message?: string }
+                      toast({
+                        title: "Lỗi",
+                        description: err.message || "Không thể lưu trữ tin",
+                        variant: "destructive",
+                      })
+                    } finally {
+                      setIsMenuLoading(false)
+                    }
+                  }}
+                  className="w-full px-4 py-3 text-left text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-sm flex items-center gap-3"
+                >
+                  <Archive className="w-4 h-4" />
+                  Lưu vào kho lưu trữ
+                </button>
+              )}
               <div className="border-t border-gray-200 dark:border-gray-600 my-1"></div>
               <button
                 onClick={(e) => {
@@ -470,7 +751,7 @@ export const StoryViewer = memo(({
                 className="w-full px-4 py-3 text-left text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-sm flex items-center gap-3"
               >
                 <Eye className="w-4 h-4" />
-                View Story Insights
+                Xem thông tin chi tiết
               </button>
             </>
           ) : (
@@ -484,7 +765,7 @@ export const StoryViewer = memo(({
                 className="w-full px-4 py-3 text-left text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-sm flex items-center gap-3"
               >
                 <Flag className="w-4 h-4" />
-                Report Story
+                Báo cáo tin
               </button>
               <button
                 onClick={(e) => {
@@ -494,7 +775,7 @@ export const StoryViewer = memo(({
                 className="w-full px-4 py-3 text-left text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-sm flex items-center gap-3"
               >
                 <Share className="w-4 h-4" />
-                Copy Link
+                Sao chép liên kết
               </button>
               <button
                 onClick={(e) => {
@@ -504,7 +785,7 @@ export const StoryViewer = memo(({
                 className="w-full px-4 py-3 text-left text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-sm flex items-center gap-3"
               >
                 <UserMinus className="w-4 h-4" />
-                Mute {currentStory.username}
+                Tắt tiếng {currentStory.username}
               </button>
             </>
           )}
@@ -512,6 +793,16 @@ export const StoryViewer = memo(({
       )}
 
       <div className="absolute inset-0 -z-10" onClick={onClose} />
+
+      {/* Story Viewers Dialog */}
+      {showViewerList && currentStory.isOwnStory && currentContent && (
+        <StoryViewersDialog
+          isOpen={showViewerList}
+          onClose={() => setShowViewerList(false)}
+          storyId={parseInt(currentContent.id)}
+          totalViewers={currentContent.quantitySeen || 0}
+        />
+      )}
     </div>
   )
 })
