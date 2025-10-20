@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import Hls from "hls.js";
-import { Loader2, Play } from "lucide-react";
 import { getVideoThumbnail } from "@/utils/videoUtils";
+import { Loader2, Play } from "lucide-react";
 
 interface HLSVideoPlayerProps {
   src: string;
@@ -19,6 +19,7 @@ interface HLSVideoPlayerProps {
   poster?: string;
   style?: React.CSSProperties;
   videoRef?: React.RefObject<HTMLVideoElement>;
+  hideControlsOnMobile?: boolean; // Hide controls on mobile devices (for Reels)
 }
 
 export const HLSVideoPlayer = ({
@@ -37,14 +38,29 @@ export const HLSVideoPlayer = ({
   poster,
   style,
   videoRef: externalRef,
+  hideControlsOnMobile = false,
 }: HLSVideoPlayerProps) => {
   const internalVideoRef = useRef<HTMLVideoElement>(null);
   const videoRef = externalRef || internalVideoRef;
   const hlsRef = useRef<Hls | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [generatedPoster, setGeneratedPoster] = useState<string | null>(null);
   const [hasStarted, setHasStarted] = useState(false);
+  
+  // For Reels mode on mobile, NO loading indicators
+  const isReelsMode = hideControlsOnMobile && isMobile;
+
+  // Detect mobile device
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 1024); // lg breakpoint
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   // Generate thumbnail for video preview
   useEffect(() => {
@@ -73,7 +89,8 @@ export const HLSVideoPlayer = ({
       return;
     }
 
-    setIsLoading(true);
+    // Reels mode: KHÔNG set loading = true để tránh flash
+    setIsLoading(!isReelsMode);
     setError(null);
 
     // Check if URL is HLS (.m3u8)
@@ -88,12 +105,15 @@ export const HLSVideoPlayer = ({
         }
 
         const hls = new Hls({
-          debug: false, // Set to true for debugging
+          debug: false,
           enableWorker: true,
           lowLatencyMode: false,
           backBufferLength: 90,
           maxBufferLength: 30,
           maxMaxBufferLength: 60,
+          // Start loading immediately for smooth experience
+          startPosition: -1,
+          autoStartLoad: true,
           // Firebase Storage CORS configuration
           xhrSetup: (xhr, url) => {
             xhr.withCredentials = false;
@@ -106,8 +126,13 @@ export const HLSVideoPlayer = ({
         hls.attachMedia(video);
 
         hls.on(Hls.Events.MANIFEST_PARSED, () => {
-          setIsLoading(false);
-
+          // Reels mode: Hide loading NGAY
+          if (isReelsMode) {
+            setIsLoading(false);
+          } else {
+            setIsLoading(false);
+          }
+          
           if (autoPlay) {
             video.play().catch(() => {
               // Auto-play prevented
@@ -115,18 +140,21 @@ export const HLSVideoPlayer = ({
           }
         });
 
-        // Load first frame for preview (after fragment loaded)
+        // Load first frame for preview
         let firstFragLoaded = false;
         hls.on(Hls.Events.FRAG_LOADED, () => {
-          if (!firstFragLoaded && !autoPlay && !hasStarted) {
+          if (!firstFragLoaded) {
             firstFragLoaded = true;
-            // Wait for buffer to be ready
-            setTimeout(() => {
-              if (video.buffered.length > 0 && video.paused) {
-                video.muted = true;
-                video.currentTime = 0.001; // Tiny seek to load frame
-              }
-            }, 100);
+            
+            // Load first frame for preview
+            if (!autoPlay && !hasStarted && !isReelsMode) {
+              setTimeout(() => {
+                if (video.buffered.length > 0 && video.paused) {
+                  video.muted = true;
+                  video.currentTime = 0.001;
+                }
+              }, 50);
+            }
           }
         });
 
@@ -225,18 +253,14 @@ export const HLSVideoPlayer = ({
   };
 
   const finalPoster = poster || generatedPoster || undefined;
+  
+  // Determine if controls should be shown
+  const showControls = hideControlsOnMobile ? (isMobile ? false : controls) : controls;
 
   return (
     <div className="relative w-full h-full bg-black">
-      {/* Loading overlay */}
-      {isLoading && (
-        <div className="absolute inset-0 flex items-center justify-center bg-gray-900 z-10">
-          <Loader2 className="w-8 h-8 text-white animate-spin" />
-        </div>
-      )}
-
-      {/* Error overlay */}
-      {error && (
+      {/* Error overlay - chỉ desktop */}
+      {error && !isReelsMode && (
         <div className="absolute inset-0 flex items-center justify-center bg-gray-900 z-10">
           <div className="text-center text-white p-4">
             <p className="text-sm">{error}</p>
@@ -244,8 +268,15 @@ export const HLSVideoPlayer = ({
         </div>
       )}
 
-      {/* Play button overlay for videos */}
-      {!hasStarted && !autoPlay && !isLoading && !error && (
+      {/* Loading spinner - CHỈ desktop, KHÔNG có ở Reels mobile */}
+      {!isReelsMode && isLoading && (
+        <div className="absolute inset-0 flex items-center justify-center bg-black/50 z-10">
+          <Loader2 className="w-8 h-8 text-white animate-spin" />
+        </div>
+      )}
+      
+      {/* Play button - CHỈ desktop */}
+      {!isReelsMode && !hasStarted && !autoPlay && !isLoading && !error && (
         <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none">
           <div className="w-16 h-16 rounded-full bg-black/60 backdrop-blur-sm flex items-center justify-center">
             <Play className="w-8 h-8 text-white ml-1" fill="white" />
@@ -256,12 +287,12 @@ export const HLSVideoPlayer = ({
       <video
         ref={videoRef}
         className={className}
-        controls={controls}
+        controls={showControls}
         autoPlay={autoPlay}
         muted={muted}
         loop={loop}
         playsInline={playsInline}
-        preload="metadata"
+        preload={isReelsMode ? "auto" : "metadata"}
         crossOrigin={crossOrigin}
         onClick={handleVideoClick}
         onLoadedData={handleLoadedData}
@@ -269,6 +300,7 @@ export const HLSVideoPlayer = ({
         onPlay={() => setHasStarted(true)}
         poster={finalPoster}
         style={style}
+        {...(hideControlsOnMobile && { 'data-reel-mode': 'true' })}
       />
     </div>
   );

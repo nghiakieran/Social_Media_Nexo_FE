@@ -66,6 +66,9 @@ import { ProfilePage } from "./features/profile/pages/ProfilePage";
 import { ArchivePage } from "./features/story/pages/ArchivePage";
 import { StoryCreatePage } from "./features/story/pages/StoryCreatePage";
 
+// Reel Pages
+import { ReelsPage } from "./features/reel";
+
 const queryClient = new QueryClient();
 
 const NavigationBinder = () => {
@@ -121,10 +124,7 @@ const App = () => (
                 <Route index element={<FeedPage />} />
                 <Route path="search" element={<SearchPage />} />
                 <Route path="explore" element={<ExplorePage />} />
-                <Route
-                  path="reels"
-                  element={<div className="p-6">Reels (Coming soon)</div>}
-                />
+                <Route path="reels" element={<ReelsPage />} />
                 <Route path="messages" element={<InboxPage />} />
                 <Route path="messages/:chatId" element={<ChatPage />} />
                 <Route path="notifications" element={<NotificationPage />} />
