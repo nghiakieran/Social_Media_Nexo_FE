@@ -125,7 +125,6 @@ const ReelsPage = () => {
   };
 
   const handleShareAction = (postId: string, userIds: string[], message: string) => {
-    console.log('Share reel:', postId, 'to users:', userIds, 'with message:', message);
     // TODO: Implement actual share logic
     setIsShareDialogOpen(false);
   };
@@ -146,11 +145,11 @@ const ReelsPage = () => {
   } : null;
 
   return (
-    <div className="relative w-full overflow-hidden bg-black flex items-center justify-center" style={{ height: '100dvh' }}>
+    <div className="relative w-full overflow-hidden flex items-center justify-center" style={{ height: '100dvh' }}>
       {/* Reels Container */}
       <div
         ref={containerRef}
-        className="w-full lg:max-w-md xl:max-w-lg h-full overflow-y-auto snap-y snap-mandatory scrollbar-hide will-change-scroll reels-container lg:border-x lg:border-gray-800"
+        className="w-full lg:max-w-sm xl:max-w-md h-full overflow-y-auto snap-y snap-mandatory scrollbar-hide will-change-scroll reels-container lg:py-4"
         onScroll={handleScroll}
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
@@ -173,6 +172,7 @@ const ReelsPage = () => {
               reel={reel}
               isActive={index === currentReelIndex}
               onShare={handleShare}
+              isDetail={false}
             />
           </div>
         ))}

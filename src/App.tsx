@@ -68,6 +68,7 @@ import { StoryCreatePage } from "./features/story/pages/StoryCreatePage";
 
 // Reel Pages
 import { ReelsPage } from "./features/reel";
+import ReelDetailPage from "./features/reel/pages/ReelDetailPage";
 
 const queryClient = new QueryClient();
 
@@ -125,6 +126,7 @@ const App = () => (
                 <Route path="search" element={<SearchPage />} />
                 <Route path="explore" element={<ExplorePage />} />
                 <Route path="reels" element={<ReelsPage />} />
+                <Route path="reels/:reelId" element={<ReelDetailPage />} />
                 <Route path="messages" element={<InboxPage />} />
                 <Route path="messages/:chatId" element={<ChatPage />} />
                 <Route path="notifications" element={<NotificationPage />} />

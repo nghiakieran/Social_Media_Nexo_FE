@@ -4,6 +4,7 @@ interface UseInfiniteScrollOptions {
   hasMore: boolean;
   isLoading: boolean;
   threshold?: number;
+  error?: string | null; // Add error handling
 }
 
 interface UseInfiniteScrollReturn {
@@ -14,17 +15,19 @@ export const useInfiniteScroll = (
   onLoadMore: () => void,
   options: UseInfiniteScrollOptions
 ): UseInfiniteScrollReturn => {
-  const { hasMore, isLoading, threshold = 100 } = options;
+  const { hasMore, isLoading, threshold = 100, error = null } = options;
   const observer = useRef<IntersectionObserver>();
 
   const lastElementRef = useCallback(
     (node: HTMLElement | null) => {
-      if (isLoading) return;
+      // Don't trigger if loading or has error
+      if (isLoading || error) return;
       if (observer.current) observer.current.disconnect();
       
       observer.current = new IntersectionObserver(
         (entries) => {
-          if (entries[0].isIntersecting && hasMore) {
+          // Only trigger if intersecting, has more data, and no error
+          if (entries[0].isIntersecting && hasMore && !error) {
             onLoadMore();
           }
         },
@@ -35,7 +38,7 @@ export const useInfiniteScroll = (
       
       if (node) observer.current.observe(node);
     },
-    [isLoading, hasMore, onLoadMore, threshold]
+    [isLoading, hasMore, onLoadMore, threshold, error]
   );
 
   useEffect(() => {

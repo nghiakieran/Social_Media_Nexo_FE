@@ -20,6 +20,7 @@ interface HLSVideoPlayerProps {
   style?: React.CSSProperties;
   videoRef?: React.RefObject<HTMLVideoElement>;
   hideControlsOnMobile?: boolean; // Hide controls on mobile devices (for Reels)
+  isReelsMode?: boolean; // Whether this is in reels mode
 }
 
 export const HLSVideoPlayer = ({
@@ -39,6 +40,7 @@ export const HLSVideoPlayer = ({
   style,
   videoRef: externalRef,
   hideControlsOnMobile = false,
+  isReelsMode = false,
 }: HLSVideoPlayerProps) => {
   const internalVideoRef = useRef<HTMLVideoElement>(null);
   const videoRef = externalRef || internalVideoRef;
@@ -50,7 +52,8 @@ export const HLSVideoPlayer = ({
   const [hasStarted, setHasStarted] = useState(false);
   
   // For Reels mode on mobile, NO loading indicators
-  const isReelsMode = hideControlsOnMobile && isMobile;
+  // Use passed prop or fallback to detection
+  const isReelsModeValue = isReelsMode || (hideControlsOnMobile && isMobile);
 
   // Detect mobile device
   useEffect(() => {
@@ -255,12 +258,12 @@ export const HLSVideoPlayer = ({
   const finalPoster = poster || generatedPoster || undefined;
   
   // Determine if controls should be shown
-  const showControls = hideControlsOnMobile ? (isMobile ? false : controls) : controls;
+  const showControls = isReelsModeValue ? (hideControlsOnMobile ? (isMobile ? false : controls) : controls) : controls;
 
   return (
     <div className="relative w-full h-full bg-black">
       {/* Error overlay - chỉ desktop */}
-      {error && !isReelsMode && (
+      {error && !isReelsModeValue && (
         <div className="absolute inset-0 flex items-center justify-center bg-gray-900 z-10">
           <div className="text-center text-white p-4">
             <p className="text-sm">{error}</p>
@@ -269,14 +272,14 @@ export const HLSVideoPlayer = ({
       )}
 
       {/* Loading spinner - CHỈ desktop, KHÔNG có ở Reels mobile */}
-      {!isReelsMode && isLoading && (
+      {!isReelsModeValue && isLoading && (
         <div className="absolute inset-0 flex items-center justify-center bg-black/50 z-10">
           <Loader2 className="w-8 h-8 text-white animate-spin" />
         </div>
       )}
       
       {/* Play button - CHỈ desktop */}
-      {!isReelsMode && !hasStarted && !autoPlay && !isLoading && !error && (
+      {!isReelsModeValue && !hasStarted && !autoPlay && !isLoading && !error && (
         <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none">
           <div className="w-16 h-16 rounded-full bg-black/60 backdrop-blur-sm flex items-center justify-center">
             <Play className="w-8 h-8 text-white ml-1" fill="white" />
@@ -292,7 +295,7 @@ export const HLSVideoPlayer = ({
         muted={muted}
         loop={loop}
         playsInline={playsInline}
-        preload={isReelsMode ? "auto" : "metadata"}
+        preload={isReelsModeValue ? "auto" : "metadata"}
         crossOrigin={crossOrigin}
         onClick={handleVideoClick}
         onLoadedData={handleLoadedData}
@@ -300,7 +303,7 @@ export const HLSVideoPlayer = ({
         onPlay={() => setHasStarted(true)}
         poster={finalPoster}
         style={style}
-        {...(hideControlsOnMobile && { 'data-reel-mode': 'true' })}
+        {...(isReelsModeValue && { 'data-reel-mode': 'true' })}
       />
     </div>
   );
