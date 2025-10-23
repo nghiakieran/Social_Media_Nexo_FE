@@ -14,6 +14,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ActionMenu } from "@/components/common/ActionMenu";
 import { formatNumber } from "@/utils/constants";
 import { HLSVideoPlayer } from "@/components/common/HLSVideoPlayer";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface ReelViewerProps {
   reel: Reel;
@@ -25,6 +26,7 @@ interface ReelViewerProps {
 const ReelViewer = memo(
   ({ reel, isActive, onShare, isDetail = false }: ReelViewerProps) => {
     const dispatch = useDispatch();
+    const isMobile = useIsMobile();
     const [isMuted, setIsMuted] = useState(false);
     const [showMore, setShowMore] = useState(false);
     const [showFullCaption, setShowFullCaption] = useState(false);
@@ -97,8 +99,8 @@ const ReelViewer = memo(
             loop
             muted={isMuted}
             playsInline
-            hideControlsOnMobile={false}
-            controls={true}
+            hideControlsOnMobile={isMobile && isDetail}
+            controls={!(isMobile && isDetail)}
             isReelsMode={!isDetail}
             className={`w-full h-full ${getObjectFit()}`}
             style={{
@@ -125,7 +127,7 @@ const ReelViewer = memo(
 
         {/* Right Side Actions */}
         <div
-          className="absolute right-2 bottom-28 lg:bottom-20 flex flex-col gap-5 z-20"
+          className={`absolute right-2 ${isMobile ? (isDetail ? 'bottom-36' : 'bottom-28') : 'bottom-28'} lg:bottom-20 flex flex-col gap-5 z-20`}
           onClick={(e) => e.stopPropagation()}
         >
           {/* Like */}
@@ -177,13 +179,13 @@ const ReelViewer = memo(
           </button>
         </div>
 
-        {/* Bottom Info - Hide on detail pages */}
-        {!isDetail && (
+        {/* Bottom Info - Hide on detail pages for desktop, show on mobile */}
+        {(!isDetail || isMobile) && (
           <div
             className={`absolute left-0 right-16 lg:right-auto lg:max-w-md transition-all duration-300 ${
               showFullCaption
-                ? `bottom-20 lg:bottom-16 max-h-[60vh] bg-black/95 rounded-tr-lg`
-                : `bottom-20 lg:bottom-16`
+                ? `${isMobile ? (isDetail ? 'bottom-32' : 'bottom-20') : 'bottom-20'} lg:bottom-16 max-h-[60vh] bg-black/95 rounded-tr-lg`
+                : `${isMobile ? (isDetail ? 'bottom-32' : 'bottom-20') : 'bottom-20'} lg:bottom-16`
             }`}
             onClick={(e) => e.stopPropagation()}
           >
@@ -214,7 +216,7 @@ const ReelViewer = memo(
             {/* Caption */}
             {reel.caption && (
               <div className="mb-2">
-                <p className="text-white text-sm leading-relaxed whitespace-pre-wrap w-[390px]">
+                <p className="text-white text-sm leading-relaxed whitespace-pre-wrap min-w-80 lg:w-[390px]">
                   {showFullCaption ? reel.caption : truncatedCaption}
                   {shouldTruncate && (
                     <button

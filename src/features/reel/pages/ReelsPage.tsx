@@ -31,7 +31,8 @@ const ReelsPage = () => {
     // Scroll to current reel (chỉ khi comment drawer đóng)
     if (containerRef.current && !isCommentsDrawerOpen) {
       isScrollingRef.current = true;
-      const scrollTop = currentReelIndex * window.innerHeight;
+      const containerHeight = containerRef.current.clientHeight;
+      const scrollTop = currentReelIndex * containerHeight;
       
       containerRef.current.scrollTo({
         top: scrollTop,
@@ -59,8 +60,8 @@ const ReelsPage = () => {
     
     const container = e.currentTarget;
     const scrollTop = container.scrollTop;
-    const viewportHeight = window.innerHeight;
-    const newIndex = Math.round(scrollTop / viewportHeight);
+    const containerHeight = container.clientHeight;
+    const newIndex = Math.round(scrollTop / containerHeight);
 
     // Clear previous timeout
     if (scrollTimeoutRef.current) {
@@ -145,7 +146,7 @@ const ReelsPage = () => {
   } : null;
 
   return (
-    <div className="relative w-full overflow-hidden flex items-center justify-center" style={{ height: '100dvh' }}>
+    <div className="relative w-full overflow-hidden flex items-center justify-center" style={{ height: isMobile ? 'calc(100dvh - 65px)' : '100dvh' }}>
       {/* Reels Container */}
       <div
         ref={containerRef}
@@ -163,7 +164,7 @@ const ReelsPage = () => {
             key={reel.id}
             className="w-full snap-start snap-always will-change-transform"
             style={{ 
-              height: '100dvh',
+              height: isMobile ? 'calc(100dvh - 65px)' : '100dvh',
               scrollSnapAlign: 'start',
               scrollSnapStop: 'always',
             }}
