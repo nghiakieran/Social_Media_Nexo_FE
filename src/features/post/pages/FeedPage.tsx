@@ -93,6 +93,7 @@ export const FeedPage = () => {
   const { lastElementRef } = useInfiniteScroll(handleLoadMore, {
     hasMore,
     isLoading,
+    error, // Pass error to prevent infinite loop on error
     threshold: 200, // Trigger earlier for smoother experience
   });
 
@@ -343,6 +344,19 @@ export const FeedPage = () => {
         {isLoading && posts.length > 0 && (
           <div className="flex justify-center items-center py-8">
             <Loader />
+          </div>
+        )}
+
+        {/* Error indicator for load more */}
+        {error && posts.length > 0 && !isLoading && (
+          <div className="flex flex-col items-center justify-center py-8">
+            <p className="text-red-500 text-sm mb-3">{error}</p>
+            <button
+              className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors text-sm"
+              onClick={handleLoadMore}
+            >
+              Thử lại
+            </button>
           </div>
         )}
 
