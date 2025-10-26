@@ -21,6 +21,7 @@ import { ThemeProvider } from "@/contexts/ThemeContext";
 import AdminModeration from "./pages/AdminModeration";
 import NotFound from "./pages/NotFound";
 import PeopleSuggestions from "./pages/PeopleSuggestions";
+import About from "./pages/About";
 
 // Auth Pages
 import ForgotPasswordPage from "./features/auth/pages/ForgotPasswordPage";
@@ -172,6 +173,9 @@ const App = () => (
                     path="admin/moderation"
                     element={<AdminModeration />}
                   />
+
+                  {/* About Page */}
+                  <Route path="about" element={<About />} />
                   <Route path="comments/:postId" element={<CommentPage />} />
                 </Route>
 
