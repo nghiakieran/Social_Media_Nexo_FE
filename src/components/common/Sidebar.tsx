@@ -44,7 +44,7 @@ const navigation = [
   { name: "Tạo bài viết", href: "/create", icon: PlusSquare },
   { name: "Tạo Reel", href: "/reels/create", icon: Video },
   { name: "Hồ sơ", href: "/profile", icon: User, dynamic: true },
-  { name: "Giới thiệu", href: "/about", icon: User },
+  { name: "Giới thiệu", href: "/about", icon: Moon },
 ];
 
 const mlFeatures = [
