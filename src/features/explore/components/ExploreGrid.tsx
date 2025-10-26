@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
-import { cn } from '@/lib/utils';
-import { ExplorePost } from '../exploreSlice';
-import { Heart, MessageCircle, Play, Copy } from 'lucide-react';
-import { LazyImage } from '@/components/common/LazyImage';
+import React, { useState } from "react";
+import { cn } from "@/lib/utils";
+import { ExplorePost } from "../types";
+import { Heart, MessageCircle, Play, Copy } from "lucide-react";
+import { LazyImage } from "@/components/common/LazyImage";
+import { SimpleVideoPreview } from "@/components/common/SimpleVideoPreview";
 
 interface ExploreGridProps {
   posts: ExplorePost[];
@@ -22,9 +23,9 @@ export const ExploreGrid: React.FC<ExploreGridProps> = ({
   };
 
   return (
-    <div className={cn('w-full', className)}>
+    <div className={cn("w-full", className)}>
       {/* Masonry Grid */}
-      <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-1 space-y-1">
+      <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-2 space-y-2">
         {posts.map((post, index) => (
           <div
             key={post.id}
@@ -34,30 +35,39 @@ export const ExploreGrid: React.FC<ExploreGridProps> = ({
             onMouseLeave={() => setHoveredPost(null)}
           >
             {/* Post Image/Video Container */}
-            <div className="relative overflow-hidden rounded-sm bg-muted">
-              <LazyImage
-                src={post.imageUrl}
-                alt={post.caption || `Post by ${post.author.username}`}
-                className={cn(
-                  'w-full h-auto',
-                )}
-                loading="lazy"
-                decoding="async"
-                enableProgressiveLoading
-              />
+            <div className="relative overflow-hidden rounded-lg bg-muted shadow-sm hover:shadow-md transition-shadow duration-300">
+              {post.media.length > 0 && (
+                <>
+                  {post.media[0].type === "image" ? (
+                    <LazyImage
+                      src={post.media[0].url}
+                      alt={post.caption || `Post by ${post.userName}`}
+                      className="w-full h-auto"
+                      loading="lazy"
+                      decoding="async"
+                      enableProgressiveLoading
+                    />
+                  ) : (
+                    <SimpleVideoPreview
+                      videoUrl={post.media[0].url}
+                      className="w-full h-auto"
+                    />
+                  )}
+                </>
+              )}
 
               {/* Video/Carousel Indicators */}
-              {post.type === 'video' && (
-                <div className="absolute top-2 right-2">
-                  <div className="bg-black/70 rounded-full p-1">
+              {post.media.length > 0 && post.media[0].type === "video" && (
+                <div className="absolute top-3 right-3">
+                  <div className="bg-black/80 rounded-full p-1.5 backdrop-blur-sm">
                     <Play className="h-3 w-3 text-white fill-white" />
                   </div>
                 </div>
               )}
 
-              {post.type === 'carousel' && (
-                <div className="absolute top-2 right-2">
-                  <div className="bg-black/70 rounded-full p-1">
+              {post.media.length > 1 && (
+                <div className="absolute top-3 right-3">
+                  <div className="bg-black/80 rounded-full p-1.5 backdrop-blur-sm">
                     <Copy className="h-3 w-3 text-white" />
                   </div>
                 </div>
@@ -66,49 +76,30 @@ export const ExploreGrid: React.FC<ExploreGridProps> = ({
               {/* Hover Overlay */}
               <div
                 className={cn(
-                  'absolute inset-0 bg-black/50 flex items-center justify-center transition-opacity duration-300',
-                  hoveredPost === post.id ? 'opacity-100' : 'opacity-0'
+                  "absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent flex items-end justify-center transition-opacity duration-300",
+                  hoveredPost === post.id ? "opacity-100" : "opacity-0"
                 )}
               >
-                <div className="flex items-center space-x-4 text-white">
+                <div className="flex items-center space-x-6 text-white p-4">
                   <div className="flex items-center space-x-1">
-                    <Heart className="h-5 w-5 fill-white" />
-                    <span className="font-semibold">
-                      {post.likesCount >= 1000 
+                    <Heart className="h-4 w-4 fill-white" />
+                    <span className="text-sm font-medium">
+                      {post.likesCount >= 1000
                         ? `${(post.likesCount / 1000).toFixed(1)}k`
-                        : post.likesCount
-                      }
+                        : post.likesCount}
                     </span>
                   </div>
                   <div className="flex items-center space-x-1">
-                    <MessageCircle className="h-5 w-5 fill-white" />
-                    <span className="font-semibold">
-                      {post.commentsCount >= 1000 
+                    <MessageCircle className="h-4 w-4 fill-white" />
+                    <span className="text-sm font-medium">
+                      {post.commentsCount >= 1000
                         ? `${(post.commentsCount / 1000).toFixed(1)}k`
-                        : post.commentsCount
-                      }
+                        : post.commentsCount}
                     </span>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Skeleton Loaders for more posts */}
-      <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-1 space-y-1 mt-1">
-        {Array.from({ length: 8 }).map((_, index) => (
-          <div
-            key={`skeleton-${index}`}
-            className="break-inside-avoid"
-          >
-            <div 
-              className="w-full bg-muted rounded-sm animate-pulse"
-              style={{ 
-                height: `${Math.floor(Math.random() * 200) + 200}px` 
-              }}
-            />
           </div>
         ))}
       </div>

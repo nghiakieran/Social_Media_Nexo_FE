@@ -1,28 +1,20 @@
-import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-
-export interface ExplorePost {
-  id: string;
-  imageUrl: string;
-  videoUrl?: string;
-  type: 'image' | 'video' | 'carousel';
-  likesCount: number;
-  commentsCount: number;
-  author: {
-    id: string;
-    username: string;
-    avatar: string;
-  };
-  caption?: string;
-  hashtags: string[];
-  aspectRatio?: number;
-}
+import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
+import { getExplorePosts } from "./api/exploreApi";
+import { transformExplorePostData } from "./types";
+import type { ExplorePost, GetExploreRequest } from "./types";
 
 export interface Hashtag {
   id: string;
   name: string;
   postsCount: number;
   isFollowing: boolean;
-  category: 'trending' | 'entertainment' | 'sports' | 'news' | 'fashion' | 'food';
+  category:
+    | "trending"
+    | "entertainment"
+    | "sports"
+    | "news"
+    | "fashion"
+    | "food";
 }
 
 export interface SearchResult {
@@ -45,32 +37,63 @@ export interface ExploreState {
   searchQuery: string;
   searchResults: SearchResult;
   isSearching: boolean;
-  activeFilter: 'all' | 'users' | 'hashtags' | 'posts';
+  activeFilter: "all" | "users" | "hashtags" | "posts";
   recentSearches: string[];
-  suggestedPosts: ExplorePost[];
+  isLoading: boolean;
+  error: string | null;
+  hasMore: boolean;
+  currentPage: number;
+  totalPages: number;
 }
 
 const initialState: ExploreState = {
   posts: [],
   trendingHashtags: [],
-  searchQuery: '',
+  searchQuery: "",
   searchResults: {
     users: [],
     hashtags: [],
     posts: [],
   },
   isSearching: false,
-  activeFilter: 'all',
+  activeFilter: "all",
   recentSearches: [],
-  suggestedPosts: [],
+  isLoading: false,
+  error: null,
+  hasMore: true,
+  currentPage: 0,
+  totalPages: 0,
 };
 
+// Async thunk for getting explore posts
+export const getExplorePostsThunk = createAsyncThunk(
+  "explore/getExplorePosts",
+  async (params: GetExploreRequest, { rejectWithValue }) => {
+    try {
+      const response = await getExplorePosts(params);
+      return response;
+    } catch (error: unknown) {
+      return rejectWithValue(
+        error instanceof Error
+          ? error.message
+          : "Có lỗi xảy ra khi tải danh sách bài viết explore"
+      );
+    }
+  }
+);
+
 const exploreSlice = createSlice({
-  name: 'explore',
+  name: "explore",
   initialState,
   reducers: {
-    setPosts: (state, action: PayloadAction<ExplorePost[]>) => {
-      state.posts = action.payload;
+    clearError: (state) => {
+      state.error = null;
+    },
+    clearPosts: (state) => {
+      state.posts = [];
+      state.currentPage = 0;
+      state.totalPages = 0;
+      state.hasMore = true;
     },
     setTrendingHashtags: (state, action: PayloadAction<Hashtag[]>) => {
       state.trendingHashtags = action.payload;
@@ -84,7 +107,10 @@ const exploreSlice = createSlice({
     setIsSearching: (state, action: PayloadAction<boolean>) => {
       state.isSearching = action.payload;
     },
-    setActiveFilter: (state, action: PayloadAction<'all' | 'users' | 'hashtags' | 'posts'>) => {
+    setActiveFilter: (
+      state,
+      action: PayloadAction<"all" | "users" | "hashtags" | "posts">
+    ) => {
       state.activeFilter = action.payload;
     },
     addRecentSearch: (state, action: PayloadAction<string>) => {
@@ -95,38 +121,68 @@ const exploreSlice = createSlice({
       }
     },
     removeRecentSearch: (state, action: PayloadAction<string>) => {
-      state.recentSearches = state.recentSearches.filter(search => search !== action.payload);
+      state.recentSearches = state.recentSearches.filter(
+        (search) => search !== action.payload
+      );
     },
     clearRecentSearches: (state) => {
       state.recentSearches = [];
     },
     followHashtag: (state, action: PayloadAction<string>) => {
-      const hashtag = state.trendingHashtags.find(h => h.id === action.payload);
+      const hashtag = state.trendingHashtags.find(
+        (h) => h.id === action.payload
+      );
       if (hashtag) {
         hashtag.isFollowing = !hashtag.isFollowing;
       }
-      const resultHashtag = state.searchResults.hashtags.find(h => h.id === action.payload);
+      const resultHashtag = state.searchResults.hashtags.find(
+        (h) => h.id === action.payload
+      );
       if (resultHashtag) {
         resultHashtag.isFollowing = !resultHashtag.isFollowing;
       }
     },
-    likePost: (state, action: PayloadAction<string>) => {
-      const postId = action.payload;
-      const post = state.posts.find(p => p.id === postId) || 
-                   state.suggestedPosts.find(p => p.id === postId) ||
-                   state.searchResults.posts.find(p => p.id === postId);
-      if (post) {
-        post.likesCount += 1;
-      }
-    },
-    setSuggestedPosts: (state, action: PayloadAction<ExplorePost[]>) => {
-      state.suggestedPosts = action.payload;
-    },
+  },
+  extraReducers: (builder) => {
+    // Get Explore Posts
+    builder
+      .addCase(getExplorePostsThunk.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(getExplorePostsThunk.fulfilled, (state, action) => {
+        state.isLoading = false;
+        const { content, totalPages, pageNo } = action.payload;
+        const transformedPosts = content.map(transformExplorePostData);
+
+        // Remove duplicates from the response itself
+        const uniquePosts = Array.from(
+          new Map(transformedPosts.map((post) => [post.id, post])).values()
+        );
+
+        if (pageNo === 0) {
+          state.posts = uniquePosts;
+        } else {
+          // Filter out duplicates when appending
+          const existingIds = new Set(state.posts.map((p) => p.id));
+          const newPosts = uniquePosts.filter((p) => !existingIds.has(p.id));
+          state.posts.push(...newPosts);
+        }
+
+        state.currentPage = pageNo;
+        state.totalPages = totalPages;
+        state.hasMore = pageNo < totalPages - 1;
+      })
+      .addCase(getExplorePostsThunk.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload as string;
+      });
   },
 });
 
 export const {
-  setPosts,
+  clearError,
+  clearPosts,
   setTrendingHashtags,
   setSearchQuery,
   setSearchResults,
@@ -136,8 +192,6 @@ export const {
   removeRecentSearch,
   clearRecentSearches,
   followHashtag,
-  likePost,
-  setSuggestedPosts,
 } = exploreSlice.actions;
 
 export default exploreSlice.reducer;

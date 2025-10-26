@@ -21,7 +21,6 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "@/store";
 import {
   getPostDetailThunk,
-  getMutualFollowersThunk,
   deletePostThunk,
   updatePostThunk,
   togglePostActiveThunk,
@@ -51,64 +50,6 @@ interface UIPost extends Post {
   taggedFriends: string[];
 }
 
-// Mock data - replace with actual API call
-const mockPost = {
-  id: "1",
-  userId: "1",
-  userName: "nguyenvana",
-  avatarUrl:
-    "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=32&h=32&fit=crop&crop=face",
-  caption: `Chào mọi người! Hôm nay mình có cơ hội được tham quan một công ty công nghệ rất thú vị. Không gian làm việc hiện đại, team trẻ trung và năng động. Đặc biệt là phòng chill với view thành phố rất đẹp! 
-
-Các bạn có kinh nghiệm nào về việc chọn môi trường làm việc không? Mình đang cân nhắc giữa startup và công ty lớn. 🤔
-
-#workplace #career #startup #technology`,
-  media: [
-    {
-      id: "1",
-      type: "image" as const,
-      url: "https://images.unsplash.com/photo-1497366216548-37526070297c?w=800&h=600&fit=crop",
-      thumbnail:
-        "https://images.unsplash.com/photo-1497366216548-37526070297c?w=400&h=300&fit=crop",
-    },
-    {
-      id: "2",
-      type: "video" as const,
-      url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
-      thumbnail:
-        "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=400&h=300&fit=crop",
-    },
-    {
-      id: "3",
-      type: "image" as const,
-      url: "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=800&h=600&fit=crop",
-      thumbnail:
-        "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=400&h=300&fit=crop",
-    },
-    {
-      id: "4",
-      type: "video" as const,
-      url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4",
-      thumbnail:
-        "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=300&fit=crop",
-    },
-  ],
-  stats: {
-    likes: 156,
-    comments: 23,
-    shares: 8,
-    views: 1200,
-  },
-  interactions: {
-    isLiked: false,
-    isBookmarked: false,
-    isShared: false,
-  },
-  taggedFriends: ["nguyenvanb", "tranthic"],
-  createdAt: "2024-01-15T10:30:00Z",
-  privacy: "public" as const,
-};
-
 export const PostDetailPage = () => {
   const { postId } = useParams();
   const navigate = useNavigate();
@@ -131,7 +72,6 @@ export const PostDetailPage = () => {
   useEffect(() => {
     if (postId && user) {
       dispatch(getPostDetailThunk(parseInt(postId)));
-      dispatch(getMutualFollowersThunk({ pageNo: 0, pageSize: 10 }));
     }
   }, [dispatch, user, postId]);
 
