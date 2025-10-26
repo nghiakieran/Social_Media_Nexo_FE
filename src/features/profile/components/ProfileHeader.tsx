@@ -196,7 +196,7 @@ export const ProfileHeader = ({
                   variant="outline" 
                   size="sm"
                   onClick={onEdit}
-                  className="gap-1 bg-gray-200 text-xs md:text-sm"
+                  className="gap-1 bg-gray-200 dark:bg-secondary hover:bg-gray-300 dark:hover:bg-secondary/80 text-xs md:text-sm transition-colors"
                 >
                   <Edit3 className="w-4 h-4" />
                   <span className="hidden sm:inline">Chỉnh sửa trang cá nhân</span>
@@ -206,7 +206,7 @@ export const ProfileHeader = ({
                   variant="outline" 
                   size="sm"
                   onClick={() => navigate('/archive/stories')}
-                  className='bg-gray-200'
+                  className="bg-gray-200 dark:bg-secondary hover:bg-gray-300 dark:hover:bg-secondary/80 transition-colors"
                   title="Xem kho lưu trữ"
                 >
                   <Archive className="w-4 h-4" />
@@ -215,7 +215,7 @@ export const ProfileHeader = ({
                   variant="outline" 
                   size="sm"
                   onClick={() => navigate('/account/settings')}
-                  className='bg-gray-200'
+                  className="bg-gray-200 dark:bg-secondary hover:bg-gray-300 dark:hover:bg-secondary/80 transition-colors"
                   title="Cài đặt"
                 >
                   <Settings className="w-4 h-4" />
