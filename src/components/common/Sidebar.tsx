@@ -20,6 +20,7 @@ import {
   Users,
   Shield,
   ChevronLeft,
+  Video,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Logo } from "./Logo";
@@ -39,7 +40,8 @@ const navigation = [
   { name: "Reels", href: "/reels", icon: Film },
   { name: "Tin nhắn", href: "/messages", icon: MessageCircle },
   { name: "Thông báo", href: "/notifications", icon: Heart },
-  { name: "Tạo", href: "/create", icon: PlusSquare },
+  { name: "Tạo bài viết", href: "/create", icon: PlusSquare },
+  { name: "Tạo Reel", href: "/reels/create", icon: Video },
   { name: "Hồ sơ", href: "/profile", icon: User, dynamic: true },
 ];
 
@@ -90,6 +92,8 @@ export const Sidebar = () => {
               <li key={item.name}>
                 <NavLink
                   to={href}
+                  end
+                  caseSensitive
                   className={({ isActive }) =>
                     cn(
                       "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200",
@@ -318,7 +322,7 @@ export const Sidebar = () => {
 
       {/* Mobile Bottom Navigation */}
       <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-sm border-t border-border">
-        <div className="flex items-center justify-around py-3 px-4">
+        <div className="flex items-center justify-around py-2 px-2">
           {mobileNavItems.map((item) => {
             // For profile link, use current user's username
             const href = item.dynamic && user ? `/${user.username}` : item.href;
@@ -329,13 +333,13 @@ export const Sidebar = () => {
                 to={href}
                 className={({ isActive }) =>
                   cn(
-                    "flex flex-col items-center gap-1 p-2 rounded-lg transition-all duration-200",
+                    "flex flex-col items-center gap-0.5 p-1.5 rounded-lg transition-all duration-200",
                     isActive ? "text-primary" : "text-muted-foreground"
                   )
                 }
               >
-                <item.icon className="h-6 w-6" />
-                <span className="text-xs font-medium">{item.name}</span>
+                <item.icon className="h-5 w-5" />
+                <span className="text-[10px] font-medium">{item.name}</span>
               </NavLink>
             );
           })}

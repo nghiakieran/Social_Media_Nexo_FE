@@ -12,6 +12,7 @@ import exploreSlice from "@/features/explore/exploreSlice";
 import profileSlice from "@/features/profile/profileSlice";
 import savedSlice from "@/features/saved/savedSlice";
 import storySlice from "@/features/story/storySlice";
+import reelSlice from "@/features/reel/reelSlice";
 
 export const store = configureStore({
   reducer: {
@@ -25,6 +26,7 @@ export const store = configureStore({
     profile: profileSlice,
     saved: savedSlice,
     story: storySlice,
+    reel: reelSlice,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

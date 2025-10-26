@@ -34,7 +34,8 @@ import { FeedPage } from "./features/post/pages/FeedPage";
 import { LiveStudioPage } from "./features/post/pages/LiveStudioPage";
 import { NoteCreatePage } from "./features/post/pages/NoteCreatePage";
 import { PostDetailPage } from "./features/post/pages/PostDetailPage";
-import { ReelCreatePage } from "./features/post/pages/ReelCreatePage";
+import ReelCreatePage from "./features/reel/pages/ReelCreatePage";
+import ReelEditPage from "./features/reel/pages/ReelEditPage";
 
 // Notification Pages
 import NotificationPage from "./features/notification/pages/NotificationPage";
@@ -65,6 +66,10 @@ import { ProfilePage } from "./features/profile/pages/ProfilePage";
 // Story Pages
 import { ArchivePage } from "./features/story/pages/ArchivePage";
 import { StoryCreatePage } from "./features/story/pages/StoryCreatePage";
+
+// Reel Pages
+import { ReelsPage } from "./features/reel";
+import ReelDetailPage from "./features/reel/pages/ReelDetailPage";
 
 const queryClient = new QueryClient();
 
@@ -121,10 +126,8 @@ const App = () => (
                 <Route index element={<FeedPage />} />
                 <Route path="search" element={<SearchPage />} />
                 <Route path="explore" element={<ExplorePage />} />
-                <Route
-                  path="reels"
-                  element={<div className="p-6">Reels (Coming soon)</div>}
-                />
+                <Route path="reels" element={<ReelsPage />} />
+                <Route path="reels/:reelId" element={<ReelDetailPage />} />
                 <Route path="messages" element={<InboxPage />} />
                 <Route path="messages/:chatId" element={<ChatPage />} />
                 <Route path="notifications" element={<NotificationPage />} />
@@ -133,6 +136,7 @@ const App = () => (
                 <Route path="create" element={<CreatePostPage />} />
                 <Route path="posts/:postId" element={<PostDetailPage />} />
                 <Route path="reels/create" element={<ReelCreatePage />} />
+                <Route path="reels/:reelId/edit" element={<ReelEditPage />} />
                 <Route path="live" element={<LiveStudioPage />} />
                 <Route path="notes/create" element={<NoteCreatePage />} />
                 <Route path="edit-profile" element={<EditProfilePage />} />

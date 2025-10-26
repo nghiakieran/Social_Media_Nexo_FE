@@ -22,7 +22,8 @@ export const SimpleVideoPreview = ({
     const video = videoRef.current;
     if (!video) return;
 
-    const isHLS = videoUrl.includes(".m3u8") || videoUrl.includes("m3u8");
+    const isHLS =
+      videoUrl && (videoUrl.includes(".m3u8") || videoUrl.includes("m3u8"));
 
     if (isHLS && Hls.isSupported()) {
       const hls = new Hls({
@@ -75,7 +76,7 @@ export const SimpleVideoPreview = ({
     <div className={`w-full h-full ${className}`}>
       <video
         ref={videoRef}
-        src={!videoUrl.includes(".m3u8") ? videoUrl : undefined}
+        src={videoUrl && !videoUrl.includes(".m3u8") ? videoUrl : undefined}
         className="w-full h-full object-cover"
         preload="auto"
         muted

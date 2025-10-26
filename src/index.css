@@ -166,14 +166,97 @@
   .scrollbar-thin::-webkit-scrollbar-thumb:hover {
     @apply bg-muted-foreground;
   }
+  
+  /* Hide scrollbar */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
 
   /* GPU acceleration for smooth animations */
   .will-change-transform {
     will-change: transform;
+    transform: translateZ(0);
+    backface-visibility: hidden;
+  }
+  
+  .will-change-scroll {
+    will-change: scroll-position;
+    transform: translateZ(0);
+  }
+  
+  .transform-gpu {
+    transform: translate3d(0, 0, 0);
+    backface-visibility: hidden;
+    perspective: 1000px;
+    -webkit-transform: translate3d(0, 0, 0);
+    -webkit-backface-visibility: hidden;
+    -webkit-perspective: 1000px;
+  }
+  
+  /* Optimize reels scrolling */
+  .reels-container {
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+    overscroll-behavior-y: contain;
   }
   
   /* Optimize touch scrolling */
   .touch-pan-y {
     touch-action: pan-y;
+  }
+  
+  /* Smooth snap scrolling */
+  .snap-y {
+    scroll-snap-type: y mandatory;
+  }
+  
+  .snap-start {
+    scroll-snap-align: start;
+  }
+  
+  .snap-always {
+    scroll-snap-stop: always;
+  }
+  
+  /* Hide video controls on mobile for Reels */
+  @media (max-width: 1023px) {
+    video[data-reel-mode]::-webkit-media-controls {
+      display: none !important;
+    }
+    video[data-reel-mode]::-webkit-media-controls-enclosure {
+      display: none !important;
+    }
+    video[data-reel-mode]::-webkit-media-controls-panel {
+      display: none !important;
+    }
+    video[data-reel-mode]::-webkit-media-controls-start-playback-button {
+      display: none !important;
+    }
+    video[data-reel-mode]::-webkit-media-controls-play-button {
+      display: none !important;
+    }
+    video[data-reel-mode]::-webkit-media-controls-timeline {
+      display: none !important;
+    }
+    video[data-reel-mode]::-webkit-media-controls-current-time-display {
+      display: none !important;
+    }
+    video[data-reel-mode]::-webkit-media-controls-time-remaining-display {
+      display: none !important;
+    }
+    video[data-reel-mode]::-webkit-media-controls-volume-slider {
+      display: none !important;
+    }
+    video[data-reel-mode]::-webkit-media-controls-mute-button {
+      display: none !important;
+    }
+    video[data-reel-mode]::-webkit-media-controls-fullscreen-button {
+      display: none !important;
+    }
   }
 }
