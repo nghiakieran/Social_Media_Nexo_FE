@@ -7,6 +7,8 @@ import { formatTimeAgo } from "@/utils/timeFormat";
 import { formatNumber } from "@/utils/constants";
 import { cn } from "@/lib/utils";
 import { Reel, ReelComment } from "../types";
+import { navigateToProfile } from "@/utils/navigation";
+import { useNavigate } from "react-router-dom";
 
 interface ReelCommentSectionProps {
   reel: Reel;
@@ -27,6 +29,7 @@ const ReelCommentSection = ({
   onShare,
   onProfileClick,
 }: ReelCommentSectionProps) => {
+  const navigate = useNavigate();
   const [commentText, setCommentText] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -44,10 +47,13 @@ const ReelCommentSection = ({
       <div className="p-4 border-b border-gray-200 dark:border-gray-700">
         {/* User Info */}
         <div className="flex items-center gap-3 mb-3">
-          <Avatar className="w-10 h-10">
+          <Avatar
+            className="w-10 h-10 cursor-pointer"
+            onClick={() => navigateToProfile(navigate, reel.userName)}
+          >
             <AvatarImage src={reel.avatarUrl} alt={reel.userName} />
             <AvatarFallback>
-              {reel.userName[0].toUpperCase()}
+              {reel.userName?.[0]?.toUpperCase() || "U"}
             </AvatarFallback>
           </Avatar>
           <div className="flex-1">
@@ -73,34 +79,6 @@ const ReelCommentSection = ({
             <p className="text-gray-900 dark:text-white leading-relaxed whitespace-pre-wrap">
               {reel.caption}
             </p>
-          </div>
-        )}
-
-        {/* Tags */}
-        {reel.tags && reel.tags.length > 0 && (
-          <div className="flex flex-wrap gap-2 mb-3">
-            {reel.tags.map((tag, index) => (
-              <span
-                key={index}
-                className="text-blue-500 text-sm font-medium hover:underline cursor-pointer"
-              >
-                #{tag}
-              </span>
-            ))}
-          </div>
-        )}
-
-        {/* Tagged Users */}
-        {reel.taggedUsers && reel.taggedUsers.length > 0 && (
-          <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400 text-sm">
-            <svg
-              className="w-4 h-4"
-              fill="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path d="M21.334 23H2.666a1 1 0 0 1-1-1v-1.354a6.279 6.279 0 0 1 6.272-6.272h8.124a6.279 6.279 0 0 1 6.271 6.271V22a1 1 0 0 1-1 1ZM12 13.269a6 6 0 1 1 6-6 6.007 6.007 0 0 1-6 6Z" />
-            </svg>
-            <span>{reel.taggedUsers.length} người được gắn thẻ</span>
           </div>
         )}
       </div>
@@ -144,7 +122,7 @@ const ReelCommentSection = ({
                 <Avatar className="w-8 h-8">
                   <AvatarImage src={comment.avatarUrl} alt={comment.userName} />
                   <AvatarFallback>
-                    {comment.userName[0].toUpperCase()}
+                    {comment.userName?.[0]?.toUpperCase() || "U"}
                   </AvatarFallback>
                 </Avatar>
               </div>
@@ -201,7 +179,9 @@ const ReelCommentSection = ({
         <form onSubmit={handleSubmitComment} className="flex gap-3">
           <Avatar className="w-8 h-8 flex-shrink-0">
             <AvatarImage src={reel.avatarUrl} alt={reel.userName} />
-            <AvatarFallback>{reel.userName[0].toUpperCase()}</AvatarFallback>
+            <AvatarFallback>
+              {reel.userName?.[0]?.toUpperCase() || "U"}
+            </AvatarFallback>
           </Avatar>
           <div className="flex-1 flex gap-2">
             <Textarea

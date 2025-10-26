@@ -3,24 +3,17 @@ import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { AppDispatch, useAppSelector } from "@/store";
 import { getPostsThunk } from "@/features/post/postSlice";
+import { getUserReelsThunk } from "@/features/reel/reelSlice";
 import { getMediaType } from "@/utils/mediaUtils";
 import {
-  setProfile,
   setPosts,
-  setReels,
-  setSaved,
-  setFollowers,
-  setFollowing,
   setActiveTab,
-  toggleFollow,
   setShowFollowersDialog,
   setShowFollowingDialog,
   setShowBlockDialog,
   setShowReportDialog,
   setShowAvatarDialog,
   setShowCreateHighlightDialog,
-  addHighlight,
-  updateAvatar,
   fetchCurrentUserProfileAsync,
   fetchUserProfileByUsernameAsync,
   fetchFollowersByUsernameAsync,
@@ -33,6 +26,7 @@ import {
 import { ProfileHeader } from "../components/ProfileHeader";
 import { ProfileTabs } from "../components/ProfileTabs";
 import { PostGrid } from "../components/PostGrid";
+import { ReelGrid } from "../components/ReelGrid";
 import { FollowersDialog } from "../components/FollowersDialog";
 import { BlockUserDialog } from "../components/BlockUserDialog";
 import { ReportUserDialog } from "../components/ReportUserDialog";
@@ -50,15 +44,17 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import {
-  mockProfilePosts,
-  mockReels,
-  mockSavedPosts,
-} from "../__mocks__/posts";
 import { useToast } from "@/hooks/use-toast";
 import { StoryViewer } from "@/features/story/components/StoryViewer";
 import type { Story, CollectionItem } from "@/features/story/types";
-import { getCollections, getCollectionDetail, getUserCollectionDetail, updateCollection, deleteCollection, getUserStories } from "@/features/story/api/storyApi";
+import {
+  getCollections,
+  getCollectionDetail,
+  getUserCollectionDetail,
+  updateCollection,
+  deleteCollection,
+  getUserStories,
+} from "@/features/story/api/storyApi";
 import { transformUserStoriesToStory } from "@/features/story/types";
 import { upsertProfileStory } from "@/features/story/storySlice";
 import { PrivateAccountMessage } from "../components/PrivateAccountMessage";
@@ -76,7 +72,7 @@ export const ProfilePage = () => {
   const {
     currentProfile,
     posts,
-    reels,
+    reels: profileReels,
     saved,
     highlights,
     followers,
@@ -91,54 +87,64 @@ export const ProfilePage = () => {
     showCreateHighlightDialog,
   } = useAppSelector((state) => state.profile);
 
+  const { reels: reelStoreReels } = useAppSelector((state) => state.reel);
+
   const currentUser = useAppSelector((state) => state.auth.user);
   const isCurrentUser = currentUser && username === currentUser.username;
   const apiPosts = useAppSelector((state) => state.post.posts);
   const isLoadingPosts = useAppSelector((state) => state.post.isLoading);
   const hasMorePosts = useAppSelector((state) => state.post.hasMore);
   const [currentPage, setCurrentPage] = useState(0);
-  
+
   // Profile user's stories state
   const [profileUserStory, setProfileUserStory] = useState<Story | null>(null);
   const hasStory = !!profileUserStory && profileUserStory.content.length > 0;
   const isStoryViewed = profileUserStory?.isViewed ?? false;
-  
+
   // Get Redux stories to sync like state
   const reduxUserStories = useAppSelector((state) => state.story.userStories);
-  const reduxFriendStories = useAppSelector((state) => state.story.friendStories);
-  
+  const reduxFriendStories = useAppSelector(
+    (state) => state.story.friendStories
+  );
+
   // Collections (Highlights) state
   const [collections, setCollections] = useState<CollectionItem[]>([]);
   const [isLoadingCollections, setIsLoadingCollections] = useState(false);
-  const [editingCollection, setEditingCollection] = useState<{ id: number; name: string } | null>(null);
-  const [deletingCollectionId, setDeletingCollectionId] = useState<string | null>(null);
+  const [editingCollection, setEditingCollection] = useState<{
+    id: number;
+    name: string;
+  } | null>(null);
+  const [deletingCollectionId, setDeletingCollectionId] = useState<
+    string | null
+  >(null);
+
+  // Track if user has clicked on reels tab
+  const [hasClickedReelsTab, setHasClickedReelsTab] = useState(false);
 
   // Load user stories function
   const loadUserStories = useCallback(async () => {
     if (!currentProfile?.id) return;
-    
+
     // Only load stories if we have access to the profile
     const canAccessProfile =
-      isCurrentUser ||
-      !currentProfile.isPrivate ||
-      currentProfile.isFollowing;
-    
+      isCurrentUser || !currentProfile.isPrivate || currentProfile.isFollowing;
+
     if (!canAccessProfile) {
       setProfileUserStory(null);
       return;
     }
-    
+
     try {
       const response = await getUserStories({
         userId: parseInt(currentProfile.id),
         pageNo: 0,
         pageSize: 10,
       });
-      
+
       // Transform API response to Story format
       // response.data.content is UserStoriesData[]
       const userStoriesData = response.data.content;
-      
+
       // For profile, we only need the first user's stories
       if (userStoriesData && userStoriesData.length > 0) {
         const story = transformUserStoriesToStory(
@@ -146,17 +152,24 @@ export const ProfilePage = () => {
           currentUser?.id // Pass currentUserId to determine isOwnStory
         );
         setProfileUserStory(story);
-        
+
         // Also add to Redux to enable like state sync
         dispatch(upsertProfileStory(story));
       } else {
         setProfileUserStory(null);
       }
     } catch (error) {
-      console.error('Failed to load user stories:', error);
+      console.error("Failed to load user stories:", error);
       setProfileUserStory(null);
     }
-  }, [currentProfile?.id, currentProfile?.isPrivate, currentProfile?.isFollowing, isCurrentUser, currentUser?.id, dispatch]);
+  }, [
+    currentProfile?.id,
+    currentProfile?.isPrivate,
+    currentProfile?.isFollowing,
+    isCurrentUser,
+    currentUser?.id,
+    dispatch,
+  ]);
 
   // Load user stories when profile is loaded
   useEffect(() => {
@@ -164,63 +177,77 @@ export const ProfilePage = () => {
       loadUserStories();
     }
   }, [currentProfile?.id, loadUserStories]);
-  
+
   // Sync like state from Redux to local profileUserStory and viewerData
   useEffect(() => {
     if (!currentProfile?.id) return;
-    
+
     // Find matching story in Redux (could be in userStories or friendStories)
     const allReduxStories = [...reduxUserStories, ...reduxFriendStories];
     const matchingReduxStory = allReduxStories.find(
-      (s) => s.id === currentProfile.id.toString() || s.username === currentProfile.username
+      (s) =>
+        s.id === currentProfile.id.toString() ||
+        s.username === currentProfile.username
     );
-    
+
     if (matchingReduxStory) {
       // Update local profileUserStory
       setProfileUserStory(matchingReduxStory);
-      
+
       // Also update viewerData if viewer is open
       setViewerData((prev) => {
         if (!prev.stories || prev.stories.length === 0) return prev;
-        
+
         // Update the matching story in viewerData
         const updatedStories = prev.stories.map((story) => {
-          if (story.id === matchingReduxStory.id || story.username === matchingReduxStory.username) {
+          if (
+            story.id === matchingReduxStory.id ||
+            story.username === matchingReduxStory.username
+          ) {
             return matchingReduxStory;
           }
           return story;
         });
-        
+
         return {
           ...prev,
           stories: updatedStories,
         };
       });
     }
-  }, [reduxUserStories, reduxFriendStories, currentProfile?.id, currentProfile?.username]);
+  }, [
+    reduxUserStories,
+    reduxFriendStories,
+    currentProfile?.id,
+    currentProfile?.username,
+  ]);
 
   // Load collections when profile is loaded
   useEffect(() => {
     const loadCollections = async () => {
       if (!currentProfile?.id) return;
-      
+
       // Only load collections if we have access to the profile
       const canAccessProfile =
         isCurrentUser ||
         !currentProfile.isPrivate ||
         currentProfile.isFollowing; // Only if truly following (accepted), not just requested
-      
+
       if (!canAccessProfile) {
         setCollections([]);
         return;
       }
-      
+
       setIsLoadingCollections(true);
       try {
-        const response = await getCollections(parseInt(currentProfile.id), 0, 10);
+        const response = await getCollections(
+          parseInt(currentProfile.id),
+          0,
+          10
+        );
         setCollections(response.data.content);
       } catch (error) {
-        console.error('Failed to load collections:', error);
+        console.error("Failed to load collections:", error);
       } finally {
         setIsLoadingCollections(false);
       }
@@ -229,7 +256,12 @@ export const ProfilePage = () => {
     if (currentProfile?.id) {
       loadCollections();
     }
-  }, [currentProfile?.id, currentProfile?.isPrivate, currentProfile?.isFollowing, isCurrentUser]);
+  }, [
+    currentProfile?.id,
+    currentProfile?.isPrivate,
+    currentProfile?.isFollowing,
+    isCurrentUser,
+  ]);
 
   useEffect(() => {
     if (username) {
@@ -240,9 +272,8 @@ export const ProfilePage = () => {
         dispatch(fetchUserProfileByUsernameAsync(username));
       }
 
-      // Set mock data for reels and saved (will be replaced with real API later)
-      dispatch(setReels(mockReels));
-      dispatch(setSaved(mockSavedPosts));
+      // Set mock data for saved (will be replaced with real API later)
+      // dispatch(setSaved(mockSavedPosts));
     }
   }, [username, isCurrentUser, dispatch]);
 
@@ -305,6 +336,33 @@ export const ProfilePage = () => {
       dispatch(setActiveTab(tabFromUrl as "posts" | "reels" | "saved"));
     }
   }, [searchParams, dispatch]);
+
+  // Load reels when activeTab is "reels" - only when user clicks on reels tab
+  useEffect(() => {
+    if (activeTab === "reels" && currentProfile?.id && hasClickedReelsTab) {
+      const canAccessProfile =
+        isCurrentUser ||
+        !currentProfile.isPrivate ||
+        currentProfile.isFollowing;
+
+      if (canAccessProfile) {
+        const userId = parseInt(currentProfile.id);
+        // Only load if reels array is empty (first time loading)
+        if (reelStoreReels.length === 0) {
+          dispatch(getUserReelsThunk({ userId, pageNo: 0, pageSize: 10 }));
+        }
+      }
+    }
+  }, [
+    activeTab,
+    currentProfile?.id,
+    currentProfile?.isPrivate,
+    currentProfile?.isFollowing,
+    isCurrentUser,
+    dispatch,
+    reelStoreReels.length,
+    hasClickedReelsTab,
+  ]);
 
   const handleFollow = () => {
     if (currentProfile) {
@@ -384,7 +442,7 @@ export const ProfilePage = () => {
       } else if (username) {
         dispatch(fetchUserProfileByUsernameAsync(username));
       }
-      
+
       toast({
         title: "Đã cập nhật ảnh đại diện",
         description: "Ảnh đại diện đã được thay đổi thành công",
@@ -410,7 +468,7 @@ export const ProfilePage = () => {
       } else if (username) {
         dispatch(fetchUserProfileByUsernameAsync(username));
       }
-      
+
       toast({
         title: "Đã gỡ ảnh đại diện",
         description: "Ảnh đại diện đã được gỡ bỏ thành công",
@@ -434,15 +492,19 @@ export const ProfilePage = () => {
     // Reload collections after creating new one
     if (currentProfile?.id) {
       try {
-        const response = await getCollections(parseInt(currentProfile.id), 0, 10);
+        const response = await getCollections(
+          parseInt(currentProfile.id),
+          0,
+          10
+        );
         setCollections(response.data.content);
       } catch (error) {
-        console.error('Failed to reload collections:', error);
+        console.error("Failed to reload collections:", error);
       }
     }
-    
+
     dispatch(setShowCreateHighlightDialog(false));
-    
+
     toast({
       title: "Đã tạo tin nổi bật!",
       description: "Tin nổi bật đã được tạo thành công",
@@ -467,10 +529,10 @@ export const ProfilePage = () => {
 
   const handleOpenHighlight = async (highlightId: string) => {
     try {
-      const response = isCurrentUser 
+      const response = isCurrentUser
         ? await getCollectionDetail(parseInt(highlightId))
         : await getUserCollectionDetail(parseInt(highlightId));
-      
+
       const collectionDetail = response.data;
 
       // Transform collection stories to Story format
@@ -501,13 +563,14 @@ export const ProfilePage = () => {
       toast({
         variant: "destructive",
         title: "Lỗi",
-        description: error instanceof Error ? error.message : "Không thể tải tin nổi bật",
+        description:
+          error instanceof Error ? error.message : "Không thể tải tin nổi bật",
       });
     }
   };
 
   const handleEditHighlight = (highlightId: string) => {
-    const collection = collections.find(c => c.id.toString() === highlightId);
+    const collection = collections.find((c) => c.id.toString() === highlightId);
     if (collection) {
       setEditingCollection({
         id: collection.id,
@@ -520,10 +583,14 @@ export const ProfilePage = () => {
     // Reload collections after edit
     if (currentProfile?.id) {
       try {
-        const response = await getCollections(parseInt(currentProfile.id), 0, 10);
+        const response = await getCollections(
+          parseInt(currentProfile.id),
+          0,
+          10
+        );
         setCollections(response.data.content);
       } catch (error) {
-        console.error('Failed to reload collections:', error);
+        console.error("Failed to reload collections:", error);
       }
     }
     setEditingCollection(null);
@@ -538,13 +605,17 @@ export const ProfilePage = () => {
 
     try {
       await deleteCollection(parseInt(deletingCollectionId));
-      
+
       // Reload collections after deletion
       if (currentProfile?.id) {
-        const response = await getCollections(parseInt(currentProfile.id), 0, 10);
+        const response = await getCollections(
+          parseInt(currentProfile.id),
+          0,
+          10
+        );
         setCollections(response.data.content);
       }
-      
+
       toast({
         title: "Đã xóa!",
         description: "Tin nổi bật đã được xóa thành công",
@@ -553,7 +624,8 @@ export const ProfilePage = () => {
       toast({
         variant: "destructive",
         title: "Lỗi",
-        description: error instanceof Error ? error.message : "Không thể xóa tin nổi bật",
+        description:
+          error instanceof Error ? error.message : "Không thể xóa tin nổi bật",
       });
     } finally {
       setDeletingCollectionId(null);
@@ -572,7 +644,15 @@ export const ProfilePage = () => {
 
     switch (activeTab) {
       case "reels":
-        return <PostGrid posts={reels} />;
+        return (
+          <ReelGrid
+            reels={reelStoreReels}
+            onReelClick={(reel) => {
+              // Navigate to reel detail page
+              navigate(`/reels/${reel.id}`);
+            }}
+          />
+        );
       case "saved":
         return isCurrentUser ? <SavedCollectionsContent /> : null;
       case "hidden":
@@ -645,9 +725,11 @@ export const ProfilePage = () => {
       />
 
       {/* Story highlights - only show if we have access */}
-      {(isCurrentUser || !currentProfile.isPrivate || currentProfile.isFollowing) && (
+      {(isCurrentUser ||
+        !currentProfile.isPrivate ||
+        currentProfile.isFollowing) && (
         <StoryHighlights
-          highlights={collections.map(col => ({
+          highlights={collections.map((col) => ({
             id: col.id.toString(),
             title: col.collectionName,
             cover: col.mediaUrl,
@@ -665,6 +747,12 @@ export const ProfilePage = () => {
         activeTab={activeTab}
         onTabChange={(tab) => {
           dispatch(setActiveTab(tab));
+
+          // Track when user clicks on reels tab
+          if (tab === "reels") {
+            setHasClickedReelsTab(true);
+          }
+
           // Update URL with tab parameter
           const newSearchParams = new URLSearchParams(searchParams);
           if (tab === "posts") {
@@ -742,17 +830,24 @@ export const ProfilePage = () => {
       )}
 
       {/* Delete Confirmation Dialog */}
-      <AlertDialog open={!!deletingCollectionId} onOpenChange={(open) => !open && setDeletingCollectionId(null)}>
+      <AlertDialog
+        open={!!deletingCollectionId}
+        onOpenChange={(open) => !open && setDeletingCollectionId(null)}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Xóa tin nổi bật?</AlertDialogTitle>
             <AlertDialogDescription>
-              Bạn có chắc chắn muốn xóa tin nổi bật này? Hành động này không thể hoàn tác.
+              Bạn có chắc chắn muốn xóa tin nổi bật này? Hành động này không thể
+              hoàn tác.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Hủy</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
               Xóa
             </AlertDialogAction>
           </AlertDialogFooter>

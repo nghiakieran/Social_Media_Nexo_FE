@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ImageIcon, Video, FileText } from "lucide-react";
+import { ImageIcon, Video, FileText, Film } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -26,6 +26,11 @@ export const CreateContentDialog = ({
   const handlePostCreate = () => {
     onClose();
     navigate("/create");
+  };
+
+  const handleReelCreate = () => {
+    onClose();
+    navigate("/reels/create");
   };
 
   // Validate video duration
@@ -157,6 +162,26 @@ export const CreateContentDialog = ({
               <h3 className="font-semibold text-base">Tin</h3>
               <p className="text-sm text-muted-foreground">
                 Chia sẻ ảnh hoặc video (tối đa 60 giây) trong 24 giờ
+              </p>
+            </div>
+          </button>
+
+          {/* Create Reel Option */}
+          <button
+            onClick={handleReelCreate}
+            className={cn(
+              "flex items-center gap-4 p-4 rounded-xl",
+              "hover:bg-muted/50 transition-all duration-200",
+              "text-left group"
+            )}
+          >
+            <div className="w-14 h-14 rounded-full bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 flex items-center justify-center shadow-md group-hover:shadow-lg transition-shadow">
+              <Film className="w-7 h-7 text-white" />
+            </div>
+            <div className="flex-1">
+              <h3 className="font-semibold text-base">Reel</h3>
+              <p className="text-sm text-muted-foreground">
+                Tạo video ngắn để chia sẻ với mọi người
               </p>
             </div>
           </button>

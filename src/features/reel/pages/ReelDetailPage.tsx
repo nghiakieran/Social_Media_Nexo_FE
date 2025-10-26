@@ -1,59 +1,55 @@
-import { useEffect, useRef, useState } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import { useParams, useNavigate } from 'react-router-dom';
-import { RootState } from '@/store';
-import { setReels, setCurrentReelIndex, openCommentsDrawer } from '../reelSlice';
-import ReelViewer from '../components/ReelViewer';
-import ReelCommentDrawer from '../components/ReelCommentDrawer';
-import ReelCommentSection from '../components/ReelCommentSection';
-import { mockReels } from '../__mocks__/reels';
-import { ShareDialog } from '@/features/post/components/ShareDialog';
-import { useIsMobile } from '@/hooks/use-mobile';
-import { Button } from '@/components/ui/button';
-import { ArrowLeft } from 'lucide-react';
-import { Loader } from '@/components/common/Loader';
+import { useEffect, useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { useAppDispatch, useAppSelector } from "@/store";
+import {
+  setCurrentReel,
+  openCommentsDrawer,
+  getReelDetailThunk,
+  getReelsFeedThunk,
+  deleteReelThunk,
+} from "../reelSlice";
+import ReelViewer from "../components/ReelViewer";
+import ReelCommentDrawer from "../components/ReelCommentDrawer";
+import ReelCommentSection from "../components/ReelCommentSection";
+import { ShareDialog } from "@/features/post/components/ShareDialog";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { Button } from "@/components/ui/button";
+import { ArrowLeft } from "lucide-react";
+import { Loader } from "@/components/common/Loader";
 
 const ReelDetailPage = () => {
   const { reelId } = useParams();
   const navigate = useNavigate();
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
   const isMobile = useIsMobile();
-  const { reels, currentReelIndex, isCommentsDrawerOpen, comments } = useSelector(
-    (state: RootState) => state.reel
-  );
+  const {
+    reels,
+    currentReel,
+    isCommentsDrawerOpen,
+    comments,
+    isLoading: reduxIsLoading,
+    error: reduxError,
+  } = useAppSelector((state) => state.reel);
+  const user = useAppSelector((state) => state.auth.user);
   const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
-  const [shareReelId, setShareReelId] = useState<string>('');
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  // Find the specific reel
-  const currentReel = reels.find(reel => reel.id === reelId);
+  const [shareReelId, setShareReelId] = useState<string>("");
 
   useEffect(() => {
-    // Load reels if not already loaded
-    if (reels.length === 0) {
-      dispatch(setReels(mockReels));
+    if (reelId) {
+      dispatch(getReelDetailThunk({ reelId: parseInt(reelId) }));
     }
-    
-    // Find the index of the current reel
-    if (reelId && reels.length > 0) {
-      const reelIndex = reels.findIndex(reel => reel.id === reelId);
-      if (reelIndex !== -1) {
-        dispatch(setCurrentReelIndex(reelIndex));
-        setIsLoading(false);
-      } else {
-        setError('Reel không tồn tại');
-        setIsLoading(false);
-      }
-    }
-  }, [dispatch, reelId, reels]);
+  }, [dispatch, reelId]);
 
   const handleShare = (reelId: string) => {
     setShareReelId(reelId);
     setIsShareDialogOpen(true);
   };
 
-  const handleShareAction = (postId: string, userIds: string[], message: string) => {
+  const handleShareAction = (
+    postId: string,
+    userIds: string[],
+    message: string
+  ) => {
     // TODO: Implement actual share logic
     setIsShareDialogOpen(false);
   };
@@ -78,23 +74,47 @@ const ReelDetailPage = () => {
     navigate(-1);
   };
 
+  const handleEdit = (reelId: string) => {
+    navigate(`/reels/${reelId}/edit`);
+  };
+
+  const handleDelete = (reelId: string) => {
+    // Delete is handled in ReelViewer component
+  };
+
   // Show loading state
-  if (isLoading) {
+  if (reduxIsLoading) {
     return <Loader overlay />;
   }
 
   // Show error state
-  if (error || !currentReel) {
+  if (reduxError) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+            Có lỗi xảy ra
+          </h2>
+          <p className="text-gray-600 dark:text-gray-400 mb-4">{reduxError}</p>
+          <Button onClick={() => window.location.reload()}>Thử lại</Button>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state for missing reel
+  if (!currentReel) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <p className="text-white mb-4">{error || 'Reel không tồn tại'}</p>
-          <Button
-            variant="outline"
-            onClick={handleBack}
-            className="bg-white text-black hover:bg-gray-100"
-          >
-            Quay lại
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+            Không tìm thấy reel
+          </h2>
+          <p className="text-gray-600 dark:text-gray-400 mb-4">
+            Reel này có thể đã bị xóa hoặc không tồn tại.
+          </p>
+          <Button onClick={() => navigate("/reels")}>
+            Quay về trang reels
           </Button>
         </div>
       </div>
@@ -102,22 +122,29 @@ const ReelDetailPage = () => {
   }
 
   // Convert Reel to Post format for ShareDialog
-  const reelAsPost = {
-    id: currentReel.id,
-    content: currentReel.caption,
-    media: [{
-      url: currentReel.mediaUrl,
-      type: 'video' as const,
-    }],
-    userName: currentReel.userName,
-    avatarUrl: currentReel.avatarUrl,
-    createdAt: currentReel.createdAt,
-  };
+  const reelAsPost = currentReel
+    ? {
+        id: currentReel.id,
+        content: currentReel.caption,
+        media: [
+          {
+            url: currentReel.mediaUrl,
+            type: "video" as const,
+          },
+        ],
+        userName: currentReel.userName,
+        avatarUrl: currentReel.avatarUrl,
+        createdAt: currentReel.createdAt,
+      }
+    : null;
 
   if (isMobile) {
     // Mobile: Full screen reel with comment drawer
     return (
-      <div className="relative w-full overflow-hidden" style={{ height: '100dvh' }}>
+      <div
+        className="relative w-full overflow-hidden"
+        style={{ height: "100dvh" }}
+      >
         {/* Header */}
         <div className="absolute top-0 left-0 right-0 p-4 bg-gradient-to-b from-black/60 to-transparent z-30">
           <div className="flex items-center justify-center relative">
@@ -144,12 +171,17 @@ const ReelDetailPage = () => {
         </div>
 
         {/* Reel Viewer */}
-        <ReelViewer
-          reel={currentReel}
-          isActive={true}
-          onShare={handleShare}
-          isDetail={true}
-        />
+        {currentReel && (
+          <ReelViewer
+            reel={currentReel}
+            isActive={true}
+            onShare={handleShare}
+            isDetail={true}
+            showEditButton={String(user?.id) === String(currentReel.userId)}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+          />
+        )}
 
         {/* Comment Drawer */}
         <ReelCommentDrawer />
@@ -201,34 +233,41 @@ const ReelDetailPage = () => {
       <div className="max-w-6xl mx-auto px-4 py-6">
         <div className="flex h-[calc(100vh-140px)]">
           {/* Left side - Reel Video */}
-          <div 
-            className="flex items-center justify-center relative rounded-lg overflow-hidden" 
-            style={{ 
-              aspectRatio: '9 / 16',
-              flexBasis: '50%',
-              minWidth: '50%',
-              maxWidth: '50%'
+          <div
+            className="flex items-center justify-center relative rounded-lg overflow-hidden"
+            style={{
+              aspectRatio: "9 / 16",
+              flexBasis: "50%",
+              minWidth: "50%",
+              maxWidth: "50%",
             }}
           >
-            <ReelViewer
-              reel={currentReel}
-              isActive={true}
-              onShare={handleShare}
-              isDetail={true}
-            />
+            {currentReel && (
+              <ReelViewer
+                reel={currentReel}
+                isActive={true}
+                onShare={handleShare}
+                isDetail={true}
+                showEditButton={String(user?.id) === String(currentReel.userId)}
+                onEdit={handleEdit}
+                onDelete={handleDelete}
+              />
+            )}
           </div>
 
           {/* Right side - Comments */}
           <div className="flex-1 flex flex-col bg-white dark:bg-gray-900 min-w-0">
-            <ReelCommentSection
-              reel={currentReel}
-              comments={comments[currentReel.id] || []}
-              onAddComment={handleAddComment}
-              onToggleCommentLike={handleToggleCommentLike}
-              onToggleReelLike={handleToggleReelLike}
-              onShare={() => handleShare(currentReel.id)}
-              onProfileClick={handleProfileClick}
-            />
+            {currentReel && (
+              <ReelCommentSection
+                reel={currentReel}
+                comments={comments[currentReel.id] || []}
+                onAddComment={handleAddComment}
+                onToggleCommentLike={handleToggleCommentLike}
+                onToggleReelLike={handleToggleReelLike}
+                onShare={() => handleShare(currentReel.id)}
+                onProfileClick={handleProfileClick}
+              />
+            )}
           </div>
         </div>
       </div>

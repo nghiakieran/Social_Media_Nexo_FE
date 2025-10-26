@@ -20,6 +20,7 @@ import {
   Users,
   Shield,
   ChevronLeft,
+  Video,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Logo } from "./Logo";
@@ -39,7 +40,8 @@ const navigation = [
   { name: "Reels", href: "/reels", icon: Film },
   { name: "Tin nhắn", href: "/messages", icon: MessageCircle },
   { name: "Thông báo", href: "/notifications", icon: Heart },
-  { name: "Tạo", href: "/create", icon: PlusSquare },
+  { name: "Tạo bài viết", href: "/create", icon: PlusSquare },
+  { name: "Tạo Reel", href: "/reels/create", icon: Video },
   { name: "Hồ sơ", href: "/profile", icon: User, dynamic: true },
 ];
 
@@ -90,6 +92,8 @@ export const Sidebar = () => {
               <li key={item.name}>
                 <NavLink
                   to={href}
+                  end
+                  caseSensitive
                   className={({ isActive }) =>
                     cn(
                       "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200",
