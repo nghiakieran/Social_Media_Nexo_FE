@@ -1,31 +1,43 @@
-import { useEffect, useRef, useState } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import { RootState } from '@/store';
-import { setReels, setCurrentReelIndex, addReels } from '../reelSlice';
-import ReelViewer from '../components/ReelViewer';
-import ReelCommentDrawer from '../components/ReelCommentDrawer';
-import ReelCommentDialog from '../components/ReelCommentDialog';
-import { mockReels } from '../__mocks__/reels';
-import { ShareDialog } from '@/features/post/components/ShareDialog';
-import { useIsMobile } from '@/hooks/use-mobile';
+import { useEffect, useRef, useState } from "react";
+import { useAppDispatch, useAppSelector } from "@/store";
+import {
+  setCurrentReel,
+  getReelsFeedThunk,
+  likeReelThunk,
+  deleteReelThunk,
+} from "../reelSlice";
+import ReelViewer from "../components/ReelViewer";
+import ReelCommentDrawer from "../components/ReelCommentDrawer";
+import ReelCommentDialog from "../components/ReelCommentDialog";
+import { ShareDialog } from "@/features/post/components/ShareDialog";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const ReelsPage = () => {
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
   const isMobile = useIsMobile();
-  const { reels, currentReelIndex, isCommentsDrawerOpen } = useSelector(
-    (state: RootState) => state.reel
-  );
+  const {
+    reels,
+    currentReel,
+    isCommentsDrawerOpen,
+    isLoading,
+    hasMore,
+    currentPage,
+  } = useAppSelector((state) => state.reel);
+  const user = useAppSelector((state) => state.auth.user);
   const containerRef = useRef<HTMLDivElement>(null);
+  const [currentReelIndex, setCurrentReelIndex] = useState(0);
   const [startY, setStartY] = useState(0);
   const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
-  const [shareReelId, setShareReelId] = useState<string>('');
+  const [shareReelId, setShareReelId] = useState<string>("");
   const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isScrollingRef = useRef(false);
 
   useEffect(() => {
     // Load initial reels
-    dispatch(setReels(mockReels));
-  }, [dispatch]);
+    if (user?.id) {
+      dispatch(getReelsFeedThunk({ userId: user.id, page: 0, limit: 10 }));
+    }
+  }, [dispatch, user?.id]);
 
   useEffect(() => {
     // Scroll to current reel (chỉ khi comment drawer đóng)
@@ -33,12 +45,12 @@ const ReelsPage = () => {
       isScrollingRef.current = true;
       const containerHeight = containerRef.current.clientHeight;
       const scrollTop = currentReelIndex * containerHeight;
-      
+
       containerRef.current.scrollTo({
         top: scrollTop,
-        behavior: 'smooth',
+        behavior: "smooth",
       });
-      
+
       // Reset scrolling flag after animation
       setTimeout(() => {
         isScrollingRef.current = false;
@@ -49,15 +61,15 @@ const ReelsPage = () => {
   // Block scroll khi comment drawer mở
   useEffect(() => {
     if (isCommentsDrawerOpen && containerRef.current) {
-      containerRef.current.style.overflow = 'hidden';
+      containerRef.current.style.overflow = "hidden";
     } else if (containerRef.current) {
-      containerRef.current.style.overflow = 'auto';
+      containerRef.current.style.overflow = "auto";
     }
   }, [isCommentsDrawerOpen]);
 
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
     if (isScrollingRef.current) return;
-    
+
     const container = e.currentTarget;
     const scrollTop = container.scrollTop;
     const containerHeight = container.clientHeight;
@@ -70,20 +82,26 @@ const ReelsPage = () => {
 
     // Debounce index update
     scrollTimeoutRef.current = setTimeout(() => {
-      if (newIndex !== currentReelIndex && newIndex >= 0 && newIndex < reels.length) {
-        dispatch(setCurrentReelIndex(newIndex));
+      if (
+        newIndex !== currentReelIndex &&
+        newIndex >= 0 &&
+        newIndex < reels.length
+      ) {
+        setCurrentReelIndex(newIndex);
+        dispatch(setCurrentReel(reels[newIndex]));
       }
 
       // Load more reels when near the end
-      if (
-        newIndex >= reels.length - 2 &&
-        reels.length < 50 // Prevent infinite loading
-      ) {
-        const moreReels = mockReels.map((reel) => ({
-          ...reel,
-          id: `${reel.id}-${Date.now()}`,
-        }));
-        dispatch(addReels(moreReels));
+      if (newIndex >= reels.length - 2 && hasMore && !isLoading) {
+        if (user?.id) {
+          dispatch(
+            getReelsFeedThunk({
+              userId: user.id,
+              page: currentPage + 1,
+              limit: 10,
+            })
+          );
+        }
       }
     }, 50); // 50ms debounce
   };
@@ -95,7 +113,7 @@ const ReelsPage = () => {
 
   const handleTouchEnd = (e: React.TouchEvent) => {
     if (isCommentsDrawerOpen) return;
-    
+
     const endY = e.changedTouches[0].clientY;
     const diff = startY - endY;
 
@@ -103,14 +121,18 @@ const ReelsPage = () => {
     if (Math.abs(diff) > 80) {
       if (diff > 0 && currentReelIndex < reels.length - 1) {
         // Swipe up - next reel
-        dispatch(setCurrentReelIndex(currentReelIndex + 1));
+        const newIndex = currentReelIndex + 1;
+        setCurrentReelIndex(newIndex);
+        dispatch(setCurrentReel(reels[newIndex]));
       } else if (diff < 0 && currentReelIndex > 0) {
         // Swipe down - previous reel
-        dispatch(setCurrentReelIndex(currentReelIndex - 1));
+        const newIndex = currentReelIndex - 1;
+        setCurrentReelIndex(newIndex);
+        dispatch(setCurrentReel(reels[newIndex]));
       }
     }
   };
-  
+
   // Cleanup timeout on unmount
   useEffect(() => {
     return () => {
@@ -125,28 +147,49 @@ const ReelsPage = () => {
     setIsShareDialogOpen(true);
   };
 
-  const handleShareAction = (postId: string, userIds: string[], message: string) => {
+  const handleShareAction = (
+    postId: string,
+    userIds: string[],
+    message: string
+  ) => {
     // TODO: Implement actual share logic
     setIsShareDialogOpen(false);
   };
 
-  const currentReel = reels[currentReelIndex];
-  
+  const handleEdit = (reelId: string) => {
+    // Navigate to edit page
+    window.location.href = `/reels/${reelId}/edit`;
+  };
+
+  const handleDelete = (reelId: string) => {
+    // Delete is handled in ReelViewer component
+    console.log("Reel deleted:", reelId);
+  };
+
+  const currentReelData = reels[currentReelIndex];
+
   // Convert Reel to Post format for ShareDialog
-  const reelAsPost = currentReel ? {
-    id: currentReel.id,
-    content: currentReel.caption,
-    media: [{
-      url: currentReel.mediaUrl,
-      type: 'video' as const,
-    }],
-    userName: currentReel.userName,
-    avatarUrl: currentReel.avatarUrl,
-    createdAt: currentReel.createdAt,
-  } : null;
+  const reelAsPost = currentReelData
+    ? {
+        id: currentReelData.id,
+        content: currentReelData.caption,
+        media: [
+          {
+            url: currentReelData.mediaUrl,
+            type: "video" as const,
+          },
+        ],
+        userName: currentReelData.userName,
+        avatarUrl: currentReelData.avatarUrl,
+        createdAt: currentReelData.createdAt,
+      }
+    : null;
 
   return (
-    <div className="relative w-full overflow-hidden flex items-center justify-center" style={{ height: isMobile ? 'calc(100dvh - 65px)' : '100dvh' }}>
+    <div
+      className="relative w-full overflow-hidden flex items-center justify-center"
+      style={{ height: isMobile ? "calc(100dvh - 65px)" : "100dvh" }}
+    >
       {/* Reels Container */}
       <div
         ref={containerRef}
@@ -155,18 +198,18 @@ const ReelsPage = () => {
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
         style={{
-          touchAction: isCommentsDrawerOpen ? 'none' : 'pan-y',
-          scrollSnapType: 'y mandatory',
+          touchAction: isCommentsDrawerOpen ? "none" : "pan-y",
+          scrollSnapType: "y mandatory",
         }}
       >
         {reels.map((reel, index) => (
           <div
             key={reel.id}
             className="w-full snap-start snap-always will-change-transform"
-            style={{ 
-              height: isMobile ? 'calc(100dvh - 65px)' : '100dvh',
-              scrollSnapAlign: 'start',
-              scrollSnapStop: 'always',
+            style={{
+              height: isMobile ? "calc(100dvh - 65px)" : "100dvh",
+              scrollSnapAlign: "start",
+              scrollSnapStop: "always",
             }}
           >
             <ReelViewer
@@ -174,6 +217,9 @@ const ReelsPage = () => {
               isActive={index === currentReelIndex}
               onShare={handleShare}
               isDetail={false}
+              showEditButton={false}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
             />
           </div>
         ))}

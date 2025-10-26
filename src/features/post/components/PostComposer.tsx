@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Image, MapPin, Users, X } from "lucide-react";
+import { Image, Users, X, FileText } from "lucide-react";
 import { useRef, useState } from "react";
 import { MediaUploader } from "./MediaUploader";
 import { MediaViewer } from "./MediaViewer";
@@ -57,13 +57,13 @@ export const PostComposer = ({
     }
 
     try {
-      const files = media.map(item => item.file);
-      
+      const files = media.map((item) => item.file);
+
       await onSubmit({
         content: content.trim(),
         media: files,
         privacy,
-        taggedUsers: taggedFriends.map(f => f.id)
+        taggedUsers: taggedFriends.map((f) => f.id),
       });
 
       // Reset form
@@ -103,14 +103,14 @@ export const PostComposer = ({
                   <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 p-0.5">
                     <div className="w-full h-full rounded-full bg-background flex items-center justify-center">
                       <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white font-semibold">
-                        DU
+                        <FileText className="w-5 h-5" />
                       </div>
                     </div>
                   </div>
                   <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-success rounded-full border-2 border-background"></div>
                 </div>
                 <div className="space-y-1">
-                  <p className="font-semibold text-lg">Demo User</p>
+                  <p className="font-semibold text-lg">Tạo bài viết</p>
                   <PrivacySelect
                     value={privacy}
                     onChange={setPrivacy}
@@ -140,12 +140,18 @@ export const PostComposer = ({
               {taggedFriends.length > 0 && (
                 <div className="flex items-center gap-2 text-sm flex-wrap">
                   <Users className="w-4 h-4 text-primary flex-shrink-0" />
-                  <span className="text-muted-foreground flex-shrink-0">Gắn thẻ:</span>
+                  <span className="text-muted-foreground flex-shrink-0">
+                    Gắn thẻ:
+                  </span>
                   <div className="flex flex-wrap gap-1">
                     {taggedFriends.map((friend) => (
-                      <span key={friend.id} className="font-medium text-foreground">
+                      <span
+                        key={friend.id}
+                        className="font-medium text-foreground"
+                      >
                         {friend.username}
-                        {taggedFriends.indexOf(friend) < taggedFriends.length - 1 && ","}
+                        {taggedFriends.indexOf(friend) <
+                          taggedFriends.length - 1 && ","}
                       </span>
                     ))}
                   </div>
@@ -216,13 +222,13 @@ export const PostComposer = ({
             {/* Tag Friends */}
             {showTagFriends && (
               <TagFriends
-                selectedFriends={taggedFriends.map(f => f.id)}
+                selectedFriends={taggedFriends.map((f) => f.id)}
                 onSelectionChange={(ids) => {
-                  const selectedUsers = ids.map(id => {
-                    const user = mutualFollowers.find(u => u.userId === id);
+                  const selectedUsers = ids.map((id) => {
+                    const user = mutualFollowers.find((u) => u.userId === id);
                     return {
                       id,
-                      username: user?.userName || `user_${id}`
+                      username: user?.userName || `user_${id}`,
                     };
                   });
                   setTaggedFriends(selectedUsers);

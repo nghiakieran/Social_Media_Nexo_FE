@@ -34,7 +34,8 @@ import { FeedPage } from "./features/post/pages/FeedPage";
 import { LiveStudioPage } from "./features/post/pages/LiveStudioPage";
 import { NoteCreatePage } from "./features/post/pages/NoteCreatePage";
 import { PostDetailPage } from "./features/post/pages/PostDetailPage";
-import { ReelCreatePage } from "./features/post/pages/ReelCreatePage";
+import ReelCreatePage from "./features/reel/pages/ReelCreatePage";
+import ReelEditPage from "./features/reel/pages/ReelEditPage";
 
 // Notification Pages
 import NotificationPage from "./features/notification/pages/NotificationPage";
@@ -135,6 +136,7 @@ const App = () => (
                 <Route path="create" element={<CreatePostPage />} />
                 <Route path="posts/:postId" element={<PostDetailPage />} />
                 <Route path="reels/create" element={<ReelCreatePage />} />
+                <Route path="reels/:reelId/edit" element={<ReelEditPage />} />
                 <Route path="live" element={<LiveStudioPage />} />
                 <Route path="notes/create" element={<NoteCreatePage />} />
                 <Route path="edit-profile" element={<EditProfilePage />} />

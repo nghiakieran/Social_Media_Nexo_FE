@@ -1,5 +1,8 @@
 import { useState, memo, useEffect } from "react";
-import { useDispatch } from "react-redux";
+import { useNavigate } from "react-router-dom";
+import { useAppDispatch } from "@/store";
+import { ActionMenuDialog } from "./ActionMenuDialog";
+import { useToast } from "@/hooks/use-toast";
 import {
   Heart,
   MessageCircle,
@@ -9,7 +12,11 @@ import {
   VolumeX,
 } from "lucide-react";
 import { Reel } from "../types";
-import { toggleLike, openCommentsDrawer } from "../reelSlice";
+import {
+  openCommentsDrawer,
+  likeReelThunk,
+  deleteReelThunk,
+} from "../reelSlice";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ActionMenu } from "@/components/common/ActionMenu";
 import { formatNumber } from "@/utils/constants";
@@ -21,20 +28,36 @@ interface ReelViewerProps {
   isActive: boolean;
   onShare?: (reelId: string) => void;
   isDetail?: boolean;
+  showEditButton?: boolean;
+  onEdit?: (reelId: string) => void;
+  onDelete?: (reelId: string) => void;
 }
 
 const ReelViewer = memo(
-  ({ reel, isActive, onShare, isDetail = false }: ReelViewerProps) => {
-    const dispatch = useDispatch();
+  ({
+    reel,
+    isActive,
+    onShare,
+    isDetail = false,
+    showEditButton = false,
+    onEdit,
+    onDelete,
+  }: ReelViewerProps) => {
+    const dispatch = useAppDispatch();
+    const navigate = useNavigate();
+    const { toast } = useToast();
     const isMobile = useIsMobile();
     const [isMuted, setIsMuted] = useState(false);
     const [showMore, setShowMore] = useState(false);
     const [showFullCaption, setShowFullCaption] = useState(false);
-    const [videoAspectRatio, setVideoAspectRatio] = useState<'portrait' | 'landscape'>('landscape'); // Default to landscape for safety
+    const [videoAspectRatio, setVideoAspectRatio] = useState<
+      "portrait" | "landscape"
+    >("landscape"); // Default to landscape for safety
+    const [showActionDialog, setShowActionDialog] = useState(false);
 
     const handleLike = (e: React.MouseEvent) => {
       e.stopPropagation();
-      dispatch(toggleLike(reel.id));
+      dispatch(likeReelThunk({ reelId: parseInt(reel.id) }));
     };
 
     const handleComment = (e: React.MouseEvent) => {
@@ -52,6 +75,31 @@ const ReelViewer = memo(
       setShowMore(!showMore);
     };
 
+    const handleActionDialogAction = async (action: string) => {
+      if (action === "delete") {
+        try {
+          onDelete?.(reel.id);
+          await dispatch(deleteReelThunk(parseInt(reel.id))).unwrap();
+
+          toast({
+            title: "Thành công",
+            description: "Reel đã được xóa thành công!",
+          });
+
+          navigate("/reels");
+        } catch (error) {
+          console.error("Error deleting reel:", error);
+          toast({
+            title: "Lỗi",
+            description: "Có lỗi xảy ra khi xóa reel. Vui lòng thử lại.",
+            variant: "destructive",
+          });
+        }
+      } else if (action === "edit") {
+        onEdit?.(reel.id);
+      }
+    };
+
     const MAX_CAPTION_LENGTH = 80;
     const shouldTruncate = reel.caption.length > MAX_CAPTION_LENGTH;
     const truncatedCaption = shouldTruncate
@@ -60,23 +108,25 @@ const ReelViewer = memo(
 
     // Detect video aspect ratio
     useEffect(() => {
-      const video = document.createElement('video');
+      const video = document.createElement("video");
       video.src = reel.mediaUrl;
-      video.crossOrigin = 'anonymous';
+      video.crossOrigin = "anonymous";
       video.onloadedmetadata = () => {
         const aspectRatio = video.videoWidth / video.videoHeight;
-        const orientation = aspectRatio > 1 ? 'landscape' : 'portrait';
+        const orientation = aspectRatio > 1 ? "landscape" : "portrait";
         setVideoAspectRatio(orientation);
       };
       video.onerror = () => {
-        setVideoAspectRatio('portrait');
+        setVideoAspectRatio("portrait");
       };
     }, [reel.mediaUrl]);
 
     // Determine object-fit based on video orientation and page type
     const getObjectFit = () => {
       // Portrait videos use cover, landscape videos use contain
-      return videoAspectRatio === 'portrait' ? 'object-cover' : 'object-contain';
+      return videoAspectRatio === "portrait"
+        ? "object-cover"
+        : "object-contain";
     };
 
     return (
@@ -104,7 +154,9 @@ const ReelViewer = memo(
             isReelsMode={!isDetail}
             className={`w-full h-full ${getObjectFit()}`}
             style={{
-              objectFit: getObjectFit().replace('object-', '') as 'cover' | 'contain'
+              objectFit: getObjectFit().replace("object-", "") as
+                | "cover"
+                | "contain",
             }}
           />
         </div>
@@ -127,7 +179,13 @@ const ReelViewer = memo(
 
         {/* Right Side Actions */}
         <div
-          className={`absolute right-2 ${isMobile ? (isDetail ? 'bottom-36' : 'bottom-28') : 'bottom-28'} lg:bottom-20 flex flex-col gap-5 z-20`}
+          className={`absolute right-2 ${
+            isMobile
+              ? isDetail
+                ? "bottom-36"
+                : "bottom-[152px]"
+              : "bottom-[152px]"
+          } lg:bottom-20 flex flex-col gap-5 z-20`}
           onClick={(e) => e.stopPropagation()}
         >
           {/* Like */}
@@ -184,85 +242,68 @@ const ReelViewer = memo(
           <div
             className={`absolute left-0 right-16 lg:right-auto lg:max-w-md transition-all duration-300 ${
               showFullCaption
-                ? `${isMobile ? (isDetail ? 'bottom-32' : 'bottom-20') : 'bottom-20'} lg:bottom-16 max-h-[60vh] bg-black/95 rounded-tr-lg`
-                : `${isMobile ? (isDetail ? 'bottom-32' : 'bottom-20') : 'bottom-20'} lg:bottom-16`
+                ? `${
+                    isMobile
+                      ? isDetail
+                        ? "bottom-32"
+                        : "bottom-32"
+                      : "bottom-30"
+                  } lg:bottom-16 max-h-[60vh] bg-black/95 rounded-tr-lg`
+                : `${
+                    isMobile
+                      ? isDetail
+                        ? "bottom-32"
+                        : "bottom-32"
+                      : "bottom-32"
+                  } lg:bottom-16`
             }`}
             onClick={(e) => e.stopPropagation()}
           >
-          <div
-            className={`p-4 pb-4 lg:pb-6 ${
-              showFullCaption
-                ? "overflow-y-auto max-h-[60vh] scrollbar-thin"
-                : ""
-            }`}
-          >
-            {/* User Info */}
-            <a
-              href={`/${reel.userName}`}
-              className="flex items-center gap-2 mb-2 hover:opacity-80 transition-opacity"
-              onClick={(e) => e.stopPropagation()}
+            <div
+              className={`p-4 pb-4 lg:pb-6 ${
+                showFullCaption
+                  ? "overflow-y-auto max-h-[60vh] scrollbar-thin"
+                  : ""
+              }`}
             >
-              <Avatar className="w-8 h-8 border-2 border-white">
-                <AvatarImage src={reel.avatarUrl} alt={reel.userName} />
-                <AvatarFallback>
-                  {reel.userName[0].toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
-              <span className="text-white font-semibold text-sm">
-                {reel.userName}
-              </span>
-            </a>
+              {/* User Info */}
+              <a
+                href={`/${reel.userName}`}
+                className="flex items-center gap-2 mb-2 hover:opacity-80 transition-opacity"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <Avatar className="w-8 h-8 border-2 border-white">
+                  <AvatarImage src={reel.avatarUrl} alt={reel.userName} />
+                  <AvatarFallback>
+                    {reel.userName[0].toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                <span className="text-white font-semibold text-sm">
+                  {reel.userName}
+                </span>
+              </a>
 
-            {/* Caption */}
-            {reel.caption && (
-              <div className="mb-2">
-                <p className="text-white text-sm leading-relaxed whitespace-pre-wrap min-w-80 lg:w-[390px]">
-                  {showFullCaption ? reel.caption : truncatedCaption}
-                  {shouldTruncate && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setShowFullCaption(!showFullCaption);
-                      }}
-                      className="text-gray-300 ml-2 font-medium hover:text-white transition-colors"
-                    >
-                      {showFullCaption ? "thu gọn" : "xem thêm"}
-                    </button>
-                  )}
-                </p>
-              </div>
-            )}
-
-            {/* Tags */}
-            {reel.tags && reel.tags.length > 0 && (
-              <div className="flex flex-wrap gap-2 mt-2">
-                {reel.tags.map((tag, index) => (
-                  <span
-                    key={index}
-                    className="text-blue-400 text-xs font-medium hover:underline cursor-pointer"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    #{tag}
-                  </span>
-                ))}
-              </div>
-            )}
-
-            {/* Tagged Users */}
-            {reel.taggedUsers && reel.taggedUsers.length > 0 && (
-              <div className="flex items-center gap-2 mt-2 text-white text-xs">
-                <svg
-                  className="w-3 h-3"
-                  fill="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path d="M21.334 23H2.666a1 1 0 0 1-1-1v-1.354a6.279 6.279 0 0 1 6.272-6.272h8.124a6.279 6.279 0 0 1 6.271 6.271V22a1 1 0 0 1-1 1ZM12 13.269a6 6 0 1 1 6-6 6.007 6.007 0 0 1-6 6Z" />
-                </svg>
-                <span>{reel.taggedUsers.length} người</span>
-              </div>
-            )}
+              {/* Caption */}
+              {reel.caption && (
+                <div className="mb-2">
+                  <p className="text-white text-sm leading-relaxed whitespace-pre-wrap min-w-80 lg:w-[390px]">
+                    {showFullCaption ? reel.caption : truncatedCaption}
+                    {shouldTruncate && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setShowFullCaption(!showFullCaption);
+                        }}
+                        className="text-gray-300 ml-2 font-medium hover:text-white transition-colors"
+                      >
+                        {showFullCaption ? "thu gọn" : "xem thêm"}
+                      </button>
+                    )}
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
-        </div>
         )}
 
         {/* Action Menu */}
@@ -270,12 +311,35 @@ const ReelViewer = memo(
           isOpen={showMore}
           onClose={() => setShowMore(false)}
           items={[
-            {
-              label: "Đi đến bài viết",
-              action: () => {
-                window.location.href = `/reels/${reel.id}`;
-              },
-            },
+            ...(showEditButton
+              ? [
+                  {
+                    label: "Chỉnh sửa",
+                    action: () => {
+                      onEdit?.(reel.id);
+                      setShowMore(false);
+                    },
+                  },
+                  {
+                    label: "Xóa",
+                    action: () => {
+                      setShowActionDialog(true);
+                      setShowMore(false);
+                    },
+                    isDestructive: true,
+                  },
+                ]
+              : []),
+            ...(!isDetail
+              ? [
+                  {
+                    label: "Đi đến bài viết",
+                    action: () => {
+                      navigate(`/reels/${reel.id}`);
+                    },
+                  },
+                ]
+              : []),
             {
               label: "Báo cáo",
               action: () => console.log("Report"),
@@ -303,6 +367,15 @@ const ReelViewer = memo(
               action: () => console.log("About"),
             },
           ]}
+        />
+
+        {/* Action Menu Dialog */}
+        <ActionMenuDialog
+          isOpen={showActionDialog}
+          onClose={() => setShowActionDialog(false)}
+          onAction={handleActionDialogAction}
+          isOwnReel={showEditButton}
+          isReelHidden={!reel.isActive}
         />
       </div>
     );
