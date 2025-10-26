@@ -161,12 +161,12 @@ export const HiddenPostsContent = () => {
 
   if (hiddenPosts.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-16 px-4">
-        <div className="w-24 h-24 mb-6 rounded-full bg-muted/50 flex items-center justify-center">
-          <EyeOff className="w-12 h-12 text-muted-foreground" />
+      <div className="flex flex-col items-center justify-center py-8 md:py-16 px-4">
+        <div className="w-16 h-16 md:w-24 md:h-24 mb-4 md:mb-6 rounded-full bg-muted/50 flex items-center justify-center">
+          <EyeOff className="w-8 h-8 md:w-12 md:h-12 text-muted-foreground" />
         </div>
-        <h3 className="text-xl font-semibold mb-2">Chưa có bài viết nào bị ẩn</h3>
-        <p className="text-muted-foreground text-center max-w-sm">
+        <h3 className="text-lg md:text-xl font-semibold mb-2">Chưa có bài viết nào bị ẩn</h3>
+        <p className="text-sm md:text-base text-muted-foreground text-center max-w-sm">
           Các bài viết bạn ẩn đi sẽ xuất hiện ở đây. Bạn có thể xem lại và khôi phục chúng bất cứ lúc nào.
         </p>
       </div>
@@ -176,7 +176,7 @@ export const HiddenPostsContent = () => {
   return (
     <div className="space-y-4">
       {/* Info Alert */}
-      <div className="px-4">
+      <div className="px-4 md:px-0">
         <Alert className="border-orange-500/20 bg-orange-500/5">
           <Info className="h-4 w-4 text-orange-500" />
           <AlertDescription className="text-sm">
@@ -200,7 +200,7 @@ export const HiddenPostsContent = () => {
           const post = hiddenPosts.find(p => p.id === item.id);
           if (post) handlePostClick(post);
         }}
-        className="pb-4"
+        className="px-4 md:px-0 pb-4"
         renderOverlay={(item, isVisible) => (
           <>
             {/* Default overlay (likes, comments) */}

@@ -216,12 +216,12 @@ export const PostGrid = ({
 
   if (posts.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-12">
-        <div className="w-16 h-16 border-2 border-muted rounded-full flex items-center justify-center mb-4">
-          <MessageCircle className="w-8 h-8 text-muted-foreground" />
+      <div className="flex flex-col items-center justify-center py-8 md:py-12 px-4">
+        <div className="w-12 h-12 md:w-16 md:h-16 border-2 border-muted rounded-full flex items-center justify-center mb-3 md:mb-4">
+          <MessageCircle className="w-6 h-6 md:w-8 md:h-8 text-muted-foreground" />
         </div>
-        <h3 className="text-lg font-semibold mb-2">Chưa có bài viết</h3>
-        <p className="text-muted-foreground text-center">
+        <h3 className="text-base md:text-lg font-semibold mb-2">Chưa có bài viết</h3>
+        <p className="text-sm md:text-base text-muted-foreground text-center">
           Khi bạn chia sẻ ảnh và video, các bài viết sẽ xuất hiện ở đây.
         </p>
       </div>
@@ -247,7 +247,7 @@ export const PostGrid = ({
           const post = posts.find((p) => p.id === item.id);
           if (post) handlePostClick(post);
         }}
-        className="pb-4"
+        className="px-4 md:px-0 pb-4"
         columns={3}
         gap="md"
         enableProgressiveLoading={true}

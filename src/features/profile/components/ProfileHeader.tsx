@@ -109,8 +109,8 @@ export const ProfileHeader = ({
 
 
   return (
-    <div className="px-14 py-6 border-b border-border bg-background">
-      <div className="flex items-start gap-16">
+    <div className="px-4 md:px-14 py-6 border-b border-border bg-background">
+      <div className="flex flex-col md:flex-row items-center md:items-start gap-6 md:gap-16">
         {/* Avatar Container */}
         <div className="relative">
           {/* Avatar Button with Story Ring */}
@@ -177,9 +177,17 @@ export const ProfileHeader = ({
         {/* Profile Info */}
         <div className="flex-1 min-w-0">
           {/* Username and Actions */}
-          <div className="flex items-center gap-3 mb-3">
-            <div className="flex items-center gap-2">
+          <div className="flex flex-col md:flex-row items-center md:items-center gap-3 mb-3">
+            <div className="flex flex-col md:flex-row items-center md:items-center gap-2">
               <h1 className="text-xl md:text-2xl font-light">{profile.username}</h1>
+              
+              {/* Bio - Show on mobile only */}
+              <div className="md:hidden space-y-1 text-center">
+                <div className="font-semibold text-sm">{profile.name}</div>
+                {profile.bio && (
+                  <div className="text-xs whitespace-pre-line">{profile.bio}</div>
+                )}
+              </div>
             </div>
 
             {isCurrentUser ? (
@@ -188,10 +196,11 @@ export const ProfileHeader = ({
                   variant="outline" 
                   size="sm"
                   onClick={onEdit}
-                  className="gap-1 bg-gray-200"
+                  className="gap-1 bg-gray-200 text-xs md:text-sm"
                 >
                   <Edit3 className="w-4 h-4" />
-                  Chỉnh sửa trang cá nhân
+                  <span className="hidden sm:inline">Chỉnh sửa trang cá nhân</span>
+                  <span className="sm:hidden">Chỉnh sửa</span>
                 </Button>
                 <Button 
                   variant="outline" 
@@ -284,7 +293,7 @@ export const ProfileHeader = ({
           </div>
 
           {/* Stats */}
-          <div className="flex items-center gap-6 mb-3">
+          <div className="flex items-center justify-center md:justify-start gap-6 md:gap-6 mb-3">
             <div className="text-center">
               <div className="font-semibold">{profile.postsCount}</div>
               <div className="text-sm text-muted-foreground">bài viết</div>
@@ -315,8 +324,8 @@ export const ProfileHeader = ({
             </button>
           </div>
 
-          {/* Bio */}
-          <div className="space-y-1">
+          {/* Bio - Show on desktop only */}
+          <div className="hidden md:block space-y-1">
             <div className="font-semibold">{profile.name}</div>
             {profile.bio && (
               <div className="text-sm whitespace-pre-line">{profile.bio}</div>
