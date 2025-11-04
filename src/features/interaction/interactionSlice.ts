@@ -5,8 +5,15 @@ import {
   deleteComment,
   getPostComments,
   getReelComments,
+  getCommentReplies,
 } from "./api/commentApi";
-import { likeComment, likePost, likeReel } from "./api/likeApi";
+import {
+  likeComment,
+  likePost,
+  likeReel,
+  getPostLikeDetail,
+  getReelLikeDetail,
+} from "./api/likeApi";
 import { transformCommentData } from "./types";
 import type {
   Comment,
@@ -15,6 +22,8 @@ import type {
   CreateCommentRequest,
   UpdateCommentRequest,
   GetCommentsRequest,
+  CommentResponse,
+  LikeDetailApiResponse,
 } from "./types";
 
 // Comment State
@@ -134,6 +143,25 @@ export const getReelCommentsThunk = createAsyncThunk(
   }
 );
 
+export const getCommentRepliesThunk = createAsyncThunk(
+  "interaction/getCommentReplies",
+  async (
+    { commentId, params }: { commentId: number; params?: GetCommentsRequest },
+    { rejectWithValue }
+  ) => {
+    try {
+      const response = await getCommentReplies(commentId, params);
+      return { commentId, data: response.data };
+    } catch (error: unknown) {
+      return rejectWithValue(
+        error instanceof Error
+          ? error.message
+          : "Có lỗi xảy ra khi tải câu trả lời"
+      );
+    }
+  }
+);
+
 // Async Thunks for Likes
 export const likeCommentThunk = createAsyncThunk(
   "interaction/likeComment",
@@ -181,6 +209,56 @@ export const likeReelThunk = createAsyncThunk(
   }
 );
 
+export const getPostLikeDetailThunk = createAsyncThunk(
+  "interaction/getPostLikeDetail",
+  async (
+    {
+      postId,
+      params,
+    }: { postId: number; params?: { pageNo?: number; pageSize?: number } },
+    { rejectWithValue }
+  ) => {
+    try {
+      const response: LikeDetailApiResponse = await getPostLikeDetail(
+        postId,
+        params
+      );
+      return response.data;
+    } catch (error: unknown) {
+      return rejectWithValue(
+        error instanceof Error
+          ? error.message
+          : "Có lỗi xảy ra khi tải danh sách lượt thích"
+      );
+    }
+  }
+);
+
+export const getReelLikeDetailThunk = createAsyncThunk(
+  "interaction/getReelLikeDetail",
+  async (
+    {
+      reelId,
+      params,
+    }: { reelId: number; params?: { pageNo?: number; pageSize?: number } },
+    { rejectWithValue }
+  ) => {
+    try {
+      const response: LikeDetailApiResponse = await getReelLikeDetail(
+        reelId,
+        params
+      );
+      return response.data;
+    } catch (error: unknown) {
+      return rejectWithValue(
+        error instanceof Error
+          ? error.message
+          : "Có lỗi xảy ra khi tải danh sách lượt thích"
+      );
+    }
+  }
+);
+
 const interactionSlice = createSlice({
   name: "interaction",
   initialState,
@@ -207,7 +285,7 @@ const interactionSlice = createSlice({
           if (comment.id === commentId) {
             return { ...comment, ...updates };
           }
-          if (comment.replies.length > 0) {
+          if (comment.replies && comment.replies.length > 0) {
             return {
               ...comment,
               replies: updateCommentInList(comment.replies),
@@ -259,15 +337,17 @@ const interactionSlice = createSlice({
         state.comments.isDeleting = false;
         const { commentId } = action.payload;
         const removeCommentFromList = (comments: Comment[]): Comment[] => {
-          return comments.filter((comment) => {
-            if (comment.id === commentId.toString()) {
-              return false;
-            }
-            if (comment.replies.length > 0) {
-              comment.replies = removeCommentFromList(comment.replies);
-            }
-            return true;
-          });
+          return comments
+            .filter((comment) => comment.id !== commentId.toString())
+            .map((comment) => {
+              if (comment.replies && comment.replies.length > 0) {
+                return {
+                  ...comment,
+                  replies: removeCommentFromList(comment.replies),
+                };
+              }
+              return comment;
+            });
         };
         state.comments.comments = removeCommentFromList(
           state.comments.comments
@@ -291,10 +371,15 @@ const interactionSlice = createSlice({
           commentResponseList.map(transformCommentData);
 
         if (pageNo === 0) {
+          // First page - replace all comments
           state.comments.comments = transformedComments;
         } else {
-          // Append new comments
-          state.comments.comments.push(...transformedComments);
+          // Append new comments, avoid duplicates
+          const existingIds = new Set(state.comments.comments.map((c) => c.id));
+          const newComments = transformedComments.filter(
+            (c) => !existingIds.has(c.id)
+          );
+          state.comments.comments.push(...newComments);
         }
 
         state.comments.currentPage = pageNo;
@@ -319,10 +404,15 @@ const interactionSlice = createSlice({
           commentResponseList.map(transformCommentData);
 
         if (pageNo === 0) {
+          // First page - replace all comments
           state.comments.comments = transformedComments;
         } else {
-          // Append new comments
-          state.comments.comments.push(...transformedComments);
+          // Append new comments, avoid duplicates
+          const existingIds = new Set(state.comments.comments.map((c) => c.id));
+          const newComments = transformedComments.filter(
+            (c) => !existingIds.has(c.id)
+          );
+          state.comments.comments.push(...newComments);
         }
 
         state.comments.currentPage = pageNo;
@@ -334,6 +424,75 @@ const interactionSlice = createSlice({
         state.comments.error = action.payload as string;
       });
 
+    // Get Comment Replies
+    builder
+      .addCase(getCommentRepliesThunk.pending, (state) => {
+        state.comments.isLoading = true;
+        state.comments.error = null;
+      })
+      .addCase(getCommentRepliesThunk.fulfilled, (state, action) => {
+        state.comments.isLoading = false;
+        const { commentId, data } = action.payload;
+        const { commentResponseList, pageNo } = data;
+
+        // Transform replies - all replies have the same parentId (root comment)
+        // Don't use transformCommentData here because it creates nested structure from responseChildList
+        // Instead, transform flat - all replies are at the same level
+        const transformedReplies: Comment[] = commentResponseList.map(
+          (reply: CommentResponse) => ({
+            id: reply.id.toString(),
+            userId: reply.userId.toString(),
+            userName: reply.userName,
+            avatarUrl: reply.avatarUrl,
+            content: reply.content,
+            parentId: reply.parentId?.toString() || null,
+            likesCount: reply.quantityLike || 0,
+            replies: [], // All replies are flat, no nested structure
+            createdAt: reply.createdAt,
+            hasMoreReplies: reply.hasMoreReplies || false,
+            isLiked: reply.like || false,
+            isOwnComment: false,
+          })
+        );
+
+        // Find comment and update its replies (all replies at same level)
+        const updateCommentReplies = (comments: Comment[]): Comment[] => {
+          return comments.map((comment) => {
+            if (comment.id === commentId.toString()) {
+              if (pageNo === 0) {
+                // First page - replace replies
+                return { ...comment, replies: transformedReplies };
+              } else {
+                // Append new replies, avoid duplicates
+                const existingReplyIds = new Set(
+                  comment.replies.map((r) => r.id)
+                );
+                const newReplies = transformedReplies.filter(
+                  (r) => !existingReplyIds.has(r.id)
+                );
+                return {
+                  ...comment,
+                  replies: [...comment.replies, ...newReplies],
+                };
+              }
+            }
+            // Recursively update replies in nested comments
+            if (comment.replies && comment.replies.length > 0) {
+              return {
+                ...comment,
+                replies: updateCommentReplies(comment.replies),
+              };
+            }
+            return comment;
+          });
+        };
+
+        state.comments.comments = updateCommentReplies(state.comments.comments);
+      })
+      .addCase(getCommentRepliesThunk.rejected, (state, action) => {
+        state.comments.isLoading = false;
+        state.comments.error = action.payload as string;
+      });
 
     // Like Comment
     builder
@@ -357,7 +516,7 @@ const interactionSlice = createSlice({
                   : comment.likesCount + 1,
               };
             }
-            if (comment.replies.length > 0) {
+            if (comment.replies && comment.replies.length > 0) {
               return {
                 ...comment,
                 replies: updateLikeInComment(comment.replies),

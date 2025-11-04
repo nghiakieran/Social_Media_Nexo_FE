@@ -50,6 +50,7 @@ export interface PostData {
   quantityComment: number;
   listUserTag: TaggedUser[];
   isActive: boolean;
+  isLike: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -252,7 +253,7 @@ export const transformPostData = (apiData: PostData): Post => ({
   likesCount: apiData.quantityLike,
   commentsCount: apiData.quantityComment,
   sharesCount: 0,
-  isLiked: false,
+  isLiked: apiData.isLike,
   isBookmarked: false,
   isOwnPost: false,
   isActive: apiData.isActive,

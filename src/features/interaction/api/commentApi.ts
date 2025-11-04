@@ -12,7 +12,10 @@ export const createComment = async (
   commentData: CreateCommentRequest
 ): Promise<CommentApiResponse> => {
   try {
-    const response = await api.post<CommentApiResponse>("/interaction/comment", commentData);
+    const response = await api.post<CommentApiResponse>(
+      "/interaction/comment",
+      commentData
+    );
     return response.data;
   } catch (error: unknown) {
     if (error && typeof error === "object" && "response" in error) {
@@ -30,13 +33,17 @@ export const updateComment = async (
   commentData: UpdateCommentRequest
 ): Promise<CommentApiResponse> => {
   try {
-    const response = await api.put<CommentApiResponse>("/interaction/comment", commentData);
+    const response = await api.put<CommentApiResponse>(
+      "/interaction/comment",
+      commentData
+    );
     return response.data;
   } catch (error: unknown) {
     if (error && typeof error === "object" && "response" in error) {
       const apiError = error as { response?: { data?: { message?: string } } };
       throw new Error(
-        apiError.response?.data?.message || "Có lỗi xảy ra khi cập nhật bình luận"
+        apiError.response?.data?.message ||
+          "Có lỗi xảy ra khi cập nhật bình luận"
       );
     }
     throw new Error("Không thể kết nối đến server. Vui lòng thử lại.");
@@ -48,7 +55,9 @@ export const deleteComment = async (
   commentId: number
 ): Promise<CommentApiResponse> => {
   try {
-    const response = await api.delete<CommentApiResponse>(`/interaction/comment/${commentId}`);
+    const response = await api.delete<CommentApiResponse>(
+      `/interaction/comment/${commentId}`
+    );
     return response.data;
   } catch (error: unknown) {
     if (error && typeof error === "object" && "response" in error) {
@@ -68,13 +77,16 @@ export const getPostComments = async (
 ): Promise<CommentsApiResponse> => {
   try {
     const { pageNo = 0, pageSize = 10 } = params;
-    
-    const response = await api.get<CommentsApiResponse>(`/interaction/comment/post/${postId}`, {
-      params: {
-        pageNo,
-        pageSize,
-      },
-    });
+
+    const response = await api.get<CommentsApiResponse>(
+      `/interaction/comment/post/${postId}`,
+      {
+        params: {
+          pageNo,
+          pageSize,
+        },
+      }
+    );
     return response.data;
   } catch (error: unknown) {
     if (error && typeof error === "object" && "response" in error) {
@@ -94,19 +106,51 @@ export const getReelComments = async (
 ): Promise<CommentsApiResponse> => {
   try {
     const { pageNo = 0, pageSize = 10 } = params;
-    
-    const response = await api.get<CommentsApiResponse>(`/interaction/comment/reel/${reelId}`, {
-      params: {
-        pageNo,
-        pageSize,
-      },
-    });
+
+    const response = await api.get<CommentsApiResponse>(
+      `/interaction/comment/reel/${reelId}`,
+      {
+        params: {
+          pageNo,
+          pageSize,
+        },
+      }
+    );
     return response.data;
   } catch (error: unknown) {
     if (error && typeof error === "object" && "response" in error) {
       const apiError = error as { response?: { data?: { message?: string } } };
       throw new Error(
         apiError.response?.data?.message || "Có lỗi xảy ra khi tải bình luận"
+      );
+    }
+    throw new Error("Không thể kết nối đến server. Vui lòng thử lại.");
+  }
+};
+
+// Get Replies of Comment API
+export const getCommentReplies = async (
+  commentId: number,
+  params: GetCommentsRequest = {}
+): Promise<CommentsApiResponse> => {
+  try {
+    const { pageNo = 0, pageSize = 10 } = params;
+
+    const response = await api.get<CommentsApiResponse>(
+      `/interaction/comment/${commentId}/replies`,
+      {
+        params: {
+          pageNo,
+          pageSize,
+        },
+      }
+    );
+    return response.data;
+  } catch (error: unknown) {
+    if (error && typeof error === "object" && "response" in error) {
+      const apiError = error as { response?: { data?: { message?: string } } };
+      throw new Error(
+        apiError.response?.data?.message || "Có lỗi xảy ra khi tải câu trả lời"
       );
     }
     throw new Error("Không thể kết nối đến server. Vui lòng thử lại.");

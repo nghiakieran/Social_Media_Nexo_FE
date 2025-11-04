@@ -7,7 +7,6 @@ export { MediaViewer } from './components/MediaViewer';
 export { MediaSlider } from './components/MediaSlider';
 export { PrivacySelect } from './components/PrivacySelect';
 export { TagFriends } from './components/TagFriends';
-export { CommentSection } from './components/CommentSection';
 export { ActionMenuDialog } from './components/ActionMenuDialog';
 export { EditPostDialog } from './components/EditPostDialog';
 export { PostActions } from './components/PostActions';

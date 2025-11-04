@@ -260,10 +260,6 @@ const ReelDetailPage = () => {
             {currentReel && (
               <ReelCommentSection
                 reel={currentReel}
-                comments={comments[currentReel.id] || []}
-                onAddComment={handleAddComment}
-                onToggleCommentLike={handleToggleCommentLike}
-                onToggleReelLike={handleToggleReelLike}
                 onShare={() => handleShare(currentReel.id)}
                 onProfileClick={handleProfileClick}
               />

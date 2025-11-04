@@ -1,13 +1,9 @@
 import { useState, useRef, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { Heart, Send, MessageCircle, X, MoreHorizontal } from 'lucide-react';
+import { Send, MessageCircle, X } from 'lucide-react';
 import { RootState } from '@/store';
 import {
   closeCommentsDrawer,
-  addComment,
-  toggleCommentLike,
-  incrementCommentsCount,
-  toggleLike,
 } from '../reelSlice';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Textarea } from '@/components/ui/textarea';
@@ -15,18 +11,55 @@ import { Button } from '@/components/ui/button';
 import { formatTimeAgo } from '@/utils/timeFormat';
 import { formatNumber } from '@/utils/constants';
 import { HLSVideoPlayer } from '@/components/common/HLSVideoPlayer';
-import { cn } from '@/lib/utils';
+import { useAppDispatch, useAppSelector } from '@/store';
+import {
+  getReelCommentsThunk,
+  createCommentThunk,
+  likeCommentThunk,
+  likeReelThunk,
+  clearComments,
+  clearCommentError,
+} from '@/features/interaction/interactionSlice';
+import { LikeButton } from '@/features/interaction/components/LikeButton';
+import { Loader } from '@/components/common/Loader';
 
 const ReelCommentDialog = () => {
   const dispatch = useDispatch();
-  const { isCommentsDrawerOpen, selectedReelId, comments, reels } = useSelector(
+  const appDispatch = useAppDispatch();
+  const user = useAppSelector((state) => state.auth.user);
+  const { isCommentsDrawerOpen, selectedReelId, reels } = useSelector(
     (state: RootState) => state.reel
   );
+  const {
+    comments,
+    isLoading,
+    error,
+    hasMore,
+    currentPage,
+    isCreating,
+  } = useAppSelector((state) => state.interaction.comments);
   const [commentText, setCommentText] = useState('');
+  const [isReelLiked, setIsReelLiked] = useState(false);
+  const [reelLikesCount, setReelLikesCount] = useState(0);
   const dialogRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const currentReel = reels.find((r) => r.id === selectedReelId);
-  const reelComments = selectedReelId ? comments[selectedReelId] || [] : [];
+
+  // Load comments when reel is selected
+  useEffect(() => {
+    if (selectedReelId && currentReel) {
+      appDispatch(clearComments());
+      appDispatch(clearCommentError());
+      appDispatch(
+        getReelCommentsThunk({
+          reelId: parseInt(selectedReelId),
+          params: { pageNo: 0, pageSize: 20 },
+        })
+      );
+      setIsReelLiked(currentReel.isLiked || false);
+      setReelLikesCount(currentReel.likesCount || 0);
+    }
+  }, [appDispatch, selectedReelId, currentReel]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -56,34 +89,58 @@ const ReelCommentDialog = () => {
     dispatch(closeCommentsDrawer());
   };
 
-  const handleSubmitComment = (e: React.FormEvent) => {
+  const handleLoadMore = () => {
+    if (hasMore && !isLoading && selectedReelId) {
+      appDispatch(
+        getReelCommentsThunk({
+          reelId: parseInt(selectedReelId),
+          params: { pageNo: currentPage + 1, pageSize: 20 },
+        })
+      );
+    }
+  };
+
+  const handleSubmitComment = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!commentText.trim() || !selectedReelId) return;
+    if (!commentText.trim() || !selectedReelId || !user) return;
 
-    const newComment = {
-      id: Date.now().toString(),
-      userId: 'current-user-id',
-      userName: 'you',
-      avatarUrl: 'https://via.placeholder.com/150',
-      content: commentText,
-      createdAt: new Date().toISOString(),
-      likesCount: 0,
-      isLiked: false,
-    };
+    try {
+      await appDispatch(
+        createCommentThunk({
+          id: 0,
+          userId: user.id,
+          postId: 0,
+          reelId: parseInt(selectedReelId),
+          parentId: 0,
+          content: commentText.trim(),
+          listMentionUserId: [],
+        })
+      ).unwrap();
 
-    dispatch(addComment({ reelId: selectedReelId, comment: newComment }));
-    dispatch(incrementCommentsCount(selectedReelId));
-    setCommentText('');
+      setCommentText('');
+      // Refresh comments
+      appDispatch(
+        getReelCommentsThunk({
+          reelId: parseInt(selectedReelId),
+          params: { pageNo: 0, pageSize: 20 },
+        })
+      );
+    } catch (error) {
+      console.error("Error creating comment:", error);
+    }
   };
 
-  const handleLikeComment = (commentId: string) => {
-    if (!selectedReelId) return;
-    dispatch(toggleCommentLike({ reelId: selectedReelId, commentId }));
+  const handleLikeComment = async (commentId: string) => {
+    try {
+      await appDispatch(likeCommentThunk(parseInt(commentId))).unwrap();
+    } catch (error) {
+      console.error("Error liking comment:", error);
+    }
   };
 
-  const handleLikeReel = () => {
-    if (!selectedReelId) return;
-    dispatch(toggleLike(selectedReelId));
+  const handleReelLikeChange = (newIsLiked: boolean, newCount: number) => {
+    setIsReelLiked(newIsLiked);
+    setReelLikesCount(newCount);
   };
 
   const handleProfileClick = (userName: string) => {
@@ -192,7 +249,15 @@ const ReelCommentDialog = () => {
             </div>
 
             {/* Comments List */}
-            {reelComments.length === 0 ? (
+            {isLoading && comments.length === 0 ? (
+              <div className="flex justify-center py-12">
+                <Loader />
+              </div>
+            ) : error ? (
+              <div className="text-center py-12">
+                <p className="text-red-500 text-sm">{error}</p>
+              </div>
+            ) : comments.length === 0 ? (
               <div className="text-center py-12 text-gray-500">
                 <MessageCircle className="w-12 h-12 mx-auto mb-2 opacity-30" />
                 <p className="text-sm font-medium">Chưa có bình luận</p>
@@ -200,7 +265,7 @@ const ReelCommentDialog = () => {
               </div>
             ) : (
               <ul className="space-y-6">
-                {reelComments.map((comment) => (
+                {comments.map((comment) => (
                   <li key={comment.id} className="flex items-start gap-3">
                     <div 
                       className="relative cursor-pointer" 
@@ -241,20 +306,32 @@ const ReelCommentDialog = () => {
                         </div>
                       </div>
                     </div>
-                    <button
-                      onClick={() => handleLikeComment(comment.id)}
-                      className="text-gray-400 hover:text-red-500 transition-colors"
-                    >
-                      <Heart
-                        className={cn(
-                          'w-4 h-4',
-                          comment.isLiked && 'fill-red-500 text-red-500'
-                        )}
-                      />
-                    </button>
+                    <LikeButton
+                      targetId={parseInt(comment.id)}
+                      targetType="comment"
+                      isLiked={comment.isLiked}
+                      likesCount={comment.likesCount}
+                      size="sm"
+                      variant="ghost"
+                      showCount={false}
+                      onLikeChange={() => handleLikeComment(comment.id)}
+                      className="h-auto p-0 text-gray-400 hover:text-red-500"
+                    />
                   </li>
                 ))}
               </ul>
+            )}
+            {hasMore && (
+              <div className="flex justify-center pt-4">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleLoadMore}
+                  disabled={isLoading}
+                >
+                  {isLoading ? "Đang tải..." : "Xem thêm bình luận"}
+                </Button>
+              </div>
             )}
           </div>
 
@@ -262,15 +339,17 @@ const ReelCommentDialog = () => {
           <div className="p-4 border-t border-gray-200 dark:border-gray-700">
             {/* Actions */}
             <div className="flex items-center gap-4 mb-4">
-              <button
-                onClick={handleLikeReel}
-                className={cn(
-                  'transition-colors',
-                  currentReel.isLiked ? 'text-red-500' : 'text-gray-500 hover:text-gray-700'
-                )}
-              >
-                <Heart className={cn('w-6 h-6', currentReel.isLiked && 'fill-current')} />
-              </button>
+              <LikeButton
+                targetId={parseInt(selectedReelId)}
+                targetType="reel"
+                isLiked={isReelLiked}
+                likesCount={reelLikesCount}
+                size="default"
+                variant="ghost"
+                showCount={false}
+                onLikeChange={handleReelLikeChange}
+                className="h-auto p-0"
+              />
               <button className="text-gray-500 hover:text-gray-700 transition-colors">
                 <MessageCircle className="w-6 h-6" />
               </button>
@@ -280,9 +359,11 @@ const ReelCommentDialog = () => {
             </div>
 
             {/* Likes summary */}
-            <div className="mb-3 text-sm font-medium">
-              {formatNumber(currentReel.likesCount)} lượt thích
-            </div>
+            {reelLikesCount > 0 && (
+              <div className="mb-3 text-sm font-medium">
+                {formatNumber(reelLikesCount)} lượt thích
+              </div>
+            )}
 
             {/* Post time */}
             <div className="mb-4 text-xs text-gray-500">
@@ -290,29 +371,38 @@ const ReelCommentDialog = () => {
             </div>
 
             {/* Comment Form */}
-            <form onSubmit={handleSubmitComment} className="flex gap-2">
-              <Textarea
-                ref={textareaRef}
-                value={commentText}
-                onChange={(e) => setCommentText(e.target.value)}
-                placeholder="Thêm bình luận..."
-                className="flex-1 resize-none text-sm"
-                rows={2}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    handleSubmitComment(e);
-                  }
-                }}
-              />
-              <Button
-                type="submit"
-                disabled={!commentText.trim()}
-                className="px-4"
-              >
-                <Send className="w-4 h-4" />
-              </Button>
-            </form>
+            {user && (
+              <form onSubmit={handleSubmitComment} className="flex gap-2">
+                <Avatar className="w-8 h-8 flex-shrink-0">
+                  <AvatarImage src={user.avatar} alt={user.username || "User"} />
+                  <AvatarFallback>
+                    {user.username?.[0]?.toUpperCase() || "U"}
+                  </AvatarFallback>
+                </Avatar>
+                <Textarea
+                  ref={textareaRef}
+                  value={commentText}
+                  onChange={(e) => setCommentText(e.target.value)}
+                  placeholder="Thêm bình luận..."
+                  className="flex-1 resize-none text-sm"
+                  rows={2}
+                  disabled={isCreating}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      handleSubmitComment(e);
+                    }
+                  }}
+                />
+                <Button
+                  type="submit"
+                  disabled={!commentText.trim() || isCreating}
+                  className="px-4"
+                >
+                  <Send className="w-4 h-4" />
+                </Button>
+              </form>
+            )}
           </div>
         </div>
       </div>

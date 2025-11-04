@@ -4,7 +4,6 @@ import { useAppDispatch } from "@/store";
 import { ActionMenuDialog } from "./ActionMenuDialog";
 import { useToast } from "@/hooks/use-toast";
 import {
-  Heart,
   MessageCircle,
   Send,
   MoreVertical,
@@ -14,9 +13,9 @@ import {
 import { Reel } from "../types";
 import {
   openCommentsDrawer,
-  likeReelThunk,
   deleteReelThunk,
 } from "../reelSlice";
+import { LikeButton } from "@/features/interaction/components/LikeButton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ActionMenu } from "@/components/common/ActionMenu";
 import { formatNumber } from "@/utils/constants";
@@ -54,10 +53,18 @@ const ReelViewer = memo(
       "portrait" | "landscape"
     >("landscape"); // Default to landscape for safety
     const [showActionDialog, setShowActionDialog] = useState(false);
+    const [isLiked, setIsLiked] = useState(reel.isLiked);
+    const [likesCount, setLikesCount] = useState(reel.likesCount);
 
-    const handleLike = (e: React.MouseEvent) => {
-      e.stopPropagation();
-      dispatch(likeReelThunk({ reelId: parseInt(reel.id) }));
+    // Sync state when reel prop changes
+    useEffect(() => {
+      setIsLiked(reel.isLiked);
+      setLikesCount(reel.likesCount);
+    }, [reel.isLiked, reel.likesCount]);
+
+    const handleLikeChange = (newIsLiked: boolean, newCount: number) => {
+      setIsLiked(newIsLiked);
+      setLikesCount(newCount);
     };
 
     const handleComment = (e: React.MouseEvent) => {
@@ -189,23 +196,28 @@ const ReelViewer = memo(
           onClick={(e) => e.stopPropagation()}
         >
           {/* Like */}
-          <button
-            onClick={handleLike}
-            className="flex flex-col items-center gap-0.5 active:scale-90 transition-transform"
+          <div 
+            className="flex flex-col items-center gap-0.5"
+            onClick={(e) => e.stopPropagation()}
           >
-            <Heart
-              className={`w-7 h-7 transition-all drop-shadow-[0_2px_4px_rgba(0,0,0,0.6)] ${
-                reel.isLiked
-                  ? "fill-red-500 text-red-500"
-                  : "text-white fill-none"
-              }`}
-            />
-            {reel.likesCount > 0 && (
-              <span className="text-white text-[11px] font-semibold drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">
-                {formatNumber(reel.likesCount)}
-              </span>
-            )}
-          </button>
+            <LikeButton
+              targetId={parseInt(reel.id)}
+              targetType="reel"
+              isLiked={isLiked}
+              likesCount={likesCount}
+              size="default"
+              variant="ghost"
+              showCount={false}
+              onLikeChange={handleLikeChange}
+              className="h-7 w-7 p-0 bg-transparent hover:bg-transparent text-white hover:text-white active:scale-90 transition-transform"
+            >
+              {likesCount > 0 && (
+                <span className="text-white text-[11px] font-semibold drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">
+                  {formatNumber(likesCount)}
+                </span>
+              )}
+            </LikeButton>
+          </div>
 
           {/* Comment */}
           <button

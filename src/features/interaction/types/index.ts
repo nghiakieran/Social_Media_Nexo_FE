@@ -1,22 +1,22 @@
 // API Request Types
 export interface CreateCommentRequest {
-  id?: number;
+  id: number; // Always 0 for create
   userId: number;
-  postId?: number;
-  reelId?: number;
-  parentId?: number;
+  postId: number; // 0 if for reel
+  reelId: number; // 0 if for post
+  parentId: number; // 0 if root comment, parent comment id if reply
   content: string;
-  listMentionUserId?: number[];
+  listMentionUserId: number[]; // Always empty array for now
 }
 
 export interface UpdateCommentRequest {
-  id: number;
+  id: number; // Comment id to update
   userId: number;
-  postId?: number;
-  reelId?: number;
-  parentId?: number;
+  postId: number; // 0 if for reel
+  reelId: number; // 0 if for post
+  parentId: number; // 0 if root comment, parent comment id if reply
   content: string;
-  listMentionUserId?: number[];
+  listMentionUserId: number[]; // Always empty array for now
 }
 
 export interface GetCommentsRequest {
@@ -36,7 +36,7 @@ export interface CommentResponse {
   responseChildList: CommentResponse[];
   createdAt: string;
   hasMoreReplies: boolean;
-  isLike: boolean;
+  like: boolean;
 }
 
 export interface ListCommentResponse {
@@ -101,6 +101,31 @@ export interface LikeState {
   error: string | null;
 }
 
+// Like detail (list) types
+export interface LikeDetailUser {
+  userId: number;
+  userName: string;
+  fullName: string | null;
+  avatar: string | null;
+  isFollowing: boolean | null;
+  hasRequestedFollow?: boolean;
+}
+
+export interface LikeDetailPage {
+  pageNo: number;
+  pageSize: number;
+  totalElements: number;
+  totalPages: number;
+  last: boolean;
+  content: LikeDetailUser[];
+}
+
+export interface LikeDetailApiResponse {
+  status: number;
+  message: string;
+  data: LikeDetailPage;
+}
+
 // Transform function to convert API response to local state
 export const transformCommentData = (apiData: CommentResponse): Comment => ({
   id: apiData.id.toString(),
@@ -113,6 +138,6 @@ export const transformCommentData = (apiData: CommentResponse): Comment => ({
   replies: apiData?.responseChildList?.map(transformCommentData) || [],
   createdAt: apiData.createdAt,
   hasMoreReplies: apiData.hasMoreReplies,
-  isLiked: apiData.isLike,
+  isLiked: apiData.like,
   isOwnComment: false,
 });

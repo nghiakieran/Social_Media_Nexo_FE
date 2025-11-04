@@ -6,7 +6,6 @@ import { MobilePostDetail } from "@/features/post/components/MobilePostDetail";
 import { ShareDialog } from "@/features/post/components/ShareDialog";
 import { EditPostDialog } from "@/features/post/components/EditPostDialog";
 import { useAppSelector, useAppDispatch } from "@/store";
-import { mockComments } from "@/features/interaction/__mocks__/comments";
 import { useNavigate } from "react-router-dom";
 import { LazyGrid } from "@/components/common/LazyGrid";
 import {
@@ -18,6 +17,14 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
 import type { UpdatePostRequest } from "@/features/post/types";
+import {
+  getPostCommentsThunk,
+  createCommentThunk,
+  likeCommentThunk,
+  likePostThunk,
+  clearComments,
+} from "@/features/interaction/interactionSlice";
+import { useEffect } from "react";
 
 interface PostGridProps {
   posts: ProfilePost[];
@@ -50,9 +57,24 @@ export const PostGrid = ({
   const [isBookmarkedById, setIsBookmarkedById] = useState<
     Record<string, boolean>
   >({});
-  const [commentsByPostId, setCommentsByPostId] = useState<
-    Record<string, CDComment[]>
-  >({});
+  
+  // Get comments from Redux state
+  const { comments: reduxComments } = useAppSelector(
+    (state) => state.interaction.comments
+  );
+  
+  // Load comments when post is selected
+  useEffect(() => {
+    if (selectedPost) {
+      dispatch(clearComments());
+      dispatch(
+        getPostCommentsThunk({
+          postId: parseInt(selectedPost.id),
+          params: { pageNo: 0, pageSize: 50 },
+        })
+      );
+    }
+  }, [dispatch, selectedPost]);
 
   interface CDComment {
     id: string;
@@ -81,48 +103,120 @@ export const PostGrid = ({
     replies?: MockReply[];
   }
 
+  // Transform Redux comments to CDComment format - inline transformation
+
   const selectedComments = useMemo<CDComment[]>(() => {
     if (!selectedPost) return [];
-    const mapReplies = (replies?: MockReply[]): CDComment[] | undefined => {
-      if (!replies || replies.length === 0) return undefined;
-      return replies.map((r) => ({
-        id: r.id,
-        userId: r.userId,
-        userName: r.userName,
-        avatarUrl: r.avatarUrl,
-        content: r.content,
-        likesCount: r.likesCount ?? 0,
-        isLiked: r.isLiked ?? false,
-        createdAt: r.createdAt,
-      }));
-    };
-    return (mockComments as unknown as MockReply[])
-      .filter((c) => c.postId === selectedPost.id)
-      .map((c) => ({
-        id: c.id,
-        userId: c.userId,
-        userName: c.userName,
-        avatarUrl: c.avatarUrl,
-        content: c.content,
-        likesCount: c.likesCount ?? 0,
-        isLiked: c.isLiked ?? false,
-        createdAt: c.createdAt,
-        replies: mapReplies(c.replies),
-      }));
-  }, [selectedPost]);
+    return reduxComments.map((comment) => ({
+      id: comment.id,
+      userId: comment.userId,
+      userName: comment.userName,
+      avatarUrl: comment.avatarUrl,
+      content: comment.content,
+      likesCount: comment.likesCount,
+      isLiked: comment.isLiked,
+      createdAt: comment.createdAt,
+      replies: comment.replies?.map((reply) => ({
+        id: reply.id,
+        userId: reply.userId,
+        userName: reply.userName,
+        avatarUrl: reply.avatarUrl,
+        content: reply.content,
+        likesCount: reply.likesCount,
+        isLiked: reply.isLiked,
+        createdAt: reply.createdAt,
+        replies: reply.replies,
+      })),
+    }));
+  }, [selectedPost, reduxComments]);
 
   const currentComments: CDComment[] = useMemo(() => {
     if (!selectedPost) return [];
-    return commentsByPostId[selectedPost.id] ?? selectedComments;
-  }, [commentsByPostId, selectedComments, selectedPost]);
+    return selectedComments;
+  }, [selectedComments, selectedPost]);
 
-  const ensureCommentsForSelected = () => {
-    if (!selectedPost) return;
-    setCommentsByPostId((prev) =>
-      prev[selectedPost.id]
-        ? prev
-        : { ...prev, [selectedPost.id]: selectedComments }
-    );
+  // Helper functions for API calls
+  const handleAddCommentAPI = async (content: string) => {
+    if (!selectedPost || !currentUser) return;
+    try {
+      await dispatch(
+        createCommentThunk({
+          id: 0,
+          userId: currentUser.id,
+          postId: parseInt(selectedPost.id),
+          reelId: 0,
+          parentId: 0,
+          content,
+          listMentionUserId: [],
+        })
+      ).unwrap();
+      dispatch(
+        getPostCommentsThunk({
+          postId: parseInt(selectedPost.id),
+          params: { pageNo: 0, pageSize: 50 },
+        })
+      );
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Lỗi",
+        description: "Không thể thêm bình luận.",
+      });
+    }
+  };
+
+  const handleLikeCommentAPI = async (commentId: string) => {
+    try {
+      await dispatch(likeCommentThunk(parseInt(commentId))).unwrap();
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Lỗi",
+        description: "Không thể thích bình luận.",
+      });
+    }
+  };
+
+  const handleReplyCommentAPI = async (parentId: string, content: string) => {
+    if (!selectedPost || !currentUser) return;
+    try {
+      await dispatch(
+        createCommentThunk({
+          id: 0,
+          userId: currentUser.id,
+          postId: parseInt(selectedPost.id),
+          reelId: 0,
+          parentId: parseInt(parentId),
+          content,
+          listMentionUserId: [],
+        })
+      ).unwrap();
+      dispatch(
+        getPostCommentsThunk({
+          postId: parseInt(selectedPost.id),
+          params: { pageNo: 0, pageSize: 50 },
+        })
+      );
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Lỗi",
+        description: "Không thể trả lời bình luận.",
+      });
+    }
+  };
+
+  const handleLikePostAPI = async (postId: string) => {
+    try {
+      await dispatch(likePostThunk(parseInt(postId))).unwrap();
+      setIsPostLiked((prev) => ({ ...prev, [postId]: !prev[postId] }));
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Lỗi",
+        description: "Không thể thích bài viết.",
+      });
+    }
   };
 
   const handlePostClick = (post: ProfilePost) => {
@@ -300,89 +394,11 @@ export const PostGrid = ({
             isActive: selectedPost.isActive,
           }}
           comments={currentComments}
-          onAddComment={(content) => {
-            if (!selectedPost) return;
-            ensureCommentsForSelected();
-            setCommentsByPostId((prev) => ({
-              ...prev,
-              [selectedPost.id]: [
-                ...(prev[selectedPost.id] ?? selectedComments),
-                {
-                  id: `c-${Date.now()}`,
-                  userId: profile?.id || "me",
-                  userName: profile?.username || "me",
-                  avatarUrl: profile?.avatar || "",
-                  content,
-                  likesCount: 0,
-                  isLiked: false,
-                  createdAt: new Date().toISOString(),
-                },
-              ],
-            }));
-          }}
-          onLikeComment={(commentId) => {
-            if (!selectedPost) return;
-            ensureCommentsForSelected();
-            setCommentsByPostId((prev) => ({
-              ...prev,
-              [selectedPost.id]: (
-                prev[selectedPost.id] ?? selectedComments
-              ).map((c) =>
-                c.id === commentId
-                  ? {
-                      ...c,
-                      isLiked: !c.isLiked,
-                      likesCount: (c.likesCount || 0) + (c.isLiked ? -1 : 1),
-                    }
-                  : {
-                      ...c,
-                      replies: c.replies?.map((r) =>
-                        r.id === commentId
-                          ? {
-                              ...r,
-                              isLiked: !r.isLiked,
-                              likesCount:
-                                (r.likesCount || 0) + (r.isLiked ? -1 : 1),
-                            }
-                          : r
-                      ),
-                    }
-              ),
-            }));
-          }}
-          onReplyComment={(parentId, content) => {
-            if (!selectedPost) return;
-            ensureCommentsForSelected();
-            setCommentsByPostId((prev) => ({
-              ...prev,
-              [selectedPost.id]: (
-                prev[selectedPost.id] ?? selectedComments
-              ).map((c) =>
-                c.id === parentId
-                  ? {
-                      ...c,
-                      replies: [
-                        ...(c.replies ?? []),
-                        {
-                          id: `r-${Date.now()}`,
-                          userId: profile?.id || "me",
-                          userName: profile?.username || "me",
-                          avatarUrl: profile?.avatar || "",
-                          content,
-                          likesCount: 0,
-                          isLiked: false,
-                          createdAt: new Date().toISOString(),
-                        },
-                      ],
-                    }
-                  : c
-              ),
-            }));
-          }}
-          onLikePost={(postId) =>
-            setIsPostLiked((prev) => ({ ...prev, [postId]: !prev[postId] }))
-          }
-          isPostLiked={!!isPostLiked[selectedPost.id]}
+          onAddComment={handleAddCommentAPI}
+          onLikeComment={handleLikeCommentAPI}
+          onReplyComment={handleReplyCommentAPI}
+          onLikePost={handleLikePostAPI}
+          isPostLiked={isPostLiked[selectedPost.id] ?? selectedPost.isLiked ?? false}
           onOpenShareDialog={() => setIsShareOpen(true)}
           isShareDialogOpen={isShareOpen}
           onNavigateToProfile={(userName) => navigate(`/${userName}`)}
@@ -458,89 +474,11 @@ export const PostGrid = ({
             isActive: selectedPost.isActive,
           }}
           comments={currentComments}
-          onAddComment={(content) => {
-            if (!selectedPost) return;
-            ensureCommentsForSelected();
-            setCommentsByPostId((prev) => ({
-              ...prev,
-              [selectedPost.id]: [
-                ...(prev[selectedPost.id] ?? selectedComments),
-                {
-                  id: `c-${Date.now()}`,
-                  userId: profile?.id || "me",
-                  userName: profile?.username || "me",
-                  avatarUrl: profile?.avatar || "",
-                  content,
-                  likesCount: 0,
-                  isLiked: false,
-                  createdAt: new Date().toISOString(),
-                },
-              ],
-            }));
-          }}
-          onLikeComment={(commentId) => {
-            if (!selectedPost) return;
-            ensureCommentsForSelected();
-            setCommentsByPostId((prev) => ({
-              ...prev,
-              [selectedPost.id]: (
-                prev[selectedPost.id] ?? selectedComments
-              ).map((c) =>
-                c.id === commentId
-                  ? {
-                      ...c,
-                      isLiked: !c.isLiked,
-                      likesCount: (c.likesCount || 0) + (c.isLiked ? -1 : 1),
-                    }
-                  : {
-                      ...c,
-                      replies: c.replies?.map((r) =>
-                        r.id === commentId
-                          ? {
-                              ...r,
-                              isLiked: !r.isLiked,
-                              likesCount:
-                                (r.likesCount || 0) + (r.isLiked ? -1 : 1),
-                            }
-                          : r
-                      ),
-                    }
-              ),
-            }));
-          }}
-          onReplyComment={(parentId, content) => {
-            if (!selectedPost) return;
-            ensureCommentsForSelected();
-            setCommentsByPostId((prev) => ({
-              ...prev,
-              [selectedPost.id]: (
-                prev[selectedPost.id] ?? selectedComments
-              ).map((c) =>
-                c.id === parentId
-                  ? {
-                      ...c,
-                      replies: [
-                        ...(c.replies ?? []),
-                        {
-                          id: `r-${Date.now()}`,
-                          userId: profile?.id || "me",
-                          userName: profile?.username || "me",
-                          avatarUrl: profile?.avatar || "",
-                          content,
-                          likesCount: 0,
-                          isLiked: false,
-                          createdAt: new Date().toISOString(),
-                        },
-                      ],
-                    }
-                  : c
-              ),
-            }));
-          }}
-          onLikePost={(postId) =>
-            setIsPostLiked((prev) => ({ ...prev, [postId]: !prev[postId] }))
-          }
-          isPostLiked={!!isPostLiked[selectedPost.id]}
+          onAddComment={handleAddCommentAPI}
+          onLikeComment={handleLikeCommentAPI}
+          onReplyComment={handleReplyCommentAPI}
+          onLikePost={handleLikePostAPI}
+          isPostLiked={isPostLiked[selectedPost.id] ?? selectedPost.isLiked ?? false}
           actionMenuItems={
             currentUser && selectedPost.userId === currentUser.id.toString()
               ? [

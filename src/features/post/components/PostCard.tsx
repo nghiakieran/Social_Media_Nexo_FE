@@ -1,9 +1,8 @@
-import { useState } from 'react';
-import { 
-  Heart, 
-  MessageCircle, 
-  Send, 
-  Bookmark, 
+import { useState, useEffect, useRef } from "react";
+import {
+  MessageCircle,
+  Send,
+  Bookmark,
   MoreHorizontal,
   Globe,
   Users,
@@ -13,37 +12,46 @@ import {
   ChevronRight,
   Smile,
   EyeOff,
-  Eye
-} from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { getAvatarUrl, getAvatarInitials } from '@/utils/avatar';
+  Eye,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { getAvatarUrl, getAvatarInitials } from "@/utils/avatar";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from '@/components/ui/tooltip';
-import { CommentDialog } from './CommentDialog';
-import { LazyImage } from '@/components/common/LazyImage';
-import { HLSVideoPlayer } from '@/components/common/HLSVideoPlayer';
-import { ShareDialog } from './ShareDialog';
-import { EmojiPicker } from '@/components/common/EmojiPicker';
-import { useToast } from '@/hooks/use-toast';
-import { LikesDialog } from './LikesDialog';
-import { ActionMenu } from '@/components/common/ActionMenu';
-import { useBookmark } from '@/features/saved/hooks/useBookmark';
-import { useNavigate } from 'react-router-dom';
-import { navigateToPost, navigateToProfile } from '@/utils/navigation';
-import { formatTimeAgoShort } from '@/utils/timeFormat';
-import { useAppDispatch } from '@/store';
-import { togglePostActiveThunk } from '../postSlice';
+} from "@/components/ui/tooltip";
+import { CommentDialog } from "./CommentDialog";
+import { LazyImage } from "@/components/common/LazyImage";
+import { HLSVideoPlayer } from "@/components/common/HLSVideoPlayer";
+import { ShareDialog } from "./ShareDialog";
+import { EmojiPicker } from "@/components/common/EmojiPicker";
+import { useToast } from "@/hooks/use-toast";
+import { LikesDialog } from "./LikesDialog";
+import { ActionMenu } from "@/components/common/ActionMenu";
+import { useBookmark } from "@/features/saved/hooks/useBookmark";
+import { useNavigate } from "react-router-dom";
+import { navigateToPost, navigateToProfile } from "@/utils/navigation";
+import { formatTimeAgoShort } from "@/utils/timeFormat";
+import { useAppDispatch, useAppSelector } from "@/store";
+import { togglePostActiveThunk } from "../postSlice";
+import { LikeButton } from "@/features/interaction/components/LikeButton";
+import {
+  getPostCommentsThunk,
+  createCommentThunk,
+  clearComments,
+} from "@/features/interaction/interactionSlice";
+import { getPostLikeDetailThunk } from "@/features/interaction";
+import { useInView } from "@/hooks/use-in-view";
+import { parseMentions } from "@/utils/mentions";
 
 interface MediaItem {
   id: string;
-  type: 'image' | 'video';
+  type: "image" | "video";
   url: string;
   thumbnail?: string;
   alt?: string;
@@ -61,7 +69,7 @@ interface Post {
   avatarUrl: string;
   caption: string;
   media: MediaItem[];
-  visibility: 'public' | 'private';
+  visibility: "public" | "private";
   taggedUsers: TaggedUser[];
   hashtags: string[];
   createdAt: string;
@@ -88,6 +96,27 @@ interface CommentType {
   replies?: CommentType[];
 }
 
+// Utility function to transform API comment response to CommentType
+const transformComment = (comment: {
+  id: number;
+  userId: number;
+  userName: string;
+  avatarUrl: string;
+  content: string;
+  likesCount?: number;
+  like?: boolean;
+  createdAt: string;
+}): CommentType => ({
+  id: comment.id.toString(),
+  userId: comment.userId.toString(),
+  userName: comment.userName,
+  avatarUrl: comment.avatarUrl,
+  content: comment.content,
+  likesCount: comment.likesCount || 0,
+  isLiked: comment.like || false,
+  createdAt: comment.createdAt,
+});
+
 interface PostCardProps {
   post: Post;
   onLike: (postId: string) => void;
@@ -100,16 +129,20 @@ interface PostCardProps {
   comments?: CommentType[];
   onAddComment?: (postId: string, content: string) => void;
   onLikeComment?: (commentId: string) => void;
-  onReplyComment?: (commentId: string, content: string) => void;
+  onReplyComment?: (
+    commentId: string,
+    content: string,
+    postId?: string
+  ) => void;
   isOwnPost?: boolean; // Để biết có phải post của mình không
   isInProfilePage?: boolean; // Để biết có đang ở profile page không
 }
 
-export const PostCard = ({ 
-  post, 
-  onLike, 
-  onEdit, 
-  onDelete, 
+export const PostCard = ({
+  post,
+  onLike,
+  onEdit,
+  onDelete,
   onReport,
   onShare,
   onOpenShareDialog,
@@ -119,23 +152,133 @@ export const PostCard = ({
   onLikeComment,
   onReplyComment,
   isOwnPost = false,
-  isInProfilePage = false
+  isInProfilePage = false,
 }: PostCardProps) => {
   const [currentMediaIndex, setCurrentMediaIndex] = useState(0);
-  const [showReactions, setShowReactions] = useState(false);
   const [showCommentDialog, setShowCommentDialog] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-  const [emojiPickerPosition, setEmojiPickerPosition] = useState<{ top: number; left?: number; right?: number } | null>(null);
+  const [emojiPickerPosition, setEmojiPickerPosition] = useState<{
+    top: number;
+    left?: number;
+    right?: number;
+  } | null>(null);
   const { toast } = useToast();
   const [showLikesDialog, setShowLikesDialog] = useState(false);
-  const [inlineComment, setInlineComment] = useState('');
+  const [inlineComment, setInlineComment] = useState("");
   const [showActionMenu, setShowActionMenu] = useState(false);
-  const [actionMenuPosition, setActionMenuPosition] = useState<{ top: number; left?: number; right?: number } | null>(null);
+  const [actionMenuPosition, setActionMenuPosition] = useState<{
+    top: number;
+    left?: number;
+    right?: number;
+  } | null>(null);
+  const [isLiked, setIsLiked] = useState(post.isLiked);
+  const [likesCount, setLikesCount] = useState(post.likesCount);
+  const [commentsCount, setCommentsCount] = useState(post.commentsCount);
+  const [postComments, setPostComments] = useState<CommentType[]>([]);
+  const [hasFetchedComments, setHasFetchedComments] = useState(false);
+  const [hasMoreComments, setHasMoreComments] = useState(true);
+  const [latestLikeName, setLatestLikeName] = useState<string | null>(null);
+  const [hasFetchedLikePreview, setHasFetchedLikePreview] = useState(false);
+  const cardRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
-  
+  const { user } = useAppSelector((state) => state.auth);
+
   // Use bookmark hook
   const { isBookmarked, toggleBookmark } = useBookmark();
+
+  // Check if post is in viewport
+  const { hasBeenInView } = useInView(cardRef, {
+    threshold: 0.1,
+    rootMargin: "200px", // Start loading when 200px before entering viewport
+    triggerOnce: true, // Only trigger once
+  });
+
+  // Fetch comments preview for this post only when it enters viewport
+  useEffect(() => {
+    // Only fetch if:
+    // 1. Post is in view (hasBeenInView)
+    // 2. Haven't fetched yet (hasFetchedComments === false)
+    // 3. Has more comments (hasMoreComments === true)
+    if (!hasBeenInView || hasFetchedComments || !hasMoreComments) {
+      return;
+    }
+
+    const fetchComments = async () => {
+      try {
+        setHasFetchedComments(true);
+        const result = await dispatch(
+          getPostCommentsThunk({
+            postId: parseInt(post.id),
+            params: { pageNo: 0, pageSize: 2 },
+          })
+        ).unwrap();
+
+        // Transform and store in local state (only root comments)
+        if (result && result.commentResponseList) {
+          const rootComments = result.commentResponseList
+            .filter(
+              (c: { parentId?: number }) => !c.parentId || c.parentId === 0
+            )
+            .slice(0, 2)
+            .reverse();
+
+          const comments = rootComments.map(transformComment);
+          setPostComments(comments);
+
+          // Update commentsCount from totalElements
+          setCommentsCount(result.totalElements || 0);
+
+          // Check if there are more comments
+          if (result.commentResponseList.length < 2 || result.last) {
+            setHasMoreComments(false);
+          }
+        } else {
+          setHasMoreComments(false);
+        }
+      } catch (error) {
+        console.error("Error fetching comments preview:", error);
+        setHasFetchedComments(false); // Allow retry on error
+      }
+    };
+
+    fetchComments();
+  }, [dispatch, post.id, hasBeenInView, hasFetchedComments, hasMoreComments]);
+
+  // Fetch like preview (newest liker + total count) when in view
+  useEffect(() => {
+    if (!hasBeenInView || hasFetchedLikePreview) return;
+    const fetchLikePreview = async () => {
+      try {
+        setHasFetchedLikePreview(true);
+        const data = await dispatch(
+          getPostLikeDetailThunk({
+            postId: parseInt(post.id),
+            params: { pageNo: 0, pageSize: 1 },
+          })
+        ).unwrap();
+
+        const total = data.totalElements ?? 0;
+        setLikesCount(total);
+
+        if (data.content && data.content.length > 0) {
+          // pick newest non-self liker; self indicated by isFollowing === null
+          const other = data.content.find((u: { isFollowing: boolean | null }) => u.isFollowing !== null);
+          setLatestLikeName(other ? other.userName : null);
+        }
+      } catch (e) {
+        setHasFetchedLikePreview(false);
+      }
+    };
+    fetchLikePreview();
+  }, [dispatch, post.id, hasBeenInView, hasFetchedLikePreview]);
+
+  // Sync state when post prop changes - ensure it's always in sync with API data
+  useEffect(() => {
+    setIsLiked(post.isLiked);
+    setLikesCount(post.likesCount);
+    setCommentsCount(post.commentsCount);
+  }, [post.id, post.isLiked, post.likesCount, post.commentsCount]);
 
   const privacyIcons = {
     public: Globe,
@@ -152,20 +295,80 @@ export const PostCard = ({
     navigateToProfile(navigate, userName);
   };
 
+  const handleNavigateToProfile = (userName: string) => {
+    navigateToProfile(navigate, userName);
+  };
+
   const handleGoToPost = (postId: string) => {
     navigateToPost(navigate, postId);
   };
 
-  const handleAction = (action: string, actionFn: (id: string) => void) => {
-    actionFn(post.id);
-    toast({
-      title: `${action} thành công!`,
-      duration: 2000,
-    });
+  const handleLikeChange = async (newIsLiked: boolean, newCount: number) => {
+    setIsLiked(newIsLiked);
+    setLikesCount(newCount);
+
+    try {
+      const data = await dispatch(
+        getPostLikeDetailThunk({
+          postId: parseInt(post.id),
+          params: { pageNo: 0, pageSize: 1 },
+        })
+      ).unwrap();
+
+      const total = data.totalElements ?? newCount;
+      setLikesCount(total);
+
+      if (data.content && data.content.length > 0) {
+        const other = data.content.find(
+          (u: { isFollowing: boolean | null }) => u.isFollowing !== null
+        );
+        setLatestLikeName(other ? other.userName : null);
+      } else {
+        setLatestLikeName(null);
+      }
+    } catch {
+      // keep optimistic state if refresh fails
+    }
   };
 
   const handleCommentClick = () => {
     setShowCommentDialog(true);
+  };
+
+  const handleCloseCommentDialog = () => {
+    setShowCommentDialog(false);
+    // Refresh comments preview when dialog closes (to show 2 newest comments)
+    if (hasFetchedComments) {
+      const refreshComments = async () => {
+        try {
+          const result = await dispatch(
+            getPostCommentsThunk({
+              postId: parseInt(post.id),
+              params: { pageNo: 0, pageSize: 2 },
+            })
+          ).unwrap();
+
+          if (result && result.commentResponseList) {
+            // API returns newest first, reverse để comment mới nhất hiển thị ở dưới cùng
+            const rootComments = result.commentResponseList
+              .filter(
+                (c: { parentId?: number }) => !c.parentId || c.parentId === 0
+              )
+              .slice(0, 2)
+              .reverse();
+
+            const comments = rootComments.map(transformComment);
+            setPostComments(comments);
+
+            // Update commentsCount from totalElements
+            setCommentsCount(result.totalElements || 0);
+          }
+        } catch (error) {
+          console.error("Error refreshing comments preview:", error);
+        }
+      };
+      refreshComments();
+    }
   };
 
   const handleShareClick = () => {
@@ -184,17 +387,18 @@ export const PostCard = ({
   const handleOpenEmojiPicker = (event: React.MouseEvent) => {
     event.preventDefault();
     event.stopPropagation();
-    
+
     const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
     const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-    const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
-    
+    const scrollLeft =
+      window.pageXOffset || document.documentElement.scrollLeft;
+
     // Position like Instagram - fixed position
     const position = {
       top: 350, // Fixed top position
-      right: 310 // Fixed right position
+      right: 310, // Fixed right position
     };
-    
+
     setEmojiPickerPosition(position);
     setShowEmojiPicker(true);
   };
@@ -211,9 +415,54 @@ export const PostCard = ({
     setShowEmojiPicker(false);
   };
 
-  const handleAddComment = (content: string) => {
-    if (onAddComment) {
-      onAddComment(post.id, content);
+  const handleAddComment = async (content: string) => {
+    if (!user) return;
+
+    try {
+      await dispatch(
+        createCommentThunk({
+          id: 0,
+          userId: user.id,
+          postId: parseInt(post.id),
+          reelId: 0,
+          parentId: 0,
+          content,
+          listMentionUserId: [],
+        })
+      ).unwrap();
+
+      // Refresh comments after adding - API returns newest first
+      try {
+        const result = await dispatch(
+          getPostCommentsThunk({
+            postId: parseInt(post.id),
+            params: { pageNo: 0, pageSize: 2 },
+          })
+        ).unwrap();
+
+        if (result && result.commentResponseList) {
+          const rootComments = result.commentResponseList
+            .filter(
+              (c: { parentId?: number }) => !c.parentId || c.parentId === 0
+            )
+            .slice(0, 2)
+            .reverse();
+
+          const comments = rootComments.map(transformComment);
+          setPostComments(comments);
+
+          // Update commentsCount from totalElements
+          setCommentsCount(result.totalElements || 0);
+        }
+      } catch (error) {
+        console.error("Error refreshing comments:", error);
+      }
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Lỗi",
+        description: "Không thể thêm bình luận. Vui lòng thử lại.",
+      });
     }
   };
 
@@ -225,7 +474,8 @@ export const PostCard = ({
 
   const handleReplyComment = (commentId: string, content: string) => {
     if (onReplyComment) {
-      onReplyComment(commentId, content);
+      // onReplyComment accepts (commentId, content, postId?)
+      onReplyComment(commentId, content, post.id);
     }
   };
 
@@ -237,17 +487,19 @@ export const PostCard = ({
     setShowLikesDialog(false);
   };
 
-  const handleSubmitInlineComment = (e: React.FormEvent) => {
+  const handleSubmitInlineComment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!inlineComment.trim()) return;
-    if (onAddComment) {
-      onAddComment(post.id, inlineComment.trim());
-    }
-    setInlineComment('');
+
+    await handleAddComment(inlineComment.trim());
+    setInlineComment("");
   };
 
   const handleOpenActionMenu = () => {
-    setActionMenuPosition({ top: window.innerHeight / 2, left: window.innerWidth / 2 });
+    setActionMenuPosition({
+      top: window.innerHeight / 2,
+      left: window.innerWidth / 2,
+    });
     setShowActionMenu(true);
   };
 
@@ -255,39 +507,39 @@ export const PostCard = ({
 
   const handlePostAction = async (action: string) => {
     switch (action) {
-      case 'toggleHidePost':
+      case "toggleHidePost":
         try {
           await dispatch(togglePostActiveThunk(parseInt(post.id))).unwrap();
           const isNowHidden = !post.isActive;
           toast({
             title: isNowHidden ? "Đã ẩn bài viết" : "Đã hiển thị bài viết",
-            description: isNowHidden 
-              ? "Bài viết sẽ không hiển thị trên trang cá nhân của bạn." 
+            description: isNowHidden
+              ? "Bài viết sẽ không hiển thị trên trang cá nhân của bạn."
               : "Bài viết đã được hiển thị lại trên trang cá nhân.",
           });
         } catch (error) {
           toast({
             title: "Lỗi",
             description: "Không thể thay đổi trạng thái bài viết.",
-            variant: "destructive"
+            variant: "destructive",
           });
         }
         break;
-      case 'report':
+      case "report":
         onReport(post.id);
         break;
-      case 'goToPost':
+      case "goToPost":
         handleGoToPost(post.id);
         break;
-      case 'share':
+      case "share":
         if (onOpenShareDialog) onOpenShareDialog();
         break;
-      case 'copyLink':
+      case "copyLink":
         navigator.clipboard?.writeText(window.location.href).catch(() => {});
         break;
-      case 'embed':
+      case "embed":
         break;
-      case 'aboutAccount':
+      case "aboutAccount":
         break;
       default:
         break;
@@ -296,30 +548,41 @@ export const PostCard = ({
   };
 
   const nextMedia = () => {
-    setCurrentMediaIndex((prev) => 
+    setCurrentMediaIndex((prev) =>
       prev < post.media.length - 1 ? prev + 1 : 0
     );
   };
 
   const prevMedia = () => {
-    setCurrentMediaIndex((prev) => 
+    setCurrentMediaIndex((prev) =>
       prev > 0 ? prev - 1 : post.media.length - 1
     );
   };
 
   return (
-    <Card className="w-full max-w-md mx-auto bg-background border-border">
+    <Card
+      ref={cardRef}
+      className="w-full max-w-md mx-auto bg-background border-border"
+    >
       <CardContent className="p-0">
         {/* Header */}
         <div className="flex items-center justify-between p-4">
           <div className="flex items-center gap-3">
-            <Avatar className="w-10 h-10 cursor-pointer hover:opacity-80 transition-opacity" onClick={handleProfileClick}>
-              <AvatarImage src={getAvatarUrl(post.avatarUrl)} alt={post.userName} />
-              <AvatarFallback>{getAvatarInitials(post.userName)}</AvatarFallback>
+            <Avatar
+              className="w-10 h-10 cursor-pointer hover:opacity-80 transition-opacity"
+              onClick={handleProfileClick}
+            >
+              <AvatarImage
+                src={getAvatarUrl(post.avatarUrl)}
+                alt={post.userName}
+              />
+              <AvatarFallback>
+                {getAvatarInitials(post.userName)}
+              </AvatarFallback>
             </Avatar>
             <div className="flex flex-col">
               <div className="flex items-center gap-2 mb-1">
-                <span 
+                <span
                   className="font-semibold text-foreground text-sm cursor-pointer hover:underline"
                   onClick={handleProfileClick}
                 >
@@ -327,7 +590,7 @@ export const PostCard = ({
                 </span>
               </div>
               <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                <span>{formatTimeAgoShort(post.updatedAt)}</span>
+                <span>{formatTimeAgoShort(post.createdAt)}</span>
                 <span>•</span>
                 <TooltipProvider>
                   <Tooltip>
@@ -335,16 +598,26 @@ export const PostCard = ({
                       <PrivacyIcon className="w-3 h-3" />
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p>{post.visibility === 'public' ? 'Công khai' : 'Riêng tư'}</p>
+                      <p>
+                        {post.visibility === "public"
+                          ? "Công khai"
+                          : "Riêng tư"}
+                      </p>
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
               </div>
             </div>
           </div>
-          
+
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={handleOpenActionMenu} aria-label="Lựa chọn khác">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0"
+              onClick={handleOpenActionMenu}
+              aria-label="Lựa chọn khác"
+            >
               <MoreHorizontal className="w-4 h-4" />
             </Button>
           </div>
@@ -354,17 +627,17 @@ export const PostCard = ({
         {post.caption && (
           <div className="px-4 pb-3">
             <p className="text-sm leading-relaxed">
-              {post.caption.split(' ').map((word, index) => 
-                word.startsWith('#') ? (
+              {post.caption.split(" ").map((word, index) =>
+                word.startsWith("#") ? (
                   <span key={index} className="text-primary font-medium">
-                    {word}{' '}
+                    {word}{" "}
                   </span>
                 ) : (
-                  word + ' '
+                  word + " "
                 )
               )}
             </p>
-            
+
             {/* Tagged Users */}
             {post.taggedUsers && post.taggedUsers.length > 0 && (
               <div className="mt-2 flex items-center gap-1 flex-wrap">
@@ -372,13 +645,15 @@ export const PostCard = ({
                 <span className="text-xs text-muted-foreground">với</span>
                 {post.taggedUsers.map((tag, index) => (
                   <span key={index} className="text-xs">
-                    <span 
+                    <span
                       className="font-medium text-primary hover:underline cursor-pointer"
                       onClick={() => handleTagClick(tag.userName)}
                     >
                       {tag.userName}
                     </span>
-                    {index < post.taggedUsers.length - 1 && <span className="text-muted-foreground">, </span>}
+                    {index < post.taggedUsers.length - 1 && (
+                      <span className="text-muted-foreground">, </span>
+                    )}
                   </span>
                 ))}
               </div>
@@ -403,17 +678,20 @@ export const PostCard = ({
                   </TooltipTrigger>
                   <TooltipContent>
                     <p>Nội dung này có thể vi phạm chính sách cộng đồng</p>
-                    <p className="text-xs">Độ tin cậy: {Math.round((post.violationScore || 0) * 100)}%</p>
+                    <p className="text-xs">
+                      Độ tin cậy: {Math.round((post.violationScore || 0) * 100)}
+                      %
+                    </p>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
             )}
 
             <div className="aspect-square bg-muted relative overflow-hidden">
-              {post.media[currentMediaIndex].type === 'image' ? (
+              {post.media[currentMediaIndex].type === "image" ? (
                 <LazyImage
                   src={post.media[currentMediaIndex].url}
-                  alt={post.media[currentMediaIndex].alt || 'Post media'}
+                  alt={post.media[currentMediaIndex].alt || "Post media"}
                   className="w-full h-full"
                   loading="lazy"
                   decoding="async"
@@ -456,9 +734,9 @@ export const PostCard = ({
                       <div
                         key={index}
                         className={`w-2 h-2 rounded-full transition-colors ${
-                          index === currentMediaIndex 
-                            ? 'bg-white' 
-                            : 'bg-white/50'
+                          index === currentMediaIndex
+                            ? "bg-white"
+                            : "bg-white/50"
                         }`}
                       />
                     ))}
@@ -473,15 +751,15 @@ export const PostCard = ({
         <div className="p-4">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-3">
+              <LikeButton
+                targetId={parseInt(post.id)}
+                targetType="post"
+                isLiked={isLiked}
+                likesCount={likesCount}
+                showCount
+                onLikeChange={handleLikeChange}
+              />
               <button
-                className={`h-9 w-9 inline-flex items-center justify-center select-none touch-manipulation transition-all duration-150 ${post.isLiked ? 'text-red-500' : 'text-foreground hover:opacity-80 active:opacity-60'}`}
-                onClick={() => handleAction('Like', onLike)}
-                aria-label="Thích bài viết"
-                type="button"
-              >
-                <Heart className={`w-6 h-6 transition-transform ${post.isLiked ? 'fill-current scale-105' : ''}`} />
-              </button>
-              <button 
                 className="h-9 w-9 inline-flex items-center justify-center select-none touch-manipulation text-foreground hover:opacity-80 active:opacity-60 transition-opacity"
                 onClick={handleCommentClick}
                 aria-label="Bình luận"
@@ -489,7 +767,7 @@ export const PostCard = ({
               >
                 <MessageCircle className="w-6 h-6" />
               </button>
-              <button 
+              <button
                 className="h-9 w-9 inline-flex items-center justify-center select-none touch-manipulation text-foreground hover:opacity-80 active:opacity-60 transition-opacity"
                 onClick={handleShareClick}
                 aria-label="Chia sẻ"
@@ -499,59 +777,101 @@ export const PostCard = ({
               </button>
             </div>
             <button
-              className={`h-9 w-9 inline-flex items-center justify-center select-none touch-manipulation transition-opacity ${isBookmarked(post.id) ? 'text-foreground' : 'text-foreground hover:opacity-80 active:opacity-60'}`}
+              className={`h-9 w-9 inline-flex items-center justify-center select-none touch-manipulation transition-opacity ${
+                isBookmarked(post.id)
+                  ? "text-foreground"
+                  : "text-foreground hover:opacity-80 active:opacity-60"
+              }`}
               onClick={() => toggleBookmark(post.id)}
               aria-label="Lưu bài viết"
               type="button"
             >
-              <Bookmark className={`w-6 h-6 ${isBookmarked(post.id) ? 'fill-current' : ''}`} />
+              <Bookmark
+                className={`w-6 h-6 ${
+                  isBookmarked(post.id) ? "fill-current" : ""
+                }`}
+              />
             </button>
           </div>
 
-          {/* Likes summary like Instagram */}
-          {post.likesCount > 0 && (
-            <button type="button" onClick={handleOpenLikesDialog} className="mt-1 text-left text-sm w-full">
-              <span className="font-medium hover:underline">
-                {comments[0]?.userName || 'someone'}
-              </span>
-              <span className="text-gray-600 dark:text-gray-300"> và </span>
-              <span className="font-medium hover:underline">những người khác</span>
-              <span className="text-gray-600 dark:text-gray-300"> đã thích</span>
+          {/* Likes summary */}
+          {likesCount > 0 && (
+            <button
+              type="button"
+              onClick={handleOpenLikesDialog}
+              className="mt-1 text-left text-sm w-full"
+            >
+              {(() => {
+                const parts: React.ReactNode[] = [];
+                if (isLiked) {
+                  parts.push(<span key="you" className="font-medium">Bạn</span>);
+                  if (latestLikeName) {
+                    parts.push(<span key="comma">, </span>);
+                    parts.push(
+                      <span key="name" className="font-medium hover:underline">{latestLikeName}</span>
+                    );
+                  }
+                } else if (latestLikeName) {
+                  parts.push(
+                    <span key="name" className="font-medium hover:underline">{latestLikeName}</span>
+                  );
+                } else {
+                  parts.push(
+                    <span key="someone" className="font-medium">Ai đó</span>
+                  );
+                }
+
+                if (likesCount > (isLiked && latestLikeName ? 2 : isLiked || latestLikeName ? 1 : 1)) {
+                  parts.push(<span key="and" className="text-gray-600 dark:text-gray-300"> và </span>);
+                  parts.push(
+                    <span key="others" className="font-medium hover:underline">những người khác</span>
+                  );
+                }
+                parts.push(<span key="liked" className="text-gray-600 dark:text-gray-300"> đã thích</span>);
+                return parts;
+              })()}
             </button>
           )}
 
           {/* Comments Count */}
-          {post.commentsCount > 0 && (
+          {commentsCount > 0 && (
             <div className="mb-2">
-              <button 
+              <button
                 className="text-sm text-muted-foreground hover:text-foreground transition-colors"
                 onClick={handleCommentClick}
               >
-                Xem tất cả {post.commentsCount.toLocaleString('vi-VN')} bình luận
+                Xem tất cả {commentsCount.toLocaleString("vi-VN")} bình luận
               </button>
             </div>
           )}
 
           {/* Comments Preview (latest 2) */}
-          {comments && comments.length > 0 && (
+          {postComments && postComments.length > 0 && (
             <ul className="mb-2 space-y-1">
-              {comments.slice(-2).map((c) => (
-                <li key={c.id} className="text-sm">
+              {postComments.map((c) => (
+                <li key={c.id} className="flex items-start text-sm max-w-full">
                   <button
                     type="button"
-                    className="font-medium mr-2 hover:underline"
+                    className="font-medium mr-2 hover:underline shrink-0"
                     onClick={handleCommentClick}
                   >
                     {c.userName}
                   </button>
-                  <span className="align-middle break-words">{c.content}</span>
+                  <span className="break-all whitespace-pre-wrap text-sm text-foreground max-w-full">
+                    {parseMentions(c.content, (username) => {
+                      navigateToProfile(navigate, username);
+                    })}
+                  </span>
                 </li>
               ))}
             </ul>
           )}
 
           {/* Inline comment input */}
-          <form onSubmit={handleSubmitInlineComment} className="mt-2 flex items-center gap-3">
+          <form
+            onSubmit={handleSubmitInlineComment}
+            className="mt-2 flex items-center gap-3"
+          >
             <button
               type="button"
               onClick={(e) => {
@@ -572,7 +892,11 @@ export const PostCard = ({
             <button
               type="submit"
               disabled={!inlineComment.trim()}
-              className={`text-sm font-semibold ${inlineComment.trim() ? 'text-blue-500 hover:text-blue-600' : 'text-gray-400 cursor-default'}`}
+              className={`text-sm font-semibold ${
+                inlineComment.trim()
+                  ? "text-blue-500 hover:text-blue-600"
+                  : "text-gray-400 cursor-default"
+              }`}
             >
               Đăng
             </button>
@@ -583,9 +907,9 @@ export const PostCard = ({
       {/* Comment Dialog */}
       <CommentDialog
         isOpen={showCommentDialog}
-        onClose={() => setShowCommentDialog(false)}
+        onClose={handleCloseCommentDialog}
         post={post}
-        comments={comments}
+        comments={postComments}
         onAddComment={handleAddComment}
         onLikeComment={handleLikeComment}
         onReplyComment={handleReplyComment}
@@ -596,6 +920,7 @@ export const PostCard = ({
         isShareDialogOpen={isShareDialogOpen}
         isAuthorFollowed={false}
         onToggleFollowAuthor={(userId, next) => {}}
+        onNavigateToProfile={handleNavigateToProfile}
       />
 
       {/* Likes Dialog */}
@@ -604,7 +929,8 @@ export const PostCard = ({
         onClose={handleCloseLikesDialog}
         title="Lượt thích"
         infoText={undefined}
-        users={(comments.slice(0, 10).map((c) => ({ id: c.id, name: c.userName, avatar: c.avatarUrl, subtitle: undefined, isVerified: false, isFollowing: false })))}
+        targetType="post"
+        targetId={parseInt(post.id)}
       />
 
       {/* Action Menu */}
@@ -614,17 +940,36 @@ export const PostCard = ({
         position={actionMenuPosition}
         items={[
           // Show "Hide/Show Post" only for own posts in profile page
-          ...(isOwnPost && isInProfilePage ? [{
-            label: post.isActive ? '🙈 Ẩn bài viết khỏi trang cá nhân' : '👁️ Hiển thị bài viết',
-            action: () => handlePostAction('toggleHidePost')
-          }] : []),
-          { label: 'Báo cáo', action: () => handlePostAction('report'), isDestructive: true },
-          { label: 'Đi đến bài viết', action: () => handlePostAction('goToPost') },
-          { label: 'Chia sẻ lên...', action: () => handlePostAction('share') },
-          { label: 'Sao chép liên kết', action: () => handlePostAction('copyLink') },
-          { label: 'Nhúng', action: () => handlePostAction('embed') },
-          { label: 'Giới thiệu về tài khoản này', action: () => handlePostAction('aboutAccount') },
-          { label: 'Hủy', action: handleCloseActionMenu }
+          ...(isOwnPost && isInProfilePage
+            ? [
+                {
+                  label: post.isActive
+                    ? "🙈 Ẩn bài viết khỏi trang cá nhân"
+                    : "👁️ Hiển thị bài viết",
+                  action: () => handlePostAction("toggleHidePost"),
+                },
+              ]
+            : []),
+          {
+            label: "Báo cáo",
+            action: () => handlePostAction("report"),
+            isDestructive: true,
+          },
+          {
+            label: "Đi đến bài viết",
+            action: () => handlePostAction("goToPost"),
+          },
+          { label: "Chia sẻ lên...", action: () => handlePostAction("share") },
+          {
+            label: "Sao chép liên kết",
+            action: () => handlePostAction("copyLink"),
+          },
+          { label: "Nhúng", action: () => handlePostAction("embed") },
+          {
+            label: "Giới thiệu về tài khoản này",
+            action: () => handlePostAction("aboutAccount"),
+          },
+          { label: "Hủy", action: handleCloseActionMenu },
         ]}
       />
 

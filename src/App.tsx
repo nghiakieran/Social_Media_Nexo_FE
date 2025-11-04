@@ -30,7 +30,6 @@ import RegisterPage from "./features/auth/pages/RegisterPage";
 import TwoFactorPage from "./features/auth/pages/TwoFactorPage";
 
 // Post Pages
-import { CommentPage } from "./features/interaction/pages/CommentPage";
 import { CreatePostPage } from "./features/post/pages/CreatePostPage";
 import { FeedPage } from "./features/post/pages/FeedPage";
 import { LiveStudioPage } from "./features/post/pages/LiveStudioPage";
@@ -176,7 +175,6 @@ const App = () => (
 
                   {/* About Page */}
                   <Route path="about" element={<About />} />
-                  <Route path="comments/:postId" element={<CommentPage />} />
                 </Route>
 
                 {/* Auth Routes */}
