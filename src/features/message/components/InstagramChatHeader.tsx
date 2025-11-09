@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import {
@@ -16,8 +16,18 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { OnlineIndicator } from "./OnlineIndicator";
-import type { ConversationResponseDTO } from "../types";
+import type { ConversationResponseDTO, UserDTO } from "../types";
 import { cn } from "@/lib/utils";
 import { formatLastSeen } from "../hooks/usePresence";
 
@@ -25,6 +35,7 @@ interface InstagramChatHeaderProps {
   chat?: ConversationResponseDTO;
   onBack?: () => void;
   onCall?: (type: "voice" | "video") => void;
+  onNicknameUpdated?: () => void;
   showBackButton?: boolean;
   className?: string;
   isOnline?: boolean;
@@ -36,12 +47,82 @@ export const InstagramChatHeader: React.FC<InstagramChatHeaderProps> = ({
   chat,
   onBack,
   onCall,
+  onNicknameUpdated,
   showBackButton = false,
   className,
   isOnline = false,
   lastSeen,
   currentUserId,
 }) => {
+  const [nicknameDialogOpen, setNicknameDialogOpen] = useState(false);
+  const [participants, setParticipants] = useState<UserDTO[]>([]);
+  const [editingUserId, setEditingUserId] = useState<number | null>(null);
+  const [nickname, setNickname] = useState("");
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [isLoadingParticipants, setIsLoadingParticipants] = useState(false);
+
+  const handleOpenNicknameDialog = async () => {
+    if (!chat?.id || !currentUserId) return;
+
+    setNicknameDialogOpen(true);
+    setIsLoadingParticipants(true);
+
+    try {
+      const { conversationApi } = await import("../services/messageApi");
+      const response = await conversationApi.getConversationNickname(chat.id);
+
+      if (response?.data?.participants) {
+        setParticipants(response.data.participants);
+      }
+    } catch (error) {
+      console.error("Error loading participants:", error);
+      setParticipants([]);
+    } finally {
+      setIsLoadingParticipants(false);
+    }
+  };
+
+  const handleStartEditing = (userId: number, currentNickname?: string) => {
+    setEditingUserId(userId);
+    setNickname(currentNickname || "");
+  };
+
+  const handleCancelEditing = () => {
+    setEditingUserId(null);
+    setNickname("");
+  };
+
+  const handleUpdateNickname = async () => {
+    if (!chat?.id || !nickname.trim() || !editingUserId) return;
+
+    setIsUpdating(true);
+    try {
+      const { conversationApi } = await import("../services/messageApi");
+      await conversationApi.updateNickname(
+        chat.id,
+        editingUserId,
+        nickname.trim()
+      );
+
+      setParticipants((prev) =>
+        prev.map((p) =>
+          p.id === editingUserId ? { ...p, nickname: nickname.trim() } : p
+        )
+      );
+
+      setEditingUserId(null);
+      setNickname("");
+
+      if (onNicknameUpdated) {
+        onNicknameUpdated();
+      }
+    } catch (error) {
+      console.error("Error updating nickname:", error);
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
   if (!chat) {
     return (
       <div
@@ -138,17 +219,13 @@ export const InstagramChatHeader: React.FC<InstagramChatHeaderProps> = ({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-48">
-            <DropdownMenuItem>
-              <Info className="h-4 w-4 mr-2" />
-              Xem trang cá nhân
-            </DropdownMenuItem>
+            <DropdownMenuItem>Xem trang cá nhân</DropdownMenuItem>
             <DropdownMenuItem>Tìm kiếm trong cuộc trò chuyện</DropdownMenuItem>
             <DropdownMenuItem>Tắt thông báo</DropdownMenuItem>
-            <DropdownMenuItem>Biệt danh</DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem className="text-warning">
-              Hạn chế
+            <DropdownMenuItem onClick={handleOpenNicknameDialog}>
+              Biệt danh
             </DropdownMenuItem>
+            <DropdownMenuSeparator />
             <DropdownMenuItem className="text-destructive">
               Chặn
             </DropdownMenuItem>
@@ -158,6 +235,133 @@ export const InstagramChatHeader: React.FC<InstagramChatHeaderProps> = ({
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
+
+      {/* Nickname Dialog */}
+      <Dialog
+        open={nicknameDialogOpen}
+        onOpenChange={(open) => {
+          setNicknameDialogOpen(open);
+          if (!open) {
+            setEditingUserId(null);
+            setNickname("");
+            setParticipants([]);
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Biệt danh</DialogTitle>
+            <DialogDescription>
+              Đặt biệt danh cho người trong cuộc trò chuyện
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            {isLoadingParticipants ? (
+              <div className="flex justify-center items-center py-8">
+                <p className="text-sm text-muted-foreground">Đang tải...</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {participants.map((participant) => {
+                  const isCurrentUser = participant.id === currentUserId;
+                  const isEditing = editingUserId === participant.id;
+                  const displayName =
+                    participant.nickname || participant.fullName;
+
+                  return (
+                    <div
+                      key={participant.id}
+                      className={cn(
+                        "flex items-center gap-3 p-3 rounded-lg border bg-card",
+                        !isEditing &&
+                          "cursor-pointer hover:bg-muted/50 transition-colors"
+                      )}
+                      onClick={() => {
+                        if (!isEditing) {
+                          handleStartEditing(
+                            participant.id,
+                            participant.nickname
+                          );
+                        }
+                      }}
+                    >
+                      <Avatar className="h-12 w-12">
+                        <AvatarImage
+                          src={participant.avatarUrl}
+                          alt={participant.fullName}
+                        />
+                        <AvatarFallback>
+                          {participant.fullName.charAt(0)}
+                        </AvatarFallback>
+                      </Avatar>
+
+                      <div className="flex-1 min-w-0">
+                        {isEditing ? (
+                          <div
+                            className="space-y-2"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <Input
+                              placeholder="Nhập biệt danh..."
+                              value={nickname}
+                              onChange={(e) => setNickname(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter" && !isUpdating) {
+                                  handleUpdateNickname();
+                                } else if (e.key === "Escape") {
+                                  handleCancelEditing();
+                                }
+                              }}
+                              disabled={isUpdating}
+                              autoFocus
+                              className="h-9"
+                            />
+                            <div className="flex gap-2">
+                              <Button
+                                size="sm"
+                                onClick={handleUpdateNickname}
+                                disabled={!nickname.trim() || isUpdating}
+                              >
+                                {isUpdating ? "Đang lưu..." : "Lưu"}
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={handleCancelEditing}
+                                disabled={isUpdating}
+                              >
+                                Hủy
+                              </Button>
+                            </div>
+                          </div>
+                        ) : (
+                          <>
+                            <p className="font-medium text-sm truncate">
+                              {displayName}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {participant.fullName}
+                            </p>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setNicknameDialogOpen(false)}
+              disabled={isUpdating}
+            >
+              Đóng
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

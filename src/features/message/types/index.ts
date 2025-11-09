@@ -25,6 +25,7 @@ export enum EConversationStatus {
 export interface UserDTO {
   id: number;
   username: string;
+  nickname?: string;
   avatarUrl: string;
   fullName: string;
 }

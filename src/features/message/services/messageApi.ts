@@ -19,6 +19,13 @@ export const conversationApi = {
     return response.data;
   },
 
+  getConversationNickname: async (conversationId: number) => {
+    const response = await api.get<ResponseData<ConversationResponseDTO>>(
+      `${BASE_PATH}/conversations/${conversationId}/nickname`
+    );
+    return response.data;
+  },
+
   getConversations: async (params?: {
     search?: string;
     page?: number;
@@ -87,6 +94,18 @@ export const conversationApi = {
   acceptConversationRequest: async (conversationId: number) => {
     const response = await api.put<ResponseData>(
       `${BASE_PATH}/conversations/${conversationId}/accept`
+    );
+    return response.data;
+  },
+
+  updateNickname: async (
+    conversationId: number,
+    userId: number,
+    nickname: string
+  ) => {
+    const response = await api.put<ResponseData>(
+      `${BASE_PATH}/conversations/${conversationId}/nickname`,
+      { userId, nickname }
     );
     return response.data;
   },
