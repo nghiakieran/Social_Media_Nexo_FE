@@ -22,7 +22,7 @@ export const QuickActionsBar: React.FC<QuickActionsBarProps> = ({
           onClick={() => onFilterChange('all')}
           className="rounded-full h-8 px-4 text-xs"
         >
-          All 5
+          Tất cả
         </Button>
         <Button
           variant={activeFilter === 'unread' ? 'default' : 'ghost'}
@@ -30,15 +30,7 @@ export const QuickActionsBar: React.FC<QuickActionsBarProps> = ({
           onClick={() => onFilterChange('unread')}
           className="rounded-full h-8 px-4 text-xs"
         >
-          Unread 3
-        </Button>
-        <Button
-          variant={activeFilter === 'groups' ? 'default' : 'ghost'}
-          size="sm"
-          onClick={() => onFilterChange('groups')}
-          className="rounded-full h-8 px-4 text-xs"
-        >
-          Groups 2
+          Chưa đọc
         </Button>
         <Button
           variant={activeFilter === 'archived' ? 'default' : 'ghost'}
@@ -46,7 +38,7 @@ export const QuickActionsBar: React.FC<QuickActionsBarProps> = ({
           onClick={() => onFilterChange('archived')}
           className="rounded-full h-8 px-4 text-xs"
         >
-          Archived
+          Kho lưu trữ
         </Button>
       </div>
     </div>
