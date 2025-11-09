@@ -210,7 +210,7 @@ export const PostCard = ({
         const result = await dispatch(
           getPostCommentsThunk({
             postId: parseInt(post.id),
-            params: { pageNo: 0, pageSize: 2 },
+            params: { pageNo: 0, pageSize: 1 },
           })
         ).unwrap();
 
@@ -262,9 +262,18 @@ export const PostCard = ({
         setLikesCount(total);
 
         if (data.content && data.content.length > 0) {
-          // pick newest non-self liker; self indicated by isFollowing === null
-          const other = data.content.find((u: { isFollowing: boolean | null }) => u.isFollowing !== null);
-          setLatestLikeName(other ? other.userName : null);
+          // Lấy user đầu tiên (người like mới nhất)
+          // Nếu là chính mình (isFollowing === null) và có user khác, lấy user tiếp theo
+          const firstUser = data.content[0];
+          if (firstUser.isFollowing === null && data.content.length > 1) {
+            // Là chính mình, lấy user tiếp theo
+            setLatestLikeName(data.content[1].userName);
+          } else {
+            // Lấy user đầu tiên
+            setLatestLikeName(firstUser.userName);
+          }
+        } else {
+          setLatestLikeName(null);
         }
       } catch (e) {
         setHasFetchedLikePreview(false);
@@ -305,8 +314,10 @@ export const PostCard = ({
 
   const handleLikeChange = async (newIsLiked: boolean, newCount: number) => {
     setIsLiked(newIsLiked);
-    setLikesCount(newCount);
+    // Đơn giản: tăng/giảm 1 khi like/unlike
+    setLikesCount(newIsLiked ? likesCount + 1 : likesCount - 1);
 
+    // Gọi API để đồng bộ lại danh sách likes
     try {
       const data = await dispatch(
         getPostLikeDetailThunk({
@@ -315,19 +326,17 @@ export const PostCard = ({
         })
       ).unwrap();
 
-      const total = data.totalElements ?? newCount;
+      const total = data.totalElements ?? 0;
       setLikesCount(total);
 
+      // Luôn lấy user đầu tiên trong danh sách (người like mới nhất)
       if (data.content && data.content.length > 0) {
-        const other = data.content.find(
-          (u: { isFollowing: boolean | null }) => u.isFollowing !== null
-        );
-        setLatestLikeName(other ? other.userName : null);
+        setLatestLikeName(data.content[0].userName);
       } else {
         setLatestLikeName(null);
       }
-    } catch {
-      // keep optimistic state if refresh fails
+    } catch (_) {
+      // Giữ nguyên state hiện tại nếu API lỗi
     }
   };
 
@@ -344,7 +353,7 @@ export const PostCard = ({
           const result = await dispatch(
             getPostCommentsThunk({
               postId: parseInt(post.id),
-              params: { pageNo: 0, pageSize: 2 },
+              params: { pageNo: 0, pageSize: 1 },
             })
           ).unwrap();
 
@@ -436,7 +445,7 @@ export const PostCard = ({
         const result = await dispatch(
           getPostCommentsThunk({
             postId: parseInt(post.id),
-            params: { pageNo: 0, pageSize: 2 },
+            params: { pageNo: 0, pageSize: 1 },
           })
         ).unwrap();
 
@@ -801,35 +810,22 @@ export const PostCard = ({
               onClick={handleOpenLikesDialog}
               className="mt-1 text-left text-sm w-full"
             >
-              {(() => {
-                const parts: React.ReactNode[] = [];
-                if (isLiked) {
-                  parts.push(<span key="you" className="font-medium">Bạn</span>);
-                  if (latestLikeName) {
-                    parts.push(<span key="comma">, </span>);
-                    parts.push(
-                      <span key="name" className="font-medium hover:underline">{latestLikeName}</span>
-                    );
-                  }
-                } else if (latestLikeName) {
-                  parts.push(
-                    <span key="name" className="font-medium hover:underline">{latestLikeName}</span>
-                  );
-                } else {
-                  parts.push(
-                    <span key="someone" className="font-medium">Ai đó</span>
-                  );
-                }
-
-                if (likesCount > (isLiked && latestLikeName ? 2 : isLiked || latestLikeName ? 1 : 1)) {
-                  parts.push(<span key="and" className="text-gray-600 dark:text-gray-300"> và </span>);
-                  parts.push(
-                    <span key="others" className="font-medium hover:underline">những người khác</span>
-                  );
-                }
-                parts.push(<span key="liked" className="text-gray-600 dark:text-gray-300"> đã thích</span>);
-                return parts;
-              })()}
+              {latestLikeName ? (
+                <>
+                  <span className="font-medium hover:underline">{latestLikeName}</span>
+                  {likesCount > 1 && (
+                    <>
+                      <span className="text-gray-600 dark:text-gray-300"> và </span>
+                      <span className="font-medium hover:underline">những người khác</span>
+                    </>
+                  )}
+                  <span className="text-gray-600 dark:text-gray-300"> đã thích</span>
+                </>
+              ) : (
+                <span className="text-gray-600 dark:text-gray-300">
+                  {likesCount.toLocaleString("vi-VN")} lượt thích
+                </span>
+              )}
             </button>
           )}
 

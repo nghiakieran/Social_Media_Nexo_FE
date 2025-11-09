@@ -17,7 +17,6 @@ import {
   getPostCommentsThunk,
   createCommentThunk,
   likeCommentThunk,
-  likePostThunk,
   clearComments,
 } from '@/features/interaction/interactionSlice';
 
@@ -240,17 +239,9 @@ export const HiddenPostsContent = () => {
     }
   };
 
-  const handleLikePostAPI = async (postId: string) => {
-    try {
-      await dispatch(likePostThunk(parseInt(postId))).unwrap();
-      setIsPostLiked((prev) => ({ ...prev, [postId]: !prev[postId] }));
-    } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Lỗi",
-        description: "Không thể thích bài viết.",
-      });
-    }
+  const handleLikePostAPI = (postId: string) => {
+    // LikeButton đã tự gọi API rồi, chỉ cần update local state
+    setIsPostLiked((prev) => ({ ...prev, [postId]: !prev[postId] }));
   };
 
   if (isLoading && hiddenPosts.length === 0) {

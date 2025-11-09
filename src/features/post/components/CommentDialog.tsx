@@ -214,8 +214,21 @@ export const CommentDialog = ({
         ).unwrap();
         const total = data.totalElements ?? 0;
         setPostLikesCount(total);
-        const other = (data.content || []).find((u: { isFollowing: boolean | null }) => u.isFollowing !== null);
-        setLatestLikeName(other ? other.userName : null);
+        
+        if (data.content && data.content.length > 0) {
+          // Lấy user đầu tiên (người like mới nhất)
+          // Nếu là chính mình (isFollowing === null) và có user khác, lấy user tiếp theo
+          const firstUser = data.content[0];
+          if (firstUser.isFollowing === null && data.content.length > 1) {
+            // Là chính mình, lấy user tiếp theo
+            setLatestLikeName(data.content[1].userName);
+          } else {
+            // Lấy user đầu tiên
+            setLatestLikeName(firstUser.userName);
+          }
+        } else {
+          setLatestLikeName(null);
+        }
       } catch (_) {
         setHasFetchedLikePreview(false);
       }
@@ -478,20 +491,26 @@ export const CommentDialog = ({
 
   const handlePostLikeChange = async (newIsLiked: boolean, newCount: number) => {
     setIsPostLikedLocal(newIsLiked);
-    setPostLikesCount(newCount);
+    // Đơn giản: tăng/giảm 1 khi like/unlike
+    setPostLikesCount(newIsLiked ? postLikesCount + 1 : postLikesCount - 1);
     onLikePost(post.id);
 
-    // refresh from API to keep preview accurate
+    // Gọi API để đồng bộ lại danh sách likes
     try {
       const data = await dispatch(
         getPostLikeDetailThunk({ postId: parseInt(post.id), params: { pageNo: 0, pageSize: 1 } })
       ).unwrap();
-      const total = data.totalElements ?? newCount;
+      const total = data.totalElements ?? 0;
       setPostLikesCount(total);
-      const other = (data.content || []).find((u: { isFollowing: boolean | null }) => u.isFollowing !== null);
-      setLatestLikeName(other ? other.userName : null);
+      
+      // Luôn lấy user đầu tiên trong danh sách (người like mới nhất)
+      if (data.content && data.content.length > 0) {
+        setLatestLikeName(data.content[0].userName);
+      } else {
+        setLatestLikeName(null);
+      }
     } catch (_) {
-      // keep optimistic state on failure
+      // Giữ nguyên state hiện tại nếu API lỗi
     }
   };
 
@@ -1671,34 +1690,22 @@ export const CommentDialog = ({
             {/* Likes summary like Instagram */}
             {postLikesCount > 0 && (
               <div className="mt-1 text-sm">
-                {(() => {
-                  const parts: React.ReactNode[] = [];
-                  if (isPostLikedLocal) {
-                    parts.push(<span key="you" className="font-medium">Bạn</span>);
-                    if (latestLikeName) {
-                      parts.push(<span key="comma">, </span>);
-                      parts.push(
-                        <button key="name" type="button" onClick={() => openLikesDialog(post.id, "post")} className="font-medium hover:underline">{latestLikeName}</button>
-                      );
-                    }
-                  } else if (latestLikeName) {
-                    parts.push(
-                      <button key="name" type="button" onClick={() => openLikesDialog(post.id, "post")} className="font-medium hover:underline">{latestLikeName}</button>
-                    );
-                  } else {
-                    parts.push(<span key="someone" className="font-medium">Ai đó</span>);
-                  }
-
-                  const shownCount = (isPostLikedLocal ? 1 : 0) + (latestLikeName ? 1 : 0);
-                  if (postLikesCount > shownCount) {
-                    parts.push(<span key="and" className="text-gray-600 dark:text-gray-300"> và </span>);
-                    parts.push(
-                      <button key="others" type="button" onClick={() => openLikesDialog(post.id, "post")} className="font-medium hover:underline">những người khác</button>
-                    );
-                  }
-                  parts.push(<span key="liked" className="text-gray-600 dark:text-gray-300"> đã thích</span>);
-                  return parts;
-                })()}
+                {latestLikeName ? (
+                  <>
+                    <button type="button" onClick={() => openLikesDialog(post.id, "post")} className="font-medium hover:underline">{latestLikeName}</button>
+                    {postLikesCount > 1 && (
+                      <>
+                        <span className="text-gray-600 dark:text-gray-300"> và </span>
+                        <button type="button" onClick={() => openLikesDialog(post.id, "post")} className="font-medium hover:underline">những người khác</button>
+                      </>
+                    )}
+                    <span className="text-gray-600 dark:text-gray-300"> đã thích</span>
+                  </>
+                ) : (
+                  <button type="button" onClick={() => openLikesDialog(post.id, "post")} className="text-gray-600 dark:text-gray-300">
+                    {postLikesCount.toLocaleString("vi-VN")} lượt thích
+                  </button>
+                )}
               </div>
             )}
 

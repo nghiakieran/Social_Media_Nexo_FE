@@ -21,7 +21,6 @@ import {
   getPostCommentsThunk,
   createCommentThunk,
   likeCommentThunk,
-  likePostThunk,
   clearComments,
 } from "@/features/interaction/interactionSlice";
 import { useEffect } from "react";
@@ -206,17 +205,9 @@ export const PostGrid = ({
     }
   };
 
-  const handleLikePostAPI = async (postId: string) => {
-    try {
-      await dispatch(likePostThunk(parseInt(postId))).unwrap();
-      setIsPostLiked((prev) => ({ ...prev, [postId]: !prev[postId] }));
-    } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Lỗi",
-        description: "Không thể thích bài viết.",
-      });
-    }
+  const handleLikePostAPI = (postId: string) => {
+    // LikeButton đã tự gọi API rồi, chỉ cần update local state
+    setIsPostLiked((prev) => ({ ...prev, [postId]: !prev[postId] }));
   };
 
   const handlePostClick = (post: ProfilePost) => {

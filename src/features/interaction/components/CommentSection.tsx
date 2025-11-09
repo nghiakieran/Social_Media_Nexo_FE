@@ -39,14 +39,8 @@ export const CommentSection = ({ postId, className }: CommentSectionProps) => {
   const dispatch = useAppDispatch();
   const { toast } = useToast();
   const user = useAppSelector((state) => state.auth.user);
-  const {
-    comments,
-    isLoading,
-    error,
-    hasMore,
-    currentPage,
-    isCreating,
-  } = useAppSelector((state) => state.interaction.comments);
+  const { comments, isLoading, error, hasMore, currentPage, isCreating } =
+    useAppSelector((state) => state.interaction.comments);
 
   const [newComment, setNewComment] = useState("");
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
@@ -178,7 +172,9 @@ export const CommentSection = ({ postId, className }: CommentSectionProps) => {
           userId: user.id,
           postId,
           reelId: 0,
-          parentId: commentToUpdate?.parentId ? parseInt(commentToUpdate.parentId) : 0,
+          parentId: commentToUpdate?.parentId
+            ? parseInt(commentToUpdate.parentId)
+            : 0,
           content: editingContent.trim(),
           listMentionUserId: [],
         })
@@ -427,7 +423,9 @@ export const CommentSection = ({ postId, className }: CommentSectionProps) => {
                   )}
 
                   <button
-                    onClick={() => handleLikeComment(comment.id, isReply, parentId)}
+                    onClick={() =>
+                      handleLikeComment(comment.id, isReply, parentId)
+                    }
                     className={cn(
                       "flex items-center gap-1 text-xs transition-colors",
                       comment.isLiked
@@ -470,7 +468,10 @@ export const CommentSection = ({ postId, className }: CommentSectionProps) => {
           <div className="ml-11 mt-3">
             <div className="flex gap-3">
               <Avatar className="w-8 h-8 flex-shrink-0">
-                <AvatarImage src={user?.avatar} alt={user?.username || "User"} />
+                <AvatarImage
+                  src={user?.avatar}
+                  alt={user?.username || "User"}
+                />
                 <AvatarFallback>{user?.username?.[0] || "U"}</AvatarFallback>
               </Avatar>
               <div className="flex-1 space-y-2">
@@ -551,7 +552,12 @@ export const CommentSection = ({ postId, className }: CommentSectionProps) => {
 
   if (error) {
     return (
-      <Card className={cn("border-0 shadow-xl bg-card/80 backdrop-blur-sm", className)}>
+      <Card
+        className={cn(
+          "border-0 shadow-xl bg-card/80 backdrop-blur-sm",
+          className
+        )}
+      >
         <CardContent className="p-6">
           <div className="text-center space-y-4">
             <p className="text-destructive">{error}</p>
@@ -566,7 +572,12 @@ export const CommentSection = ({ postId, className }: CommentSectionProps) => {
   }
 
   return (
-    <Card className={cn("border-0 shadow-xl bg-card/80 backdrop-blur-sm", className)}>
+    <Card
+      className={cn(
+        "border-0 shadow-xl bg-card/80 backdrop-blur-sm",
+        className
+      )}
+    >
       <CardContent className="p-6">
         <div className="space-y-6">
           {/* Comment Input */}
@@ -589,7 +600,10 @@ export const CommentSection = ({ postId, className }: CommentSectionProps) => {
 
             <div className="flex gap-3">
               <Avatar className="w-10 h-10 flex-shrink-0">
-                <AvatarImage src={user?.avatar} alt={user?.username || "User"} />
+                <AvatarImage
+                  src={user?.avatar}
+                  alt={user?.username || "User"}
+                />
                 <AvatarFallback>{user?.username?.[0] || "U"}</AvatarFallback>
               </Avatar>
 
@@ -707,7 +721,8 @@ export const CommentSection = ({ postId, className }: CommentSectionProps) => {
         items={[
           ...(currentCommentForAction &&
           user &&
-          findCommentById(currentCommentForAction)?.userId === user.id.toString()
+          findCommentById(currentCommentForAction)?.userId ===
+            user.id.toString()
             ? [
                 {
                   label: "Chỉnh sửa",

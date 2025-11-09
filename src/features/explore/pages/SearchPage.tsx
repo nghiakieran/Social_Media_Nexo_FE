@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useEffect, useState } from 'react';
 import { useAppDispatch, useAppSelector } from '@/store';
 import { SearchBar } from '../components/SearchBar';
@@ -27,7 +28,6 @@ import {
   setTrendingHashtags,
 } from '../exploreSlice';
 import { mockHashtags } from '../__mocks__/hashtags';
-import { mockExplorePosts } from '../__mocks__/posts';
 
 export const SearchPage: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -81,6 +81,8 @@ export const SearchPage: React.FC = () => {
       const filteredHashtags = mockHashtags.filter(h =>
         h.name.toLowerCase().includes(query.toLowerCase())
       );
+
+      const mockExplorePosts = [];
 
       const filteredPosts = mockExplorePosts.filter(p =>
         p.caption?.toLowerCase().includes(query.toLowerCase()) ||
