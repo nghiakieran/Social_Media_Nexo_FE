@@ -69,7 +69,7 @@ export interface ConversationResponseDTO {
   lastMessageAt: string;
   createdAt: string;
   status: EConversationStatus;
-  isBlockedByMe: boolean;
+  blockedByMe: boolean;
   isArchived?: boolean;
   isMuted?: boolean;
   lastReadMessageId?: number;
