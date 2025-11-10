@@ -104,7 +104,7 @@ export const FloatingChatWindow: React.FC<FloatingChatWindowProps> = ({
       )}
       style={{ right: `${rightOffset}px` }}
     >
-      {/* Header */}
+      {}
       <div className="flex items-center justify-between p-3 border-b border-border">
         <div className="flex items-center space-x-2">
           <div className="relative">
@@ -155,7 +155,7 @@ export const FloatingChatWindow: React.FC<FloatingChatWindowProps> = ({
         </div>
       </div>
 
-      {/* Messages */}
+      {}
       <ScrollArea className="flex-1 p-3">
         <div className="space-y-3">
           {messages.slice(-10).map((message) => { // Show only last 10 messages
@@ -205,7 +205,7 @@ export const FloatingChatWindow: React.FC<FloatingChatWindowProps> = ({
         </div>
       </ScrollArea>
 
-      {/* Message Composer */}
+      {}
       <MessageComposer
         onSendMessage={onSendMessage}
         onTyping={setIsTyping}
