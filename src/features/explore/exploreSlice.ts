@@ -1,7 +1,11 @@
 import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
-import { getExplorePosts } from "./api/exploreApi";
+import { getExplorePosts, searchUsers } from "./api/exploreApi";
 import { transformExplorePostData } from "./types";
-import type { ExplorePost, GetExploreRequest } from "./types";
+import type {
+  ExplorePost,
+  GetExploreRequest,
+  SearchUserRequest,
+} from "./types";
 
 export interface Hashtag {
   id: string;
@@ -77,6 +81,23 @@ export const getExplorePostsThunk = createAsyncThunk(
         error instanceof Error
           ? error.message
           : "Có lỗi xảy ra khi tải danh sách bài viết explore"
+      );
+    }
+  }
+);
+
+// Async thunk for searching users
+export const searchUsersThunk = createAsyncThunk(
+  "explore/searchUsers",
+  async (params: SearchUserRequest, { rejectWithValue }) => {
+    try {
+      const response = await searchUsers(params);
+      return response;
+    } catch (error: unknown) {
+      return rejectWithValue(
+        error instanceof Error
+          ? error.message
+          : "Có lỗi xảy ra khi tìm kiếm người dùng"
       );
     }
   }
@@ -175,6 +196,36 @@ const exploreSlice = createSlice({
       })
       .addCase(getExplorePostsThunk.rejected, (state, action) => {
         state.isLoading = false;
+        state.error = action.payload as string;
+      });
+
+    builder
+      .addCase(searchUsersThunk.pending, (state) => {
+        state.isSearching = true;
+        state.error = null;
+        // Clear previous search results when starting new search
+        state.searchResults = {
+          users: [],
+          hashtags: [],
+          posts: [],
+        };
+      })
+      .addCase(searchUsersThunk.fulfilled, (state, action) => {
+        state.isSearching = false;
+        const { users } = action.payload;
+
+        state.searchResults.users = users.map((user) => ({
+          id: user.id.toString(),
+          username: user.username,
+          name: user.fullName,
+          avatar: user.avatar,
+          isFollowing: false,
+          isVerified: false,
+          followersCount: 0,
+        }));
+      })
+      .addCase(searchUsersThunk.rejected, (state, action) => {
+        state.isSearching = false;
         state.error = action.payload as string;
       });
   },

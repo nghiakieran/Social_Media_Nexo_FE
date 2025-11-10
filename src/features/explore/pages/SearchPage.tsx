@@ -1,38 +1,38 @@
-import React, { useEffect, useState } from 'react';
-import { useAppDispatch, useAppSelector } from '@/store';
-import { SearchBar } from '../components/SearchBar';
-import { SearchResultList } from '../components/SearchResultList';
-import { TrendingSection } from '../components/TrendingSection';
-import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { cn } from '@/lib/utils';
-import { 
-  Clock, 
-  X, 
-  TrendingUp, 
-  Users, 
-  Hash, 
+import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAppDispatch, useAppSelector } from "@/store";
+import { useDebouncedSearch } from "@/hooks/use-debounce-search";
+import { SearchBar } from "../components/SearchBar";
+import { SearchResultList } from "../components/SearchResultList";
+import { TrendingSection } from "../components/TrendingSection";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { cn } from "@/lib/utils";
+import { navigateToProfile } from "@/utils/navigation";
+import {
+  Clock,
+  X,
+  TrendingUp,
+  Users,
+  Hash,
   Grid3X3,
-  Search as SearchIcon
-} from 'lucide-react';
+  Search as SearchIcon,
+} from "lucide-react";
 import {
   setSearchQuery,
-  setSearchResults,
-  setIsSearching,
   setActiveFilter,
   addRecentSearch,
   removeRecentSearch,
   clearRecentSearches,
   followHashtag,
   setTrendingHashtags,
-} from '../exploreSlice';
-import { mockHashtags } from '../__mocks__/hashtags';
-import { mockExplorePosts } from '../__mocks__/posts';
+  searchUsersThunk,
+} from "../exploreSlice";
 
 export const SearchPage: React.FC = () => {
   const dispatch = useAppDispatch();
+  const navigate = useNavigate();
   const {
-    searchQuery,
     searchResults,
     isSearching,
     activeFilter,
@@ -42,87 +42,104 @@ export const SearchPage: React.FC = () => {
 
   const [hasSearched, setHasSearched] = useState(false);
 
+  // Use debounced search hook with 500ms delay
+  const { searchValue, debouncedValue, setSearchValue } = useDebouncedSearch(
+    "",
+    500
+  );
+
   // Initialize data
   useEffect(() => {
+    // Mock hashtags for trending section (replace with API call later)
+    const mockHashtags = [
+      {
+        id: "1",
+        name: "travel",
+        postsCount: 1200000,
+        isFollowing: false,
+        category: "trending" as const,
+      },
+      {
+        id: "2",
+        name: "food",
+        postsCount: 980000,
+        isFollowing: false,
+        category: "trending" as const,
+      },
+      {
+        id: "3",
+        name: "fashion",
+        postsCount: 750000,
+        isFollowing: false,
+        category: "trending" as const,
+      },
+    ];
     dispatch(setTrendingHashtags(mockHashtags));
   }, [dispatch]);
+
+  // Auto search when debounced value changes
+  useEffect(() => {
+    if (debouncedValue.trim()) {
+      setHasSearched(true);
+      // Call search users API
+      dispatch(searchUsersThunk({ query: debouncedValue }))
+        .unwrap()
+        .catch((error) => {
+          console.error("Search error:", error);
+        });
+    } else {
+      setHasSearched(false);
+    }
+  }, [debouncedValue, dispatch]);
 
   const handleSearch = async (query: string) => {
     if (!query.trim()) return;
 
-    setHasSearched(true);
-    dispatch(setIsSearching(true));
+    // Add to recent searches when user explicitly submits
     dispatch(addRecentSearch(query));
 
-    // Simulate API call
-    setTimeout(() => {
-      // Mock search results
-      const mockUsers = [
-        {
-          id: 'user-1',
-          username: 'travel_enthusiast',
-          name: 'Travel Enthusiast',
-          avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face',
-          isFollowing: false,
-          isVerified: true,
-          followersCount: 45000,
-        },
-        {
-          id: 'user-2',
-          username: 'foodie_life',
-          name: 'Foodie Life',
-          avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b47c?w=150&h=150&fit=crop&crop=face',
-          isFollowing: true,
-          isVerified: false,
-          followersCount: 12500,
-        },
-      ];
+    // Trigger search immediately
+    setSearchValue(query);
+    setHasSearched(true);
 
-      const filteredHashtags = mockHashtags.filter(h =>
-        h.name.toLowerCase().includes(query.toLowerCase())
-      );
-
-      const filteredPosts = mockExplorePosts.filter(p =>
-        p.caption?.toLowerCase().includes(query.toLowerCase()) ||
-        p.hashtags.some(h => h.toLowerCase().includes(query.toLowerCase())) ||
-        p.author.username.toLowerCase().includes(query.toLowerCase())
-      );
-
-      dispatch(setSearchResults({
-        users: mockUsers.filter(u =>
-          u.username.toLowerCase().includes(query.toLowerCase()) ||
-          u.name.toLowerCase().includes(query.toLowerCase())
-        ),
-        hashtags: filteredHashtags,
-        posts: filteredPosts,
-      }));
-
-      dispatch(setIsSearching(false));
-    }, 1000);
+    try {
+      await dispatch(searchUsersThunk({ query })).unwrap();
+    } catch (error) {
+      console.error("Search error:", error);
+    }
   };
 
   const handleQueryChange = (query: string) => {
+    setSearchValue(query);
     dispatch(setSearchQuery(query));
-    if (query.trim() === '') {
+    if (query.trim() === "") {
       setHasSearched(false);
     }
   };
 
   const trendingSearches = [
-    'travel', 'food', 'fashion', 'photography', 'art'
+    "du lịch",
+    "ẩm thực",
+    "thời trang",
+    "nhiếp ảnh",
+    "nghệ thuật",
   ];
 
   const getTotalResults = () => {
-    return searchResults.users.length + searchResults.hashtags.length + searchResults.posts.length;
+    return (
+      searchResults.users.length +
+      searchResults.hashtags.length +
+      searchResults.posts.length
+    );
   };
 
   const getFilteredCount = (type: string) => {
     switch (type) {
-      case 'users':
+      case "users":
         return searchResults.users.length;
-      case 'hashtags':
+      case "hashtags":
         return searchResults.hashtags.length;
-      case 'posts':
+      case "posts":
         return searchResults.posts.length;
       default:
         return getTotalResults();
@@ -135,13 +152,14 @@ export const SearchPage: React.FC = () => {
         {/* Search Bar */}
         <div className="sticky top-0 bg-background z-10 pb-4">
           <SearchBar
-            value={searchQuery}
+            value={searchValue}
             onChange={handleQueryChange}
             onSubmit={handleSearch}
-            placeholder="Search accounts, hashtags and more..."
+            placeholder="Tìm kiếm tài khoản, hashtag và nhiều hơn nữa..."
             recentSearches={recentSearches}
             trendingSearches={trendingSearches}
             onRecentSelect={(search) => {
+              setSearchValue(search);
               dispatch(setSearchQuery(search));
               handleSearch(search);
             }}
@@ -158,7 +176,7 @@ export const SearchPage: React.FC = () => {
                 onClick={() => dispatch(clearRecentSearches())}
                 className="text-primary hover:text-primary/80"
               >
-                Clear all
+                Xóa tất cả
               </Button>
             </div>
           )}
@@ -182,47 +200,89 @@ export const SearchPage: React.FC = () => {
         {/* Search Results */}
         {hasSearched && !isSearching && (
           <div className="space-y-6">
-            {/* Results Header */}
-            {getTotalResults() > 0 && (
-              <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold">
-                  {getTotalResults()} results for "{searchQuery}"
-                </h2>
+            {/* No Results Message */}
+            {getTotalResults() === 0 && (
+              <div className="text-center py-12">
+                <div className="w-16 h-16 mx-auto rounded-full bg-muted flex items-center justify-center mb-4">
+                  <SearchIcon className="h-8 w-8 text-muted-foreground" />
+                </div>
+                <h3 className="text-lg font-semibold mb-2">
+                  Không tìm thấy kết quả
+                </h3>
+                <p className="text-muted-foreground text-sm">
+                  Hãy thử tìm kiếm người dùng, hashtag hoặc từ khóa khác.
+                </p>
               </div>
             )}
 
-            {/* Filter Tabs */}
-            <Tabs value={activeFilter} onValueChange={(value) => dispatch(setActiveFilter(value as any))}>
-              <TabsList className="grid w-full grid-cols-4">
-                <TabsTrigger value="all" className="text-xs">
-                  All ({getTotalResults()})
-                </TabsTrigger>
-                <TabsTrigger value="users" className="text-xs">
-                  <Users className="h-3 w-3 mr-1" />
-                  Users ({getFilteredCount('users')})
-                </TabsTrigger>
-                <TabsTrigger value="hashtags" className="text-xs">
-                  <Hash className="h-3 w-3 mr-1" />
-                  Tags ({getFilteredCount('hashtags')})
-                </TabsTrigger>
-                <TabsTrigger value="posts" className="text-xs">
-                  <Grid3X3 className="h-3 w-3 mr-1" />
-                  Posts ({getFilteredCount('posts')})
-                </TabsTrigger>
-              </TabsList>
+            {/* Results Header */}
+            {getTotalResults() > 0 && (
+              <>
+                <div className="flex items-center justify-between">
+                  <h2 className="text-lg font-semibold">
+                    {getTotalResults()} kết quả cho "{searchValue}"
+                  </h2>
+                </div>
 
-              <TabsContent value={activeFilter} className="mt-6">
-                <SearchResultList
-                  results={searchResults}
-                  activeFilter={activeFilter}
-                  onUserClick={(userId) => console.log('User clicked:', userId)}
-                  onHashtagClick={(hashtagId) => console.log('Hashtag clicked:', hashtagId)}
-                  onPostClick={(postId) => console.log('Post clicked:', postId)}
-                  onFollowUser={(userId) => console.log('Follow user:', userId)}
-                  onFollowHashtag={(hashtagId) => dispatch(followHashtag(hashtagId))}
-                />
-              </TabsContent>
-            </Tabs>
+                {/* Filter Tabs */}
+                <Tabs
+                  value={activeFilter}
+                  onValueChange={(value) =>
+                    dispatch(
+                      setActiveFilter(
+                        value as "all" | "users" | "hashtags" | "posts"
+                      )
+                    )
+                  }
+                >
+                  <TabsList className="grid w-full grid-cols-4">
+                    <TabsTrigger value="all" className="text-xs">
+                      Tất cả ({getTotalResults()})
+                    </TabsTrigger>
+                    <TabsTrigger value="users" className="text-xs">
+                      <Users className="h-3 w-3 mr-1" />
+                      Người dùng ({getFilteredCount("users")})
+                    </TabsTrigger>
+                    <TabsTrigger value="hashtags" className="text-xs">
+                      <Hash className="h-3 w-3 mr-1" />
+                      Hashtag ({getFilteredCount("hashtags")})
+                    </TabsTrigger>
+                    <TabsTrigger value="posts" className="text-xs">
+                      <Grid3X3 className="h-3 w-3 mr-1" />
+                      Bài viết ({getFilteredCount("posts")})
+                    </TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value={activeFilter} className="mt-6">
+                    <SearchResultList
+                      results={searchResults}
+                      activeFilter={activeFilter}
+                      onUserClick={(userId) => {
+                        // Find user by id to get username
+                        const user = searchResults.users.find(
+                          (u) => u.id === userId
+                        );
+                        if (user) {
+                          navigateToProfile(navigate, user.username);
+                        }
+                      }}
+                      onHashtagClick={(hashtagId) =>
+                        console.log("Hashtag clicked:", hashtagId)
+                      }
+                      onPostClick={(postId) =>
+                        console.log("Post clicked:", postId)
+                      }
+                      onFollowUser={(userId) =>
+                        console.log("Follow user:", userId)
+                      }
+                      onFollowHashtag={(hashtagId) =>
+                        dispatch(followHashtag(hashtagId))
+                      }
+                    />
+                  </TabsContent>
+                </Tabs>
+              </>
+            )}
           </div>
         )}
 
@@ -234,7 +294,7 @@ export const SearchPage: React.FC = () => {
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold flex items-center">
                   <Clock className="h-5 w-5 mr-2 text-muted-foreground" />
-                  Recent
+                  Gần đây
                 </h3>
                 <div className="space-y-2">
                   {recentSearches.slice(0, 5).map((search, index) => (
@@ -242,6 +302,7 @@ export const SearchPage: React.FC = () => {
                       key={index}
                       className="flex items-center justify-between p-3 hover:bg-muted/50 rounded-lg cursor-pointer group"
                       onClick={() => {
+                        setSearchValue(search);
                         dispatch(setSearchQuery(search));
                         handleSearch(search);
                       }}
@@ -271,18 +332,22 @@ export const SearchPage: React.FC = () => {
             <TrendingSection
               hashtags={trendingHashtags}
               onHashtagClick={(hashtag) => {
-                dispatch(setSearchQuery(`#${hashtag.name}`));
-                handleSearch(`#${hashtag.name}`);
+                const query = `#${hashtag.name}`;
+                setSearchValue(query);
+                dispatch(setSearchQuery(query));
+                handleSearch(query);
               }}
-              onFollowHashtag={(hashtagId) => dispatch(followHashtag(hashtagId))}
-              onViewAll={() => console.log('View all trending')}
+              onFollowHashtag={(hashtagId) =>
+                dispatch(followHashtag(hashtagId))
+              }
+              onViewAll={() => console.log("View all trending")}
             />
 
             {/* Suggested Searches */}
             <div className="space-y-4">
               <h3 className="text-lg font-semibold flex items-center">
                 <TrendingUp className="h-5 w-5 mr-2 text-muted-foreground" />
-                Trending searches
+                Tìm kiếm thịnh hành
               </h3>
               <div className="flex flex-wrap gap-2">
                 {trendingSearches.map((search, index) => (
@@ -291,6 +356,7 @@ export const SearchPage: React.FC = () => {
                     variant="outline"
                     size="sm"
                     onClick={() => {
+                      setSearchValue(search);
                       dispatch(setSearchQuery(search));
                       handleSearch(search);
                     }}

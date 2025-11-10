@@ -37,7 +37,33 @@ export interface TaggedUser {
   userName: string;
 }
 
-// Local State Types for Explore
+// Search User Types
+export interface SearchUserRequest {
+  query: string;
+  limit?: number;
+  offset?: number;
+}
+
+export interface SearchUserResponse {
+  status: number;
+  message: string;
+  data: {
+    users: SearchUserData[];
+    totalHits: number;
+    limit: number;
+    offset: number;
+    processingTimeMs: number;
+    query: string;
+  };
+}
+
+export interface SearchUserData {
+  id: number;
+  username: string;
+  fullName: string;
+  avatar: string;
+}
+
 export interface ExplorePost {
   id: string;
   userId: string;
@@ -64,7 +90,6 @@ export interface ExplorePostMediaItem {
   height?: number;
 }
 
-// Transform function to convert API response to local state
 export const transformExplorePostData = (
   apiData: ExplorePostData
 ): ExplorePost => ({
