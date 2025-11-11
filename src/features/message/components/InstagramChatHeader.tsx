@@ -70,6 +70,9 @@ export const InstagramChatHeader: React.FC<InstagramChatHeaderProps> = ({
   const { toast } = useToast();
   const navigate = useNavigate();
 
+  const otherUser = chat?.participants?.find((p) => p.id !== currentUserId);
+  const shouldShowPresence = otherUser?.onlineStatus !== false; // Hiển thị nếu undefined hoặc true
+
   const handleOpenNicknameDialog = async () => {
     if (!chat?.id || !currentUserId) return;
 
@@ -261,11 +264,13 @@ export const InstagramChatHeader: React.FC<InstagramChatHeaderProps> = ({
               {chat.fullname ? chat.fullname.charAt(0) : "?"}
             </AvatarFallback>
           </Avatar>
-          <OnlineIndicator
-            isOnline={isOnline}
-            size="sm"
-            className="absolute -bottom-0.5 -right-0.5"
-          />
+          {shouldShowPresence && (
+            <OnlineIndicator
+              isOnline={isOnline}
+              size="sm"
+              className="absolute -bottom-0.5 -right-0.5"
+            />
+          )}
         </div>
 
         <div className="flex-1 min-w-0">
@@ -277,12 +282,16 @@ export const InstagramChatHeader: React.FC<InstagramChatHeaderProps> = ({
               <span className="text-destructive font-medium">
                 Bạn đã chặn người này
               </span>
-            ) : isOnline ? (
-              "Đang hoạt động"
-            ) : lastSeen && formatLastSeen(lastSeen) ? (
-              formatLastSeen(lastSeen)
+            ) : shouldShowPresence ? (
+              isOnline ? (
+                "Đang hoạt động"
+              ) : lastSeen && formatLastSeen(lastSeen) ? (
+                formatLastSeen(lastSeen)
+              ) : (
+                ""
+              )
             ) : (
-              "Ngoại tuyến"
+              ""
             )}
           </p>
         </div>

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -8,12 +8,21 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import {
   Search,
   Edit3,
   Settings,
   MessageSquare,
   Archive,
   ChevronDown,
+  ChevronRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -34,6 +43,51 @@ export const InstagramInboxHeader: React.FC<InstagramInboxHeaderProps> = ({
   activeView = "primary",
   onViewChange,
 }) => {
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [activityStatus, setActivityStatus] = useState(true);
+  const [darkMode, setDarkMode] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    const loadOnlineStatus = async () => {
+      try {
+        const { getCurrentUserProfile } = await import(
+          "@/features/profile/api/profileApi"
+        );
+        const profile = await getCurrentUserProfile();
+        if (profile.onlineStatus !== undefined) {
+          setActivityStatus(profile.onlineStatus);
+        }
+      } catch (error) {
+        console.error("Error loading online status:", error);
+      }
+    };
+
+    loadOnlineStatus();
+  }, []);
+
+  const handleActivityStatusChange = async (checked: boolean) => {
+    setActivityStatus(checked);
+    setIsLoading(true);
+
+    try {
+      const { updateUserProfile } = await import(
+        "@/features/profile/api/profileApi"
+      );
+      await updateUserProfile({
+        onlineStatus: checked,
+      });
+
+      const api = (await import("@/lib/axios")).default;
+      await api.post("/presence/clear-cache");
+    } catch (error) {
+      console.error("Error updating online status:", error);
+      setActivityStatus(!checked);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className={cn("p-4 border-b border-border bg-background", className)}>
       {}
@@ -70,7 +124,12 @@ export const InstagramInboxHeader: React.FC<InstagramInboxHeaderProps> = ({
           >
             <Edit3 className="h-4 w-4" />
           </Button>
-          <Button variant="ghost" size="icon" className="h-8 w-8">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setSettingsOpen(true)}
+            className="h-8 w-8"
+          >
             <Settings className="h-4 w-4" />
           </Button>
         </div>
@@ -86,6 +145,54 @@ export const InstagramInboxHeader: React.FC<InstagramInboxHeaderProps> = ({
           className="pl-10 bg-muted border-0 rounded-xl h-9"
         />
       </div>
+
+      {/* Settings Dialog */}
+      <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Cài đặt tin nhắn</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            {/* Trạng thái hoạt động */}
+            <div className="flex items-center justify-between py-3 border-b border-border">
+              <div className="space-y-0.5">
+                <Label
+                  htmlFor="activity-status"
+                  className="text-base font-medium"
+                >
+                  Trạng thái hoạt động
+                </Label>
+                <p className="text-sm text-muted-foreground">
+                  Hiển thị trạng thái hoạt động của bạn
+                </p>
+              </div>
+              <Switch
+                id="activity-status"
+                checked={activityStatus}
+                onCheckedChange={handleActivityStatusChange}
+                disabled={isLoading}
+              />
+            </div>
+
+            {/* Chế độ tối */}
+            <div className="flex items-center justify-between py-3 border-b border-border">
+              <div className="space-y-0.5">
+                <Label htmlFor="dark-mode" className="text-base font-medium">
+                  Chế độ tối
+                </Label>
+                <p className="text-sm text-muted-foreground">
+                  Bật giao diện tối cho tin nhắn
+                </p>
+              </div>
+              <Switch
+                id="dark-mode"
+                checked={darkMode}
+                onCheckedChange={setDarkMode}
+              />
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

@@ -28,6 +28,7 @@ export interface UserDTO {
   nickname?: string;
   avatarUrl: string;
   fullName: string;
+  onlineStatus?: boolean;
 }
 
 export interface ReactionDTO {
