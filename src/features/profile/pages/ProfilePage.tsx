@@ -393,11 +393,39 @@ export const ProfilePage = () => {
     }
   };
 
-  const handleMessage = () => {
-    toast({
-      title: "Chuyển đến tin nhắn",
-      description: "Đang mở cuộc trò chuyện...",
-    });
+  const handleMessage = async () => {
+    if (!currentProfile) return;
+
+    try {
+      const { conversationApi } = await import(
+        "@/features/message/services/messageApi"
+      );
+      const { upsertConversation } = await import(
+        "@/features/message/messageSlice"
+      );
+
+      const recipientId = parseInt(currentProfile.id, 10);
+      const response = await conversationApi.getOrCreateConversation(
+        recipientId
+      );
+
+      if (response?.data) {
+        dispatch(upsertConversation(response.data));
+
+        navigate("/messages", {
+          state: { conversationId: response.data.id },
+        });
+      } else {
+        throw new Error("Failed to create conversation");
+      }
+    } catch (error) {
+      console.error("Error creating conversation:", error);
+      toast({
+        title: "Lỗi",
+        description: "Không thể mở cuộc trò chuyện. Vui lòng thử lại.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleEdit = () => {

@@ -1,93 +1,146 @@
-import { Outlet, useLocation } from 'react-router-dom';
-import { Sidebar } from '@/components/common/Sidebar';
-import { FloatingMessageTab } from '@/features/message/components/FloatingMessageTab';
-import { FloatingChatWindow } from '@/features/message/components/FloatingChatWindow';
-import { useAppDispatch, useAppSelector } from '@/store';
+import { Outlet, useLocation } from "react-router-dom";
+import { Sidebar } from "@/components/common/Sidebar";
+import { FloatingMessageTab } from "@/features/message/components/FloatingMessageTab";
+import { FloatingChatWindow } from "@/features/message/components/FloatingChatWindow";
+import { useAppDispatch, useAppSelector } from "@/store";
 import {
-  closeFloatingChat,
-  minimizeFloatingChat,
-  restoreFloatingChat,
+  closeFloatingConversation,
+  minimizeFloatingConversation,
+  restoreFloatingConversation,
   addMessage,
   addReaction,
   removeReaction,
-  Message,
-} from '@/features/message/messageSlice';
-import { Suggestions } from '@/components/common/Suggestions';
+} from "@/features/message/messageSlice";
+import {
+  ConversationUI,
+  MessageUI,
+  EReactionType,
+} from "@/features/message/types";
+import { EMessageType } from "@/features/message/types";
+import { Suggestions } from "@/components/common/Suggestions";
 
 export const MainLayout = () => {
   const location = useLocation();
   const dispatch = useAppDispatch();
-  const isHome = location.pathname === '/';
-  const { 
-    chats, 
-    messages, 
-    floatingChats, 
-    minimizedChats 
+  const isHome = location.pathname === "/";
+  const isMessagesPage = location.pathname.includes("/messages");
+  const {
+    conversations,
+    messages,
+    floatingConversations,
+    minimizedConversations,
   } = useAppSelector((state) => state.message);
 
-  const handleFloatingSendMessage = (chatId: string) => (content: string, type: 'text' | 'image' | 'file' | 'voice') => {
-    const newMessage: Message = {
-      id: `msg-${Date.now()}`,
-      chatId,
-      senderId: 'currentUser',
-      content,
-      type,
-      timestamp: new Date(),
-      isRead: false,
+  const handleFloatingSendMessage =
+    (conversationId: number) =>
+    (content: string, type: "image" | "text" | "file" | "voice") => {
+      // Map type string to EMessageType
+      const typeMap: Record<string, EMessageType> = {
+        text: EMessageType.TEXT,
+        image: EMessageType.IMAGE,
+        file: EMessageType.FILE,
+        voice: EMessageType.AUDIO,
+      };
+      const newMessage: MessageUI = {
+        id: Date.now(),
+        conversationId,
+        sender: {
+          id: 1,
+          username: "currentUser",
+          avatarUrl: "",
+          fullName: "Current User",
+        },
+        content,
+        messageType: typeMap[type] || EMessageType.TEXT,
+        createdAt: new Date().toISOString(),
+        reactions: [],
+        isRead: false,
+        isSending: false,
+      };
+      dispatch(addMessage(newMessage));
     };
-
-    dispatch(addMessage(newMessage));
-  };
 
   return (
     <div className="min-h-screen bg-background">
       <div className="flex">
         <Sidebar />
-        <main className="flex-1 flex justify-center min-h-screen pt-16 pb-16 lg:pt-0 lg:pb-0">
-          <div className={isHome ? "w-full max-w-lg xl:max-w-xl 2xl:max-w-2xl" : "w-full max-w-[935px]"}>
+        {isMessagesPage ? (
+          <main className="flex-1 min-h-screen">
             <Outlet />
-          </div>
-          {isHome && (
-            <div className="hidden xl:block xl:w-80 2xl:w-96">
-              <div className="sticky top-4 pt-8">
-                <Suggestions />
-              </div>
+          </main>
+        ) : (
+          <main className="flex-1 flex justify-center min-h-screen pt-16 pb-16 lg:pt-0 lg:pb-0">
+            <div
+              className={
+                isHome
+                  ? "w-full max-w-lg xl:max-w-xl 2xl:max-w-2xl"
+                  : "w-full max-w-[935px]"
+              }
+            >
+              <Outlet />
             </div>
-          )}
-        </main>
+            {isHome && (
+              <div className="hidden xl:block xl:w-80 2xl:w-96">
+                <div className="sticky top-4 pt-8">
+                  <Suggestions />
+                </div>
+              </div>
+            )}
+          </main>
+        )}
       </div>
 
       {/* Floating Message Tab - Only show on desktop and non-message pages */}
-      {!location.pathname.includes('/messages') && (
+      {!location.pathname.includes("/messages") && (
         <div className="hidden lg:block">
           <FloatingMessageTab />
         </div>
       )}
 
       {/* Floating Chat Windows */}
-      {floatingChats.map((chatId, index) => {
-        const floatingChat = chats.find(c => c.id === chatId);
-        const floatingMessages = messages[chatId] || [];
-        
+      {floatingConversations.map((conversationId, index) => {
+        const floatingChat = conversations.find((c) => c.id === conversationId);
+        const floatingMessages = messages[conversationId] || [];
+
         if (!floatingChat) return null;
 
         return (
           <FloatingChatWindow
-            key={chatId}
+            key={conversationId}
             chat={floatingChat}
             messages={floatingMessages}
-            isMinimized={minimizedChats.includes(chatId)}
+            isMinimized={minimizedConversations.includes(conversationId)}
             position={index}
-            onClose={() => dispatch(closeFloatingChat(chatId))}
-            onMinimize={() => dispatch(minimizeFloatingChat(chatId))}
-            onRestore={() => dispatch(restoreFloatingChat(chatId))}
-            onSendMessage={handleFloatingSendMessage(chatId)}
-            onAddReaction={(messageId, emoji) => 
-              dispatch(addReaction({ messageId, chatId, userId: 'currentUser', emoji }))
+            onClose={() => dispatch(closeFloatingConversation(conversationId))}
+            onMinimize={() =>
+              dispatch(minimizeFloatingConversation(conversationId))
             }
-            onRemoveReaction={(messageId) =>
-              dispatch(removeReaction({ messageId, chatId, userId: 'currentUser' }))
+            onRestore={() =>
+              dispatch(restoreFloatingConversation(conversationId))
             }
+            onSendMessage={handleFloatingSendMessage(conversationId)}
+            onAddReaction={(messageId: string, emoji: string) => {
+              dispatch(
+                addReaction({
+                  conversationId,
+                  messageId: Number(messageId),
+                  reaction: {
+                    userId: 1,
+                    username: "currentUser",
+                    reactionType: emoji as EReactionType,
+                  },
+                })
+              );
+            }}
+            onRemoveReaction={(messageId: string) => {
+              dispatch(
+                removeReaction({
+                  conversationId,
+                  messageId: Number(messageId),
+                  userId: 1,
+                })
+              );
+            }}
           />
         );
       })}

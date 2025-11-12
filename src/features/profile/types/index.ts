@@ -11,6 +11,7 @@ export interface ProfileData {
   avatar: string | null;
   bio: string | null;
   isPrivate: boolean;
+  onlineStatus?: boolean;
   followers: number;
   following: number;
   isFollowing?: boolean;
@@ -150,6 +151,7 @@ export interface UpdateProfileRequest {
   bio?: string;
   avatar?: File | string;
   isPrivate?: boolean;
+  onlineStatus?: boolean;
 }
 
 export interface UpdateProfileResponse {
