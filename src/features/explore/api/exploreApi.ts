@@ -1,7 +1,38 @@
 import { api } from "@/lib/axios";
-import type { GetExploreRequest, GetExploreResponse } from "../types";
+import type {
+  GetExploreRequest,
+  GetExploreResponse,
+  SearchUserRequest,
+  SearchUserResponse,
+} from "../types";
 
-// Get explore posts API
+export const searchUsers = async (
+  params: SearchUserRequest
+): Promise<SearchUserResponse["data"]> => {
+  try {
+    const { query, limit = 10, offset = 0 } = params;
+
+    const response = await api.get<SearchUserResponse>("/users/search", {
+      params: {
+        query,
+        limit,
+        offset,
+      },
+    });
+    return response.data.data;
+  } catch (error: unknown) {
+    if (error && typeof error === "object" && "response" in error) {
+      const apiError = error as { response?: { data?: { message?: string } } };
+      throw new Error(
+        apiError.response?.data?.message ||
+          "Có lỗi xảy ra khi tìm kiếm người dùng"
+      );
+    }
+
+    throw new Error("Không thể kết nối đến server. Vui lòng thử lại.");
+  }
+};
+
 export const getExplorePosts = async (
   params: GetExploreRequest
 ): Promise<GetExploreResponse> => {

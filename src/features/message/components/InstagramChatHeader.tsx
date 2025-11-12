@@ -30,12 +30,15 @@ import { OnlineIndicator } from "./OnlineIndicator";
 import type { ConversationResponseDTO, UserDTO } from "../types";
 import { cn } from "@/lib/utils";
 import { formatLastSeen } from "../hooks/usePresence";
+import { useToast } from "@/hooks/use-toast";
+import { useNavigate } from "react-router-dom";
 
 interface InstagramChatHeaderProps {
   chat?: ConversationResponseDTO;
   onBack?: () => void;
   onCall?: (type: "voice" | "video") => void;
   onNicknameUpdated?: () => void;
+  onBlockStatusChanged?: () => void;
   showBackButton?: boolean;
   className?: string;
   isOnline?: boolean;
@@ -48,6 +51,7 @@ export const InstagramChatHeader: React.FC<InstagramChatHeaderProps> = ({
   onBack,
   onCall,
   onNicknameUpdated,
+  onBlockStatusChanged,
   showBackButton = false,
   className,
   isOnline = false,
@@ -60,6 +64,11 @@ export const InstagramChatHeader: React.FC<InstagramChatHeaderProps> = ({
   const [nickname, setNickname] = useState("");
   const [isUpdating, setIsUpdating] = useState(false);
   const [isLoadingParticipants, setIsLoadingParticipants] = useState(false);
+  const [blockDialogOpen, setBlockDialogOpen] = useState(false);
+  const [isBlocking, setIsBlocking] = useState(false);
+  const [targetUser, setTargetUser] = useState<UserDTO | null>(null);
+  const { toast } = useToast();
+  const navigate = useNavigate();
 
   const handleOpenNicknameDialog = async () => {
     if (!chat?.id || !currentUserId) return;
@@ -120,6 +129,86 @@ export const InstagramChatHeader: React.FC<InstagramChatHeaderProps> = ({
       console.error("Error updating nickname:", error);
     } finally {
       setIsUpdating(false);
+    }
+  };
+
+  const handleBlockUser = async () => {
+    if (!chat?.participants || chat.participants.length === 0) {
+      toast({
+        title: "Lỗi",
+        description: "Không thể xác định người dùng",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const userToBlock = chat.participants.find((p) => p.id !== currentUserId);
+    if (!userToBlock?.username) {
+      toast({
+        title: "Lỗi",
+        description: "Không thể xác định người dùng",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsBlocking(true);
+    try {
+      if (chat.blockedByMe) {
+        // Bỏ chặn
+        const { unblockUser } = await import(
+          "@/features/profile/api/profileApi"
+        );
+        await unblockUser(userToBlock.username);
+
+        toast({
+          title: "Đã bỏ chặn",
+          description: `Bạn đã bỏ chặn ${userToBlock.fullName}.`,
+        });
+      } else {
+        // Chặn
+        const { blockUser } = await import("@/features/profile/api/profileApi");
+        await blockUser(userToBlock.username);
+
+        toast({
+          title: "Đã chặn người dùng",
+          description: `Bạn đã chặn ${userToBlock.fullName}. Họ sẽ không thể nhìn thấy hồ sơ, bài viết hoặc liên hệ với bạn.`,
+        });
+      }
+
+      setBlockDialogOpen(false);
+      setTargetUser(null);
+
+      // Callback to parent to refresh
+      if (onBlockStatusChanged) {
+        onBlockStatusChanged();
+      }
+
+      // Reload trang hoặc update state
+      setTimeout(() => {
+        window.location.reload();
+      }, 500);
+    } catch (error) {
+      const err = error as { message?: string };
+      toast({
+        title: "Lỗi",
+        description:
+          err.message ||
+          `Không thể ${chat.blockedByMe ? "bỏ chặn" : "chặn"} người dùng`,
+        variant: "destructive",
+      });
+    } finally {
+      setIsBlocking(false);
+    }
+  };
+
+  const handleOpenBlockDialog = () => {
+    if (!chat?.participants || chat.participants.length === 0) return;
+
+    const userToBlock = chat.participants.find((p) => p.id !== currentUserId);
+    if (userToBlock) {
+      setTargetUser(userToBlock);
+      setBlockDialogOpen(true);
     }
   };
 
@@ -184,11 +273,17 @@ export const InstagramChatHeader: React.FC<InstagramChatHeaderProps> = ({
             {chat.fullname ?? ""}
           </h3>
           <p className="text-xs text-muted-foreground">
-            {isOnline
-              ? "Đang hoạt động"
-              : lastSeen && formatLastSeen(lastSeen)
-              ? formatLastSeen(lastSeen)
-              : "Ngoại tuyến"}
+            {chat.blockedByMe ? (
+              <span className="text-destructive font-medium">
+                Bạn đã chặn người này
+              </span>
+            ) : isOnline ? (
+              "Đang hoạt động"
+            ) : lastSeen && formatLastSeen(lastSeen) ? (
+              formatLastSeen(lastSeen)
+            ) : (
+              "Ngoại tuyến"
+            )}
           </p>
         </div>
       </div>
@@ -226,8 +321,11 @@ export const InstagramChatHeader: React.FC<InstagramChatHeaderProps> = ({
               Biệt danh
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="text-destructive">
-              Chặn
+            <DropdownMenuItem
+              className="text-destructive"
+              onClick={handleOpenBlockDialog}
+            >
+              {chat.blockedByMe ? "Bỏ chặn" : "Chặn"}
             </DropdownMenuItem>
             <DropdownMenuItem className="text-destructive">
               Báo cáo
@@ -358,6 +456,46 @@ export const InstagramChatHeader: React.FC<InstagramChatHeaderProps> = ({
               disabled={isUpdating}
             >
               Đóng
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={blockDialogOpen} onOpenChange={setBlockDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {chat.blockedByMe ? "Bỏ chặn" : "Chặn"}{" "}
+              {targetUser?.fullName || chat.fullname}?
+            </DialogTitle>
+            <DialogDescription className="text-justify">
+              {chat.blockedByMe
+                ? "Sau khi bỏ chặn, người này sẽ có thể tìm thấy hồ sơ, bài viết và story của bạn. Nexo sẽ không cho họ biết rằng bạn đã bỏ chặn họ."
+                : "Họ sẽ không thể tìm thấy hồ sơ, bài viết hoặc story của bạn. Nexo sẽ không cho họ biết rằng bạn đã chặn họ."}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex-col gap-2 sm:flex-col">
+            <Button
+              variant="destructive"
+              onClick={handleBlockUser}
+              disabled={isBlocking}
+              className="w-full"
+            >
+              {isBlocking
+                ? chat.blockedByMe
+                  ? "Đang bỏ chặn..."
+                  : "Đang chặn..."
+                : chat.blockedByMe
+                ? "Bỏ chặn"
+                : "Chặn"}
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => setBlockDialogOpen(false)}
+              disabled={isBlocking}
+              className="w-full"
+            >
+              Hủy
             </Button>
           </DialogFooter>
         </DialogContent>

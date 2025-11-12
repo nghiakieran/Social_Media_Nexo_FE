@@ -2,7 +2,15 @@ import React, { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
-import { Send, Smile, Paperclip, Mic, Image, Camera } from "lucide-react";
+import {
+  Send,
+  Smile,
+  Paperclip,
+  Mic,
+  Image,
+  Camera,
+  ShieldBan,
+} from "lucide-react";
 import {
   Popover,
   PopoverContent,
@@ -15,15 +23,23 @@ interface MessageComposerProps {
     type: "text" | "image" | "file" | "voice"
   ) => void;
   onTyping: (isTyping: boolean) => void;
+  onUnblock?: () => void;
   className?: string;
   placeholder?: string;
+  isBlockedByMe?: boolean;
+  isBlockedByThem?: boolean;
+  fullname?: string;
 }
 
 export const MessageComposer: React.FC<MessageComposerProps> = ({
   onSendMessage,
   onTyping,
+  onUnblock,
   className,
   placeholder = "Tin nhắn...",
+  isBlockedByMe = false,
+  isBlockedByThem = false,
+  fullname = "người dùng này",
 }) => {
   const [message, setMessage] = useState("");
   const [isRecording, setIsRecording] = useState(false);
@@ -109,6 +125,46 @@ export const MessageComposer: React.FC<MessageComposerProps> = ({
       }, 2000);
     }
   };
+
+  // Nếu mình block người ta
+  if (isBlockedByMe) {
+    return (
+      <div
+        className={cn("p-4 border-t border-border bg-background", className)}
+      >
+        <div className="flex flex-col items-center justify-center py-4 space-y-3">
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <ShieldBan className="h-5 w-5" />
+            <p className="text-sm">Bạn đã chặn {fullname}</p>
+          </div>
+          <Button
+            onClick={onUnblock}
+            variant="outline"
+            size="sm"
+            className="w-full max-w-xs"
+          >
+            Bỏ chặn để nhắn tin
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // Nếu người ta block mình (status = BLOCKED và blockedByMe = false)
+  if (isBlockedByThem) {
+    return (
+      <div
+        className={cn("p-4 border-t border-border bg-background", className)}
+      >
+        <div className="flex flex-col items-center justify-center py-4 space-y-2">
+          <ShieldBan className="h-5 w-5 text-muted-foreground" />
+          <p className="text-sm text-muted-foreground text-center">
+            Bạn không thể gửi tin nhắn cho {fullname}
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={cn("p-4 border-t border-border bg-background", className)}>

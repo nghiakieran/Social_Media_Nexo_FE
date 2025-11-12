@@ -553,6 +553,7 @@ export const InboxPage: React.FC = () => {
               chat={currentChat}
               onCall={handleCallAction}
               onNicknameUpdated={handleRefreshConversations}
+              onBlockStatusChanged={handleRefreshConversations}
               className="border-b border-border"
               isOnline={currentChatPresence?.isOnline || false}
               lastSeen={currentChatPresence?.lastSeen}
@@ -582,6 +583,31 @@ export const InboxPage: React.FC = () => {
               <MessageComposer
                 onSendMessage={handleSendMessage}
                 onTyping={handleTyping}
+                isBlockedByMe={currentChat.blockedByMe || false}
+                isBlockedByThem={
+                  currentChat.status === EConversationStatus.BLOCKED &&
+                  !currentChat.blockedByMe
+                }
+                fullname={
+                  currentChat.participants.find((p) => p.id !== user?.id)
+                    ?.fullName || currentChat.fullname
+                }
+                onUnblock={async () => {
+                  const targetUser = currentChat.participants.find(
+                    (p) => p.id !== user?.id
+                  );
+                  if (targetUser?.username) {
+                    try {
+                      const { unblockUser } = await import(
+                        "@/features/profile/api/profileApi"
+                      );
+                      await unblockUser(targetUser.username);
+                      await handleRefreshConversations();
+                    } catch (error) {
+                      console.error("Error unblocking user:", error);
+                    }
+                  }
+                }}
               />
             )}
           </>
