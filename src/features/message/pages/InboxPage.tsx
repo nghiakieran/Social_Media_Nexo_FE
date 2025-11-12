@@ -462,6 +462,29 @@ export const InboxPage: React.FC = () => {
     }
   };
 
+  const handleRefreshConversations = async () => {
+    try {
+      const { conversationApi } = await import("../services/messageApi");
+      let response;
+
+      if (activeView === "requests") {
+        response = await conversationApi.getConversationRequests({});
+      } else if (activeFilter === "unread") {
+        response = await conversationApi.getUnreadConversations({});
+      } else if (activeFilter === "archived") {
+        response = await conversationApi.getArchivedConversations({});
+      } else {
+        response = await conversationApi.getConversations({});
+      }
+
+      if (response?.data?.content) {
+        dispatch(setConversations(response.data.content));
+      }
+    } catch (error) {
+      console.error("Error refreshing conversations:", error);
+    }
+  };
+
   return (
     <div className="h-screen flex bg-background overflow-hidden">
       {}
@@ -529,6 +552,7 @@ export const InboxPage: React.FC = () => {
             <InstagramChatHeader
               chat={currentChat}
               onCall={handleCallAction}
+              onNicknameUpdated={handleRefreshConversations}
               className="border-b border-border"
               isOnline={currentChatPresence?.isOnline || false}
               lastSeen={currentChatPresence?.lastSeen}
