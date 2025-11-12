@@ -74,27 +74,27 @@ export const LikeButton: React.FC<LikeButtonProps> = ({
     lg: { button: "h-12 w-12", icon: "w-8 h-8" },
   };
 
-  const currentSize = sizeConfig[size];
+const currentSize = sizeConfig[size] || sizeConfig["md"];
 
   return (
-    <button
-      onClick={handleLike}
-      type="button"
-      className={cn(
+  <button
+    onClick={handleLike}
+    type="button"
+    className={cn(
         currentSize.button,
         "inline-flex items-center justify-center gap-1",
-        "select-none touch-manipulation",
-        "text-foreground hover:opacity-80 active:opacity-60",
-        "transition-opacity",
-        isLiked && "text-red-500 hover:text-red-600",
-        className
-      )}
-    >
-      <Heart className={cn(currentSize.icon, isLiked && "fill-current")} />
-      {showCount && likesCount > 0 && (
-        <span className="text-sm">{formatNumber(likesCount)}</span>
-      )}
-      {children}
-    </button>
+      "select-none touch-manipulation",
+      "text-foreground hover:opacity-80 active:opacity-60",
+      "transition-opacity",
+      isLiked && "text-red-500 hover:text-red-600",
+      className
+    )}
+  >
+    <Heart className={cn(currentSize.icon, isLiked && "fill-current")} />
+    {showCount && likesCount > 0 && (
+      <span className="text-sm mt-1">{formatNumber(likesCount)}</span>
+    )}
+    {children}
+  </button>
   );
 };

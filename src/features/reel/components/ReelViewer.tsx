@@ -205,11 +205,11 @@ const ReelViewer = memo(
               targetType="reel"
               isLiked={isLiked}
               likesCount={likesCount}
-              size="default"
+              size="md"
               variant="ghost"
               showCount={false}
               onLikeChange={handleLikeChange}
-              className="h-7 w-7 p-0 bg-transparent hover:bg-transparent text-white hover:text-white active:scale-90 transition-transform"
+              className="h-14 w-14 p-0 bg-transparent hover:bg-transparent text-white hover:text-white active:scale-90 transition-transform"
             >
               {likesCount > 0 && (
                 <span className="text-white text-[11px] font-semibold drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">
