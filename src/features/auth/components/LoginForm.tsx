@@ -130,7 +130,7 @@ export const LoginForm = () => {
               {...register('password', {
                 required: 'Mật khẩu là bắt buộc',
                 minLength: {
-                  value: 8,
+                  value: 5,
                   message: 'Mật khẩu phải có ít nhất 8 ký tự',
                 },
               })}
