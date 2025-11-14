@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, Heart, MessageCircle, Send, Bookmark, MoreHorizontal, ArrowLeft } from 'lucide-react';
+import { X, MessageCircle, Send, Bookmark, MoreHorizontal, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Textarea } from '@/components/ui/textarea';
@@ -9,6 +9,7 @@ import { MediaSlider } from './MediaSlider';
 import { formatTimeAgo } from '@/utils/timeFormat';
 import { useBookmark } from '@/features/saved/hooks/useBookmark';
 import { navigateToProfile } from '@/utils/navigation';
+import { LikeButton } from '@/features/interaction/components/LikeButton';
 import { useNavigate } from 'react-router-dom';
 import { ActionMenu, ActionMenuItem } from '@/components/common/ActionMenu';
 
@@ -74,9 +75,23 @@ export const MobilePostDetail = ({
   const [replyingTo, setReplyingTo] = useState<{ id: string; userName: string } | null>(null);
   const [showActionMenu, setShowActionMenu] = useState(false);
   const [actionMenuPosition, setActionMenuPosition] = useState<{ top: number; left?: number; right?: number } | null>(null);
+  const [isPostLikedLocal, setIsPostLikedLocal] = useState(isPostLiked);
+  const [postLikesCount, setPostLikesCount] = useState(post.likesCount || 0);
   const { toast } = useToast();
   const { isBookmarked, toggleBookmark } = useBookmark();
   const navigate = useNavigate();
+
+  // Sync post like state when prop changes
+  useEffect(() => {
+    setIsPostLikedLocal(isPostLiked);
+    setPostLikesCount(post.likesCount || 0);
+  }, [isPostLiked, post.likesCount]);
+
+  const handlePostLikeChange = (newIsLiked: boolean, newCount: number) => {
+    setIsPostLikedLocal(newIsLiked);
+    setPostLikesCount(newCount);
+    onLikePost(post.id);
+  };
 
   // Close on back button (mobile)
   useEffect(() => {
@@ -194,17 +209,17 @@ export const MobilePostDetail = ({
         <div className="px-4 py-3 border-b border-border">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-4">
-              <button
-                onClick={() => onLikePost(post.id)}
-                className="touch-manipulation"
-              >
-                <Heart
-                  className={cn(
-                    "w-7 h-7 transition-colors",
-                    isPostLiked ? "fill-red-500 text-red-500" : "text-foreground"
-                  )}
-                />
-              </button>
+              <LikeButton
+                targetId={parseInt(post.id)}
+                targetType="post"
+                isLiked={isPostLikedLocal}
+                likesCount={postLikesCount}
+                size="default"
+                variant="ghost"
+                showCount={false}
+                onLikeChange={handlePostLikeChange}
+                className="touch-manipulation h-7 w-7 p-0"
+              />
               <button className="touch-manipulation">
                 <MessageCircle className="w-7 h-7 text-foreground" />
               </button>
@@ -226,9 +241,9 @@ export const MobilePostDetail = ({
           </div>
 
           {/* Likes Count */}
-          {post.likesCount > 0 && (
+          {postLikesCount > 0 && (
             <p className="font-semibold text-sm mb-2">
-              {post.likesCount.toLocaleString('vi-VN')} lượt thích
+              {postLikesCount.toLocaleString('vi-VN')} lượt thích
             </p>
           )}
 
@@ -273,16 +288,23 @@ export const MobilePostDetail = ({
                       <p className="text-sm break-words">{comment.content}</p>
                     </div>
                     <div className="flex items-center gap-4 mt-1 px-3">
-                      <button
-                        onClick={() => onLikeComment(comment.id)}
-                        className="text-xs text-muted-foreground hover:text-foreground"
+                      <LikeButton
+                        targetId={parseInt(comment.id)}
+                        targetType="comment"
+                        isLiked={comment.isLiked}
+                        likesCount={comment.likesCount}
+                        size="sm"
+                        variant="ghost"
+                        showCount={false}
+                        onLikeChange={() => onLikeComment(comment.id)}
+                        className="h-auto px-0 text-xs text-muted-foreground hover:text-foreground"
                       >
                         {comment.isLiked ? (
                           <span className="font-semibold text-primary">Đã thích</span>
                         ) : (
                           'Thích'
                         )}
-                      </button>
+                      </LikeButton>
                       <button
                         onClick={() => setReplyingTo({ id: comment.id, userName: comment.userName })}
                         className="text-xs text-muted-foreground hover:text-foreground"
@@ -314,16 +336,23 @@ export const MobilePostDetail = ({
                                 <p className="text-sm break-words">{reply.content}</p>
                               </div>
                               <div className="flex items-center gap-4 mt-1 px-3">
-                                <button
-                                  onClick={() => onLikeComment(reply.id)}
-                                  className="text-xs text-muted-foreground hover:text-foreground"
+                                <LikeButton
+                                  targetId={parseInt(reply.id)}
+                                  targetType="comment"
+                                  isLiked={reply.isLiked}
+                                  likesCount={reply.likesCount}
+                                  size="sm"
+                                  variant="ghost"
+                                  showCount={false}
+                                  onLikeChange={() => onLikeComment(reply.id)}
+                                  className="h-auto px-0 text-xs text-muted-foreground hover:text-foreground"
                                 >
                                   {reply.isLiked ? (
                                     <span className="font-semibold text-primary">Đã thích</span>
                                   ) : (
                                     'Thích'
                                   )}
-                                </button>
+                                </LikeButton>
                                 <span className="text-xs text-muted-foreground">
                                   {formatTimeAgo(reply.createdAt)}
                                 </span>

@@ -29,6 +29,7 @@ import {
   searchUsersThunk,
 } from "../exploreSlice";
 
+
 export const SearchPage: React.FC = () => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();

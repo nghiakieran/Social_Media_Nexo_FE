@@ -28,7 +28,8 @@ import {
 import type { UpdatePostRequest } from "../types";
 import { ActionMenuDialog } from "../components/ActionMenuDialog";
 import { formatTimeAgo } from "@/utils/timeFormat";
-import { CommentSection } from "../components/CommentSection";
+import { CommentSection } from "@/features/interaction/components/CommentSection";
+import { LikeButton } from "@/features/interaction/components/LikeButton";
 import { EditPostDialog } from "../components/EditPostDialog";
 import { LikesDialog } from "../components/LikesDialog";
 import { MediaSlider } from "../components/MediaSlider";
@@ -112,19 +113,22 @@ export const PostDetailPage = () => {
     private: Lock,
   };
 
-  const handleLike = () => {
+  const handleLikeChange = (isLiked: boolean, newCount: number) => {
     setInteractions((prev) => ({
       ...prev,
-      isLiked: !prev.isLiked,
+      isLiked,
     }));
 
-    setPost((prev) => ({
-      ...prev,
-      stats: {
-        ...prev.stats,
-        likes: prev.stats.likes + (interactions.isLiked ? -1 : 1),
-      },
-    }));
+    setPost((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        stats: {
+          ...prev.stats,
+          likes: newCount,
+        },
+      };
+    });
   };
 
   const handleBookmark = () => {
@@ -459,25 +463,19 @@ export const PostDetailPage = () => {
               <div className="p-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-4">
-                    <Button
-                      variant="ghost"
+                    <LikeButton
+                      targetId={parseInt(post.id)}
+                      targetType="post"
+                      isLiked={interactions.isLiked}
+                      likesCount={post.stats.likes}
                       size="sm"
-                      onClick={handleLike}
-                      className={cn(
-                        "flex items-center gap-2 px-3 py-2 rounded-full transition-colors",
-                        interactions.isLiked
-                          ? "text-red-500 hover:text-red-600"
-                          : "hover:text-red-500"
-                      )}
+                      variant="ghost"
+                      showCount={false}
+                      onLikeChange={handleLikeChange}
+                      className="flex items-center gap-2 px-3 py-2 rounded-full transition-colors"
                     >
-                      <Heart
-                        className={cn(
-                          "w-5 h-5",
-                          interactions.isLiked && "fill-current"
-                        )}
-                      />
                       <span className="hidden sm:inline">Thích</span>
-                    </Button>
+                    </LikeButton>
 
                     <Button
                       variant="ghost"
@@ -539,7 +537,7 @@ export const PostDetailPage = () => {
           </Card>
 
           {/* Comments Section */}
-          <CommentSection postId={postId!} />
+          <CommentSection postId={parseInt(postId!)} />
         </div>
       </div>
 
