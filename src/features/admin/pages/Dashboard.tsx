@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Users, FileText, Heart, Flag, TrendingUp } from "lucide-react";
 import { StatsCard } from "@/components/admin/StatsCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,30 +19,61 @@ import {
   ResponsiveContainer,
   Legend,
 } from "recharts";
+import { MockChartData, MockTopHashtags } from "../__mocks__/mockDatas";
+import { fetchDashboardCardData, fetchUserChartData, fetchPostChartData,fetchInteractChartData,fetchReportChartData } from "../api/dashBoardAPI";
 
-const mockChartData = [
-  { date: "01/11", users: 400, posts: 240, interactions: 1200, reports: 12 },
-  { date: "05/11", users: 450, posts: 280, interactions: 1400, reports: 10 },
-  { date: "10/11", users: 520, posts: 320, interactions: 1600, reports: 8 },
-  { date: "15/11", users: 580, posts: 380, interactions: 1800, reports: 15 },
-  { date: "20/11", users: 640, posts: 420, interactions: 2100, reports: 11 },
-  { date: "25/11", users: 720, posts: 480, interactions: 2400, reports: 9 },
-  { date: "30/11", users: 800, posts: 520, interactions: 2800, reports: 7 },
-];
+const mockChartData = MockChartData;
 
-const topHashtags = [
-  { tag: "#travel", count: 1250, trend: "+12%" },
-  { tag: "#food", count: 980, trend: "+8%" },
-  { tag: "#fashion", count: 875, trend: "+15%" },
-  { tag: "#fitness", count: 720, trend: "+5%" },
-  { tag: "#photography", count: 650, trend: "+10%" },
-];
+const topHashtags = MockTopHashtags;
 
 export default function Dashboard() {
+  const today = new Date();
+  const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
   const [dateRange, setDateRange] = useState<{ from?: Date; to?: Date }>({
-    from: new Date(2024, 10, 1),
-    to: new Date(2024, 10, 30),
+      from: firstDayOfMonth,
+      to: today,
   });
+  const [dashboardDataCard, setDashboardDataCard] = useState(null);
+  const [userChart, setUserChart] = useState(null);
+  const [postChart, setPostChart] = useState(null);
+  const [interactChart, setInteractChart] = useState(null);
+  const [reportChart, setReportChart] = useState(null);
+
+  useEffect(() => {
+    const loadData = async () => {
+      if (dateRange.from && dateRange.to) {
+        const userRes = await fetchUserChartData(dateRange.from, dateRange.to);
+        const postRes = await fetchPostChartData(dateRange.from, dateRange.to);
+        const interactRes = await fetchInteractChartData(dateRange.from, dateRange.to);
+        const reportRes = await fetchReportChartData(dateRange.from, dateRange.to);
+
+        // console.log("User Data:", userRes);
+        // console.log("Post Data:", postRes);
+        // console.log("Interact Data:", interactRes);
+        // console.log("Report Data:", reportRes);
+        setUserChart(formatChartData(userRes.data.time, userRes.data.data, "users"));
+        setPostChart(formatChartData(postRes.data.time, postRes.data.data, "posts"));
+        setInteractChart(formatChartData(interactRes.data.time, interactRes.data.data, "interactions"));
+        setReportChart(formatChartData(reportRes.data.time, reportRes.data.data, "reports"));
+      }
+    };
+    loadData();
+    if (dateRange.from && dateRange.to) {
+      fetchUserChartData(dateRange.from, dateRange.to);
+    }
+  }, [dateRange]);
+
+ useEffect(() => {
+    const loadCardData = async () => {
+      const data = await fetchDashboardCardData();
+      setDashboardDataCard(data.data);
+    };
+  loadCardData();
+  }, []);
+
+  const formatChartData = (time: string[], data: number[], key: string) => {
+    return time.map((t, i) => ({ date: t, [key]: data[i] }));
+  };
 
   return (
     <div className="space-y-6">
@@ -77,34 +108,34 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatsCard
           title="Tổng người dùng"
-          value="15,234"
-          change={12.5}
+          value={dashboardDataCard?.totalUser || 0}
+          change={dashboardDataCard?.percentUser || 0}
           icon={Users}
-          trend="up"
+          trend={dashboardDataCard?.percentUser >= 0 ? "up" : "down"}
           gradient="bg-gradient-to-br from-instagram-purple to-instagram-pink"
         />
         <StatsCard
           title="Bài viết"
-          value="8,420"
-          change={8.2}
+          value={dashboardDataCard?.totalPost || 0}
+          change={dashboardDataCard?.percentPost || 0}
           icon={FileText}
-          trend="up"
+          trend={dashboardDataCard?.percentPost >= 0 ? "up" : "down"}
           gradient="bg-gradient-to-br from-instagram-pink to-instagram-orange"
         />
         <StatsCard
           title="Tương tác"
-          value="45.6K"
-          change={15.3}
+          value={dashboardDataCard?.totalInteract || 0}
+          change={dashboardDataCard?.percentInteract || 0}
           icon={Heart}
-          trend="up"
+          trend={dashboardDataCard?.percentInteract >= 0 ? "up" : "down"}
           gradient="bg-gradient-to-br from-instagram-orange to-instagram-yellow"
         />
         <StatsCard
           title="Báo cáo"
-          value="127"
-          change={-5.4}
+          value={dashboardDataCard?.quantityReport || 0}
+          change={dashboardDataCard?.percentReport || 0}
           icon={Flag}
-          trend="down"
+          trend={dashboardDataCard?.percentReport >= 0 ? "up" : "down"}
           gradient="bg-gradient-to-br from-destructive/80 to-destructive"
         />
       </div>
@@ -120,7 +151,7 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={mockChartData}>
+              <LineChart data={userChart}>
                 <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                 <XAxis dataKey="date" className="text-xs" />
                 <YAxis className="text-xs" />
@@ -146,7 +177,7 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={mockChartData}>
+              <BarChart data={postChart}>
                 <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                 <XAxis dataKey="date" className="text-xs" />
                 <YAxis className="text-xs" />
@@ -166,7 +197,7 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={mockChartData}>
+              <LineChart data={interactChart}>
                 <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                 <XAxis dataKey="date" className="text-xs" />
                 <YAxis className="text-xs" />
@@ -192,7 +223,7 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={mockChartData}>
+              <BarChart data={reportChart}>
                 <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                 <XAxis dataKey="date" className="text-xs" />
                 <YAxis className="text-xs" />

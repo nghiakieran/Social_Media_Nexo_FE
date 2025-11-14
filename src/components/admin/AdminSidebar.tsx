@@ -51,7 +51,7 @@ export function AdminSidebar() {
             {state !== "collapsed" && (
               <div>
                 <h2 className="font-bold text-lg">Admin Panel</h2>
-                <p className="text-xs text-muted-foreground">Social Network</p>
+                <p className="text-xs text-muted-foreground">Nexo Social Media</p>
               </div>
             )}
           </div>

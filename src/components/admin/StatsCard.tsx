@@ -22,14 +22,15 @@ export function StatsCard({ title, value, change, icon: Icon, trend, gradient }:
             <p className="text-sm text-muted-foreground mb-1">{title}</p>
             <h3 className="text-3xl font-bold mb-2">{value}</h3>
             <div className="flex items-center gap-1">
-              <span
-                className={cn(
-                  "text-sm font-medium",
-                  isPositive ? "text-success" : "text-destructive"
-                )}
-              >
-                {isPositive ? "+" : ""}{change}%
-              </span>
+                <span
+                  className={cn(
+                    "text-sm font-medium",
+                    isPositive ? "text-success" : "text-destructive"
+                  )}
+                >
+                  {isPositive ? "+" : ""}
+                  {Number(change).toFixed(1)}%
+                </span>
               <span className="text-xs text-muted-foreground">so với tháng trước</span>
             </div>
           </div>

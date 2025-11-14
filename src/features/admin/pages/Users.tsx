@@ -25,59 +25,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { UserDetailDialog } from "@/components/admin/UserDetailDialog";
+import { MockUsersFull } from "../__mocks__/mockDatas";
 
-const mockUsers = [
-  {
-    id: "1",
-    name: "Nguyễn Văn A",
-    email: "nguyenvana@email.com",
-    role: "user",
-    status: "active",
-    posts: 45,
-    interactions: 1200,
-    violations: 0,
-    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=1",
-  },
-  {
-    id: "2",
-    name: "Trần Thị B",
-    email: "tranthib@email.com",
-    role: "moderator",
-    status: "active",
-    posts: 120,
-    interactions: 3400,
-    violations: 1,
-    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=2",
-  },
-  {
-    id: "3",
-    name: "Lê Văn C",
-    email: "levanc@email.com",
-    role: "user",
-    status: "locked",
-    posts: 25,
-    interactions: 450,
-    violations: 5,
-    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=3",
-  },
-  {
-    id: "4",
-    name: "Phạm Thị D",
-    email: "phamthid@email.com",
-    role: "user",
-    status: "pending",
-    posts: 0,
-    interactions: 0,
-    violations: 0,
-    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=4",
-  },
-];
-
+const mockUsers = MockUsersFull;
 export default function Users() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [selectedUser, setSelectedUser] = useState<typeof mockUsers[0] | null>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
 
-  const getRoleBadge = (role: string) => {
+   const getRoleBadge = (role: string) => {
     const variants = {
       admin: "destructive",
       moderator: "default",
@@ -227,7 +185,12 @@ export default function Users() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => {
+                            setSelectedUser(user);
+                            setDialogOpen(true);
+                          }}
+                        >
                           <Eye className="w-4 h-4 mr-2" />
                           Xem chi tiết
                         </DropdownMenuItem>
@@ -259,6 +222,13 @@ export default function Users() {
           </Table>
         </CardContent>
       </Card>
+      {selectedUser && (
+        <UserDetailDialog
+          open={dialogOpen}
+          onOpenChange={setDialogOpen}
+          user={selectedUser}
+        />
+      )}
     </div>
   );
 }

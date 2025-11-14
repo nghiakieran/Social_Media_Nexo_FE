@@ -71,13 +71,13 @@ import { StoryCreatePage } from "./features/story/pages/StoryCreatePage";
 // Reel Pages
 import { ReelsPage } from "./features/reel";
 import ReelDetailPage from "./features/reel/pages/ReelDetailPage";
-import AdminLayout from "./pages/admin/AdminLayout";
-import Settings from "./pages/admin/Settings";
-import Users from "./pages/admin/Users";
-import Dashboard from "./pages/admin/Dashboard";
-import Comments from "./pages/admin/Comments";
-import Posts from "./pages/admin/Posts";
-import Reports from "./pages/admin/Reports";
+import AdminLayout from "./features/admin/pages/AdminLayout";
+import Settings from "./features/admin/pages/Settings";
+import Users from "./features/admin/pages/Users";
+import Dashboard from "./features/admin/pages/Dashboard";
+import Comments from "./features/admin/pages/Comments";
+import Posts from "./features/admin/pages/Posts";
+import Reports from "./features/admin/pages/Reports";
 
 const queryClient = new QueryClient();
 

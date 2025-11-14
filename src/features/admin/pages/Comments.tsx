@@ -19,42 +19,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-const mockComments = [
-  {
-    id: "1",
-    author: "Nguyễn Văn A",
-    content: "Bài viết rất hay và bổ ích!",
-    post: "Chia sẻ về chuyến du lịch...",
-    likes: 12,
-    reports: 0,
-    date: "2024-11-10",
-    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=1",
-  },
-  {
-    id: "2",
-    author: "Trần Thị B",
-    content: "Không đồng ý với quan điểm này",
-    post: "Thảo luận về công nghệ...",
-    likes: 3,
-    reports: 2,
-    date: "2024-11-09",
-    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=2",
-  },
-  {
-    id: "3",
-    author: "Lê Văn C",
-    content: "Spam content here...",
-    post: "Video hướng dẫn...",
-    likes: 0,
-    reports: 5,
-    date: "2024-11-08",
-    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=3",
-  },
-];
+import { MockComments } from "../__mocks__/mockDatas";
+
 
 export default function Comments() {
   const [search, setSearch] = useState("");
-
+  const mockComments = MockComments
   return (
     <div className="space-y-6">
       <div>
