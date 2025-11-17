@@ -119,14 +119,6 @@ export const InstagramInboxHeader: React.FC<InstagramInboxHeaderProps> = ({
           <Button
             variant="ghost"
             size="icon"
-            onClick={onNewMessage}
-            className="h-8 w-8"
-          >
-            <Edit3 className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
             onClick={() => setSettingsOpen(true)}
             className="h-8 w-8"
           >
