@@ -73,7 +73,7 @@ export const LazyImage = ({
   }
 
   return (
-    <div className={cn("relative w-full h-full", className)}>
+    <div className={cn("relative overflow-hidden", className)}>
       {/* Placeholder */}
       {!isLoaded && (placeholder || defaultPlaceholder)}
       

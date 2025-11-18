@@ -72,6 +72,9 @@ export interface RegisterRequest {
 export interface RegisterResponse {
   status: number;
   message: string;
+  data?: {
+    userId: string;
+  };
 }
 
 export interface User {

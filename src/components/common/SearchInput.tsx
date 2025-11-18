@@ -36,7 +36,7 @@ export const SearchInput = ({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
-          className="pl-10 pr-10 h-10"
+          className="pl-10 pr-10 h-10 text-sm md:text-base"
           autoFocus={autoFocus}
         />
         <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">

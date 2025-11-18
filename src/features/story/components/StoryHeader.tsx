@@ -1,11 +1,14 @@
 import { memo } from "react"
 import { useNavigate } from "react-router-dom"
 import { Volume2, VolumeX, MoreHorizontal, Pause, Play, X } from "lucide-react"
-import { Story } from "../types"
+import { Story, StoryContent } from "../types"
 import { LazyImage } from "@/components/common/LazyImage"
+import { formatTimeAgo } from "@/utils/timeFormat"
+import { navigateToProfile } from "@/utils/navigation"
 
 interface StoryHeaderProps {
   story: Story
+  currentContent: StoryContent
   isMuted: boolean
   isPaused: boolean
   isMobile: boolean
@@ -16,7 +19,8 @@ interface StoryHeaderProps {
 }
 
 export const StoryHeader = memo(({ 
-  story, 
+  story,
+  currentContent,
   isMuted, 
   isPaused, 
   isMobile, 
@@ -28,13 +32,11 @@ export const StoryHeader = memo(({
   const navigate = useNavigate()
 
   const handleProfileClick = () => {
-    navigate(`/${story.username}`)
+    navigateToProfile(navigate, `${story.username}`);
   }
 
   return (
-    <div className="absolute top-8 left-4 right-4 z-30 flex items-center justify-between">
-      <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-transparent rounded-t-lg pointer-events-none" />
-      
+    <div className="absolute top-8 left-4 right-4 z-30 flex items-center justify-between">  
       <div className="flex items-center gap-3 flex-1 min-w-0">
         <button 
           onClick={handleProfileClick}
@@ -62,10 +64,10 @@ export const StoryHeader = memo(({
                 </svg>
               )}
               <span className="text-white/80 text-sm flex-shrink-0 drop-shadow-lg">
-                {story.timeAgo}
+                {currentContent.createdAt ? formatTimeAgo(currentContent.createdAt) : formatTimeAgo(story.timeAgo)}
               </span>
             </div>
-            {story.isCloseFriend && (
+            {currentContent.isCloseFriend && (
               <div className="bg-gradient-to-r from-green-400 to-blue-500 text-white px-2 py-0.5 rounded-full text-xs font-semibold flex items-center gap-1 shadow-lg backdrop-blur-sm border border-white/20 w-fit">
                 <span className="text-xs animate-bounce">♥</span>
                 <span>Bạn thân</span>
@@ -76,15 +78,18 @@ export const StoryHeader = memo(({
       </div>
 
       <div className="flex items-center gap-1 flex-shrink-0">
-        <button
-          onClick={(e) => {
-            e.stopPropagation()
-            onMuteToggle()
-          }}
-          className="p-2.5 text-white/90 hover:text-white hover:bg-white/10 rounded-full transition-all duration-200 bg-black/30 backdrop-blur-sm"
-        >
-          {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
-        </button>
+        {/* Mute/Unmute - Only show for video content */}
+        {currentContent.type === "video" && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              onMuteToggle()
+            }}
+            className="p-2.5 text-white/90 hover:text-white hover:bg-white/10 rounded-full transition-all duration-200 bg-black/30 backdrop-blur-sm"
+          >
+            {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+          </button>
+        )}
 
         {!isMobile && (
           <button
@@ -93,6 +98,7 @@ export const StoryHeader = memo(({
               onPauseToggle()
             }}
             className="p-2.5 text-white/90 hover:text-white hover:bg-white/10 rounded-full transition-all duration-200 bg-black/30 backdrop-blur-sm"
+            title={isPaused ? "Phát" : "Tạm dừng"}
           >
             {isPaused ? <Play className="w-5 h-5" /> : <Pause className="w-5 h-5" />}
           </button>

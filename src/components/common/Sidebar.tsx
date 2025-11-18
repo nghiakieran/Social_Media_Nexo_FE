@@ -2,6 +2,7 @@ import { NavLink, useNavigate } from "react-router-dom";
 import { useState, useRef } from "react";
 import { useAppDispatch, useAppSelector } from "@/store";
 import { logoutAsync } from "@/features/auth/authSlice";
+import { Theme, useTheme } from "@/contexts/ThemeContext";
 import {
   Home,
   Search,
@@ -20,6 +21,7 @@ import {
   Users,
   Shield,
   ChevronLeft,
+  Video,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Logo } from "./Logo";
@@ -30,6 +32,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { SwitchAccountDialog } from "@/features/auth";
+import { CreateContentDialog } from "@/features/story/components/CreateContentDialog";
 
 const navigation = [
   { name: "Trang chủ", href: "/", icon: Home },
@@ -38,8 +41,10 @@ const navigation = [
   { name: "Reels", href: "/reels", icon: Film },
   { name: "Tin nhắn", href: "/messages", icon: MessageCircle },
   { name: "Thông báo", href: "/notifications", icon: Heart },
-  { name: "Tạo", href: "/create", icon: PlusSquare },
+  { name: "Tạo bài viết", href: "/create", icon: PlusSquare },
+  { name: "Tạo Reel", href: "/reels/create", icon: Video },
   { name: "Hồ sơ", href: "/profile", icon: User, dynamic: true },
+  { name: "Giới thiệu", href: "/about", icon: Moon },
 ];
 
 const mlFeatures = [
@@ -51,19 +56,23 @@ export const Sidebar = () => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const user = useAppSelector((state) => state.auth.user);
+  const { setTheme } = useTheme();
   const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
+  const [isMobileMoreMenuOpen, setIsMobileMoreMenuOpen] = useState(false);
   const [isThemeMenuOpen, setIsThemeMenuOpen] = useState(false);
+  const [isMobileThemeMenuOpen, setIsMobileThemeMenuOpen] = useState(false);
   const [isSwitchAccountOpen, setIsSwitchAccountOpen] = useState(false);
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
   const themeButtonRef = useRef<HTMLButtonElement>(null);
 
   const handleLogout = () => {
     dispatch(logoutAsync());
   };
 
-  const handleThemeToggle = (theme: "light" | "dark") => {
-    // TODO: Implement theme switching logic
-    console.log("Theme changed to:", theme);
+  const handleThemeToggle = (newTheme: Theme) => {
+    setTheme(newTheme);
     setIsThemeMenuOpen(false);
+    setIsMobileThemeMenuOpen(false);
   };
 
   const SidebarContent = () => (
@@ -88,6 +97,8 @@ export const Sidebar = () => {
               <li key={item.name}>
                 <NavLink
                   to={href}
+                  end
+                  caseSensitive
                   className={({ isActive }) =>
                     cn(
                       "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200",
@@ -105,7 +116,8 @@ export const Sidebar = () => {
           })}
         </ul>
 
-        <div className="mt-8">
+        {/* Temporarily hidden AI Features */}
+        {/* <div className="mt-8">
           <h3 className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
             AI Features
           </h3>
@@ -129,7 +141,7 @@ export const Sidebar = () => {
               </li>
             ))}
           </ul>
-        </div>
+        </div> */}
       </nav>
 
       <div className="p-4 border-t border-border">
@@ -293,17 +305,12 @@ export const Sidebar = () => {
             <Logo size="md" />
           </button>
           <div className="flex items-center gap-4">
-            <NavLink
-              to="/create"
-              className={({ isActive }) =>
-                cn(
-                  "p-2 rounded-lg transition-all duration-200",
-                  isActive ? "text-primary" : "text-muted-foreground"
-                )
-              }
+            <button
+              onClick={() => setShowCreateDialog(true)}
+              className="p-2 rounded-lg transition-all duration-200 text-muted-foreground hover:text-primary"
             >
               <PlusSquare className="h-6 w-6" />
-            </NavLink>
+            </button>
             <NavLink
               to="/notifications"
               className={({ isActive }) =>
@@ -315,13 +322,54 @@ export const Sidebar = () => {
             >
               <Heart className="h-6 w-6" />
             </NavLink>
+
+            {/* Mobile Menu Button */}
+            <Popover
+              open={isMobileMoreMenuOpen}
+              onOpenChange={setIsMobileMoreMenuOpen}
+            >
+              <PopoverTrigger asChild>
+                <Button
+                  variant="ghost"
+                  className="p-2 rounded-lg transition-all duration-200 text-muted-foreground hover:text-primary"
+                >
+                  <MoreHorizontal className="h-6 w-6" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-48 p-2" align="end">
+                <div className="space-y-1">
+                  <Button
+                    variant="ghost"
+                    className="w-full justify-start gap-3 px-3 py-2.5 text-sm"
+                    onClick={() => {
+                      setIsMobileThemeMenuOpen(true);
+                      setIsMobileMoreMenuOpen(false);
+                    }}
+                  >
+                    <Sun className="h-4 w-4" />
+                    Chuyển chế độ
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    className="w-full justify-start gap-3 px-3 py-2.5 text-sm text-destructive hover:text-destructive"
+                    onClick={() => {
+                      handleLogout();
+                      setIsMobileMoreMenuOpen(false);
+                    }}
+                  >
+                    <LogOut className="h-4 w-4" />
+                    Đăng xuất
+                  </Button>
+                </div>
+              </PopoverContent>
+            </Popover>
           </div>
         </div>
       </header>
 
       {/* Mobile Bottom Navigation */}
       <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-sm border-t border-border">
-        <div className="flex items-center justify-around py-3 px-4">
+        <div className="flex items-center justify-around py-2 px-2">
           {mobileNavItems.map((item) => {
             // For profile link, use current user's username
             const href = item.dynamic && user ? `/${user.username}` : item.href;
@@ -332,13 +380,13 @@ export const Sidebar = () => {
                 to={href}
                 className={({ isActive }) =>
                   cn(
-                    "flex flex-col items-center gap-1 p-2 rounded-lg transition-all duration-200",
+                    "flex flex-col items-center gap-0.5 p-1.5 rounded-lg transition-all duration-200",
                     isActive ? "text-primary" : "text-muted-foreground"
                   )
                 }
               >
-                <item.icon className="h-6 w-6" />
-                <span className="text-xs font-medium">{item.name}</span>
+                <item.icon className="h-5 w-5" />
+                <span className="text-[10px] font-medium">{item.name}</span>
               </NavLink>
             );
           })}
@@ -354,6 +402,68 @@ export const Sidebar = () => {
       <SwitchAccountDialog
         isOpen={isSwitchAccountOpen}
         onClose={() => setIsSwitchAccountOpen(false)}
+      />
+
+      {/* Mobile Theme Menu Popover */}
+      <Popover
+        open={isMobileThemeMenuOpen}
+        onOpenChange={setIsMobileThemeMenuOpen}
+      >
+        <PopoverTrigger asChild>
+          <Button className="hidden" aria-hidden="true" />
+        </PopoverTrigger>
+        <PopoverContent 
+          className="w-48 p-0" 
+          align="end"
+          style={{ 
+            position: 'fixed',
+            transform: "translate(167px, 56px)"
+          }}
+        >
+          {/* Header with back button */}
+          <div className="flex items-center gap-1 p-3 border-b border-border">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setIsMobileThemeMenuOpen(false);
+                setIsMobileMoreMenuOpen(true);
+              }}
+              className="p-1 h-8 w-8"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <p className="text-sm font-semibold">Chuyển chế độ</p>
+          </div>
+
+          {/* Theme options */}
+          <div className="p-2">
+            <div className="space-y-1">
+              <Button
+                variant="ghost"
+                className="w-full justify-start gap-3 px-3 py-2.5 text-sm"
+                onClick={() => handleThemeToggle("light")}
+              >
+                <Sun className="h-4 w-4" />
+                Chế độ sáng
+              </Button>
+              <Button
+                variant="ghost"
+                className="w-full justify-start gap-3 px-3 py-2.5 text-sm"
+                onClick={() => handleThemeToggle("dark")}
+              >
+                <Moon className="h-4 w-4" />
+                Chế độ tối
+              </Button>
+            </div>
+          </div>
+        </PopoverContent>
+      </Popover>
+
+      {/* Create Content Dialog */}
+      <CreateContentDialog
+        isOpen={showCreateDialog}
+        onClose={() => setShowCreateDialog(false)}
       />
     </>
   );

@@ -7,8 +7,14 @@ import { CommentDialog } from '../../post/components/CommentDialog';
 import { ShareDialog } from '../../post/components/ShareDialog';
 import { useBookmark } from '../hooks/useBookmark';
 import { useToast } from '../../../hooks/use-toast';
-import { likePostThunk } from '../../post/postSlice';
-import { mockComments } from '@/features/interaction/__mocks__/comments';
+import {
+  getPostCommentsThunk,
+  createCommentThunk,
+  likeCommentThunk,
+  likePostThunk,
+  clearComments,
+} from '@/features/interaction/interactionSlice';
+import { useEffect, useMemo } from 'react';
 
 interface SavedAllPostsContentProps {
   onBack: () => void;
@@ -24,6 +30,50 @@ export const SavedAllPostsContent: React.FC<SavedAllPostsContentProps> = ({ onBa
   const [showCommentDialog, setShowCommentDialog] = useState(false);
   const [showShareDialog, setShowShareDialog] = useState(false);
   const [isAuthorFollowed, setIsAuthorFollowed] = useState<Record<string, boolean>>({});
+  const user = useAppSelector((state) => state.auth.user);
+
+  // Get comments from Redux state
+  const { comments: reduxComments } = useAppSelector(
+    (state) => state.interaction.comments
+  );
+
+  // Load comments when post is selected
+  useEffect(() => {
+    if (selectedPost) {
+      dispatch(clearComments());
+      dispatch(
+        getPostCommentsThunk({
+          postId: parseInt(selectedPost.id),
+          params: { pageNo: 0, pageSize: 50 },
+        })
+      );
+    }
+  }, [dispatch, selectedPost]);
+
+  const currentComments = useMemo(() => {
+    if (!selectedPost) return [];
+    // Transform Redux comments to CDComment format
+    return reduxComments.map((comment: any): any => ({
+      id: comment.id,
+      userId: comment.userId,
+      userName: comment.userName,
+      avatarUrl: comment.avatarUrl,
+      content: comment.content,
+      likesCount: comment.likesCount,
+      isLiked: comment.isLiked,
+      createdAt: comment.createdAt,
+      replies: comment.replies?.map((r: any): any => ({
+        id: r.id,
+        userId: r.userId,
+        userName: r.userName,
+        avatarUrl: r.avatarUrl,
+        content: r.content,
+        likesCount: r.likesCount,
+        isLiked: r.isLiked,
+        createdAt: r.createdAt,
+      })),
+    }));
+  }, [selectedPost, reduxComments]);
   
   const handlePostClick = (item: { id: string; thumbnail: string; type?: string; caption?: string; likesCount?: number; commentsCount?: number }) => {
     const post = posts.find(p => p.id === item.id);
@@ -34,59 +84,90 @@ export const SavedAllPostsContent: React.FC<SavedAllPostsContentProps> = ({ onBa
   };
 
   // Comment handlers
-  const handleAddComment = (content: string) => {
-    if (selectedPost) {
+  const handleAddComment = async (content: string) => {
+    if (!selectedPost || !user) return;
+    try {
+      await dispatch(
+        createCommentThunk({
+          id: 0,
+          userId: user.id,
+          postId: parseInt(selectedPost.id),
+          reelId: 0,
+          parentId: 0,
+          content,
+          listMentionUserId: [],
+        })
+      ).unwrap();
+      dispatch(
+        getPostCommentsThunk({
+          postId: parseInt(selectedPost.id),
+          params: { pageNo: 0, pageSize: 50 },
+        })
+      );
+    } catch (error) {
       toast({
-        title: "Bình luận đã được thêm!",
-        description: "Bình luận của bạn đã được đăng thành công.",
-        duration: 2000,
+        variant: "destructive",
+        title: "Lỗi",
+        description: "Không thể thêm bình luận.",
       });
-      console.log('Adding comment to post:', selectedPost.id, 'Content:', content);
-      // TODO: Implement actual add comment API call
     }
   };
 
-  const handleLikeComment = (commentId: string) => {
-    toast({
-      title: "Đã thích bình luận!",
-      duration: 1500,
-    });
-    console.log('Liking comment:', commentId);
-    // TODO: Implement actual like comment API call
-  };
-
-  const handleReplyComment = (commentId: string, content: string) => {
-    toast({
-      title: "Đã trả lời bình luận!",
-      description: "Phản hồi của bạn đã được đăng.",
-      duration: 2000,
-    });
-    console.log('Replying to comment:', commentId, 'Content:', content);
-    // TODO: Implement actual reply comment API call
-  };
-
-  const handleLikePost = (postId: string) => {
-    dispatch(likePostThunk(postId))
-      .unwrap()
-      .then(() => {
-        const post = allPosts.find(p => p.id === postId);
-        if (post) {
-          // Update selectedPost state to reflect the like change
-          setSelectedPost(prev => prev ? { ...prev, isLiked: !prev.isLiked, likesCount: prev.likesCount + (prev.isLiked ? -1 : 1) } : prev);
-          toast({
-            title: post.isLiked ? "Đã bỏ thích bài viết!" : "Đã thích bài viết!",
-            duration: 1500,
-          });
-        }
-      })
-      .catch((error) => {
-        console.error('Like post error:', error);
-        toast({
-          title: "Lỗi",
-          description: "Không thể thực hiện thao tác. Vui lòng thử lại.",
-          variant: "destructive",
-        });
+  const handleLikeComment = async (commentId: string) => {
+    try {
+      await dispatch(likeCommentThunk(parseInt(commentId))).unwrap();
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Lỗi",
+        description: "Không thể thích bình luận.",
       });
+    }
+  };
+
+  const handleReplyComment = async (parentId: string, content: string) => {
+    if (!selectedPost || !user) return;
+    try {
+      await dispatch(
+        createCommentThunk({
+          id: 0,
+          userId: user.id,
+          postId: parseInt(selectedPost.id),
+          reelId: 0,
+          parentId: parseInt(parentId),
+          content,
+          listMentionUserId: [],
+        })
+      ).unwrap();
+      dispatch(
+        getPostCommentsThunk({
+          postId: parseInt(selectedPost.id),
+          params: { pageNo: 0, pageSize: 50 },
+        })
+      );
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Lỗi",
+        description: "Không thể trả lời bình luận.",
+      });
+    }
+  };
+
+  const handleLikePost = async (postId: string) => {
+    try {
+      await dispatch(likePostThunk(parseInt(postId))).unwrap();
+      const post = allPosts.find(p => p.id === postId);
+      if (post && selectedPost) {
+        setSelectedPost((prev: any) => prev ? { ...prev, isLiked: !prev.isLiked, likesCount: prev.likesCount + (prev.isLiked ? -1 : 1) } : prev);
+      }
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Lỗi",
+        description: "Không thể thực hiện thao tác. Vui lòng thử lại.",
+      });
+    }
   };
 
   const handleShare = (postId: string, userIds: string[], message: string) => {
@@ -225,7 +306,7 @@ export const SavedAllPostsContent: React.FC<SavedAllPostsContentProps> = ({ onBa
             setSelectedPost(null);
           }}
           post={selectedPost}
-          comments={mockComments.filter(comment => comment.postId === selectedPost.id)}
+          comments={currentComments}
           onAddComment={handleAddComment}
           onLikeComment={handleLikeComment}
           onReplyComment={handleReplyComment}
