@@ -8,6 +8,9 @@ import { NavigateFunction } from "react-router-dom";
 export const navigateToPost = (navigate: NavigateFunction, postId: string) => {
   navigate(`/posts/${postId}`);
 };
+export const navigateToPost2 = (navigate: NavigateFunction, postId: string) => {
+  navigate(`${postId}`);
+};
 
 /**
  * Navigate to user profile page
