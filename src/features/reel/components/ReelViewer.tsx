@@ -11,16 +11,15 @@ import {
   VolumeX,
 } from "lucide-react";
 import { Reel } from "../types";
-import {
-  openCommentsDrawer,
-  deleteReelThunk,
-} from "../reelSlice";
+import { openCommentsDrawer, deleteReelThunk } from "../reelSlice";
 import { LikeButton } from "@/features/interaction/components/LikeButton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ActionMenu } from "@/components/common/ActionMenu";
 import { formatNumber } from "@/utils/constants";
 import { HLSVideoPlayer } from "@/components/common/HLSVideoPlayer";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { ReportPostDialog } from "@/features/post/components/ReportPostDialog";
+import { reportReel } from "../api/reelApi";
 
 interface ReelViewerProps {
   reel: Reel;
@@ -55,6 +54,7 @@ const ReelViewer = memo(
     const [showActionDialog, setShowActionDialog] = useState(false);
     const [isLiked, setIsLiked] = useState(reel.isLiked);
     const [likesCount, setLikesCount] = useState(reel.likesCount);
+    const [showReportDialog, setShowReportDialog] = useState(false);
 
     // Sync state when reel prop changes
     useEffect(() => {
@@ -104,6 +104,24 @@ const ReelViewer = memo(
         }
       } else if (action === "edit") {
         onEdit?.(reel.id);
+      }
+    };
+
+    const handleReportSubmit = async (
+      reelId: string,
+      reason: string,
+      details?: string
+    ) => {
+      try {
+        await reportReel(reelId, reason, details);
+
+        setShowReportDialog(false);
+      } catch (error) {
+        toast({
+          variant: "destructive",
+          title: "Lỗi",
+          description: "Không thể gửi báo cáo. Vui lòng thử lại sau.",
+        });
       }
     };
 
@@ -196,7 +214,7 @@ const ReelViewer = memo(
           onClick={(e) => e.stopPropagation()}
         >
           {/* Like */}
-          <div 
+          <div
             className="flex flex-col items-center gap-0.5"
             onClick={(e) => e.stopPropagation()}
           >
@@ -354,7 +372,10 @@ const ReelViewer = memo(
               : []),
             {
               label: "Báo cáo",
-              action: () => console.log("Report"),
+              action: () => {
+                setShowReportDialog(true);
+                setShowMore(false);
+              },
               isDestructive: true,
             },
             {
@@ -389,6 +410,15 @@ const ReelViewer = memo(
           isOwnReel={showEditButton}
           isReelHidden={!reel.isActive}
         />
+
+        {showReportDialog && (
+          <ReportPostDialog
+            isOpen={showReportDialog}
+            onClose={() => setShowReportDialog(false)}
+            postId={reel.id}
+            onReport={handleReportSubmit}
+          />
+        )}
       </div>
     );
   }

@@ -12,35 +12,34 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Textarea } from "@/components/ui/textarea";
 import { formatTimeAgo } from "@/utils/timeFormat";
-import { formatNumber } from "@/utils/constants"; // Giả sử bạn có hàm này
+import { formatNumber } from "@/utils/constants";
 import { HLSVideoPlayer } from "@/components/common/HLSVideoPlayer";
 import { useAppDispatch, useAppSelector } from "@/store";
 import {
   getReelCommentsThunk,
   getCommentRepliesThunk,
   createCommentThunk,
-  likeCommentThunk, // Mặc dù LikeButton có thể tự xử lý, nhưng vẫn giữ để tham khảo
-  deleteCommentThunk, // Đã thêm
+  deleteCommentThunk,
   clearComments,
   clearCommentError,
 } from "@/features/interaction/interactionSlice";
-// Giả định bạn có thunk này, tương tự như getPostLikeDetailThunk
-import { getReelLikeDetailThunk } from "@/features/interaction"; 
+import { getReelLikeDetailThunk } from "@/features/interaction";
 import { LikeButton } from "@/features/interaction/components/LikeButton";
 import { Loader } from "@/components/common/Loader";
 import { EmojiPicker } from "@/components/common/EmojiPicker";
 import { ActionMenu, ActionMenuItem } from "@/components/common/ActionMenu";
 import { LikesDialog } from "@/features/post/components/LikesDialog";
 import { cn } from "@/lib/utils";
-import { useInfiniteScroll } from "@/hooks/use-infinite-scroll"; // Đã thêm
-import { useToast } from "@/hooks/use-toast"; // Đã thêm
-import { useNavigate } from "react-router-dom"; // Đã thêm
-import { useBookmark } from "@/features/saved/hooks/useBookmark"; // Đã thêm
-import { getAvatarUrl, getAvatarInitials } from "@/utils/avatar"; // Đã thêm
-import { parseMentions } from "@/utils/mentions"; // Đã thêm
-import { navigateToProfile } from "@/utils/navigation"; // Đã thêm
+import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
+import { useToast } from "@/hooks/use-toast";
+import { useNavigate } from "react-router-dom";
+import { useBookmark } from "@/features/saved/hooks/useBookmark";
+import { getAvatarUrl, getAvatarInitials } from "@/utils/avatar";
+import { parseMentions } from "@/utils/mentions";
+import { navigateToProfile } from "@/utils/navigation";
+import { ReportPostDialog } from "@/features/post/components/ReportPostDialog";
+import { reportReel } from "@/features/reel/api/reelApi";
 
-// Interface này từ CommentDialog, dùng để gõ (type) cho comment
 interface Comment {
   id: string;
   userId: string;
@@ -82,8 +81,7 @@ const ReelCommentDialog = () => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const currentReel = reels.find((r) => r.id === selectedReelId);
-
-  // === Các local state được merge từ CommentDialog ===
+  const [showReportDialog, setShowReportDialog] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [commentText, setCommentText] = useState("");
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
@@ -91,13 +89,15 @@ const ReelCommentDialog = () => {
   const [expandedReplies, setExpandedReplies] = useState<
     Record<string, boolean>
   >({});
-  const [repliesPageNo, setRepliesPageNo] = useState<Record<string, number>>({});
+  const [repliesPageNo, setRepliesPageNo] = useState<Record<string, number>>(
+    {}
+  );
   const [repliesHasMore, setRepliesHasMore] = useState<Record<string, boolean>>(
     {}
   );
-  const [repliesLoading, setRepliesLoading] = useState<
-    Record<string, boolean>
-  >({});
+  const [repliesLoading, setRepliesLoading] = useState<Record<string, boolean>>(
+    {}
+  );
   const [repliesTotalElements, setRepliesTotalElements] = useState<
     Record<string, number>
   >({});
@@ -129,8 +129,6 @@ const ReelCommentDialog = () => {
   }>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [hoveredItemId, setHoveredItemId] = useState<string | null>(null);
-
-  // State cục bộ cho reel like, tương tự như post like trong CommentDialog
   const [isReelLikedLocal, setIsReelLikedLocal] = useState(
     currentReel?.isLiked || false
   );
@@ -140,18 +138,15 @@ const ReelCommentDialog = () => {
   const [latestLikeName, setLatestLikeName] = useState<string | null>(null);
   const [hasFetchedLikePreview, setHasFetchedLikePreview] = useState(false);
 
-  // === Sync state của reel like khi prop thay đổi ===
   useEffect(() => {
     if (currentReel) {
       setIsReelLikedLocal(currentReel.isLiked);
       setReelLikesCount(currentReel.likesCount || 0);
-      // Reset fetch preview khi reel thay đổi
-      setHasFetchedLikePreview(false); 
+      setHasFetchedLikePreview(false);
       setLatestLikeName(null);
     }
   }, [currentReel?.id, currentReel?.isLiked, currentReel?.likesCount]);
 
-  // === Fetch comments khi mở dialog ===
   useEffect(() => {
     if (isCommentsDrawerOpen && selectedReelId) {
       dispatch(clearComments());
@@ -159,27 +154,29 @@ const ReelCommentDialog = () => {
       dispatch(
         getReelCommentsThunk({
           reelId: parseInt(selectedReelId),
-          params: { pageNo: 0, pageSize: 20 }, // Tải 20 comment đầu
+          params: { pageNo: 0, pageSize: 20 },
         })
       );
     }
   }, [dispatch, isCommentsDrawerOpen, selectedReelId]);
 
-  // === Fetch like preview cho reel ===
   useEffect(() => {
-    if (!isCommentsDrawerOpen || !selectedReelId || hasFetchedLikePreview) return;
-    
+    if (!isCommentsDrawerOpen || !selectedReelId || hasFetchedLikePreview)
+      return;
+
     const run = async () => {
       try {
         setHasFetchedLikePreview(true);
-        // Giả định bạn có thunk này
         const data = await dispatch(
-          getReelLikeDetailThunk({ reelId: parseInt(selectedReelId), params: { pageNo: 0, pageSize: 1 } })
+          getReelLikeDetailThunk({
+            reelId: parseInt(selectedReelId),
+            params: { pageNo: 0, pageSize: 1 },
+          })
         ).unwrap();
-        
+
         const total = data.totalElements ?? 0;
         setReelLikesCount(total);
-        
+
         if (data.content && data.content.length > 0) {
           setLatestLikeName(data.content[0].userName);
         } else {
@@ -192,7 +189,6 @@ const ReelCommentDialog = () => {
     run();
   }, [dispatch, isCommentsDrawerOpen, selectedReelId, hasFetchedLikePreview]);
 
-  // === Load more comments (infinite scroll) ===
   const handleLoadMoreComments = () => {
     if (hasMoreComments && !commentsLoading && selectedReelId) {
       dispatch(
@@ -211,7 +207,6 @@ const ReelCommentDialog = () => {
     threshold: 200,
   });
 
-  // === Chuyển đổi Redux state sang displayComments (giữ nguyên) ===
   const displayComments: Comment[] = useMemo(() => {
     return reduxComments.map((c) => ({
       id: c.id,
@@ -236,7 +231,6 @@ const ReelCommentDialog = () => {
     }));
   }, [reduxComments]);
 
-  // === (MỚI) Tối ưu hóa việc tìm root comment ID ===
   const rootCommentIdMap = useMemo(() => {
     const map = new Map<string, string>();
     for (const comment of reduxComments) {
@@ -250,7 +244,6 @@ const ReelCommentDialog = () => {
     return map;
   }, [reduxComments]);
 
-  // === (MỚI) Tự động điền @username khi trả lời ===
   useEffect(() => {
     if (replyingTo) {
       let targetComment: Comment | null = null;
@@ -267,11 +260,14 @@ const ReelCommentDialog = () => {
           }
         }
       }
-      
+
       if (targetComment) {
         const mentionText = `@${targetComment.userName} `;
         const currentContent = replyContent.trim();
-        if (!currentContent || !currentContent.startsWith(`@${targetComment.userName}`)) {
+        if (
+          !currentContent ||
+          !currentContent.startsWith(`@${targetComment.userName}`)
+        ) {
           setReplyContent(mentionText);
           setTimeout(() => {
             if (textareaRef.current) {
@@ -285,10 +281,8 @@ const ReelCommentDialog = () => {
     } else {
       setReplyContent("");
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [replyingTo, displayComments]);
-  
-  // === (MỚI) Phát hiện mobile ===
+
   useEffect(() => {
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 768);
@@ -298,11 +292,9 @@ const ReelCommentDialog = () => {
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
-  // === (CẬP NHẬT) Đóng dialog an toàn ===
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
-        // isShareDialogOpen || // Biến này không có nhưng tôi giữ lại từ CommentDialog
         showEmojiPicker ||
         showActionMenu ||
         showLikesDialog ||
@@ -315,7 +307,6 @@ const ReelCommentDialog = () => {
         dialogRef.current &&
         !dialogRef.current.contains(event.target as Node)
       ) {
-        // Đóng drawer
         dispatch({ type: "reel/closeCommentsDrawer" });
       }
     };
@@ -348,10 +339,8 @@ const ReelCommentDialog = () => {
     showActionMenu,
     showLikesDialog,
     showDeleteConfirm,
-    // isShareDialogOpen 
   ]);
 
-  // === (CẬP NHẬT) Submit comment với try/catch và refetch ===
   const handleSubmitComment = async (ev: React.FormEvent) => {
     ev.preventDefault();
     if (!commentText.trim() || !selectedReelId || !user) return;
@@ -367,9 +356,8 @@ const ReelCommentDialog = () => {
           listMentionUserId: [],
         })
       ).unwrap();
-      
+
       setCommentText("");
-      // Refetch trang đầu tiên, giống CommentDialog
       dispatch(
         getReelCommentsThunk({
           reelId: parseInt(selectedReelId),
@@ -386,12 +374,10 @@ const ReelCommentDialog = () => {
     }
   };
 
-  // === (CẬP NHẬT) Submit reply với rootIdMap và refetch all ===
   const handleSubmitReply = async (ev: React.FormEvent) => {
     ev.preventDefault();
     if (!replyContent.trim() || !replyingTo || !user || !selectedReelId) return;
 
-    // (MỚI) Tối ưu hóa tìm rootId
     const rootId = rootCommentIdMap.get(replyingTo) || replyingTo;
 
     try {
@@ -401,19 +387,15 @@ const ReelCommentDialog = () => {
           userId: user.id,
           postId: 0,
           reelId: parseInt(selectedReelId),
-          parentId: parseInt(rootId), // Luôn dùng rootId
+          parentId: parseInt(rootId),
           content: replyContent.trim(),
           listMentionUserId: [],
         })
       ).unwrap();
-      
+
       setReplyContent("");
       setReplyingTo(null);
 
-      // (CẬP NHẬT) Refetch tất cả comment cấp cha, giống logic của CommentDialog
-      // Điều này sẽ đảm bảo reply mới nhất xuất hiện ngay lập tức
-      // nếu back-end trả về reply lồng trong comment cha.
-      // Nếu không, bạn có thể dùng logic cũ của tôi (chỉ fetch replies)
       dispatch(
         getReelCommentsThunk({
           reelId: parseInt(selectedReelId),
@@ -430,7 +412,6 @@ const ReelCommentDialog = () => {
     }
   };
 
-  // === (CẬP NHẬT) Logic like state cục bộ ===
   useEffect(() => {
     const incomingLiked: Record<string, boolean> = {};
     const incomingCounts: Record<string, number> = {};
@@ -451,7 +432,6 @@ const ReelCommentDialog = () => {
   const getLikesCount = (id: string, fallback?: number) =>
     likesCountById[id] ?? fallback ?? 0;
 
-  // (MỚI) Callback cho LikeButton của comment
   const handleCommentLikeChange = (
     commentId: string,
     newIsLiked: boolean,
@@ -459,22 +439,20 @@ const ReelCommentDialog = () => {
   ) => {
     setLikedById((prev) => ({ ...prev, [commentId]: newIsLiked }));
     setLikesCountById((prev) => ({ ...prev, [commentId]: newCount }));
-    // Giả định LikeButton tự dispatch thunk
   };
 
-  // (MỚI) Callback cho LikeButton của reel
-  const handleReelLikeChange = async (newIsLiked: boolean, newCount: number) => {
+  const handleReelLikeChange = async (
+    newIsLiked: boolean,
+    newCount: number
+  ) => {
     setIsReelLikedLocal(newIsLiked);
-    // Cập nhật state cục bộ
-    // (Lưu ý: `LikeButton` thường trả về newCount,
-    // nhưng nếu không, chúng ta tự tính toán)
     setReelLikesCount((prev) => prev + (newIsLiked ? 1 : -1));
-    // Giả định LikeButton tự dispatch thunk
-    
-    // (MỚI) Refetch like preview, giống CommentDialog
     try {
       const data = await dispatch(
-        getReelLikeDetailThunk({ reelId: parseInt(selectedReelId!), params: { pageNo: 0, pageSize: 1 } })
+        getReelLikeDetailThunk({
+          reelId: parseInt(selectedReelId!),
+          params: { pageNo: 0, pageSize: 1 },
+        })
       ).unwrap();
       const total = data.totalElements ?? 0;
       setReelLikesCount(total);
@@ -483,17 +461,14 @@ const ReelCommentDialog = () => {
       } else {
         setLatestLikeName(null);
       }
-    } catch (_) {
-      // Lỗi thì giữ state cục bộ
-    }
+    } catch (_) {}
   };
 
-  // === (CẬP NHẬT) Logic tải replies với try/catch và totalElements ===
   const getTotalRepliesCount = (commentId: string): number => {
     if (repliesTotalElements[commentId] !== undefined) {
       return repliesTotalElements[commentId];
     }
-    const comment = displayComments.find(c => c.id === commentId);
+    const comment = displayComments.find((c) => c.id === commentId);
     if (comment?.hasMoreReplies || comment?.replies) {
       return comment.replies?.length || 0;
     }
@@ -503,12 +478,17 @@ const ReelCommentDialog = () => {
   const toggleReplies = async (commentId: string) => {
     const isExpanding = !expandedReplies[commentId];
     setExpandedReplies((p) => ({ ...p, [commentId]: isExpanding }));
-    
+
     if (isExpanding) {
       const currentPageNo = repliesPageNo[commentId] ?? -1;
       const comment = displayComments.find((c) => c.id === commentId);
-      
-      if (currentPageNo === -1 && (!comment?.replies || comment.replies.length === 0 || comment.hasMoreReplies)) {
+
+      if (
+        currentPageNo === -1 &&
+        (!comment?.replies ||
+          comment.replies.length === 0 ||
+          comment.hasMoreReplies)
+      ) {
         setRepliesLoading((p) => ({ ...p, [commentId]: true }));
         try {
           const result = await dispatch(
@@ -518,11 +498,21 @@ const ReelCommentDialog = () => {
             })
           ).unwrap();
           setRepliesPageNo((p) => ({ ...p, [commentId]: 0 }));
-          setRepliesHasMore((p) => ({ ...p, [commentId]: !result.data.last }));
-          setRepliesTotalElements((p) => ({ ...p, [commentId]: result.data.totalElements || 0 }));
+          setRepliesHasMore((p) => ({
+            ...p,
+            [commentId]: !result.data.last,
+          }));
+          setRepliesTotalElements((p) => ({
+            ...p,
+            [commentId]: result.data.totalElements || 0,
+          }));
         } catch (err) {
           console.error("load replies", err);
-          toast({ variant: "destructive", title: "Lỗi", description: "Không thể tải câu trả lời."});
+          toast({
+            variant: "destructive",
+            title: "Lỗi",
+            description: "Không thể tải câu trả lời.",
+          });
           setExpandedReplies((p) => ({ ...p, [commentId]: false }));
         } finally {
           setRepliesLoading((p) => ({ ...p, [commentId]: false }));
@@ -544,16 +534,46 @@ const ReelCommentDialog = () => {
       ).unwrap();
       setRepliesPageNo((p) => ({ ...p, [commentId]: nextPageNo }));
       setRepliesHasMore((p) => ({ ...p, [commentId]: !result.data.last }));
-      setRepliesTotalElements((p) => ({ ...p, [commentId]: Math.max(p[commentId] || 0, result.data.totalElements || 0) }));
+      setRepliesTotalElements((p) => ({
+        ...p,
+        [commentId]: Math.max(
+          p[commentId] || 0,
+          result.data.totalElements || 0
+        ),
+      }));
     } catch (err) {
       console.error("load more replies", err);
-      toast({ variant: "destructive", title: "Lỗi", description: "Không thể tải thêm câu trả lời."});
+      toast({
+        variant: "destructive",
+        title: "Lỗi",
+        description: "Không thể tải thêm câu trả lời.",
+      });
     } finally {
       setRepliesLoading((p) => ({ ...p, [commentId]: false }));
     }
   };
-  
-  // === (MỚI) Handlers cho navigation, dialogs, delete ===
+
+  const handleReportSubmit = async (
+    reelId: string,
+    reason: string,
+    details?: string
+  ) => {
+    try {
+      await reportReel(reelId, reason, details);
+      setShowReportDialog(false);
+      toast({
+        title: "Đã gửi báo cáo",
+        description: "Cảm ơn bạn đã báo cáo.",
+      });
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Lỗi",
+        description: "Không thể gửi báo cáo. Vui lòng thử lại sau.",
+      });
+    }
+  };
+
   const openLikesDialog = (
     targetId: string,
     targetType: "reel" | "comment" | "reply"
@@ -568,7 +588,7 @@ const ReelCommentDialog = () => {
   ) => {
     e.preventDefault();
     e.stopPropagation();
-    setEmojiPickerPosition({ top: 350, right: 310 }); // Vị trí cố định
+    setEmojiPickerPosition({ top: 350, right: 310 });
     setCurrentCommentForEmoji(commentId);
     setShowEmojiPicker(true);
   };
@@ -577,7 +597,6 @@ const ReelCommentDialog = () => {
     if (currentCommentForEmoji) {
       // Logic react emoji (nếu có)
     } else {
-      // Add emoji to input
       if (replyingTo) {
         setReplyContent((p) => p + emoji);
       } else {
@@ -588,11 +607,14 @@ const ReelCommentDialog = () => {
     setCurrentCommentForEmoji(null);
     setTimeout(() => textareaRef.current?.focus(), 50);
   };
-  
+
   const handleOpenActionMenu = (id: string, event: React.MouseEvent) => {
     event.preventDefault();
     event.stopPropagation();
-    setActionMenuPosition({ top: window.innerHeight / 2, left: window.innerWidth / 2 });
+    setActionMenuPosition({
+      top: window.innerHeight / 2,
+      left: window.innerWidth / 2,
+    });
     setCurrentCommentForAction(id);
     setShowActionMenu(true);
   };
@@ -607,13 +629,12 @@ const ReelCommentDialog = () => {
       e.stopPropagation();
     }
     navigateToProfile(navigate, userName);
-    dispatch({ type: "reel/closeCommentsDrawer" }); // Đóng dialog khi điều hướng
+    dispatch({ type: "reel/closeCommentsDrawer" });
   };
 
   const handleDeleteComment = async (commentId: string) => {
     try {
       await dispatch(deleteCommentThunk(parseInt(commentId))).unwrap();
-      // Refetch
       dispatch(
         getReelCommentsThunk({
           reelId: parseInt(selectedReelId!),
@@ -637,20 +658,18 @@ const ReelCommentDialog = () => {
 
   const handleCancelDelete = () => {
     setShowDeleteConfirm(false);
-    setCurrentCommentForAction("reel"); // Đảm bảo menu mở lại cho reel
+    setCurrentCommentForAction("reel");
     setShowActionMenu(true);
   };
 
   const handleConfirmDelete = async () => {
     setShowDeleteConfirm(false);
     if (currentReel) {
-      // await dispatch(deleteReelThunk(currentReel.id)); // Giả định
       toast({ title: "Đã xóa reel." });
       dispatch({ type: "reel/closeCommentsDrawer" });
     }
   };
 
-  // === (MỚI) Render reply item (từ CommentDialog) ===
   const renderReplyItem = (reply: Comment, parentCommentId: string) => {
     return (
       <div
@@ -659,7 +678,10 @@ const ReelCommentDialog = () => {
         onMouseEnter={() => setHoveredItemId(reply.id)}
         onMouseLeave={() => setHoveredItemId(null)}
       >
-        <div className="relative cursor-pointer" onClick={(e) => handleProfileClick(reply.userName, e)}>
+        <div
+          className="relative cursor-pointer"
+          onClick={(e) => handleProfileClick(reply.userName, e)}
+        >
           <Avatar className="w-6 h-6">
             <AvatarImage
               src={getAvatarUrl(reply.avatarUrl)}
@@ -670,7 +692,12 @@ const ReelCommentDialog = () => {
         </div>
         <div className="flex-1">
           <div className="flex items-center gap-2 mb-1">
-            <span className="font-semibold text-xs cursor-pointer" onClick={(e) => handleProfileClick(reply.userName, e)}>{reply.userName}</span>
+            <span
+              className="font-semibold text-xs cursor-pointer"
+              onClick={(e) => handleProfileClick(reply.userName, e)}
+            >
+              {reply.userName}
+            </span>
           </div>
           <p className="text-xs leading-relaxed mb-2">
             {parseMentions(reply.content, (username) => {
@@ -687,7 +714,8 @@ const ReelCommentDialog = () => {
                 onClick={() => openLikesDialog(reply.id, "reply")}
                 className="text-[11px] text-gray-500 hover:underline"
               >
-                {formatNumber(getLikesCount(reply.id, reply.likesCount))} lượt thích
+                {formatNumber(getLikesCount(reply.id, reply.likesCount))} lượt
+                thích
               </button>
             )}
             <button
@@ -728,14 +756,12 @@ const ReelCommentDialog = () => {
 
   if (!isCommentsDrawerOpen || !currentReel) return null;
 
-  // === (MỚI) JSX cho Mobile ===
   if (isMobile) {
     return (
-      <div 
+      <div
         className="fixed inset-0 bg-white dark:bg-gray-900 z-[40] flex flex-col"
         style={{ overscrollBehavior: "contain" }}
       >
-        {/* Mobile Header */}
         <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 fixed top-0 left-0 right-0 z-10">
           <Button
             variant="ghost"
@@ -749,9 +775,7 @@ const ReelCommentDialog = () => {
           <div className="w-8"></div>
         </div>
 
-        {/* Content (phải có padding top để bù cho header) */}
         <div className="flex-1 overflow-y-auto pt-16">
-          {/* Reel Caption */}
           <div className="p-4 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
             <div className="flex items-start gap-3">
               <div
@@ -779,7 +803,7 @@ const ReelCommentDialog = () => {
                 </div>
                 <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">
                   {parseMentions(currentReel.caption, (username) => {
-                      handleProfileClick(username);
+                    handleProfileClick(username);
                   })}
                 </p>
                 <span className="text-xs text-gray-500 mt-2 block">
@@ -788,18 +812,25 @@ const ReelCommentDialog = () => {
               </div>
             </div>
           </div>
-          
-          {/* Comments List */}
+
           {commentsLoading && displayComments.length === 0 ? (
-            <div className="flex justify-center items-center py-8"> <Loader /> </div>
+            <div className="flex justify-center items-center py-8">
+              {" "}
+              <Loader />{" "}
+            </div>
           ) : commentsError ? (
-            <div className="text-center py-8"> <p className="text-red-500 text-sm">{commentsError}</p> </div>
+            <div className="text-center py-8">
+              {" "}
+              <p className="text-red-500 text-sm">{commentsError}</p>{" "}
+            </div>
           ) : (
             <div className="p-4 space-y-4">
               {displayComments.map((comment, index) => (
                 <div
                   key={comment.id}
-                  ref={ index === displayComments.length - 1 ? lastElementRef : null }
+                  ref={
+                    index === displayComments.length - 1 ? lastElementRef : null
+                  }
                   className="group/comment"
                 >
                   <div className="flex items-start gap-3">
@@ -821,7 +852,9 @@ const ReelCommentDialog = () => {
                       <div className="flex items-center gap-2 mb-1">
                         <span
                           className="font-semibold text-sm cursor-pointer hover:underline"
-                          onClick={(e) => handleProfileClick(comment.userName, e)}
+                          onClick={(e) =>
+                            handleProfileClick(comment.userName, e)
+                          }
                         >
                           {comment.userName}
                         </span>
@@ -838,11 +871,15 @@ const ReelCommentDialog = () => {
                         {getLikesCount(comment.id, comment.likesCount) > 0 && (
                           <button
                             type="button"
-                            onClick={() => openLikesDialog(comment.id, "comment")}
+                            onClick={() =>
+                              openLikesDialog(comment.id, "comment")
+                            }
                             className="text-xs text-gray-500 hover:underline"
                           >
-                            {formatNumber(getLikesCount(comment.id, comment.likesCount))} lượt
-                            thích
+                            {formatNumber(
+                              getLikesCount(comment.id, comment.likesCount)
+                            )}{" "}
+                            lượt thích
                           </button>
                         )}
                         <button
@@ -865,18 +902,25 @@ const ReelCommentDialog = () => {
                         targetId={parseInt(comment.id)}
                         targetType="comment"
                         isLiked={getIsLiked(comment.id, comment.isLiked)}
-                        likesCount={getLikesCount(comment.id, comment.likesCount)}
+                        likesCount={getLikesCount(
+                          comment.id,
+                          comment.likesCount
+                        )}
                         size="sm"
                         showCount={false}
                         onLikeChange={(newIsLiked, newCount) =>
-                          handleCommentLikeChange(comment.id, newIsLiked, newCount)
+                          handleCommentLikeChange(
+                            comment.id,
+                            newIsLiked,
+                            newCount
+                          )
                         }
                         className="p-0 text-gray-400 hover:text-red-500"
                       />
                     </div>
                   </div>
-                  {/* Replies for mobile */}
-                  {(comment.replies && comment.replies.length > 0) || comment.hasMoreReplies ? (
+                  {(comment.replies && comment.replies.length > 0) ||
+                  comment.hasMoreReplies ? (
                     <div className="mt-2 ml-11">
                       {!expandedReplies[comment.id] ? (
                         <button
@@ -889,24 +933,30 @@ const ReelCommentDialog = () => {
                       ) : (
                         <>
                           <div className="mt-2 border-l-2 border-gray-200 dark:border-gray-700 pl-4 space-y-3">
-                            {comment.replies.map((reply) => (
+                            {comment.replies?.map((reply) =>
                               renderReplyItem(reply, comment.id)
-                            ))}
-                            {repliesHasMore[comment.id] && comment.replies && comment.replies.length >= 6 && (
-                              <div className="mt-2">
-                                {repliesLoading[comment.id] ? (
-                                  <div className="flex justify-center py-2"><Loader /></div>
-                                ) : (
-                                  <button
-                                    type="button"
-                                    onClick={() => handleLoadMoreReplies(comment.id)}
-                                    className="text-xs text-gray-500 hover:text-gray-700"
-                                  >
-                                    Xem thêm câu trả lời
-                                  </button>
-                                )}
-                              </div>
                             )}
+                            {repliesHasMore[comment.id] &&
+                              comment.replies &&
+                              comment.replies.length >= 6 && (
+                                <div className="mt-2">
+                                  {repliesLoading[comment.id] ? (
+                                    <div className="flex justify-center py-2">
+                                      <Loader />
+                                    </div>
+                                  ) : (
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        handleLoadMoreReplies(comment.id)
+                                      }
+                                      className="text-xs text-gray-500 hover:text-gray-700"
+                                    >
+                                      Xem thêm câu trả lời
+                                    </button>
+                                  )}
+                                </div>
+                              )}
                           </div>
                           <button
                             type="button"
@@ -921,15 +971,15 @@ const ReelCommentDialog = () => {
                   ) : null}
                 </div>
               ))}
-              {/* Infinite scroll loader cho mobile */}
               {commentsLoading && displayComments.length > 0 && (
-                <div className="flex justify-center py-4"><Loader /></div>
+                <div className="flex justify-center py-4">
+                  <Loader />
+                </div>
               )}
             </div>
           )}
         </div>
 
-        {/* Comment Form (sticky bottom) */}
         <div className="p-4 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 fixed bottom-0 left-0 right-0 z-10">
           {replyingTo ? (
             <form onSubmit={handleSubmitReply} className="space-y-2">
@@ -988,7 +1038,6 @@ const ReelCommentDialog = () => {
     );
   }
 
-  // === (CẬP NHẬT) JSX cho Desktop ===
   return (
     <div
       className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
@@ -1004,7 +1053,6 @@ const ReelCommentDialog = () => {
           height: "90vh",
         }}
       >
-        {/* Left: video */}
         <div
           className="flex items-center justify-center relative overflow-hidden bg-black"
           style={{
@@ -1024,9 +1072,7 @@ const ReelCommentDialog = () => {
           />
         </div>
 
-        {/* Right: comments */}
         <div className="flex-1 flex flex-col bg-white dark:bg-gray-900 min-w-0">
-          {/* header (Đã thêm nút ...) */}
           <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
             <div className="flex items-center gap-3">
               <div
@@ -1066,9 +1112,10 @@ const ReelCommentDialog = () => {
             </div>
           </div>
 
-          {/* List (cuộn) */}
-          <div className="flex-1 overflow-y-auto" style={{ overscrollBehavior: "contain" }}>
-            {/* owner caption */}
+          <div
+            className="flex-1 overflow-y-auto"
+            style={{ overscrollBehavior: "contain" }}
+          >
             <div className="flex items-start gap-3 p-4">
               <div
                 className="relative cursor-pointer"
@@ -1090,14 +1137,16 @@ const ReelCommentDialog = () => {
                     <div className="flex items-center gap-2 mb-1">
                       <span
                         className="font-semibold text-sm cursor-pointer hover:underline"
-                        onClick={(e) => handleProfileClick(currentReel.userName, e)}
+                        onClick={(e) =>
+                          handleProfileClick(currentReel.userName, e)
+                        }
                       >
                         {currentReel.userName}
                       </span>
                     </div>
                     <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">
                       {parseMentions(currentReel.caption, (username) => {
-                          handleProfileClick(username);
+                        handleProfileClick(username);
                       })}
                     </p>
                     <span className="text-gray-500 text-xs mt-2 block">
@@ -1107,14 +1156,19 @@ const ReelCommentDialog = () => {
                 </div>
               </div>
             </div>
-            
+
             <hr className="border-gray-200 dark:border-gray-700" />
 
-            {/* comments list (Cập nhật với infinite scroll) */}
             {commentsLoading && displayComments.length === 0 ? (
-              <div className="flex justify-center py-12"> <Loader /> </div>
+              <div className="flex justify-center py-12">
+                {" "}
+                <Loader />{" "}
+              </div>
             ) : commentsError ? (
-              <div className="text-center py-12"> <p className="text-red-500 text-sm">{commentsError}</p> </div>
+              <div className="text-center py-12">
+                {" "}
+                <p className="text-red-500 text-sm">{commentsError}</p>{" "}
+              </div>
             ) : displayComments.length === 0 ? (
               <div className="text-center py-12 text-gray-500">
                 <MessageCircle className="w-12 h-12 mx-auto mb-2 opacity-30" />
@@ -1126,7 +1180,11 @@ const ReelCommentDialog = () => {
                 {displayComments.map((comment, index) => (
                   <li
                     key={comment.id}
-                    ref={ index === displayComments.length - 1 ? lastElementRef : null }
+                    ref={
+                      index === displayComments.length - 1
+                        ? lastElementRef
+                        : null
+                    }
                     className="flex items-start gap-3"
                     onMouseEnter={() => setHoveredItemId(comment.id)}
                     onMouseLeave={() => setHoveredItemId(null)}
@@ -1151,9 +1209,14 @@ const ReelCommentDialog = () => {
                           <div className="flex items-center gap-2 mb-1">
                             <span
                               className="font-semibold text-sm cursor-pointer hover:underline"
-                              onClick={(e) => handleProfileClick(comment.userName, e)}
+                              onClick={(e) =>
+                                handleProfileClick(comment.userName, e)
+                              }
                             >
                               {comment.userName}
+                            </span>
+                            <span className="text-xs text-gray-500">
+                              {formatTimeAgo(comment.createdAt)}
                             </span>
                           </div>
                           <p className="text-sm leading-relaxed break-words mb-2">
@@ -1162,16 +1225,19 @@ const ReelCommentDialog = () => {
                             })}
                           </p>
                           <div className="flex items-center gap-4">
-                            <span className="text-xs text-gray-500">
-                              {formatTimeAgo(comment.createdAt)}
-                            </span>
-                            {getLikesCount(comment.id, comment.likesCount) > 0 && (
+                            {getLikesCount(comment.id, comment.likesCount) >
+                              0 && (
                               <button
                                 type="button"
-                                onClick={() => openLikesDialog(comment.id, "comment")}
+                                onClick={() =>
+                                  openLikesDialog(comment.id, "comment")
+                                }
                                 className="text-xs text-gray-500 hover:underline"
                               >
-                                {formatNumber(getLikesCount(comment.id, comment.likesCount))} lượt thích
+                                {formatNumber(
+                                  getLikesCount(comment.id, comment.likesCount)
+                                )}{" "}
+                                lượt thích
                               </button>
                             )}
                             <button
@@ -1181,19 +1247,22 @@ const ReelCommentDialog = () => {
                               Trả lời
                             </button>
                             <button
-                              onClick={(e) => handleOpenActionMenu(comment.id, e)}
+                              onClick={(e) =>
+                                handleOpenActionMenu(comment.id, e)
+                              }
                               className={cn(
                                 "inline-flex items-center justify-center w-6 h-6 p-1 ml-2 transition-opacity",
-                                hoveredItemId === comment.id ? "opacity-100" : "opacity-0"
+                                hoveredItemId === comment.id
+                                  ? "opacity-100"
+                                  : "opacity-0"
                               )}
                               aria-label="Tùy chọn"
                             >
                               <MoreHorizontal className="w-4 h-4 text-gray-500 hover:text-gray-700" />
                             </button>
                           </div>
-
-                          {/* replies toggle (Cập nhật) */}
-                          {(comment.replies && comment.replies.length > 0) || comment.hasMoreReplies ? (
+                          {(comment.replies && comment.replies.length > 0) ||
+                          comment.hasMoreReplies ? (
                             <div className="mt-2">
                               {!expandedReplies[comment.id] ? (
                                 <button
@@ -1201,29 +1270,38 @@ const ReelCommentDialog = () => {
                                   onClick={() => toggleReplies(comment.id)}
                                   className="text-xs text-gray-500 hover:text-gray-700"
                                 >
-                                  Xem câu trả lời ({getTotalRepliesCount(comment.id)})
+                                  Xem câu trả lời (
+                                  {getTotalRepliesCount(comment.id)})
                                 </button>
                               ) : (
                                 <>
                                   <div className="mt-2 ml-4 border-l-2 border-gray-200 dark:border-gray-700 pl-4 space-y-3">
-                                    {comment.replies?.map((reply) => (
+                                    {comment.replies?.map((reply) =>
                                       renderReplyItem(reply, comment.id)
-                                    ))}
-                                    {repliesHasMore[comment.id] && comment.replies && comment.replies.length >= 6 && (
-                                      <div className="mt-2">
-                                        {repliesLoading[comment.id] ? (
-                                          <div className="flex justify-center py-2"><Loader /></div>
-                                        ) : (
-                                          <button
-                                            type="button"
-                                            onClick={() => handleLoadMoreReplies(comment.id)}
-                                            className="text-xs text-gray-500 hover:text-gray-700"
-                                          >
-                                            Xem thêm câu trả lời
-                                          </button>
-                                        )}
-                                      </div>
                                     )}
+                                    {repliesHasMore[comment.id] &&
+                                      comment.replies &&
+                                      comment.replies.length >= 6 && (
+                                        <div className="mt-2">
+                                          {repliesLoading[comment.id] ? (
+                                            <div className="flex justify-center py-2">
+                                              <Loader />
+                                            </div>
+                                          ) : (
+                                            <button
+                                              type="button"
+                                              onClick={() =>
+                                                handleLoadMoreReplies(
+                                                  comment.id
+                                                )
+                                              }
+                                              className="text-xs text-gray-500 hover:text-gray-700"
+                                            >
+                                              Xem thêm câu trả lời
+                                            </button>
+                                          )}
+                                        </div>
+                                      )}
                                   </div>
                                   <button
                                     type="button"
@@ -1240,34 +1318,43 @@ const ReelCommentDialog = () => {
                       </div>
                     </div>
 
-                    <LikeButton
-                      targetId={parseInt(comment.id)}
-                      targetType="comment"
-                      isLiked={getIsLiked(comment.id, comment.isLiked)}
-                      likesCount={getLikesCount(comment.id, comment.likesCount)}
-                      size="sm"
-                      showCount={false}
-                      onLikeChange={(newIsLiked, newCount) =>
-                        handleCommentLikeChange(comment.id, newIsLiked, newCount)
-                      }
-                      className="h-auto p-0 text-gray-400 hover:text-red-500"
-                    />
+                    <div onClick={(e) => e.stopPropagation()}>
+                      <LikeButton
+                        targetId={parseInt(comment.id)}
+                        targetType="comment"
+                        isLiked={getIsLiked(comment.id, comment.isLiked)}
+                        likesCount={getLikesCount(
+                          comment.id,
+                          comment.likesCount
+                        )}
+                        size="sm"
+                        showCount={false}
+                        onLikeChange={(newIsLiked, newCount) =>
+                          handleCommentLikeChange(
+                            comment.id,
+                            newIsLiked,
+                            newCount
+                          )
+                        }
+                        className="p-0 text-gray-400 hover:text-red-500"
+                      />
+                    </div>
                   </li>
                 ))}
-                {/* Infinite scroll loader */}
                 {commentsLoading && displayComments.length > 0 && (
-                  <li className="flex justify-center py-4"><Loader /></li>
+                  <li className="flex justify-center py-4">
+                    <Loader />
+                  </li>
                 )}
               </ul>
             )}
           </div>
 
-          {/* actions & input (Thay thế hoàn toàn bằng footer của CommentDialog) */}
           <div className="p-4 border-t border-gray-200 dark:border-gray-700">
             <div className="flex items-center gap-4 mb-4">
               <LikeButton
                 targetId={parseInt(selectedReelId!)}
-                targetType="reel" // Giả định LikeButton hỗ trợ "reel"
+                targetType="reel"
                 isLiked={isReelLikedLocal}
                 likesCount={reelLikesCount}
                 size="default"
@@ -1305,22 +1392,45 @@ const ReelCommentDialog = () => {
               </button>
             </div>
 
-            {/* Like summary (MỚI) */}
             {reelLikesCount > 0 && (
               <div className="mb-3 text-sm">
                 {latestLikeName ? (
                   <>
-                    <button type="button" onClick={() => openLikesDialog(currentReel.id, "reel")} className="font-medium hover:underline">{latestLikeName}</button>
+                    <button
+                      type="button"
+                      onClick={() => openLikesDialog(currentReel.id, "reel")}
+                      className="font-medium hover:underline"
+                    >
+                      {latestLikeName}
+                    </button>
                     {reelLikesCount > 1 && (
                       <>
-                        <span className="text-gray-600 dark:text-gray-300"> và </span>
-                        <button type="button" onClick={() => openLikesDialog(currentReel.id, "reel")} className="font-medium hover:underline">những người khác</button>
+                        <span className="text-gray-600 dark:text-gray-300">
+                          {" "}
+                          và{" "}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            openLikesDialog(currentReel.id, "reel")
+                          }
+                          className="font-medium hover:underline"
+                        >
+                          những người khác
+                        </button>
                       </>
                     )}
-                    <span className="text-gray-600 dark:text-gray-300"> đã thích</span>
+                    <span className="text-gray-600 dark:text-gray-300">
+                      {" "}
+                      đã thích
+                    </span>
                   </>
                 ) : (
-                  <button type="button" onClick={() => openLikesDialog(currentReel.id, "reel")} className="font-medium hover:underline">
+                  <button
+                    type="button"
+                    onClick={() => openLikesDialog(currentReel.id, "reel")}
+                    className="font-medium hover:underline"
+                  >
                     {formatNumber(reelLikesCount)} lượt thích
                   </button>
                 )}
@@ -1331,11 +1441,10 @@ const ReelCommentDialog = () => {
               <time>{formatTimeAgo(currentReel.createdAt)}</time>
             </div>
 
-            {/* Input form (Cập nhật) */}
             {replyingTo ? (
               <form onSubmit={handleSubmitReply} className="space-y-2">
                 <div className="flex items-center gap-2">
-                  <span className="text-sm text-gray-500">Trả lời</span>
+                  <span className="text-sm text-gray-500">Đang trả lời...</span>
                   <button
                     type="button"
                     onClick={() => setReplyingTo(null)}
@@ -1411,7 +1520,6 @@ const ReelCommentDialog = () => {
         position={emojiPickerPosition}
       />
 
-      {/* (CẬP NHẬT) ActionMenu với logic phức tạp */}
       {!showDeleteConfirm && (
         <ActionMenu
           isOpen={showActionMenu}
@@ -1420,37 +1528,64 @@ const ReelCommentDialog = () => {
           items={
             currentCommentForAction === "reel"
               ? (() => {
-                  const isReelOwner = currentReel.userId === user?.id.toString();
+                  const isReelOwner =
+                    currentReel.userId === user?.id.toString();
                   const items: ActionMenuItem[] = [];
                   if (isReelOwner) {
-                    items.push({ label: "Xóa", action: handleDeleteReelClick, isDestructive: true });
+                    items.push({
+                      label: "Xóa",
+                      action: handleDeleteReelClick,
+                      isDestructive: true,
+                    });
                   }
-                  items.push({ label: "Báo cáo", action: () => { /* report reel */ }, isDestructive: true });
+                  items.push({
+                    label: "Báo cáo",
+                    action: () => setShowReportDialog(true),
+                    isDestructive: true,
+                  });
                   items.push({ label: "Hủy", action: handleCloseActionMenu });
                   return items;
                 })()
               : (() => {
-                  // Find comment/reply
-                  let comment: Comment | undefined = displayComments.find((c) => c.id === currentCommentForAction);
+                  let comment: Comment | undefined = displayComments.find(
+                    (c) => c.id === currentCommentForAction
+                  );
                   if (!comment) {
                     for (const root of displayComments) {
                       if (root.replies) {
-                        const r = root.replies.find((x) => x.id === currentCommentForAction);
-                        if (r) { comment = r; break; }
+                        const r = root.replies.find(
+                          (x) => x.id === currentCommentForAction
+                        );
+                        if (r) {
+                          comment = r;
+                          break;
+                        }
                       }
                     }
                   }
-                  if (!comment) return [{ label: "Hủy", action: handleCloseActionMenu }];
-                  
+                  if (!comment)
+                    return [{ label: "Hủy", action: handleCloseActionMenu }];
+
                   const isCommentOwner = comment.userId === user?.id.toString();
-                  const isReelOwner = currentReel.userId === user?.id.toString();
+                  const isReelOwner =
+                    currentReel.userId === user?.id.toString();
                   const canDelete = isCommentOwner || isReelOwner;
-                  
+
                   const items: ActionMenuItem[] = [];
                   if (canDelete) {
-                    items.push({ label: "Xóa", action: () => handleDeleteComment(comment!.id), isDestructive: true });
+                    items.push({
+                      label: "Xóa",
+                      action: () => handleDeleteComment(comment!.id),
+                      isDestructive: true,
+                    });
                   }
-                  items.push({ label: "Báo cáo", action: () => { /* report comment */ }, isDestructive: true });
+                  items.push({
+                    label: "Báo cáo",
+                    action: () => {
+                      /* report comment */
+                    },
+                    isDestructive: true,
+                  });
                   items.push({ label: "Hủy", action: handleCloseActionMenu });
                   return items;
                 })()
@@ -1461,25 +1596,50 @@ const ReelCommentDialog = () => {
       <LikesDialog
         isOpen={!!showLikesDialog}
         onClose={closeLikesDialog}
-        // Cập nhật để xử lý cả reel
-        targetType={showLikesDialog?.targetType === 'reel' ? 'reel' : undefined}
-        targetId={showLikesDialog?.targetId ? parseInt(showLikesDialog.targetId) : undefined}
+        targetType={showLikesDialog?.targetType === "reel" ? "reel" : undefined}
+        targetId={
+          showLikesDialog?.targetId
+            ? parseInt(showLikesDialog.targetId)
+            : undefined
+        }
       />
 
-      {/* (MỚI) Delete confirm cho Reel */}
       {showDeleteConfirm && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60">
           <div className="bg-white dark:bg-gray-900 rounded-lg shadow-xl max-w-md w-full p-6 animate-in fade-in-0 zoom-in-95 duration-200">
             <div className="text-center mb-4">
               <h3 className="text-lg font-semibold mb-2">Xóa thước phim?</h3>
-              <p className="text-sm text-muted-foreground">Bạn có chắc muốn xóa không?</p>
+              <p className="text-sm text-muted-foreground">
+                Bạn có chắc muốn xóa không?
+              </p>
             </div>
             <div className="flex gap-3">
-              <Button variant="outline" onClick={handleCancelDelete} className="flex-1">Hủy</Button>
-              <Button variant="destructive" onClick={handleConfirmDelete} className="flex-1">Xóa</Button>
+              <Button
+                variant="outline"
+                onClick={handleCancelDelete}
+                className="flex-1"
+              >
+                Hủy
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={handleConfirmDelete}
+                className="flex-1"
+              >
+                Xóa
+              </Button>
             </div>
           </div>
         </div>
+      )}
+
+      {showReportDialog && (
+        <ReportPostDialog
+          isOpen={showReportDialog}
+          onClose={() => setShowReportDialog(false)}
+          postId={currentReel.id}
+          onReport={handleReportSubmit}
+        />
       )}
     </div>
   );

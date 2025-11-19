@@ -5,7 +5,7 @@ export interface DashboardRequestDTO {
 
 export interface AdminPostItemDTO {
   id: number;
-  type: "post" | "reel"; 
+  type: "post" | "reel";
   visibility: string;
   caption: string;
   userId: number;
@@ -44,4 +44,20 @@ export interface PostsInfo {
   totalPost?: number;
   quantityPost?: number;
   quantityReel?: number;
+}
+
+export interface ReportSummary {
+  id: number;
+  reason: string;
+  reporterName: string;
+  ownerPostName: string;
+  reportStatus: "PENDING" | "APPROVED" | "REJECTED" | "IN_REVIEW";
+  createdAt: string;
+}
+
+export interface GetReportsParams {
+  pageNo?: number;
+  pageSize?: number;
+  status?: "PENDING" | "APPROVED" | "REJECTED" | "IN_REVIEW";
+  keyword?: string;
 }

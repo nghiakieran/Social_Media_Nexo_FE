@@ -26,7 +26,7 @@ const menuItems = [
   { title: "Quản lý người dùng", url: "/admin/users", icon: Users },
   { title: "Quản lý bài viết", url: "/admin/posts", icon: FileText },
   { title: "Báo cáo & Vi phạm", url: "/admin/reports", icon: Flag },
-  { title: "Quản lý bình luận", url: "/admin/comments", icon: MessageSquare },
+  // { title: "Quản lý bình luận", url: "/admin/comments", icon: MessageSquare },
   { title: "Cài đặt hệ thống", url: "/admin/settings", icon: Settings },
 ];
 
