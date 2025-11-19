@@ -27,6 +27,7 @@ import About from "./pages/About";
 import ForgotPasswordPage from "./features/auth/pages/ForgotPasswordPage";
 import LoginPage from "./features/auth/pages/LoginPage";
 import RegisterPage from "./features/auth/pages/RegisterPage";
+import { RegisterSuccessPage } from "./features/auth/pages/RegisterSuccessPage";
 import TwoFactorPage from "./features/auth/pages/TwoFactorPage";
 
 // Post Pages
@@ -188,6 +189,10 @@ const App = () => (
                 <Route path="/auth" element={<AuthLayout />}>
                   <Route path="login" element={<LoginPage />} />
                   <Route path="register" element={<RegisterPage />} />
+                  <Route
+                    path="register-success"
+                    element={<RegisterSuccessPage />}
+                  />
                   <Route
                     path="forgot-password"
                     element={<ForgotPasswordPage />}

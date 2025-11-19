@@ -115,6 +115,7 @@ export const updateUserProfile = async (
     fullName: profileData.fullName,
     bio: profileData.bio,
     isPrivate: profileData.isPrivate,
+    onlineStatus: profileData.onlineStatus,
   };
 
   formData.append("request", JSON.stringify(payload));
@@ -264,5 +265,5 @@ export const unblockUser = async (username: string): Promise<void> => {
  * Delete/Remove avatar
  */
 export const deleteAvatar = async (): Promise<void> => {
-  await api.delete('/users/profile/avatar');
+  await api.delete("/users/profile/avatar");
 };
