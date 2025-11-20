@@ -209,7 +209,7 @@ const App = () => (
                   <Route path="reports" element={<Reports />} />
                   <Route path="comments" element={<Comments />} />
                   <Route path="settings" element={<Settings />} />
-               </Route>
+                </Route>
               </Routes>
             </BrowserRouter>
           </TooltipProvider>
