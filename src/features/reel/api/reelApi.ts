@@ -236,3 +236,26 @@ export const likeReel = async (
     throw new Error("Không thể kết nối đến server. Vui lòng thử lại.");
   }
 };
+
+export const reportReel = async (
+  postId: string,
+  reason: string,
+  detail?: string
+): Promise<any> => {
+  try {
+    const response = await api.post<any>(`/posts/report/reel/${postId}`, {
+      reason,
+      detail,
+    });
+    return response.data.data;
+  } catch (error: unknown) {
+    if (error && typeof error === "object" && "response" in error) {
+      const apiError = error as { response?: { data?: { message?: string } } };
+      throw new Error(
+        apiError.response?.data?.message || "Có lỗi xảy ra khi tạo bình luận"
+      );
+    }
+
+    throw new Error("Không thể kết nối đến server. Vui lòng thử lại.");
+  }
+};

@@ -27,6 +27,7 @@ import {
 import { Loader } from "@/components/common/Loader";
 import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
 import type { UpdatePostRequest } from "../types";
+import { reportPost } from "../api/postApi";
 
 interface MediaItem {
   id: string;
@@ -41,12 +42,12 @@ export const FeedPage = () => {
   const { posts, isLoading, error, hasMore, currentPage } = useAppSelector(
     (state) => state.post
   );
-  const { 
-    userStories, 
-    friendStories, 
+  const {
+    userStories,
+    friendStories,
     isLoading: isLoadingStories,
     friendHasMore,
-    friendCurrentPage
+    friendCurrentPage,
   } = useAppSelector((state) => state.story);
   const [editingPost, setEditingPost] = useState<any>(null);
   const [reportingPost, setReportingPost] = useState<string | null>(null);
@@ -84,11 +85,13 @@ export const FeedPage = () => {
     if (user && !isLoadingStories && friendHasMore) {
       // Use the correct current page from store
       const nextPage = friendCurrentPage + 1;
-      dispatch(getFriendStoriesThunk({ 
-        userId: user.id, 
-        pageNo: nextPage,
-        pageSize: 10 
-      }));
+      dispatch(
+        getFriendStoriesThunk({
+          userId: user.id,
+          pageNo: nextPage,
+          pageSize: 10,
+        })
+      );
     }
   };
 
@@ -170,6 +173,7 @@ export const FeedPage = () => {
 
   const handleReport = (postId: string, reason: string, details?: string) => {
     console.log("Report post:", { postId, reason, details });
+    reportPost(postId, reason, details);
     setReportingPost(null);
   };
 
@@ -229,7 +233,11 @@ export const FeedPage = () => {
     }
   };
 
-  const handleReplyComment = async (commentId: string, content: string, postId?: string) => {
+  const handleReplyComment = async (
+    commentId: string,
+    content: string,
+    postId?: string
+  ) => {
     if (!user || !postId) return;
 
     try {
@@ -312,8 +320,8 @@ export const FeedPage = () => {
   return (
     <div className="w-full min-h-screen bg-background pt-4">
       {/* Stories */}
-      <Stories 
-        stories={displayStories} 
+      <Stories
+        stories={displayStories}
         onStoryClick={handleStoryClick}
         showCreateButton={true}
         currentUserAvatar={user?.avatar}

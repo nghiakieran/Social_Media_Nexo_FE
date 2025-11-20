@@ -73,6 +73,13 @@ import { StoryCreatePage } from "./features/story/pages/StoryCreatePage";
 // Reel Pages
 import { ReelsPage } from "./features/reel";
 import ReelDetailPage from "./features/reel/pages/ReelDetailPage";
+import AdminLayout from "./features/admin/pages/AdminLayout";
+import Settings from "./features/admin/pages/Settings";
+import Users from "./features/admin/pages/Users";
+import Dashboard from "./features/admin/pages/Dashboard";
+import Comments from "./features/admin/pages/Comments";
+import Posts from "./features/admin/pages/Posts";
+import Reports from "./features/admin/pages/Reports";
 
 const queryClient = new QueryClient();
 
@@ -203,6 +210,14 @@ const App = () => (
 
                 {/* Catch-all route */}
                 <Route path="*" element={<NotFound />} />
+                <Route path="/admin" element={<AdminLayout />}>
+                  <Route index element={<Dashboard />} />
+                  <Route path="users" element={<Users />} />
+                  <Route path="posts" element={<Posts />} />
+                  <Route path="reports" element={<Reports />} />
+                  <Route path="comments" element={<Comments />} />
+                  <Route path="settings" element={<Settings />} />
+                </Route>
               </Routes>
             </BrowserRouter>
           </TooltipProvider>
