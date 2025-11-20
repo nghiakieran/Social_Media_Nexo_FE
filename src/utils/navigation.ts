@@ -11,7 +11,6 @@ export const navigateToPost = (navigate: NavigateFunction, postId: string) => {
 export const navigateToPost2 = (navigate: NavigateFunction, postId: string) => {
   navigate(`${postId}`);
 };
-
 /**
  * Navigate to user profile page
  * @param navigate - React Router navigate function
