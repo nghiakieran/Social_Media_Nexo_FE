@@ -8,6 +8,7 @@ import { useAppDispatch, useAppSelector } from "@/store";
 import { getAllUserStoriesThunk } from "../storySlice";
 import { Loader } from "@/components/common/Loader";
 import { formatArchiveDate } from "@/utils/timeFormat";
+import { VideoThumbnail } from "@/components/common/VideoThumbnail";
 
 export const ArchivePage = () => {
   const navigate = useNavigate();
@@ -120,7 +121,7 @@ export const ArchivePage = () => {
             <div className="flex items-center gap-4">
               <button
                 onClick={() => navigate(-1)}
-                className="p-2 hover:bg-accent rounded-full transition-colors"
+                className="p-2 hover:bg-accent hover:text-white rounded-full transition-colors"
                 aria-label="Quay lại"
               >
                 <ArrowLeft className="w-5 h-5" />
@@ -175,6 +176,7 @@ export const ArchivePage = () => {
               const dateToFormat = firstContent?.createdAt || story.timeAgo;
               const { day, month, year, showYear } = formatArchiveDate(dateToFormat);
               const contentLength = story.content?.length || 0;
+              const isVideo = firstContent?.type === "video";
 
               return (
                 <div
@@ -186,11 +188,19 @@ export const ArchivePage = () => {
                     className="relative aspect-[9/16] group cursor-pointer overflow-hidden rounded-sm hover:opacity-90 transition-opacity w-full"
                   >
                   {/* Thumbnail */}
-                  <img
-                    src={firstContent?.url || "/placeholder.svg"}
-                    alt={`Archive from ${dateToFormat}`}
-                    className="absolute inset-0 w-full h-full object-cover"
-                  />
+                  {isVideo ? (
+                    <VideoThumbnail
+                      videoUrl={firstContent?.url || "/placeholder.svg"}
+                      className="absolute inset-0 w-full h-full"
+                      showPlayButton={true}
+                    />
+                  ) : (
+                    <img
+                      src={firstContent?.url || "/placeholder.svg"}
+                      alt={`Archive from ${dateToFormat}`}
+                      className="absolute inset-0 w-full h-full object-cover"
+                    />
+                  )}
 
                   {/* Date Overlay */}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />

@@ -49,15 +49,15 @@ export const createStoryThunk = createAsyncThunk(
       file: File;
       storyData: CreateStoryRequest;
     },
-    { rejectWithValue }
+    { rejectWithValue, dispatch }
   ) => {
     try {
       const response = await storyApi.createStory(file, storyData, (progressEvent) => {
-        // Progress will be handled by reducer
+        // Dispatch progress to Redux state
         const progress = progressEvent.total
           ? Math.round((progressEvent.loaded * 100) / progressEvent.total)
           : 0;
-        console.log("Upload progress:", progress);
+        dispatch(setUploadProgress(progress));
       });
       return response;
     } catch (error) {
@@ -113,6 +113,22 @@ export const viewStoryThunk = createAsyncThunk(
         return rejectWithValue(error.message);
       }
       return rejectWithValue("Có lỗi xảy ra khi xem story");
+    }
+  }
+);
+
+// Like/Unlike Story Thunk
+export const likeStoryThunk = createAsyncThunk(
+  "story/likeStory",
+  async (storyId: number, { rejectWithValue }) => {
+    try {
+      const response = await storyApi.likeStory(storyId);
+      return { storyId, response };
+    } catch (error) {
+      if (error instanceof Error) {
+        return rejectWithValue(error.message);
+      }
+      return rejectWithValue("Có lỗi xảy ra khi like story");
     }
   }
 );
@@ -188,6 +204,28 @@ const storySlice = createSlice({
     setArchivedStories: (state, action: PayloadAction<Story[]>) => {
       state.archivedStories = action.payload;
     },
+    // Upsert a profile story into friendStories or userStories
+    upsertProfileStory: (state, action: PayloadAction<Story>) => {
+      const story = action.payload;
+      
+      if (story.isOwnStory) {
+        // Add/update in userStories
+        const existingIndex = state.userStories.findIndex(s => s.id === story.id);
+        if (existingIndex >= 0) {
+          state.userStories[existingIndex] = story;
+        } else {
+          state.userStories.push(story);
+        }
+      } else {
+        // Add/update in friendStories
+        const existingIndex = state.friendStories.findIndex(s => s.id === story.id);
+        if (existingIndex >= 0) {
+          state.friendStories[existingIndex] = story;
+        } else {
+          state.friendStories.push(story);
+        }
+      }
+    },
     // Mark a specific story content as seen (after viewing)
     markStoryAsSeen: (state, action: PayloadAction<{ userId: string; storyId: string }>) => {
       const { userId, storyId } = action.payload;
@@ -248,6 +286,37 @@ const storySlice = createSlice({
         }
       }
     },
+    // Toggle like state for a story content
+    toggleStoryLike: (state, action: PayloadAction<{ userId: string; storyId: string; isLiked: boolean }>) => {
+      const { userId, storyId, isLiked } = action.payload;
+      
+      // Update in friendStories
+      const friendStory = state.friendStories.find(s => s.id === userId);
+      if (friendStory) {
+        const content = friendStory.content.find(c => c.id === storyId);
+        if (content) {
+          content.isLike = isLiked;
+        }
+      }
+      
+      // Update in userStories
+      const userStory = state.userStories.find(s => s.id === userId);
+      if (userStory) {
+        const content = userStory.content.find(c => c.id === storyId);
+        if (content) {
+          content.isLike = isLiked;
+        }
+      }
+      
+      // Update in archivedStories
+      const archivedStory = state.archivedStories.find(s => s.id === userId);
+      if (archivedStory) {
+        const content = archivedStory.content.find(c => c.id === storyId);
+        if (content) {
+          content.isLike = isLiked;
+        }
+      }
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -304,6 +373,16 @@ const storySlice = createSlice({
         state.error = null;
       })
       .addCase(viewStoryThunk.rejected, (state, action) => {
+        state.error = action.payload as string;
+      })
+      // Like Story
+      .addCase(likeStoryThunk.pending, (state) => {
+        state.error = null;
+      })
+      .addCase(likeStoryThunk.fulfilled, (state) => {
+        state.error = null;
+      })
+      .addCase(likeStoryThunk.rejected, (state, action) => {
         state.error = action.payload as string;
       })
       // Get User Stories
@@ -398,8 +477,10 @@ export const {
   setUserStories,
   setFriendStories,
   setArchivedStories,
+  upsertProfileStory,
   markStoryAsSeen,
-  removeStoryContent
+  removeStoryContent,
+  toggleStoryLike
 } = storySlice.actions;
 
 export default storySlice.reducer;

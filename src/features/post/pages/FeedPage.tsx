@@ -7,7 +7,6 @@ import { ShareDialog } from "../components/ShareDialog";
 import { Stories } from "@/components/common/Stories";
 import { StoryViewer } from "@/features/story/components";
 import { sortStoriesByViewedStatus } from "@/features/story/utils/sortStories";
-import { mockComments } from "@/features/interaction/__mocks__/comments";
 import { useToast } from "@/hooks/use-toast";
 import { useAppDispatch, useAppSelector } from "@/store";
 import {
@@ -17,12 +16,18 @@ import {
   togglePostActiveThunk,
 } from "../postSlice";
 import {
+  createCommentThunk,
+  likeCommentThunk,
+  likePostThunk,
+} from "@/features/interaction/interactionSlice";
+import {
   getUserStoriesThunk,
   getFriendStoriesThunk,
 } from "@/features/story/storySlice";
 import { Loader } from "@/components/common/Loader";
 import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
 import type { UpdatePostRequest } from "../types";
+import { reportPost } from "../api/postApi";
 
 interface MediaItem {
   id: string;
@@ -37,18 +42,17 @@ export const FeedPage = () => {
   const { posts, isLoading, error, hasMore, currentPage } = useAppSelector(
     (state) => state.post
   );
-  const { 
-    userStories, 
-    friendStories, 
+  const {
+    userStories,
+    friendStories,
     isLoading: isLoadingStories,
     friendHasMore,
-    friendCurrentPage
+    friendCurrentPage,
   } = useAppSelector((state) => state.story);
   const [editingPost, setEditingPost] = useState<any>(null);
   const [reportingPost, setReportingPost] = useState<string | null>(null);
   const [showStoryViewer, setShowStoryViewer] = useState(false);
   const [currentStoryIndex, setCurrentStoryIndex] = useState(0);
-  const [comments, setComments] = useState<any[]>(mockComments);
   const [showShareDialog, setShowShareDialog] = useState(false);
   const [sharePost, setSharePost] = useState<any>(null);
   const { toast } = useToast();
@@ -81,11 +85,13 @@ export const FeedPage = () => {
     if (user && !isLoadingStories && friendHasMore) {
       // Use the correct current page from store
       const nextPage = friendCurrentPage + 1;
-      dispatch(getFriendStoriesThunk({ 
-        userId: user.id, 
-        pageNo: nextPage,
-        pageSize: 10 
-      }));
+      dispatch(
+        getFriendStoriesThunk({
+          userId: user.id,
+          pageNo: nextPage,
+          pageSize: 10,
+        })
+      );
     }
   };
 
@@ -93,12 +99,20 @@ export const FeedPage = () => {
   const { lastElementRef } = useInfiniteScroll(handleLoadMore, {
     hasMore,
     isLoading,
+    error, // Pass error to prevent infinite loop on error
     threshold: 200, // Trigger earlier for smoother experience
   });
 
-  const handleLike = (postId: string) => {
-    // TODO: Dispatch likePostThunk
-    console.log("Like post:", postId);
+  const handleLike = async (postId: string) => {
+    try {
+      await dispatch(likePostThunk(parseInt(postId))).unwrap();
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Lỗi",
+        description: "Không thể thích bài viết. Vui lòng thử lại.",
+      });
+    }
   };
 
   const handleBookmark = (postId: string) => {
@@ -159,6 +173,7 @@ export const FeedPage = () => {
 
   const handleReport = (postId: string, reason: string, details?: string) => {
     console.log("Report post:", { postId, reason, details });
+    reportPost(postId, reason, details);
     setReportingPost(null);
   };
 
@@ -181,65 +196,70 @@ export const FeedPage = () => {
     setShowShareDialog(true);
   };
 
-  const handleAddComment = (postId: string, content: string) => {
-    const newComment = {
-      id: `comment_${Date.now()}`,
-      postId,
-      userId: "current_user",
-      userName: "Bạn",
-      avatarUrl: "https://picsum.photos/40/40?random=999",
-      content,
-      likesCount: 0,
-      isLiked: false,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      replies: [],
-    };
+  const handleAddComment = async (postId: string, content: string) => {
+    if (!user) return;
 
-    setComments((prev) => [...prev, newComment]);
-
-    // TODO: Update post comment count via API
-    console.log("Comment added to post:", postId);
+    try {
+      await dispatch(
+        createCommentThunk({
+          id: 0,
+          userId: user.id,
+          postId: parseInt(postId),
+          reelId: 0,
+          parentId: 0,
+          content,
+          listMentionUserId: [],
+        })
+      ).unwrap();
+      // Refresh comments if needed - CommentDialog will reload automatically
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Lỗi",
+        description: "Không thể thêm bình luận. Vui lòng thử lại.",
+      });
+    }
   };
 
-  const handleLikeComment = (commentId: string) => {
-    setComments((prev) =>
-      prev.map((comment) =>
-        comment.id === commentId
-          ? {
-              ...comment,
-              isLiked: !comment.isLiked,
-              likesCount: comment.isLiked
-                ? comment.likesCount - 1
-                : comment.likesCount + 1,
-            }
-          : comment
-      )
-    );
+  const handleLikeComment = async (commentId: string) => {
+    try {
+      await dispatch(likeCommentThunk(parseInt(commentId))).unwrap();
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Lỗi",
+        description: "Không thể thích bình luận. Vui lòng thử lại.",
+      });
+    }
   };
 
-  const handleReplyComment = (commentId: string, content: string) => {
-    const newReply = {
-      id: `reply_${Date.now()}`,
-      postId: "post1", // Use a default postId since we're working with mock data
-      userId: "current_user",
-      userName: "Bạn",
-      avatarUrl: "https://picsum.photos/40/40?random=999",
-      content,
-      parentId: commentId,
-      likesCount: 0,
-      isLiked: false,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
+  const handleReplyComment = async (
+    commentId: string,
+    content: string,
+    postId?: string
+  ) => {
+    if (!user || !postId) return;
 
-    setComments((prev) =>
-      prev.map((comment) =>
-        comment.id === commentId
-          ? { ...comment, replies: [...(comment.replies || []), newReply] }
-          : comment
-      )
-    );
+    try {
+      await dispatch(
+        createCommentThunk({
+          id: 0,
+          userId: user.id,
+          postId: parseInt(postId),
+          reelId: 0,
+          parentId: parseInt(commentId),
+          content,
+          listMentionUserId: [],
+        })
+      ).unwrap();
+      // Refresh comments if needed
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Lỗi",
+        description: "Không thể trả lời bình luận. Vui lòng thử lại.",
+      });
+    }
   };
 
   const handleStoryClick = (story: any) => {
@@ -294,14 +314,14 @@ export const FeedPage = () => {
       hasNewStory: story.content.length > 0,
       isViewed: story.isViewed || false,
       isOwnStory: story.isOwnStory,
-      isCloseFriend: story.isCloseFriend,
+      isCloseFriend: false, // Story type doesn't have isCloseFriend
     }));
 
   return (
     <div className="w-full min-h-screen bg-background pt-4">
       {/* Stories */}
-      <Stories 
-        stories={displayStories} 
+      <Stories
+        stories={displayStories}
         onStoryClick={handleStoryClick}
         showCreateButton={true}
         currentUserAvatar={user?.avatar}
@@ -326,9 +346,6 @@ export const FeedPage = () => {
                 onShare={handleShare}
                 onOpenShareDialog={() => handleOpenShareDialog(post)}
                 isShareDialogOpen={showShareDialog && sharePost?.id === post.id}
-                comments={comments.filter(
-                  (comment) => comment.postId === post.id
-                )}
                 onAddComment={handleAddComment}
                 onLikeComment={handleLikeComment}
                 onReplyComment={handleReplyComment}
@@ -346,7 +363,20 @@ export const FeedPage = () => {
           </div>
         )}
 
-        {posts.length === 0 && (
+        {/* Error indicator for load more */}
+        {error && posts.length > 0 && !isLoading && (
+          <div className="flex flex-col items-center justify-center py-8">
+            <p className="text-red-500 text-sm mb-3">{error}</p>
+            <button
+              className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors text-sm"
+              onClick={handleLoadMore}
+            >
+              Thử lại
+            </button>
+          </div>
+        )}
+
+        {posts.length === 0 && !isLoading && (
           <div className="text-center py-40">
             <p className="text-muted-foreground mb-4">Chưa có bài viết nào.</p>
           </div>

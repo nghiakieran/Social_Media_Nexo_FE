@@ -6,6 +6,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { VideoThumbnail } from '@/components/common/VideoThumbnail';
+import { isVideoUrl } from '@/utils/mediaUtils';
 
 interface HighlightItem {
   id: string;
@@ -48,23 +50,33 @@ export const StoryHighlights = ({ highlights, onAdd, onOpen, onEdit, onDelete, c
         </button>
 
         {/* Highlight items */}
-        {items.map((hl) => (
-          <div key={hl.id} className="relative group">
-            <button
-              onClick={() => onOpen?.(hl.id)}
-              className="flex flex-col items-center gap-2 focus:outline-none"
-              aria-label={hl.title}
-            >
-              <div className="w-[77px] h-[77px] rounded-full ring-1 ring-border overflow-hidden">
-                <img
-                  src={hl.cover}
-                  alt={hl.title}
-                  className="w-full h-full object-cover"
-                  loading="lazy"
-                />
-              </div>
-              <span className="text-xs truncate max-w-[77px]" title={hl.title}>{hl.title}</span>
-            </button>
+        {items.map((hl) => {
+          const isVideo = isVideoUrl(hl.cover);
+          return (
+            <div key={hl.id} className="relative group">
+              <button
+                onClick={() => onOpen?.(hl.id)}
+                className="flex flex-col items-center gap-2 focus:outline-none"
+                aria-label={hl.title}
+              >
+                <div className="w-[77px] h-[77px] rounded-full ring-1 ring-border overflow-hidden">
+                  {isVideo ? (
+                    <VideoThumbnail
+                      videoUrl={hl.cover}
+                      className="w-full h-full"
+                      showPlayButton={false}
+                    />
+                  ) : (
+                    <img
+                      src={hl.cover}
+                      alt={hl.title}
+                      className="w-full h-full object-cover"
+                      loading="lazy"
+                    />
+                  )}
+                </div>
+                <span className="text-xs truncate max-w-[77px]" title={hl.title}>{hl.title}</span>
+              </button>
 
             {/* Management menu - only show for owner */}
             {canManage && (onEdit || onDelete) && (
@@ -106,8 +118,9 @@ export const StoryHighlights = ({ highlights, onAdd, onOpen, onEdit, onDelete, c
                 </DropdownMenuContent>
               </DropdownMenu>
             )}
-          </div>
-        ))}
+            </div>
+          );
+        })}
       </div>
     </div>
   );

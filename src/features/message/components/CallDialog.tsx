@@ -84,7 +84,7 @@ export const CallDialog: React.FC<CallDialogProps> = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md p-0 bg-gradient-to-b from-background to-muted">
         <div className="p-8 text-center">
-          {/* Contact info */}
+          {}
           <div className="mb-8">
             <Avatar className="h-24 w-24 mx-auto mb-4">
               <AvatarImage src={contact.avatar} alt={contact.name} />
@@ -94,7 +94,7 @@ export const CallDialog: React.FC<CallDialogProps> = ({
             <p className="text-muted-foreground">@{contact.username}</p>
           </div>
 
-          {/* Call status */}
+          {}
           <div className="mb-8">
             {callStatus === 'ringing' && (
               <p className="text-lg">
@@ -109,7 +109,7 @@ export const CallDialog: React.FC<CallDialogProps> = ({
             )}
           </div>
 
-          {/* Call controls */}
+          {}
           <div className="flex justify-center space-x-4">
             {callStatus === 'ringing' && isIncoming && (
               <>
@@ -144,7 +144,7 @@ export const CallDialog: React.FC<CallDialogProps> = ({
 
             {callStatus === 'connected' && (
               <>
-                {/* Mute button */}
+                {}
                 <Button
                   onClick={() => setIsMuted(!isMuted)}
                   size="lg"
@@ -154,7 +154,7 @@ export const CallDialog: React.FC<CallDialogProps> = ({
                   {isMuted ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
                 </Button>
 
-                {/* Video toggle (only for video calls) */}
+                {}
                 {type === 'video' && (
                   <Button
                     onClick={() => setIsVideoOn(!isVideoOn)}
@@ -166,7 +166,7 @@ export const CallDialog: React.FC<CallDialogProps> = ({
                   </Button>
                 )}
 
-                {/* Speaker button */}
+                {}
                 <Button
                   size="lg"
                   variant="secondary"
@@ -175,7 +175,7 @@ export const CallDialog: React.FC<CallDialogProps> = ({
                   <Volume2 className="h-5 w-5" />
                 </Button>
 
-                {/* End call button */}
+                {}
                 <Button
                   onClick={handleEndCall}
                   size="lg"
@@ -188,7 +188,7 @@ export const CallDialog: React.FC<CallDialogProps> = ({
             )}
           </div>
 
-          {/* Call type indicator */}
+          {}
           <div className="mt-6">
             <div className={cn(
               'inline-flex items-center px-3 py-1 rounded-full text-sm',

@@ -10,7 +10,7 @@ import { StoryActions } from "./StoryActions"
 import { StorySkeleton } from "./StorySkeleton"
 import { StoryViewersDialog } from "./StoryViewersDialog"
 import { useAppDispatch } from "@/store"
-import { deleteStoryThunk, archiveStoryThunk, viewStoryThunk, markStoryAsSeen, removeStoryContent } from "../storySlice"
+import { deleteStoryThunk, archiveStoryThunk, viewStoryThunk, likeStoryThunk, markStoryAsSeen, removeStoryContent, toggleStoryLike } from "../storySlice"
 import { useToast } from "@/hooks/use-toast"
 import { sortStoriesByViewedStatus } from "../utils/sortStories"
 
@@ -42,13 +42,14 @@ export const StoryViewer = memo(({
   const [showReactions, setShowReactions] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
   const [isHolding, setIsHolding] = useState(false)
-  const [isLiked, setIsLiked] = useState(false)
   const [showQuickReply, setShowQuickReply] = useState(false)
-  const [isLoading, setIsLoading] = useState(true)
+  const [isInitialLoading, setIsInitialLoading] = useState(true) // Only for initial open
   const [isMenuLoading, setIsMenuLoading] = useState(false)
   const [showViewerList, setShowViewerList] = useState(false)
   const [, forceUpdate] = useState({}) // Force re-render helper
   const [shouldClose, setShouldClose] = useState(false)
+  const [videoDurations, setVideoDurations] = useState<Record<string, number>>({}) // Store actual video durations
+  const [isContentReady, setIsContentReady] = useState(false) // Track if content (image/video) is ready to display
   
   const holdTimeoutRef = useRef<NodeJS.Timeout>()
   const progressInterval = useRef<NodeJS.Timeout>()
@@ -57,6 +58,17 @@ export const StoryViewer = memo(({
 
   const currentStory = stories[currentStoryIndex]
   const currentContent = currentStory?.content[currentContentIndex]
+  
+  // Get actual duration for current content (use detected video duration if available)
+  const getActualDuration = (content: typeof currentContent) => {
+    if (!content) return 5
+    if (content.type === "video" && videoDurations[content.id]) {
+      return videoDurations[content.id]
+    }
+    return content.duration || 5
+  }
+  
+  const actualDuration = getActualDuration(currentContent)
 
   // Call View Story API when viewing a story
   useEffect(() => {
@@ -110,23 +122,63 @@ export const StoryViewer = memo(({
     return () => window.removeEventListener("resize", checkMobile)
   }, [])
 
-  // Loading simulation
+  // Initial loading - show skeleton only when first opening viewer
   useEffect(() => {
-    if (isOpen && currentStory && currentContent) {
+    if (isOpen) {
+      setIsInitialLoading(true)
       const timer = setTimeout(() => {
-        setIsLoading(false)
-      }, 800) // Simulate loading time
+        setIsInitialLoading(false)
+      }, 500) // Show skeleton for 500ms on initial open
       return () => clearTimeout(timer)
-    } else {
-      setIsLoading(true)
     }
-  }, [isOpen, currentStory, currentContent])
+  }, [isOpen]) // Only depend on isOpen, not on story changes
+
+  // Callback to update video duration when detected
+  const handleVideoDurationDetected = useCallback((duration: number) => {
+    if (currentContent) {
+      setVideoDurations(prev => ({
+        ...prev,
+        [currentContent.id]: duration
+      }))
+    }
+  }, [currentContent])
+
+  // Callback when content (image/video) is ready
+  const handleContentReady = useCallback(() => {
+    setIsContentReady(true)
+  }, [])
+
+  // Reset content ready state when content URL changes (not when like state changes)
+  useEffect(() => {
+    setIsContentReady(false)
+    // Pause while loading
+    setIsPaused(true)
+    
+    // Fallback: Auto-set ready after 1s if callback not triggered (prevents infinite spinner)
+    const fallbackTimer = setTimeout(() => {
+      setIsContentReady(true)
+    }, 1000)
+    
+    return () => clearTimeout(fallbackTimer)
+  }, [currentContent?.id, currentContent?.url]) // Only reset when id or url changes
+
+  // Auto-resume when content is ready
+  useEffect(() => {
+    if (isContentReady) {
+      // Wait a bit then auto-resume
+      const timer = setTimeout(() => {
+        setIsPaused(false)
+      }, 100)
+      return () => clearTimeout(timer)
+    }
+  }, [isContentReady])
 
   // Progress management
   useEffect(() => {
-    if (!isOpen || isPaused || !currentContent) return
+    // Don't run progress if content not ready (wait for image/video to load)
+    if (!isOpen || isPaused || !currentContent || !isContentReady) return
 
-    const duration = currentContent.duration * 1000
+    const duration = actualDuration * 1000
     const interval = 50
 
     progressInterval.current = setInterval(() => {
@@ -155,7 +207,7 @@ export const StoryViewer = memo(({
         clearInterval(progressInterval.current)
       }
     }
-  }, [isOpen, isPaused, currentContent, currentContentIndex, currentStoryIndex, stories.length, currentStory?.content.length])
+  }, [isOpen, isPaused, currentContent, currentContentIndex, currentStoryIndex, stories.length, currentStory?.content.length, actualDuration, isContentReady])
 
   useEffect(() => {
     setProgress(0)
@@ -202,10 +254,38 @@ export const StoryViewer = memo(({
     }
   }, [replyText, currentStory?.username])
 
-  const handleLike = useCallback(() => {
-    setIsLiked(!isLiked)
-    console.log(`${isLiked ? "Unliked" : "Liked"} ${currentStory.username}'s story`)
-  }, [isLiked, currentStory?.username])
+  const handleLike = useCallback(async () => {
+    if (!currentContent || currentStory.isOwnStory) return
+    
+    const contentId = currentContent.id
+    const storyId = parseInt(contentId)
+    
+    if (isNaN(storyId)) return
+    
+    // Get current like state from Redux
+    const currentLikeState = currentContent.isLike ?? false
+    const newLikeState = !currentLikeState
+    
+    // Optimistic update to Redux state
+    dispatch(toggleStoryLike({
+      userId: currentStory.id,
+      storyId: contentId,
+      isLiked: newLikeState
+    }))
+    
+    try {
+      await dispatch(likeStoryThunk(storyId)).unwrap()
+      // Success - state already updated
+    } catch (error) {
+      // Revert on error
+      dispatch(toggleStoryLike({
+        userId: currentStory.id,
+        storyId: contentId,
+        isLiked: currentLikeState
+      }))
+      console.error("Failed to like story:", error)
+    }
+  }, [currentContent, currentStory, dispatch])
 
   const handleShare = useCallback(() => {
     console.log(`Shared ${currentStory.username}'s story`)
@@ -283,8 +363,15 @@ export const StoryViewer = memo(({
 
   if (!isOpen || !currentStory || !currentContent) return null
 
-  if (isLoading) {
-    return <StorySkeleton isMobile={isMobile} showSideThumbnails={stories.length > 1} />
+  // Show skeleton only on initial load, not when navigating between stories
+  if (isInitialLoading) {
+    return (
+      <StorySkeleton 
+        isMobile={isMobile} 
+        showSideThumbnails={stories.length > 1}
+        totalStories={stories.length}
+      />
+    )
   }
 
   return (
@@ -347,6 +434,15 @@ export const StoryViewer = memo(({
           }}
         >
           <div className="relative w-full h-full">
+            <div 
+              className="absolute top-0 left-0 right-0 z-10 pointer-events-none"
+              style={{
+                height: '98px',
+                backgroundImage: 'linear-gradient(180deg, #262626cc, #26262600)',
+
+              }}
+            />
+            
             <StoryProgressBar
               content={currentStory.content}
               currentContentIndex={currentContentIndex}
@@ -371,19 +467,30 @@ export const StoryViewer = memo(({
             <StoryContent
               content={currentContent}
               username={currentStory.username}
+              isMuted={isMuted}
+              isPaused={isPaused}
               onStoryClick={handleStoryClick}
               onTouchStart={handleTouchStart}
               onTouchEnd={handleTouchEnd}
+              onVideoDurationDetected={handleVideoDurationDetected}
+              onVideoReady={handleContentReady}
             />
+            
+            {/* Content Loading Overlay */}
+            {!isContentReady && (
+              <div className="absolute inset-0 flex items-center justify-center bg-black/50 z-20">
+                <div className="w-12 h-12 border-4 border-white/30 border-t-white rounded-full animate-spin" />
+              </div>
+            )}
 
             <StoryActions
               replyText={replyText}
-              isLiked={isLiked}
+              isLiked={currentContent.isLike ?? false}
               viewerCount={currentContent.quantitySeen || 0}
               showReactions={showReactions}
               showQuickReply={showQuickReply}
               isOwnStory={currentStory.isOwnStory}
-              isCloseFriend={currentStory.isCloseFriend}
+              isCloseFriend={currentContent.isCloseFriend}
               onReplyChange={setReplyText}
               onSendReply={handleSendReply}
               onLike={handleLike}
@@ -393,37 +500,6 @@ export const StoryViewer = memo(({
               onReactionClick={handleReactionClick}
               onViewerListToggle={() => setShowViewerList(!showViewerList)}
             />
-
-            {/* Navigation arrows - desktop only */}
-            <div className="hidden lg:block absolute left-4 top-1/2 -translate-y-1/2 z-30">
-              {currentStoryIndex > 0 && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    handlePrevious()
-                  }}
-                  className="p-3 text-white/80 hover:text-white transition-all duration-200 bg-black/40 backdrop-blur-sm rounded-full hover:bg-black/60 shadow-lg"
-                  aria-label="Quay lại"
-                >
-                  <ChevronLeft className="w-6 h-6" />
-                </button>
-              )}
-            </div>
-
-            <div className="hidden lg:block absolute right-4 top-1/2 -translate-y-1/2 z-30">
-              {currentStoryIndex < stories.length - 1 && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    handleNext()
-                  }}
-                  className="p-3 text-white/80 hover:text-white transition-all duration-200 bg-black/40 backdrop-blur-sm rounded-full hover:bg-black/60 shadow-lg"
-                  aria-label="Tiếp"
-                >
-                  <ChevronRight className="w-6 h-6" />
-                </button>
-              )}
-            </div>
 
             {/* Mobile navigation areas */}
             <div
@@ -442,6 +518,43 @@ export const StoryViewer = memo(({
             />
           </div>
         </div>
+
+        {/* Navigation arrows in gap - desktop only */}
+        {/* Left navigation arrow */}
+        {(currentContentIndex > 0 || currentStoryIndex > 0) && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              handlePrevious()
+            }}
+            className="hidden lg:block absolute top-1/2 -translate-y-1/2 z-40 p-2.5 text-white/80 hover:text-white transition-all duration-200 bg-gray-500/50 backdrop-blur-sm rounded-full hover:bg-gray-500/80 shadow-lg"
+            style={{
+              left: "0px",
+              transform: "translateX(calc(-50% + 430px)) translateY(-50%)",
+            }}
+            aria-label="Quay lại"
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </button>
+        )}
+
+        {/* Right navigation arrow */}
+        {(currentContentIndex < currentStory.content.length - 1 || currentStoryIndex < stories.length - 1) && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              handleNext()
+            }}
+            className="hidden lg:block absolute top-1/2 -translate-y-1/2 z-40 p-2.5 text-white/80 hover:text-white transition-all duration-200 bg-gray-500/50 backdrop-blur-sm rounded-full hover:bg-gray-500/80 shadow-lg"
+            style={{
+              left: "0px",
+              transform: "translateX(calc(-50% + 868px)) translateY(-50%)",
+            }}
+            aria-label="Tiếp"
+          >
+            <ChevronRight className="w-4 h-4" />
+          </button>
+        )}
 
         {/* Right side thumbnails - desktop only */}
         <div className="hidden lg:block">

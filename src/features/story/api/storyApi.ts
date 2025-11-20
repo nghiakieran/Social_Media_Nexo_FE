@@ -5,6 +5,7 @@ import type {
   DeleteStoryResponse,
   ArchiveStoryResponse,
   ViewStoryResponse,
+  LikeStoryResponse,
   GetStoriesRequest,
   GetStoriesApiResponse,
   CreateCollectionRequest,
@@ -124,6 +125,25 @@ export const viewStory = async (
       const apiError = error as { response?: { data?: { message?: string } } };
       throw new Error(
         apiError.response?.data?.message || "Có lỗi xảy ra khi xem story"
+      );
+    }
+
+    throw new Error("Không thể kết nối đến server. Vui lòng thử lại.");
+  }
+};
+
+// Like/Unlike story API
+export const likeStory = async (
+  storyId: number
+): Promise<LikeStoryResponse> => {
+  try {
+    const response = await api.post<LikeStoryResponse>(`/posts/story/like/${storyId}`);
+    return response.data;
+  } catch (error: unknown) {
+    if (error && typeof error === "object" && "response" in error) {
+      const apiError = error as { response?: { data?: { message?: string } } };
+      throw new Error(
+        apiError.response?.data?.message || "Có lỗi xảy ra khi like story"
       );
     }
 

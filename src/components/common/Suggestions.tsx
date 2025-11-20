@@ -386,7 +386,7 @@ export const Suggestions = () => {
           <div className="text-xs text-muted-foreground space-y-2">
             <div className="flex flex-wrap gap-x-3 gap-y-1">
               <a
-                href="#"
+                href="/about"
                 className="hover:underline hover:text-foreground transition-colors hover:font-semibold"
               >
                 Giới thiệu

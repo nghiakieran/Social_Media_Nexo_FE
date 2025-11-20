@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ImageIcon, Video, FileText } from "lucide-react";
+import { ImageIcon, Video, FileText, Film } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -8,6 +8,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/hooks/use-toast";
 
 interface CreateContentDialogProps {
   isOpen: boolean;
@@ -19,6 +20,7 @@ export const CreateContentDialog = ({
   onClose,
 }: CreateContentDialogProps) => {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   const handlePostCreate = () => {
@@ -26,14 +28,88 @@ export const CreateContentDialog = ({
     navigate("/create");
   };
 
-  const handleStoryCreate = () => {
+  const handleReelCreate = () => {
+    onClose();
+    navigate("/reels/create");
+  };
+
+  // Validate video duration
+  const validateVideoDuration = (file: File): Promise<boolean> => {
+    return new Promise((resolve) => {
+      const video = document.createElement("video");
+      video.preload = "metadata";
+      
+      // Set timeout in case metadata never loads
+      const timeoutId = setTimeout(() => {
+        URL.revokeObjectURL(video.src);
+        toast({
+          title: "Lỗi",
+          description: "Không thể đọc thông tin video",
+          variant: "destructive",
+        });
+        resolve(false);
+      }, 10000); // 10 second timeout
+      
+      video.onloadedmetadata = () => {
+        clearTimeout(timeoutId);
+        const duration = video.duration;
+        URL.revokeObjectURL(video.src);
+        
+        // Check if duration is valid
+        if (isNaN(duration) || !isFinite(duration)) {
+          toast({
+            title: "Lỗi",
+            description: "Không thể xác định độ dài video",
+            variant: "destructive",
+          });
+          resolve(false);
+          return;
+        }
+        
+        // Max 60 seconds (1 minute)
+        if (duration > 60) {
+          toast({
+            title: "Video quá dài",
+            description: `Video story tối đa 60 giây (1 phút). Video của bạn dài ${Math.round(duration)} giây.`,
+            variant: "destructive",
+          });
+          resolve(false);
+        } else {
+          resolve(true);
+        }
+      };
+      
+      video.onerror = () => {
+        clearTimeout(timeoutId);
+        URL.revokeObjectURL(video.src);
+        toast({
+          title: "Lỗi",
+          description: "Không thể đọc video",
+          variant: "destructive",
+        });
+        resolve(false);
+      };
+      
+      video.src = URL.createObjectURL(file);
+    });
+  };
+
+  const handleStoryCreate = async () => {
     // Trigger file input
     const input = document.createElement("input");
     input.type = "file";
     input.accept = "image/*,video/*";
-    input.onchange = (e) => {
+    input.onchange = async (e) => {
       const file = (e.target as HTMLInputElement).files?.[0];
       if (file) {
+        // Validate video duration if it's a video
+        if (file.type.startsWith("video/")) {
+          const isValid = await validateVideoDuration(file);
+          if (!isValid) {
+            return; // Don't proceed if validation fails
+          }
+        }
+        
         setSelectedFile(file);
         onClose();
         // Navigate to story create with file
@@ -85,7 +161,27 @@ export const CreateContentDialog = ({
             <div className="flex-1">
               <h3 className="font-semibold text-base">Tin</h3>
               <p className="text-sm text-muted-foreground">
-                Chia sẻ ảnh hoặc video trong 24 giờ
+                Chia sẻ ảnh hoặc video (tối đa 60 giây) trong 24 giờ
+              </p>
+            </div>
+          </button>
+
+          {/* Create Reel Option */}
+          <button
+            onClick={handleReelCreate}
+            className={cn(
+              "flex items-center gap-4 p-4 rounded-xl",
+              "hover:bg-muted/50 transition-all duration-200",
+              "text-left group"
+            )}
+          >
+            <div className="w-14 h-14 rounded-full bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 flex items-center justify-center shadow-md group-hover:shadow-lg transition-shadow">
+              <Film className="w-7 h-7 text-white" />
+            </div>
+            <div className="flex-1">
+              <h3 className="font-semibold text-base">Reel</h3>
+              <p className="text-sm text-muted-foreground">
+                Tạo video ngắn để chia sẻ với mọi người
               </p>
             </div>
           </button>

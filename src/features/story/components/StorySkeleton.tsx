@@ -4,41 +4,62 @@ import { cn } from "@/lib/utils"
 interface StorySkeletonProps {
   isMobile?: boolean
   showSideThumbnails?: boolean
+  totalStories?: number // Total number of stories to determine thumbnail count
 }
 
-export const StorySkeleton = memo(({ isMobile = false, showSideThumbnails = false }: StorySkeletonProps) => {
+export const StorySkeleton = memo(({ 
+  isMobile = false, 
+  showSideThumbnails = false,
+  totalStories = 1 
+}: StorySkeletonProps) => {
+  // Determine how many thumbnails to show on each side
+  // Assume user starts at first story (most common case)
+  // 1 story: no thumbnails
+  // 2 stories: 1 right thumbnail
+  // 3 stories: 2 right thumbnails
+  // 4 stories: 2 right thumbnails
+  // 5+ stories: 2 right thumbnails
+  const showLeftNear = false // No left at initial load (starting from first story)
+  const showLeftFar = false
+  const showRightNear = totalStories >= 2 && showSideThumbnails
+  const showRightFar = totalStories >= 3 && showSideThumbnails
   return (
     <div className="fixed inset-0 z-50 bg-black">
       <div className="relative w-full h-full lg:w-[1298px] lg:h-[730px] lg:mx-auto lg:top-1/2 lg:-translate-y-1/2">
         {/* Left side thumbnails skeleton - desktop only */}
-        {showSideThumbnails && (
-          <div className="hidden lg:block">
+        <div className="hidden lg:block">
+          {/* Far left thumbnail (furthest from center) - only if 4+ stories */}
+          {showLeftFar && (
             <div
               className="absolute z-10 animate-pulse"
               style={{
                 height: "280px",
                 left: "0px",
                 top: "50%",
-                transform: "translateX(calc(-50% + 150px)) translateY(-50%)",
+                transform: "translateX(calc(-50% + 125px)) translateY(-50%)",
                 width: "158px",
               }}
             >
               <div className="w-full h-full rounded-xl bg-gray-700" />
             </div>
+          )}
+          
+          {/* Near left thumbnail (closest to center) - if 2+ stories */}
+          {showLeftNear && (
             <div
               className="absolute z-20 animate-pulse"
               style={{
                 height: "280px",
                 left: "0px",
                 top: "50%",
-                transform: "translateX(calc(-50% + 350px)) translateY(-50%)",
+                transform: "translateX(calc(-50% + 328px)) translateY(-50%)",
                 width: "158px",
               }}
             >
               <div className="w-full h-full rounded-xl bg-gray-700" />
             </div>
-          </div>
-        )}
+          )}
+        </div>
 
         {/* Main story container skeleton */}
         <div
@@ -116,8 +137,9 @@ export const StorySkeleton = memo(({ isMobile = false, showSideThumbnails = fals
         </div>
 
         {/* Right side thumbnails skeleton - desktop only */}
-        {showSideThumbnails && (
-          <div className="hidden lg:block">
+        <div className="hidden lg:block">
+          {/* Near right thumbnail (closest to center) - if 3+ stories */}
+          {showRightNear && (
             <div
               className="absolute z-20 animate-pulse"
               style={{
@@ -130,6 +152,10 @@ export const StorySkeleton = memo(({ isMobile = false, showSideThumbnails = fals
             >
               <div className="w-full h-full rounded-xl bg-gray-700" />
             </div>
+          )}
+          
+          {/* Far right thumbnail (furthest from center) - only if 5+ stories */}
+          {showRightFar && (
             <div
               className="absolute z-10 animate-pulse"
               style={{
@@ -142,8 +168,8 @@ export const StorySkeleton = memo(({ isMobile = false, showSideThumbnails = fals
             >
               <div className="w-full h-full rounded-xl bg-gray-700" />
             </div>
-          </div>
-        )}
+          )}
+        </div>
 
         {/* Close button skeleton - desktop only */}
         {!isMobile && (

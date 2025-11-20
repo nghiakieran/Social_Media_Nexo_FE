@@ -4,8 +4,8 @@ import {
   GetNotificationsResponse,
   NotificationDTO,
   ReadNotificationGroupRequest,
-} from './types';
-import { getNotifications, readAllNotifications, readNotification, readNotificationGroup } from './api/notificatrionApi';
+} from "./types";
+import { getNotifications, readAllNotifications, readNotification, readNotificationGroup } from './api/notificationApi';
 
 interface NotificationState {
   notifications: NotificationDTO[];

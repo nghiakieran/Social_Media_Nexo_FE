@@ -1,3 +1,5 @@
+import { getMediaType } from '@/utils/mediaUtils';
+
 // Story Content Types (for viewer)
 export interface StoryContent {
   id: string
@@ -7,6 +9,8 @@ export interface StoryContent {
   isSeen?: boolean // Track if this specific story content has been viewed
   createdAt?: string // Store creation date for each content
   quantitySeen?: number // Number of people who viewed this story
+  isLike?: boolean // Track if current user liked this story
+  isCloseFriend?: boolean // Track if this specific content is for close friends only
 }
 
 // Story Types (for viewer)
@@ -20,7 +24,6 @@ export interface Story {
   isViewed?: boolean
   isOwnStory?: boolean
   viewerCount?: number
-  isCloseFriend?: boolean
 }
 
 export interface StoryViewerProps {
@@ -52,6 +55,12 @@ export interface ArchiveStoryResponse {
 }
 
 export interface ViewStoryResponse {
+  status: number;
+  message: string;
+  data: string;
+}
+
+export interface LikeStoryResponse {
   status: number;
   message: string;
   data: string;
@@ -205,13 +214,6 @@ export interface GetStoryViewersApiResponse {
   data: GetStoryViewersResponse;
 }
 
-// Helper function to detect media type from URL
-const detectMediaType = (url: string): "image" | "video" => {
-  const videoExtensions = ['.mp4', '.webm', '.ogg', '.mov', '.avi', '.mkv', '.m3u8'];
-  const lowerUrl = url.toLowerCase();
-  return videoExtensions.some(ext => lowerUrl.includes(ext)) ? 'video' : 'image';
-};
-
 // Transform function - Convert API UserStoriesData to Story for viewer
 export const transformUserStoriesToStory = (
   apiData: UserStoriesData,
@@ -229,7 +231,7 @@ export const transformUserStoriesToStory = (
       if (item.mediaType) {
         type = item.mediaType === "VIDEO" ? "video" : "image";
       } else if (item.mediaUrl) {
-        type = detectMediaType(item.mediaUrl);
+        type = getMediaType(item.mediaUrl);
       }
       
       return {
@@ -240,6 +242,8 @@ export const transformUserStoriesToStory = (
         isSeen: item.isSeen, // Map isSeen from API
         createdAt: item.createdAt, // Map createdAt for archive display
         quantitySeen: item.quantitySeen, // Map quantitySeen for viewer count
+        isLike: item.isLike, // Map isLike from API
+        isCloseFriend: item.isCloseFriend,
       };
     });
 
@@ -251,7 +255,6 @@ export const transformUserStoriesToStory = (
     content,
     isViewed: storyList.length > 0 ? storyList.every((s) => s.isSeen) : false,
     isOwnStory: currentUserId ? apiData.userId === currentUserId : false,
-    // Only mark as close friend if ALL stories in the list are for close friends
-    isCloseFriend: storyList.length > 0 ? storyList.every((s) => s.isCloseFriend) : false,
+    // isCloseFriend is now tracked per content, not per story
   };
 };

@@ -47,6 +47,9 @@ interface ProfileHeaderProps {
   onAddToCloseFriends?: () => void;
   onAddToFavorites?: () => void;
   onRestrict?: () => void;
+  onStoryClick?: () => void;
+  hasStory?: boolean;
+  isStoryViewed?: boolean;
 }
 
 export const ProfileHeader = ({
@@ -66,6 +69,9 @@ export const ProfileHeader = ({
   onAddToCloseFriends,
   onAddToFavorites,
   onRestrict,
+  onStoryClick,
+  hasStory = false,
+  isStoryViewed = false,
 }: ProfileHeaderProps) => {
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -103,23 +109,56 @@ export const ProfileHeader = ({
 
 
   return (
-    <div className="px-14 py-6 border-b border-border bg-background">
-      <div className="flex items-start gap-16">
+    <div className="px-4 md:px-14 py-6 border-b border-border bg-background">
+      <div className="flex flex-col md:flex-row items-center md:items-start gap-6 md:gap-16">
         {/* Avatar Container */}
         <div className="relative">
-          {/* Avatar Button */}
+          {/* Avatar Button with Story Ring */}
           <button
-            onClick={isCurrentUser ? onAvatarClick : undefined}
-            className={isCurrentUser ? "cursor-pointer hover:opacity-80 transition-opacity" : "cursor-default"}
-            disabled={!isCurrentUser}
-            title={isCurrentUser ? "Thay đổi ảnh đại diện" : "Ảnh đại diện"}
+            onClick={() => {
+              // Priority: Story > Avatar Change (for own profile)
+              if (hasStory && onStoryClick) {
+                onStoryClick();
+              } else if (isCurrentUser && onAvatarClick) {
+                onAvatarClick();
+              }
+            }}
+            className={hasStory || isCurrentUser ? "cursor-pointer hover:opacity-80 transition-opacity" : "cursor-default"}
+            disabled={!hasStory && !isCurrentUser}
+            title={hasStory ? "Xem tin" : isCurrentUser ? "Thay đổi ảnh đại diện" : "Ảnh đại diện"}
           >
-            <Avatar className="w-20 h-20 md:w-44 md:h-44 ring-2 ring-primary/20">
-              <AvatarImage src={getAvatarUrl(profile.avatar)} alt={profile.username} />
-              <AvatarFallback className="text-xl font-semibold">
-                {getAvatarInitials(profile.name || profile.username)}
-              </AvatarFallback>
-            </Avatar>
+            {hasStory ? (
+              // Story Ring Structure: Outer gradient ring + White border + Avatar
+              <div className="relative">
+                {/* Outer Ring - Gradient (unseen) or Gray (seen) */}
+                <div 
+                  className={`rounded-full p-[2.5px] md:p-[3px] w-20 h-20 md:w-44 md:h-44 ${
+                    isStoryViewed 
+                      ? 'bg-gray-400' 
+                      : 'bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-600'
+                  }`}
+                >
+                  {/* White/Background Border (creates gap between gradient and avatar) */}
+                  <div className="w-full h-full rounded-full bg-background p-[2px] md:p-[2.5px]">
+                    {/* Avatar */}
+                    <Avatar className="w-full h-full">
+                      <AvatarImage src={getAvatarUrl(profile.avatar)} alt={profile.username} />
+                      <AvatarFallback className="text-xl font-semibold">
+                        {getAvatarInitials(profile.name || profile.username)}
+                      </AvatarFallback>
+                    </Avatar>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              // No Story - Normal Avatar with subtle ring
+              <Avatar className="w-20 h-20 md:w-44 md:h-44 ring-2 ring-primary/20">
+                <AvatarImage src={getAvatarUrl(profile.avatar)} alt={profile.username} />
+                <AvatarFallback className="text-xl font-semibold">
+                  {getAvatarInitials(profile.name || profile.username)}
+                </AvatarFallback>
+              </Avatar>
+            )}
           </button>
           
           {/* Notes Overlay - Separate clickable area */}
@@ -138,9 +177,17 @@ export const ProfileHeader = ({
         {/* Profile Info */}
         <div className="flex-1 min-w-0">
           {/* Username and Actions */}
-          <div className="flex items-center gap-3 mb-3">
-            <div className="flex items-center gap-2">
+          <div className="flex flex-col md:flex-row items-center md:items-center gap-3 mb-3">
+            <div className="flex flex-col md:flex-row items-center md:items-center gap-2">
               <h1 className="text-xl md:text-2xl font-light">{profile.username}</h1>
+              
+              {/* Bio - Show on mobile only */}
+              <div className="md:hidden space-y-1 text-center">
+                <div className="font-semibold text-sm">{profile.name}</div>
+                {profile.bio && (
+                  <div className="text-xs whitespace-pre-line">{profile.bio}</div>
+                )}
+              </div>
             </div>
 
             {isCurrentUser ? (
@@ -149,16 +196,17 @@ export const ProfileHeader = ({
                   variant="outline" 
                   size="sm"
                   onClick={onEdit}
-                  className="gap-1 bg-gray-200"
+                  className="gap-1 bg-gray-200 dark:bg-secondary hover:bg-gray-300 dark:hover:bg-secondary/80 text-xs md:text-sm transition-colors"
                 >
                   <Edit3 className="w-4 h-4" />
-                  Chỉnh sửa trang cá nhân
+                  <span className="hidden sm:inline">Chỉnh sửa trang cá nhân</span>
+                  <span className="sm:hidden">Chỉnh sửa</span>
                 </Button>
                 <Button 
                   variant="outline" 
                   size="sm"
                   onClick={() => navigate('/archive/stories')}
-                  className='bg-gray-200'
+                  className="bg-gray-200 dark:bg-secondary hover:bg-gray-300 dark:hover:bg-secondary/80 transition-colors"
                   title="Xem kho lưu trữ"
                 >
                   <Archive className="w-4 h-4" />
@@ -167,7 +215,7 @@ export const ProfileHeader = ({
                   variant="outline" 
                   size="sm"
                   onClick={() => navigate('/account/settings')}
-                  className='bg-gray-200'
+                  className="bg-gray-200 dark:bg-secondary hover:bg-gray-300 dark:hover:bg-secondary/80 transition-colors"
                   title="Cài đặt"
                 >
                   <Settings className="w-4 h-4" />
@@ -245,7 +293,7 @@ export const ProfileHeader = ({
           </div>
 
           {/* Stats */}
-          <div className="flex items-center gap-6 mb-3">
+          <div className="flex items-center justify-center md:justify-start gap-6 md:gap-6 mb-3">
             <div className="text-center">
               <div className="font-semibold">{profile.postsCount}</div>
               <div className="text-sm text-muted-foreground">bài viết</div>
@@ -276,8 +324,8 @@ export const ProfileHeader = ({
             </button>
           </div>
 
-          {/* Bio */}
-          <div className="space-y-1">
+          {/* Bio - Show on desktop only */}
+          <div className="hidden md:block space-y-1">
             <div className="font-semibold">{profile.name}</div>
             {profile.bio && (
               <div className="text-sm whitespace-pre-line">{profile.bio}</div>

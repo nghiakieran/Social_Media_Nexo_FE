@@ -140,9 +140,13 @@ export const StoryViewersDialog = ({ isOpen, onClose, storyId, totalViewers }: S
                       {formatTimeAgo(viewer.createdAt)}
                     </p>
                   </div>
-                  {viewer.isLike && (
-                    <Heart className="w-5 h-5 text-red-500 fill-red-500 flex-shrink-0" />
-                  )}
+                  
+                  {/* Like Heart Icon - Always reserve space for alignment */}
+                  <div className="w-6 flex items-center justify-center flex-shrink-0">
+                    {viewer.isLike && (
+                      <Heart className="w-5 h-5 text-red-500 fill-red-500 animate-in zoom-in-50 duration-200" />
+                    )}
+                  </div>
                 </button>
               ))}
               

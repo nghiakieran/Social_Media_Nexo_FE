@@ -21,7 +21,6 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "@/store";
 import {
   getPostDetailThunk,
-  getMutualFollowersThunk,
   deletePostThunk,
   updatePostThunk,
   togglePostActiveThunk,
@@ -29,7 +28,8 @@ import {
 import type { UpdatePostRequest } from "../types";
 import { ActionMenuDialog } from "../components/ActionMenuDialog";
 import { formatTimeAgo } from "@/utils/timeFormat";
-import { CommentSection } from "../components/CommentSection";
+import { CommentSection } from "@/features/interaction/components/CommentSection";
+import { LikeButton } from "@/features/interaction/components/LikeButton";
 import { EditPostDialog } from "../components/EditPostDialog";
 import { LikesDialog } from "../components/LikesDialog";
 import { MediaSlider } from "../components/MediaSlider";
@@ -50,64 +50,6 @@ interface UIPost extends Post {
   };
   taggedFriends: string[];
 }
-
-// Mock data - replace with actual API call
-const mockPost = {
-  id: "1",
-  userId: "1",
-  userName: "nguyenvana",
-  avatarUrl:
-    "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=32&h=32&fit=crop&crop=face",
-  caption: `Chào mọi người! Hôm nay mình có cơ hội được tham quan một công ty công nghệ rất thú vị. Không gian làm việc hiện đại, team trẻ trung và năng động. Đặc biệt là phòng chill với view thành phố rất đẹp! 
-
-Các bạn có kinh nghiệm nào về việc chọn môi trường làm việc không? Mình đang cân nhắc giữa startup và công ty lớn. 🤔
-
-#workplace #career #startup #technology`,
-  media: [
-    {
-      id: "1",
-      type: "image" as const,
-      url: "https://images.unsplash.com/photo-1497366216548-37526070297c?w=800&h=600&fit=crop",
-      thumbnail:
-        "https://images.unsplash.com/photo-1497366216548-37526070297c?w=400&h=300&fit=crop",
-    },
-    {
-      id: "2",
-      type: "video" as const,
-      url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
-      thumbnail:
-        "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=400&h=300&fit=crop",
-    },
-    {
-      id: "3",
-      type: "image" as const,
-      url: "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=800&h=600&fit=crop",
-      thumbnail:
-        "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=400&h=300&fit=crop",
-    },
-    {
-      id: "4",
-      type: "video" as const,
-      url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4",
-      thumbnail:
-        "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=300&fit=crop",
-    },
-  ],
-  stats: {
-    likes: 156,
-    comments: 23,
-    shares: 8,
-    views: 1200,
-  },
-  interactions: {
-    isLiked: false,
-    isBookmarked: false,
-    isShared: false,
-  },
-  taggedFriends: ["nguyenvanb", "tranthic"],
-  createdAt: "2024-01-15T10:30:00Z",
-  privacy: "public" as const,
-};
 
 export const PostDetailPage = () => {
   const { postId } = useParams();
@@ -131,7 +73,6 @@ export const PostDetailPage = () => {
   useEffect(() => {
     if (postId && user) {
       dispatch(getPostDetailThunk(parseInt(postId)));
-      dispatch(getMutualFollowersThunk({ pageNo: 0, pageSize: 10 }));
     }
   }, [dispatch, user, postId]);
 
@@ -172,19 +113,22 @@ export const PostDetailPage = () => {
     private: Lock,
   };
 
-  const handleLike = () => {
+  const handleLikeChange = (isLiked: boolean, newCount: number) => {
     setInteractions((prev) => ({
       ...prev,
-      isLiked: !prev.isLiked,
+      isLiked,
     }));
 
-    setPost((prev) => ({
-      ...prev,
-      stats: {
-        ...prev.stats,
-        likes: prev.stats.likes + (interactions.isLiked ? -1 : 1),
-      },
-    }));
+    setPost((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        stats: {
+          ...prev.stats,
+          likes: newCount,
+        },
+      };
+    });
   };
 
   const handleBookmark = () => {
@@ -519,25 +463,19 @@ export const PostDetailPage = () => {
               <div className="p-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-4">
-                    <Button
-                      variant="ghost"
+                    <LikeButton
+                      targetId={parseInt(post.id)}
+                      targetType="post"
+                      isLiked={interactions.isLiked}
+                      likesCount={post.stats.likes}
                       size="sm"
-                      onClick={handleLike}
-                      className={cn(
-                        "flex items-center gap-2 px-3 py-2 rounded-full transition-colors",
-                        interactions.isLiked
-                          ? "text-red-500 hover:text-red-600"
-                          : "hover:text-red-500"
-                      )}
+                      variant="ghost"
+                      showCount={false}
+                      onLikeChange={handleLikeChange}
+                      className="flex items-center gap-2 px-3 py-2 rounded-full transition-colors"
                     >
-                      <Heart
-                        className={cn(
-                          "w-5 h-5",
-                          interactions.isLiked && "fill-current"
-                        )}
-                      />
                       <span className="hidden sm:inline">Thích</span>
-                    </Button>
+                    </LikeButton>
 
                     <Button
                       variant="ghost"
@@ -599,7 +537,7 @@ export const PostDetailPage = () => {
           </Card>
 
           {/* Comments Section */}
-          <CommentSection postId={postId!} />
+          <CommentSection postId={parseInt(postId!)} />
         </div>
       </div>
 
