@@ -26,6 +26,8 @@ import About from "./pages/About";
 // Auth Pages
 import ForgotPasswordPage from "./features/auth/pages/ForgotPasswordPage";
 import LoginPage from "./features/auth/pages/LoginPage";
+import { OAuthCallbackPage } from "./features/auth/pages/OAuthCallbackPage";
+import { OAuthCompleteProfilePage } from "./features/auth/pages/OAuthCompleteProfilePage";
 import RegisterPage from "./features/auth/pages/RegisterPage";
 import { RegisterSuccessPage } from "./features/auth/pages/RegisterSuccessPage";
 import TwoFactorPage from "./features/auth/pages/TwoFactorPage";
@@ -198,6 +200,14 @@ const App = () => (
                     element={<ForgotPasswordPage />}
                   />
                   <Route path="2fa" element={<TwoFactorPage />} />
+                  <Route
+                    path="oauth/callback"
+                    element={<OAuthCallbackPage />}
+                  />
+                  <Route
+                    path="oauth/complete-profile"
+                    element={<OAuthCompleteProfilePage />}
+                  />
                 </Route>
 
                 {/* Catch-all route */}

@@ -62,6 +62,21 @@ export interface LoginResponse {
   };
 }
 
+export interface OAuthLoginResponse {
+  status: number;
+  message: string;
+  data: {
+    access_token?: string;
+    refresh_token?: string;
+    id_token?: string | null;
+    token_type?: string;
+    expires_in?: number;
+    refresh_expires_in?: number;
+    missing_info?: boolean;
+    temp_token?: string;
+  };
+}
+
 export interface RegisterRequest {
   email: string;
   username: string;

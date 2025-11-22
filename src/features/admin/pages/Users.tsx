@@ -90,8 +90,11 @@ interface UIUser {
 }
 
 export default function Users() {
-  const { debouncedValue: search, setSearchValue: setSearch } =
-    useDebouncedSearch("", 300);
+  const {
+    searchValue: searchInput,
+    debouncedValue: search,
+    setSearchValue: setSearch,
+  } = useDebouncedSearch("", 200);
   const { toast } = useToast();
   const [statusFilter, setStatusFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
@@ -364,7 +367,7 @@ export default function Users() {
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
                   placeholder="Tìm kiếm..."
-                  value={search}
+                  value={searchInput}
                   onChange={(e) => setSearch(e.target.value)}
                   className="pl-9"
                 />
