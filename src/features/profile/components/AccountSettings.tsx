@@ -1,23 +1,23 @@
-import { useState } from 'react';
-import { 
-  Shield, 
-  Key, 
-  Eye, 
-  EyeOff, 
-  Trash2, 
+import { useState } from "react";
+import {
+  Shield,
+  Key,
+  Eye,
+  EyeOff,
+  Trash2,
   Download,
   ChevronRight,
   Lock,
   Globe,
   Users,
   UserX,
-  Heart
-} from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
+  Heart,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
 import {
   Dialog,
   DialogContent,
@@ -26,10 +26,11 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { useToast } from '@/hooks/use-toast';
-import { useNavigate } from 'react-router-dom';
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { useToast } from "@/hooks/use-toast";
+import { useNavigate } from "react-router-dom";
+import { changePassword } from "../api/profileApi";
 
 export const AccountSettings = () => {
   const navigate = useNavigate();
@@ -45,51 +46,96 @@ export const AccountSettings = () => {
   });
   const [showPasswordDialog, setShowPasswordDialog] = useState(false);
   const [showDeactivateDialog, setShowDeactivateDialog] = useState(false);
-  const [currentPassword, setCurrentPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const handleSettingChange = (key: string, value: boolean) => {
-    setSettings(prev => ({ ...prev, [key]: value }));
+    setSettings((prev) => ({ ...prev, [key]: value }));
     toast({
-      title: 'Đã cập nhật cài đặt',
-      description: 'Thay đổi của bạn đã được lưu.',
+      title: "Đã cập nhật cài đặt",
+      description: "Thay đổi của bạn đã được lưu.",
     });
   };
 
-  const handlePasswordChange = () => {
-    if (newPassword !== confirmPassword) {
+  const handlePasswordChange = async () => {
+    // Validation
+    if (!currentPassword || !newPassword || !confirmPassword) {
       toast({
-        title: 'Lỗi',
-        description: 'Mật khẩu xác nhận không khớp.',
-        variant: 'destructive',
+        title: "Lỗi",
+        description: "Vui lòng điền đầy đủ thông tin.",
+        variant: "destructive",
       });
       return;
     }
 
-    toast({
-      title: 'Đã đổi mật khẩu',
-      description: 'Mật khẩu của bạn đã được cập nhật thành công.',
-    });
-    
-    setShowPasswordDialog(false);
-    setCurrentPassword('');
-    setNewPassword('');
-    setConfirmPassword('');
+    if (newPassword !== confirmPassword) {
+      toast({
+        title: "Lỗi",
+        description: "Mật khẩu xác nhận không khớp.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      toast({
+        title: "Lỗi",
+        description: "Mật khẩu mới phải có ít nhất 6 ký tự.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsChangingPassword(true);
+
+    try {
+      await changePassword({
+        oldPassword: currentPassword,
+        newPassword: newPassword,
+        confirmNewPassword: confirmPassword,
+      });
+
+      toast({
+        title: "Thành công",
+        description: "Mật khẩu của bạn đã được cập nhật thành công.",
+      });
+
+      setShowPasswordDialog(false);
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+      setShowCurrentPassword(false);
+      setShowNewPassword(false);
+      setShowConfirmPassword(false);
+    } catch {
+      toast({
+        title: "Lỗi",
+        description: "Đổi mật khẩu không thành công.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsChangingPassword(false);
+    }
   };
 
   const handleDeactivateAccount = () => {
     toast({
-      title: 'Tài khoản đã được vô hiệu hóa',
-      description: 'Tài khoản của bạn sẽ bị ẩn cho đến khi bạn đăng nhập lại.',
+      title: "Tài khoản đã được vô hiệu hóa",
+      description: "Tài khoản của bạn sẽ bị ẩn cho đến khi bạn đăng nhập lại.",
     });
     setShowDeactivateDialog(false);
   };
 
   const handleDownloadData = () => {
     toast({
-      title: 'Đang chuẩn bị dữ liệu',
-      description: 'Chúng tôi sẽ gửi email cho bạn khi dữ liệu sẵn sàng để tải xuống.',
+      title: "Đang chuẩn bị dữ liệu",
+      description:
+        "Chúng tôi sẽ gửi email cho bạn khi dữ liệu sẵn sàng để tải xuống.",
     });
   };
 
@@ -113,7 +159,9 @@ export const AccountSettings = () => {
             </div>
             <Switch
               checked={settings.isPrivate}
-              onCheckedChange={(checked) => handleSettingChange('isPrivate', checked)}
+              onCheckedChange={(checked) =>
+                handleSettingChange("isPrivate", checked)
+              }
             />
           </div>
 
@@ -121,14 +169,18 @@ export const AccountSettings = () => {
 
           <div className="flex items-center justify-between">
             <div>
-              <Label className="font-medium">Cho phép tin nhắn từ người lạ</Label>
+              <Label className="font-medium">
+                Cho phép tin nhắn từ người lạ
+              </Label>
               <p className="text-sm text-muted-foreground">
                 Nhận tin nhắn từ những người không theo dõi bạn
               </p>
             </div>
             <Switch
               checked={settings.allowMessageRequests}
-              onCheckedChange={(checked) => handleSettingChange('allowMessageRequests', checked)}
+              onCheckedChange={(checked) =>
+                handleSettingChange("allowMessageRequests", checked)
+              }
             />
           </div>
 
@@ -136,14 +188,18 @@ export const AccountSettings = () => {
 
           <div className="flex items-center justify-between">
             <div>
-              <Label className="font-medium">Hiển thị trạng thái hoạt động</Label>
+              <Label className="font-medium">
+                Hiển thị trạng thái hoạt động
+              </Label>
               <p className="text-sm text-muted-foreground">
                 Cho phép người khác biết khi bạn đang hoạt động
               </p>
             </div>
             <Switch
               checked={settings.showActivity}
-              onCheckedChange={(checked) => handleSettingChange('showActivity', checked)}
+              onCheckedChange={(checked) =>
+                handleSettingChange("showActivity", checked)
+              }
             />
           </div>
 
@@ -158,7 +214,9 @@ export const AccountSettings = () => {
             </div>
             <Switch
               checked={settings.allowTagging}
-              onCheckedChange={(checked) => handleSettingChange('allowTagging', checked)}
+              onCheckedChange={(checked) =>
+                handleSettingChange("allowTagging", checked)
+              }
             />
           </div>
 
@@ -174,7 +232,7 @@ export const AccountSettings = () => {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => navigate('/account/blocked')}
+              onClick={() => navigate("/account/blocked")}
               className="gap-2"
             >
               <UserX className="w-4 h-4" />
@@ -192,7 +250,7 @@ export const AccountSettings = () => {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => navigate('/account/hidden-posts')}
+              onClick={() => navigate("/account/hidden-posts")}
               className="gap-2"
             >
               <EyeOff className="w-4 h-4" />
@@ -210,7 +268,7 @@ export const AccountSettings = () => {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => navigate('/account/close-friends')}
+              onClick={() => navigate("/account/close-friends")}
               className="gap-2"
             >
               <Heart className="w-4 h-4" />
@@ -238,13 +296,29 @@ export const AccountSettings = () => {
             </div>
             <Switch
               checked={settings.twoFactorEnabled}
-              onCheckedChange={(checked) => handleSettingChange('twoFactorEnabled', checked)}
+              onCheckedChange={(checked) =>
+                handleSettingChange("twoFactorEnabled", checked)
+              }
             />
           </div>
 
           <Separator />
 
-          <Dialog open={showPasswordDialog} onOpenChange={setShowPasswordDialog}>
+          <Dialog
+            open={showPasswordDialog}
+            onOpenChange={(open) => {
+              setShowPasswordDialog(open);
+              if (!open) {
+                // Reset all states when dialog closes
+                setCurrentPassword("");
+                setNewPassword("");
+                setConfirmPassword("");
+                setShowCurrentPassword(false);
+                setShowNewPassword(false);
+                setShowConfirmPassword(false);
+              }
+            }}
+          >
             <DialogTrigger asChild>
               <Button variant="outline" className="w-full justify-between">
                 <span>Đổi mật khẩu</span>
@@ -259,40 +333,105 @@ export const AccountSettings = () => {
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-4">
-                <div>
+                <div className="space-y-2">
                   <Label htmlFor="current-password">Mật khẩu hiện tại</Label>
-                  <Input
-                    id="current-password"
-                    type="password"
-                    value={currentPassword}
-                    onChange={(e) => setCurrentPassword(e.target.value)}
-                  />
+                  <div className="relative">
+                    <Input
+                      id="current-password"
+                      type={showCurrentPassword ? "text" : "password"}
+                      value={currentPassword}
+                      onChange={(e) => setCurrentPassword(e.target.value)}
+                      className="pr-10"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                      onClick={() =>
+                        setShowCurrentPassword(!showCurrentPassword)
+                      }
+                      tabIndex={-1}
+                    >
+                      {showCurrentPassword ? (
+                        <EyeOff className="h-4 w-4 text-muted-foreground" />
+                      ) : (
+                        <Eye className="h-4 w-4 text-muted-foreground" />
+                      )}
+                    </Button>
+                  </div>
                 </div>
-                <div>
+                <div className="space-y-2">
                   <Label htmlFor="new-password">Mật khẩu mới</Label>
-                  <Input
-                    id="new-password"
-                    type="password"
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                  />
+                  <div className="relative">
+                    <Input
+                      id="new-password"
+                      type={showNewPassword ? "text" : "password"}
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      className="pr-10"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                      onClick={() => setShowNewPassword(!showNewPassword)}
+                      tabIndex={-1}
+                    >
+                      {showNewPassword ? (
+                        <EyeOff className="h-4 w-4 text-muted-foreground" />
+                      ) : (
+                        <Eye className="h-4 w-4 text-muted-foreground" />
+                      )}
+                    </Button>
+                  </div>
                 </div>
-                <div>
-                  <Label htmlFor="confirm-password">Xác nhận mật khẩu mới</Label>
-                  <Input
-                    id="confirm-password"
-                    type="password"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                  />
+                <div className="space-y-2">
+                  <Label htmlFor="confirm-password">
+                    Xác nhận mật khẩu mới
+                  </Label>
+                  <div className="relative">
+                    <Input
+                      id="confirm-password"
+                      type={showConfirmPassword ? "text" : "password"}
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      className="pr-10"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                      onClick={() =>
+                        setShowConfirmPassword(!showConfirmPassword)
+                      }
+                      tabIndex={-1}
+                    >
+                      {showConfirmPassword ? (
+                        <EyeOff className="h-4 w-4 text-muted-foreground" />
+                      ) : (
+                        <Eye className="h-4 w-4 text-muted-foreground" />
+                      )}
+                    </Button>
+                  </div>
                 </div>
               </div>
               <DialogFooter>
-                <Button variant="outline" onClick={() => setShowPasswordDialog(false)}>
+                <Button
+                  variant="outline"
+                  onClick={() => setShowPasswordDialog(false)}
+                  disabled={isChangingPassword}
+                  tabIndex={-1}
+                >
                   Hủy
                 </Button>
-                <Button onClick={handlePasswordChange}>
-                  Đổi mật khẩu
+                <Button
+                  onClick={handlePasswordChange}
+                  disabled={isChangingPassword}
+                >
+                  {isChangingPassword ? "Đang xử lý..." : "Đổi mật khẩu"}
                 </Button>
               </DialogFooter>
             </DialogContent>
@@ -306,8 +445,8 @@ export const AccountSettings = () => {
           <CardTitle>Quản lý tài khoản</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             className="w-full justify-between"
             onClick={handleDownloadData}
           >
@@ -320,7 +459,10 @@ export const AccountSettings = () => {
 
           <Separator />
 
-          <Dialog open={showDeactivateDialog} onOpenChange={setShowDeactivateDialog}>
+          <Dialog
+            open={showDeactivateDialog}
+            onOpenChange={setShowDeactivateDialog}
+          >
             <DialogTrigger asChild>
               <Button variant="destructive" className="w-full justify-between">
                 <div className="flex items-center gap-2">
@@ -334,12 +476,15 @@ export const AccountSettings = () => {
               <DialogHeader>
                 <DialogTitle>Vô hiệu hóa tài khoản</DialogTitle>
                 <DialogDescription>
-                  Tài khoản của bạn sẽ bị ẩn cho đến khi bạn đăng nhập lại. 
-                  Bạn có chắc muốn tiếp tục?
+                  Tài khoản của bạn sẽ bị ẩn cho đến khi bạn đăng nhập lại. Bạn
+                  có chắc muốn tiếp tục?
                 </DialogDescription>
               </DialogHeader>
               <DialogFooter>
-                <Button variant="outline" onClick={() => setShowDeactivateDialog(false)}>
+                <Button
+                  variant="outline"
+                  onClick={() => setShowDeactivateDialog(false)}
+                >
                   Hủy
                 </Button>
                 <Button variant="destructive" onClick={handleDeactivateAccount}>

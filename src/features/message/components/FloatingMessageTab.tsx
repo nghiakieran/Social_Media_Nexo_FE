@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -6,20 +6,34 @@ import { ChatList } from "./ChatList";
 import { useAppDispatch, useAppSelector } from "@/store";
 import { MessageSquare, X, Edit, Settings, Users, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { openFloatingConversation } from "../messageSlice";
+import { openFloatingConversation, fetchConversations } from "../messageSlice";
 import { ConversationUI } from "../types";
 import { Input } from "@/components/ui/input";
 
 interface FloatingMessageTabProps {
   className?: string;
+  defaultOpen?: boolean;
 }
 
 export const FloatingMessageTab: React.FC<FloatingMessageTabProps> = ({
   className,
+  defaultOpen = false,
 }) => {
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(defaultOpen);
   const [searchQuery, setSearchQuery] = useState("");
   const dispatch = useAppDispatch();
+
+  // Sync with defaultOpen prop
+  useEffect(() => {
+    setIsOpen(defaultOpen);
+  }, [defaultOpen]);
+
+  // Fetch conversations when tab opens
+  useEffect(() => {
+    if (isOpen) {
+      dispatch(fetchConversations({ page: 0, size: 20 }));
+    }
+  }, [isOpen, dispatch]);
 
   const { conversations } = useAppSelector((state) => state.message);
   const totalUnread = conversations.reduce(
@@ -74,7 +88,7 @@ export const FloatingMessageTab: React.FC<FloatingMessageTabProps> = ({
       {}
       <div className="flex items-center justify-between p-4 border-b border-border">
         <div className="flex items-center space-x-2">
-          <h3 className="font-semibold text-lg">Messages</h3>
+          <h3 className="font-semibold text-lg">Tin nhắn</h3>
           {totalUnread > 0 && (
             <Badge variant="destructive" className="h-5 text-xs">
               {totalUnread}
@@ -111,7 +125,7 @@ export const FloatingMessageTab: React.FC<FloatingMessageTabProps> = ({
           <div className="flex items-center space-x-2 mb-2">
             <Users className="h-4 w-4 text-muted-foreground" />
             <span className="text-sm font-medium text-muted-foreground">
-              Active now
+              Đang hoạt động
             </span>
           </div>
           <div className="flex space-x-2">
@@ -137,7 +151,7 @@ export const FloatingMessageTab: React.FC<FloatingMessageTabProps> = ({
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search messages..."
+            placeholder="Tìm kiếm tin nhắn..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-9 h-9"
@@ -165,7 +179,7 @@ export const FloatingMessageTab: React.FC<FloatingMessageTabProps> = ({
             window.location.href = "/messages";
           }}
         >
-          View all messages
+          Xem tất cả tin nhắn
         </Button>
       </div>
     </div>

@@ -10,6 +10,9 @@ import type {
   ReadAllDTO,
   WebSocketErrorResponse,
   PresenceStatusDTO,
+  ReactionUpdateDTO,
+  ReactMessageRequest,
+  EReactionType,
 } from "../types";
 import { ACCESS_TOKEN_STORAGE_KEY } from "@/utils/constants";
 
@@ -17,6 +20,7 @@ type MessageCallback = (message: MessageDTO) => void;
 type TypingCallback = (notification: TypingNotificationDTO) => void;
 type ReadReceiptCallback = (receipt: ReadReceiptDTO) => void;
 type ReadAllCallback = (receipt: ReadAllDTO) => void;
+type ReactionUpdateCallback = (update: ReactionUpdateDTO) => void;
 type ErrorCallback = (error: WebSocketErrorResponse) => void;
 type PresenceCallback = (presence: PresenceStatusDTO) => void;
 
@@ -108,7 +112,8 @@ export class WebSocketService {
     onMessage: MessageCallback,
     onTyping: TypingCallback,
     onReadReceipt: ReadReceiptCallback,
-    onReadAll: ReadAllCallback
+    onReadAll: ReadAllCallback,
+    onReactionUpdate?: ReactionUpdateCallback
   ) {
     if (!this.client?.connected) {
       return;
@@ -148,13 +153,24 @@ export class WebSocketService {
       }
     );
     this.subscriptions.set(`${baseTopic}:read-all`, readAllSub);
+
+    if (onReactionUpdate) {
+      const reactionSub = this.client.subscribe(
+        `${baseTopic}/reactions`,
+        (message: IMessage) => {
+          const data: ReactionUpdateDTO = JSON.parse(message.body);
+          onReactionUpdate(data);
+        }
+      );
+      this.subscriptions.set(`${baseTopic}:reactions`, reactionSub);
+    }
   }
 
   
   unsubscribeFromConversation(conversationId: number) {
     const baseTopic = `/topic/conversation/${conversationId}`;
 
-    ["message", "typing", "read", "read-all"].forEach((type) => {
+    ["message", "typing", "read", "read-all", "reactions"].forEach((type) => {
       const key = `${baseTopic}:${type}`;
       const sub = this.subscriptions.get(key);
       if (sub) {
@@ -270,6 +286,40 @@ export class WebSocketService {
     this.client.publish({
       destination: "/app/chat.read-conversation",
       body: JSON.stringify(request),
+    });
+  }
+
+  // Send reaction via WebSocket
+  sendReaction(messageId: number, reactionType: EReactionType) {
+    if (!this.client?.connected) {
+      throw new Error("WebSocket not connected");
+    }
+
+    const request: ReactMessageRequest = {
+      reactionType,
+    };
+
+    this.client.publish({
+      destination: `/app/chat.react`,
+      body: JSON.stringify({
+        messageId,
+        ...request,
+      }),
+    });
+  }
+
+  // Remove reaction via WebSocket
+  sendRemoveReaction(messageId: number, reactionType: EReactionType) {
+    if (!this.client?.connected) {
+      throw new Error("WebSocket not connected");
+    }
+
+    this.client.publish({
+      destination: `/app/chat.remove-reaction`,
+      body: JSON.stringify({
+        messageId,
+        reactionType,
+      }),
     });
   }
 }

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import {
@@ -67,11 +67,76 @@ export const InstagramChatHeader: React.FC<InstagramChatHeaderProps> = ({
   const [blockDialogOpen, setBlockDialogOpen] = useState(false);
   const [isBlocking, setIsBlocking] = useState(false);
   const [targetUser, setTargetUser] = useState<UserDTO | null>(null);
+  const [currentUserOnlineStatus, setCurrentUserOnlineStatus] = useState<
+    boolean | undefined
+  >(undefined);
+  const [isLoadingOnlineStatus, setIsLoadingOnlineStatus] = useState(true);
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  const otherUser = chat?.participants?.find((p) => p.id !== currentUserId);
-  const shouldShowPresence = otherUser?.onlineStatus !== false; // Hiển thị nếu undefined hoặc true
+  useEffect(() => {
+    const loadCurrentUserOnlineStatus = async () => {
+      console.log("[InstagramChatHeader] Bắt đầu load currentUserOnlineStatus");
+      setIsLoadingOnlineStatus(true);
+      try {
+        const { getCurrentUserProfile } = await import(
+          "@/features/profile/api/profileApi"
+        );
+        const profile = await getCurrentUserProfile();
+        console.log(
+          "[InstagramChatHeader] Loaded profile.onlineStatus:",
+          profile.onlineStatus
+        );
+        setCurrentUserOnlineStatus(profile.onlineStatus);
+      } catch (error) {
+        console.error(
+          "[InstagramChatHeader] Error loading current user online status:",
+          error
+        );
+      } finally {
+        setIsLoadingOnlineStatus(false);
+        console.log(
+          "[InstagramChatHeader] Hoàn thành load currentUserOnlineStatus"
+        );
+      }
+    };
+
+    loadCurrentUserOnlineStatus();
+  }, []);
+
+  const otherUser = useMemo(
+    () => chat?.participants?.find((p) => p.id !== currentUserId),
+    [chat?.participants, currentUserId]
+  );
+
+  // Chỉ hiển thị presence khi:
+  // 1. Đã load xong onlineStatus (isLoadingOnlineStatus = false)
+  // 2. currentUserOnlineStatus !== false (nếu false thì KHÔNG hiển thị)
+  // 3. otherUser?.onlineStatus !== false
+  // Nếu currentUserOnlineStatus === false, thì KHÔNG hiển thị presence (ẩn thời gian hoạt động)
+  const shouldShowPresence = useMemo(() => {
+    const result =
+      !isLoadingOnlineStatus &&
+      currentUserOnlineStatus !== false &&
+      otherUser?.onlineStatus !== false;
+
+    // Debug log - luôn hiển thị để debug
+    console.log("[InstagramChatHeader] shouldShowPresence:", result, {
+      isLoadingOnlineStatus,
+      currentUserOnlineStatus,
+      otherUserOnlineStatus: otherUser?.onlineStatus,
+      lastSeen,
+      chatId: chat?.id,
+    });
+
+    return result;
+  }, [
+    isLoadingOnlineStatus,
+    currentUserOnlineStatus,
+    otherUser?.onlineStatus,
+    lastSeen,
+    chat?.id,
+  ]);
 
   const handleOpenNicknameDialog = async () => {
     if (!chat?.id || !currentUserId) return;
@@ -241,24 +306,24 @@ export const InstagramChatHeader: React.FC<InstagramChatHeaderProps> = ({
   return (
     <div
       className={cn(
-        "flex items-center justify-between p-3 border-b border-border bg-background",
+        "flex items-center justify-between p-2 md:p-3 border-b border-border bg-background",
         className
       )}
     >
-      <div className="flex items-center space-x-3 flex-1 min-w-0">
+      <div className="flex items-center space-x-2 md:space-x-3 flex-1 min-w-0">
         {showBackButton && (
           <Button
             variant="ghost"
             size="icon"
             onClick={onBack}
-            className="shrink-0"
+            className="shrink-0 h-8 w-8 md:h-10 md:w-10"
           >
             <ArrowLeft className="h-4 w-4" />
           </Button>
         )}
 
         <div className="relative shrink-0">
-          <Avatar className="h-8 w-8">
+          <Avatar className="h-8 w-8 md:h-10 md:w-10">
             <AvatarImage src={chat.avatarUrl ?? ""} alt={chat.fullname ?? ""} />
             <AvatarFallback>
               {chat.fullname ? chat.fullname.charAt(0) : "?"}
@@ -274,34 +339,32 @@ export const InstagramChatHeader: React.FC<InstagramChatHeaderProps> = ({
         </div>
 
         <div className="flex-1 min-w-0">
-          <h3 className="font-semibold text-sm truncate">
+          <h3 className="font-semibold text-sm md:text-base truncate">
             {chat.fullname ?? ""}
           </h3>
-          <p className="text-xs text-muted-foreground">
-            {chat.blockedByMe ? (
+          {chat.blockedByMe ? (
+            <p className="text-xs text-muted-foreground">
               <span className="text-destructive font-medium">
                 Bạn đã chặn người này
               </span>
-            ) : shouldShowPresence ? (
-              isOnline ? (
-                "Đang hoạt động"
-              ) : lastSeen && formatLastSeen(lastSeen) ? (
-                formatLastSeen(lastSeen)
-              ) : (
-                ""
-              )
-            ) : (
-              ""
-            )}
-          </p>
+            </p>
+          ) : shouldShowPresence ? (
+            <p className="text-xs text-muted-foreground">
+              {isOnline
+                ? "Đang hoạt động"
+                : lastSeen && formatLastSeen(lastSeen)
+                ? formatLastSeen(lastSeen)
+                : null}
+            </p>
+          ) : null}
         </div>
       </div>
 
-      <div className="flex items-center space-x-1 shrink-0">
+      <div className="flex items-center space-x-0.5 md:space-x-1 shrink-0">
         <Button
           variant="ghost"
           size="icon"
-          className="h-8 w-8"
+          className="h-8 w-8 md:h-9 md:w-9"
           onClick={() => onCall?.("voice")}
         >
           <Phone className="h-4 w-4" />
@@ -310,7 +373,7 @@ export const InstagramChatHeader: React.FC<InstagramChatHeaderProps> = ({
         <Button
           variant="ghost"
           size="icon"
-          className="h-8 w-8"
+          className="h-8 w-8 md:h-9 md:w-9"
           onClick={() => onCall?.("video")}
         >
           <Video className="h-4 w-4" />
@@ -318,7 +381,7 @@ export const InstagramChatHeader: React.FC<InstagramChatHeaderProps> = ({
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-8 w-8">
+            <Button variant="ghost" size="icon" className="h-8 w-8 md:h-9 md:w-9">
               <MoreVertical className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
