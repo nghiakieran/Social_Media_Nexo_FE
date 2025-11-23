@@ -7,6 +7,7 @@ import {
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { EReactionType } from "../types";
+import { useAppSelector } from "@/store";
 
 interface ReactionMessageProps {
   messageId: string;
@@ -43,7 +44,11 @@ export const ReactionMessage: React.FC<ReactionMessageProps> = ({
   className,
   trigger,
 }) => {
-  const currentUserReaction = reactions["currentUser"];
+  const { user } = useAppSelector((state) => state.auth);
+  // Find current user's reaction
+  const currentUserReaction = user?.id
+    ? reactions[user.id.toString()]
+    : reactions["currentUser"];
   const [open, setOpen] = useState(false);
 
   return (
@@ -69,8 +74,9 @@ export const ReactionMessage: React.FC<ReactionMessageProps> = ({
                 variant="ghost"
                 size="sm"
                 className={cn(
-                  "h-10 w-10 p-0 hover:bg-muted",
-                  currentUserReaction === reactionType && "bg-muted"
+                  "h-10 w-10 p-0 hover:bg-muted transition-all",
+                  currentUserReaction === reactionType && 
+                    "bg-primary/10 border-2 border-primary scale-110"
                 )}
                 onClick={() => {
                   if (currentUserReaction === reactionType) {

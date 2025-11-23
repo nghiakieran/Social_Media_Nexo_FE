@@ -198,12 +198,12 @@ export const MessageComposer: React.FC<MessageComposerProps> = ({
           </div>
         </div>
       )}
-      <div className="p-4">
-        <div className="flex items-end space-x-2">
+      <div className="p-2 md:p-4">
+        <div className="flex items-end space-x-1 md:space-x-2">
           {}
           <Popover>
             <PopoverTrigger asChild>
-              <Button variant="ghost" size="icon" className="shrink-0">
+              <Button variant="ghost" size="icon" className="shrink-0 h-8 w-8 md:h-10 md:w-10">
                 <Smile className="h-4 w-4" />
               </Button>
             </PopoverTrigger>
@@ -232,7 +232,7 @@ export const MessageComposer: React.FC<MessageComposerProps> = ({
               onChange={handleInputChange}
               onKeyDown={handleKeyDown}
               placeholder={placeholder}
-              className="min-h-[40px] max-h-[120px] resize-none pr-12 py-2"
+              className="min-h-[36px] md:min-h-[40px] max-h-[120px] resize-none pr-10 md:pr-12 py-2 text-sm md:text-base"
               rows={1}
             />
 
@@ -286,7 +286,7 @@ export const MessageComposer: React.FC<MessageComposerProps> = ({
             <Button
               onClick={handleSend}
               size="icon"
-              className="shrink-0 bg-primary hover:bg-primary/90"
+              className="shrink-0 h-8 w-8 md:h-10 md:w-10 bg-primary hover:bg-primary/90"
             >
               <Send className="h-4 w-4" />
             </Button>
@@ -295,7 +295,7 @@ export const MessageComposer: React.FC<MessageComposerProps> = ({
               onClick={toggleRecording}
               size="icon"
               variant={isRecording ? "destructive" : "ghost"}
-              className={cn("shrink-0", isRecording && "animate-pulse")}
+              className={cn("shrink-0 h-8 w-8 md:h-10 md:w-10", isRecording && "animate-pulse")}
             >
               <Mic className="h-4 w-4" />
             </Button>

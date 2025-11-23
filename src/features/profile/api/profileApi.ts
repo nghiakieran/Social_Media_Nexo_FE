@@ -267,3 +267,31 @@ export const unblockUser = async (username: string): Promise<void> => {
 export const deleteAvatar = async (): Promise<void> => {
   await api.delete("/users/profile/avatar");
 };
+
+/**
+ * Change password
+ * @param oldPassword - Current password
+ * @param newPassword - New password
+ * @param confirmNewPassword - Confirm new password
+ */
+export interface ChangePasswordRequest {
+  oldPassword: string;
+  newPassword: string;
+  confirmNewPassword: string;
+}
+
+export interface ChangePasswordResponse {
+  status: number;
+  message: string;
+  data?: unknown;
+}
+
+export const changePassword = async (
+  request: ChangePasswordRequest
+): Promise<ChangePasswordResponse> => {
+  const response = await api.post<ChangePasswordResponse>(
+    "/users/change-password",
+    request
+  );
+  return response.data;
+};

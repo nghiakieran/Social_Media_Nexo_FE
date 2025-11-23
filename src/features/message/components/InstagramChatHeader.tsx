@@ -306,24 +306,24 @@ export const InstagramChatHeader: React.FC<InstagramChatHeaderProps> = ({
   return (
     <div
       className={cn(
-        "flex items-center justify-between p-3 border-b border-border bg-background",
+        "flex items-center justify-between p-2 md:p-3 border-b border-border bg-background",
         className
       )}
     >
-      <div className="flex items-center space-x-3 flex-1 min-w-0">
+      <div className="flex items-center space-x-2 md:space-x-3 flex-1 min-w-0">
         {showBackButton && (
           <Button
             variant="ghost"
             size="icon"
             onClick={onBack}
-            className="shrink-0"
+            className="shrink-0 h-8 w-8 md:h-10 md:w-10"
           >
             <ArrowLeft className="h-4 w-4" />
           </Button>
         )}
 
         <div className="relative shrink-0">
-          <Avatar className="h-8 w-8">
+          <Avatar className="h-8 w-8 md:h-10 md:w-10">
             <AvatarImage src={chat.avatarUrl ?? ""} alt={chat.fullname ?? ""} />
             <AvatarFallback>
               {chat.fullname ? chat.fullname.charAt(0) : "?"}
@@ -339,7 +339,7 @@ export const InstagramChatHeader: React.FC<InstagramChatHeaderProps> = ({
         </div>
 
         <div className="flex-1 min-w-0">
-          <h3 className="font-semibold text-sm truncate">
+          <h3 className="font-semibold text-sm md:text-base truncate">
             {chat.fullname ?? ""}
           </h3>
           {chat.blockedByMe ? (
@@ -360,11 +360,11 @@ export const InstagramChatHeader: React.FC<InstagramChatHeaderProps> = ({
         </div>
       </div>
 
-      <div className="flex items-center space-x-1 shrink-0">
+      <div className="flex items-center space-x-0.5 md:space-x-1 shrink-0">
         <Button
           variant="ghost"
           size="icon"
-          className="h-8 w-8"
+          className="h-8 w-8 md:h-9 md:w-9"
           onClick={() => onCall?.("voice")}
         >
           <Phone className="h-4 w-4" />
@@ -373,7 +373,7 @@ export const InstagramChatHeader: React.FC<InstagramChatHeaderProps> = ({
         <Button
           variant="ghost"
           size="icon"
-          className="h-8 w-8"
+          className="h-8 w-8 md:h-9 md:w-9"
           onClick={() => onCall?.("video")}
         >
           <Video className="h-4 w-4" />
@@ -381,7 +381,7 @@ export const InstagramChatHeader: React.FC<InstagramChatHeaderProps> = ({
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-8 w-8">
+            <Button variant="ghost" size="icon" className="h-8 w-8 md:h-9 md:w-9">
               <MoreVertical className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>

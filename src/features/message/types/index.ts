@@ -87,6 +87,27 @@ export interface ReactMessageRequest {
   reactionType: EReactionType;
 }
 
+// Aggregated reaction from backend (real-time format)
+export interface AggregatedReactionDTO {
+  reactionType: EReactionType;
+  count: number;
+  userIds: number[];
+}
+
+// ReactionUpdateDTO from backend (real-time format)
+export interface ReactionUpdateDTO {
+  messageId: number;
+  reactions: AggregatedReactionDTO[];
+}
+
+// Legacy format (for backward compatibility)
+export interface ReactionUpdateLegacyDTO {
+  messageId: number;
+  conversationId: number;
+  reaction: ReactionDTO;
+  action: "ADD" | "REMOVE";
+}
+
 export interface TypingNotificationDTO {
   conversationId: number;
   userId?: number;

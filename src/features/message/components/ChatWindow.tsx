@@ -69,6 +69,8 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
   const messageRefs = useRef<Map<number, HTMLDivElement>>(new Map());
   const observerRef = useRef<IntersectionObserver | null>(null);
   const markedAsReadRef = useRef<Set<number>>(new Set());
+  const topSentinelRef = useRef<HTMLDivElement>(null);
+  const loadMoreObserverRef = useRef<IntersectionObserver | null>(null);
 
   const [forwardDialog, setForwardDialog] = useState<{
     open: boolean;
@@ -83,15 +85,52 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
     loading: boolean;
   }>({ open: false, messageId: "", reactions: [], loading: false });
 
+  const [reactionsCount, setReactionsCount] = useState<{
+    [messageId: number]: number;
+  }>({});
+
+  // Clear reactionsCount when message.reactions changes (optimistic updates)
+  useEffect(() => {
+    messages.forEach((message) => {
+      if (message.reactions && message.reactions.length > 0) {
+        // Clear cached count when reactions are updated
+        setReactionsCount((prev) => {
+          const newCount = { ...prev };
+          delete newCount[message.id];
+          return newCount;
+        });
+      }
+    });
+  }, [messages]);
+
   const { user } = useAppSelector((state) => state.auth);
 
   const prevScrollHeightRef = useRef<number>(0);
+  const prevScrollTopRef = useRef<number>(0);
   const isNearBottomRef = useRef<boolean>(true);
+  const hasScrolledToBottomRef = useRef<boolean>(false);
+  const prevChatIdRef = useRef<number | null>(null);
+  const prevMessagesLengthRef = useRef<number>(0);
+  const isLoadingMoreRef = useRef<boolean>(false);
+  const lastLoadMoreScrollTopRef = useRef<number>(-1);
 
+  // Reset scroll flag when chat changes
+  useEffect(() => {
+    if (prevChatIdRef.current !== chat.id) {
+      hasScrolledToBottomRef.current = false;
+      prevChatIdRef.current = chat.id;
+      prevMessagesLengthRef.current = 0;
+      isLoadingMoreRef.current = false;
+      lastLoadMoreScrollTopRef.current = -1;
+    }
+  }, [chat.id]);
+
+  // Save scroll position before messages change
   useLayoutEffect(() => {
     const scrollArea = scrollAreaRef.current;
     if (scrollArea) {
       prevScrollHeightRef.current = scrollArea.scrollHeight;
+      prevScrollTopRef.current = scrollArea.scrollTop;
 
       const distanceFromBottom =
         scrollArea.scrollHeight -
@@ -101,39 +140,123 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
     }
   }, [messages]);
 
+  // Adjust scroll position when messages change
   useLayoutEffect(() => {
     const scrollArea = scrollAreaRef.current;
     if (!scrollArea) return;
 
     const currentScrollHeight = scrollArea.scrollHeight;
     const prevScrollHeight = prevScrollHeightRef.current;
+    const prevScrollTop = prevScrollTopRef.current;
+    const messagesLengthChanged =
+      messages.length !== prevMessagesLengthRef.current;
 
-    if (currentScrollHeight > prevScrollHeight && scrollArea.scrollTop < 200) {
+    // Update messages length ref
+    prevMessagesLengthRef.current = messages.length;
+
+    // If loading more messages at the top (scrollHeight increased and we're near top)
+    if (
+      messagesLengthChanged &&
+      currentScrollHeight > prevScrollHeight &&
+      prevScrollTop < 500 && // Near top of scroll
+      !isNearBottomRef.current // Not near bottom
+    ) {
+      // Calculate the height difference (new messages added at top)
       const heightDifference = currentScrollHeight - prevScrollHeight;
+
+      // Maintain scroll position by adjusting scrollTop
+      // This keeps the user's view stable when new messages are added above
+      // Sử dụng double requestAnimationFrame để đảm bảo DOM đã render xong
       requestAnimationFrame(() => {
-        if (scrollArea) {
-          scrollArea.scrollTop = scrollArea.scrollTop + heightDifference;
-        }
+        requestAnimationFrame(() => {
+          if (scrollArea) {
+            const newScrollTop = prevScrollTop + heightDifference;
+            scrollArea.scrollTop = newScrollTop;
+
+            // Sau khi maintain scroll position, kiểm tra xem có cần load tiếp không
+            // Nếu scrollTop vẫn còn nhỏ (gần top) và có thêm messages, trigger load tiếp
+            setTimeout(() => {
+              if (scrollArea && scrollArea.scrollTop < 200) {
+                // Kiểm tra xem sentinel có trong viewport không
+                if (topSentinelRef.current && loadMoreObserverRef.current) {
+                  // Force check intersection
+                  const rect = topSentinelRef.current.getBoundingClientRect();
+                  const rootRect = scrollArea.getBoundingClientRect();
+                  const isVisible =
+                    rect.top < rootRect.bottom + 150 && // rootMargin: 150px
+                    rect.bottom > rootRect.top - 150;
+
+                  if (
+                    isVisible &&
+                    !isLoadingMoreRef.current &&
+                    !isLoadingMore &&
+                    hasMoreMessages &&
+                    onLoadMoreMessages
+                  ) {
+                    isLoadingMoreRef.current = true;
+                    lastLoadMoreScrollTopRef.current = scrollArea.scrollTop;
+                    onLoadMoreMessages();
+
+                    setTimeout(() => {
+                      isLoadingMoreRef.current = false;
+                    }, 1000);
+                  } else {
+                    isLoadingMoreRef.current = false;
+                  }
+                } else {
+                  isLoadingMoreRef.current = false;
+                }
+              } else {
+                isLoadingMoreRef.current = false;
+              }
+            }, 100);
+          }
+        });
       });
-    } else if (isNearBottomRef.current) {
+    }
+  
+    else if (
+      messagesLengthChanged &&
+      currentScrollHeight > prevScrollHeight &&
+      (isNearBottomRef.current ||
+        !hasScrolledToBottomRef.current ||
+        prevScrollTop > 100)
+    ) {
+      // Scroll to bottom for new messages
       requestAnimationFrame(() => {
         if (scrollArea) {
-          scrollArea.scrollTop = currentScrollHeight;
+          scrollArea.scrollTop = scrollArea.scrollHeight;
         }
       });
     }
-  }, [messages]);
+  }, [messages, hasMoreMessages, isLoadingMore, onLoadMoreMessages]);
 
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
     const target = e.currentTarget;
+    const scrollTop = target.scrollTop;
 
-    if (
-      target.scrollTop <= 200 &&
+    const distanceFromTop = scrollTop;
+
+    const shouldLoadMore =
+      distanceFromTop <= 50 &&
+      !isLoadingMoreRef.current &&
       !isLoadingMore &&
       hasMoreMessages &&
-      onLoadMoreMessages
-    ) {
+      onLoadMoreMessages &&
+      (lastLoadMoreScrollTopRef.current === -1 ||
+        Math.abs(scrollTop - lastLoadMoreScrollTopRef.current) > 15);
+
+    if (shouldLoadMore) {
+      isLoadingMoreRef.current = true;
+      lastLoadMoreScrollTopRef.current = scrollTop;
       onLoadMoreMessages();
+
+      // Reset flag sau một khoảng thời gian để cho phép load tiếp
+      setTimeout(() => {
+        if (!isLoadingMore) {
+          isLoadingMoreRef.current = false;
+        }
+      }, 800);
     }
   };
 
@@ -176,12 +299,164 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
     markedAsReadRef.current.clear();
   }, [chat.id]);
 
+  // IntersectionObserver để detect khi scroll đến top và load more
+  useEffect(() => {
+    // Disconnect observer cũ nếu có
+    if (loadMoreObserverRef.current) {
+      loadMoreObserverRef.current.disconnect();
+      loadMoreObserverRef.current = null;
+    }
+
+    // Reset flags khi chat thay đổi
+    isLoadingMoreRef.current = false;
+    lastLoadMoreScrollTopRef.current = -1;
+
+    if (!topSentinelRef.current || !onLoadMoreMessages || !hasMoreMessages) {
+      return;
+    }
+
+    // Tạo observer mới với delay nhỏ để đảm bảo DOM đã render
+    const timeoutId = setTimeout(() => {
+      if (!topSentinelRef.current || !scrollAreaRef.current) return;
+
+      loadMoreObserverRef.current = new IntersectionObserver(
+        (entries) => {
+          const entry = entries[0];
+          // Trigger khi sentinel bắt đầu xuất hiện hoặc vẫn đang trong viewport
+          if (
+            entry.isIntersecting &&
+            !isLoadingMoreRef.current &&
+            !isLoadingMore &&
+            hasMoreMessages &&
+            onLoadMoreMessages
+          ) {
+            const scrollArea = scrollAreaRef.current;
+            if (!scrollArea) return;
+
+            const currentScrollTop = scrollArea.scrollTop;
+
+            // Chỉ trigger nếu scroll position đã thay đổi đáng kể từ lần load trước
+            // hoặc đây là lần đầu tiên
+            const shouldTrigger =
+              lastLoadMoreScrollTopRef.current === -1 ||
+              Math.abs(currentScrollTop - lastLoadMoreScrollTopRef.current) >
+                10 ||
+              currentScrollTop < 100; // Nếu đang ở rất gần top, luôn trigger
+
+            if (shouldTrigger) {
+              isLoadingMoreRef.current = true;
+              lastLoadMoreScrollTopRef.current = currentScrollTop;
+              onLoadMoreMessages();
+
+              // Reset flag sau một khoảng thời gian
+              // Nhưng không reset ngay để tránh trigger nhiều lần
+              setTimeout(() => {
+                // Chỉ reset nếu không còn đang loading
+                if (!isLoadingMore) {
+                  isLoadingMoreRef.current = false;
+                }
+              }, 800);
+            }
+          }
+        },
+        {
+          root: scrollAreaRef.current,
+          rootMargin: "200px", // Trigger sớm hơn 200px trước khi đến top để mượt mà hơn
+          threshold: [0, 0.1, 0.5, 1], // Trigger ở nhiều threshold để đảm bảo detect được
+        }
+      );
+
+      if (topSentinelRef.current && loadMoreObserverRef.current) {
+        loadMoreObserverRef.current.observe(topSentinelRef.current);
+      }
+    }, 100);
+
+    return () => {
+      clearTimeout(timeoutId);
+      if (loadMoreObserverRef.current) {
+        loadMoreObserverRef.current.disconnect();
+        loadMoreObserverRef.current = null;
+      }
+    };
+  }, [onLoadMoreMessages, hasMoreMessages, isLoadingMore, chat.id]);
+
+  // Tự động check và load tiếp sau khi loading xong nếu vẫn ở gần top
+  useEffect(() => {
+    // Chỉ check khi vừa finish loading (isLoadingMore chuyển từ true sang false)
+    if (isLoadingMore || !hasMoreMessages || !onLoadMoreMessages) {
+      return;
+    }
+
+    const scrollArea = scrollAreaRef.current;
+    if (!scrollArea || !topSentinelRef.current) {
+      return;
+    }
+
+    // Delay một chút để đảm bảo DOM đã update
+    const timeoutId = setTimeout(() => {
+      if (!scrollArea || !topSentinelRef.current) return;
+
+      const scrollTop = scrollArea.scrollTop;
+
+      // Nếu vẫn ở gần top và chưa load gần đây
+      if (scrollTop < 200 && !isLoadingMoreRef.current) {
+        // Kiểm tra xem sentinel có trong viewport không
+        const rect = topSentinelRef.current.getBoundingClientRect();
+        const rootRect = scrollArea.getBoundingClientRect();
+        const isVisible =
+          rect.top < rootRect.bottom + 200 && // rootMargin: 200px
+          rect.bottom > rootRect.top - 200;
+
+        if (isVisible) {
+          // Trigger load more tiếp
+          isLoadingMoreRef.current = true;
+          lastLoadMoreScrollTopRef.current = scrollTop;
+          onLoadMoreMessages();
+
+          setTimeout(() => {
+            if (!isLoadingMore) {
+              isLoadingMoreRef.current = false;
+            }
+          }, 800);
+        }
+      }
+    }, 200);
+
+    return () => clearTimeout(timeoutId);
+  }, [isLoadingMore, hasMoreMessages, onLoadMoreMessages]);
+
+  // Scroll to bottom when chat changes
   useEffect(() => {
     const scrollArea = scrollAreaRef.current;
     if (scrollArea) {
-      scrollArea.scrollTop = scrollArea.scrollHeight;
+      hasScrolledToBottomRef.current = false;
+      // Use requestAnimationFrame and setTimeout to ensure DOM is fully rendered
+      requestAnimationFrame(() => {
+        setTimeout(() => {
+          if (scrollArea) {
+            scrollArea.scrollTop = scrollArea.scrollHeight;
+            hasScrolledToBottomRef.current = true;
+          }
+        }, 100);
+      });
     }
   }, [chat.id]);
+
+  // Scroll to bottom when messages are first loaded for a conversation
+  useEffect(() => {
+    const scrollArea = scrollAreaRef.current;
+    if (scrollArea && messages.length > 0 && !hasScrolledToBottomRef.current) {
+      // Wait for DOM to render messages
+      requestAnimationFrame(() => {
+        setTimeout(() => {
+          if (scrollArea) {
+            scrollArea.scrollTop = scrollArea.scrollHeight;
+            hasScrolledToBottomRef.current = true;
+          }
+        }, 50);
+      });
+    }
+  }, [messages.length, chat.id]);
 
   const isCurrentUser = (senderId: string | number) =>
     user && String(senderId) === String(user.id);
@@ -213,6 +488,21 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
 
   const lastOwnMessageId = getLastOwnMessageId();
 
+  const fetchReactionsCount = async (messageId: number) => {
+    try {
+      const { messageApi } = await import("../services/messageApi");
+      const response = await messageApi.getReactions(messageId);
+      const count = response.data?.length || 0;
+      setReactionsCount((prev) => ({
+        ...prev,
+        [messageId]: count,
+      }));
+      return count;
+    } catch (error) {
+      return null;
+    }
+  };
+
   const handleOpenReactionsDialog = async (messageId: string) => {
     setReactionsDialog({
       open: true,
@@ -231,8 +521,13 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
         reactions: response.data || [],
         loading: false,
       });
+
+      const count = response.data?.length || 0;
+      setReactionsCount((prev) => ({
+        ...prev,
+        [Number(messageId)]: count,
+      }));
     } catch (error) {
-      console.error("Error fetching reactions:", error);
       setReactionsDialog({
         open: true,
         messageId,
@@ -253,13 +548,26 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
 
   return (
     <>
-      <div className={cn("flex flex-col h-full overflow-hidden", className)}>
+      <div
+        className={cn("flex flex-col h-full overflow-hidden w-full", className)}
+        data-chat-id={chat.id}
+      >
         <div
-          className="flex-1 overflow-y-auto p-4"
+          className="flex-1 overflow-y-auto overflow-x-hidden p-2 md:p-4 w-full"
           ref={scrollAreaRef}
           onScroll={handleScroll}
+          data-scroll-area
         >
           <div className="space-y-4">
+            {/* Sentinel element để detect khi scroll đến top */}
+            {hasMoreMessages && (
+              <div
+                ref={topSentinelRef}
+                className="h-1 w-full"
+                aria-hidden="true"
+              />
+            )}
+
             {/* Spinner hiển thị khi đang load tin cũ */}
             {isLoadingMore && (
               <div className="flex justify-center py-2 w-full">
@@ -320,7 +628,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
 
                     <div
                       className={cn(
-                        "flex flex-col gap-1 max-w-[70%]",
+                        "flex flex-col gap-1 max-w-[85%] md:max-w-[70%] w-full",
                         isOwn ? "items-end" : "items-start"
                       )}
                     >
@@ -333,7 +641,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                         {/* Message Bubble */}
                         <div
                           className={cn(
-                            "px-4 py-2 rounded-2xl relative break-words text-sm shadow-sm",
+                            "px-4 py-2 rounded-2xl relative break-words text-sm shadow-sm max-w-full",
                             isOwn
                               ? "bg-primary text-primary-foreground rounded-br-sm"
                               : "bg-muted text-foreground rounded-bl-sm border border-border/50"
@@ -343,7 +651,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                           {message.replyToMessage && (
                             <div
                               className={cn(
-                                "mb-2 px-3 py-2 rounded-lg border-l-2 text-xs",
+                                "mb-2 px-3 py-2 rounded-lg border-l-2 text-xs max-w-full",
                                 isOwn
                                   ? "bg-primary-foreground/10 border-primary-foreground/30 text-primary-foreground/80"
                                   : "bg-background/50 border-border text-muted-foreground"
@@ -352,7 +660,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                               <div className="font-medium text-xs mb-1">
                                 Trả lời {message.replyToMessage.sender.fullName}
                               </div>
-                              <div className="truncate">
+                              <div className="break-words line-clamp-3 overflow-hidden">
                                 {message.replyToMessage.messageType === "IMAGE"
                                   ? "📷 Hình ảnh"
                                   : message.replyToMessage.content}
@@ -400,76 +708,61 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                           </div>
                         </div>
 
-                        {/* Reaction Bar (Hiển thị khi hover) */}
                         <div
                           className={cn(
-                            "absolute top-1/2 -translate-y-1/2 opacity-0 group-hover/msg:opacity-100 transition-opacity z-10",
-                            isOwn ? "-left-14" : "-right-14"
+                            "absolute top-1/2 -translate-y-1/2 opacity-0 group-hover/msg:opacity-100 transition-all duration-200 z-10 flex items-center gap-1 px-2 py-1 bg-background/95 backdrop-blur-sm rounded-full shadow-sm border border-border/50",
+                            isOwn
+                              ? "-left-12 md:-left-20"
+                              : "-right-12 md:-right-20"
                           )}
                         >
-                          <ReactionMessage
-                            messageId={String(message.id)}
-                            reactions={message.reactions.reduce(
-                              (acc, r) => ({
-                                ...acc,
-                                [r.userId]: r.reactionType,
-                              }),
-                              {}
-                            )}
-                            onAddReaction={(type) =>
-                              onAddReaction(String(message.id), type)
-                            }
-                            onRemoveReaction={(type) =>
-                              onRemoveReaction(String(message.id), type)
-                            }
-                          />
-                        </div>
+                          {/* Reaction Bar */}
+                          <div className="flex items-center">
+                            <ReactionMessage
+                              messageId={String(message.id)}
+                              reactions={message.reactions.reduce(
+                                (acc, r) => ({
+                                  ...acc,
+                                  [r.userId]: r.reactionType,
+                                }),
+                                {}
+                              )}
+                              onAddReaction={(type) =>
+                                onAddReaction(String(message.id), type)
+                              }
+                              onRemoveReaction={(type) =>
+                                onRemoveReaction(String(message.id), type)
+                              }
+                              trigger={
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 rounded-full hover:bg-primary/10 hover:text-primary transition-colors"
+                                >
+                                  <span className="text-sm">😊</span>
+                                </Button>
+                              }
+                            />
+                          </div>
 
-                        {/* Menu Dropdown */}
-                        <div
-                          className={cn(
-                            "absolute top-1/2 -translate-y-1/2 opacity-0 group-hover/msg:opacity-100 transition-opacity z-10",
-                            isOwn ? "-left-24" : "-right-24"
-                          )}
-                        >
+                          {/* Menu Dropdown */}
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                className="h-8 w-8 rounded-full hover:bg-muted"
+                                className="h-8 w-8 rounded-full hover:bg-primary/10 hover:text-primary transition-colors"
                               >
                                 <MoreVertical className="h-4 w-4" />
                               </Button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent>
+                            <DropdownMenuContent
+                              align={isOwn ? "end" : "start"}
+                            >
                               <DropdownMenuItem
                                 onClick={() => {
-                                  console.log(
-                                    "Reply clicked for message:",
-                                    message.id
-                                  );
-                                  console.log(
-                                    "Calling onReplyToMessage with:",
-                                    message
-                                  );
-                                  console.log(
-                                    "onReplyToMessage function:",
-                                    onReplyToMessage
-                                  );
-                                  console.log(
-                                    "onReplyToMessage type:",
-                                    typeof onReplyToMessage
-                                  );
                                   if (onReplyToMessage) {
                                     onReplyToMessage(message);
-                                    console.log(
-                                      "onReplyToMessage called successfully"
-                                    );
-                                  } else {
-                                    console.error(
-                                      "onReplyToMessage is not a function!"
-                                    );
                                   }
                                 }}
                               >
@@ -511,47 +804,66 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                         </div>
 
                         {/* Reactions Display */}
-                        {message.reactions?.length > 0 && (
-                          <button
-                            className={cn(
-                              "absolute -bottom-2 translate-y-full flex flex-row items-center gap-0.5 border rounded-full px-2 py-1 bg-background shadow-sm hover:scale-105 transition-transform cursor-pointer",
-                              isOwn ? "right-0" : "left-0"
-                            )}
-                            onClick={() =>
-                              handleOpenReactionsDialog(String(message.id))
-                            }
-                          >
-                            {Object.keys(
-                              message.reactions.reduce((acc, r) => {
-                                acc[r.reactionType] = true;
-                                return acc;
-                              }, {} as { [reactionType: string]: boolean })
-                            ).map((reactionType) => {
-                              const emoji =
-                                reactionType === "LIKE"
-                                  ? "👍"
-                                  : reactionType === "LOVE"
-                                  ? "❤️"
-                                  : reactionType === "HAHA"
-                                  ? "😂"
-                                  : reactionType === "WOW"
-                                  ? "😮"
-                                  : reactionType === "SAD"
-                                  ? "😢"
-                                  : reactionType === "ANGRY"
-                                  ? "😡"
-                                  : "🔥";
-                              return (
-                                <span key={reactionType} className="text-sm">
-                                  {emoji}
-                                </span>
-                              );
-                            })}
-                            <span className="text-xs text-muted-foreground ml-1">
-                              {message.reactions.length}
-                            </span>
-                          </button>
-                        )}
+                        {(() => {
+                          const reactionsLength =
+                            message.reactions?.length ?? 0;
+                          const apiCount = reactionsCount[message.id];
+                          const displayCount =
+                            message.reactions !== undefined &&
+                            message.reactions !== null
+                              ? reactionsLength
+                              : apiCount !== undefined
+                              ? apiCount
+                              : 0;
+                          const hasReactions = displayCount > 0;
+
+                          return hasReactions ? (
+                            <button
+                              className={cn(
+                                "absolute -bottom-2 translate-y-full flex flex-row items-center gap-0.5 border rounded-full px-2 py-1 bg-background shadow-sm hover:scale-105 transition-transform cursor-pointer",
+                                isOwn ? "right-0" : "left-0"
+                              )}
+                              onClick={() =>
+                                handleOpenReactionsDialog(String(message.id))
+                              }
+                              onMouseEnter={() => {
+                                if (reactionsCount[message.id] === undefined) {
+                                  fetchReactionsCount(message.id);
+                                }
+                              }}
+                            >
+                              {Object.keys(
+                                message.reactions.reduce((acc, r) => {
+                                  acc[r.reactionType] = true;
+                                  return acc;
+                                }, {} as { [reactionType: string]: boolean })
+                              ).map((reactionType) => {
+                                const emoji =
+                                  reactionType === "LIKE"
+                                    ? "👍"
+                                    : reactionType === "LOVE"
+                                    ? "❤️"
+                                    : reactionType === "HAHA"
+                                    ? "😂"
+                                    : reactionType === "WOW"
+                                    ? "😮"
+                                    : reactionType === "SAD"
+                                    ? "😢"
+                                    : reactionType === "ANGRY"
+                                    ? "😡"
+                                    : "🔥";
+                                return (
+                                  <span key={reactionType} className="text-sm">
+                                    {emoji}
+                                  </span>
+                                );
+                              })}
+                              <span className="text-xs text-muted-foreground ml-1">
+                                {displayCount}
+                              </span>
+                            </button>
+                          ) : null;
+                        })()}
                       </div>
                     </div>
                   </div>

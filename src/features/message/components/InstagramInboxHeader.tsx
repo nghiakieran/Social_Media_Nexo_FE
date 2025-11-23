@@ -86,11 +86,11 @@ export const InstagramInboxHeader: React.FC<InstagramInboxHeaderProps> = ({
   };
 
   return (
-    <div className={cn("p-4 border-b border-border bg-background", className)}>
+    <div className={cn("p-2 md:p-4 border-b border-border bg-background", className)}>
       {}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center space-x-2">
-          <h1 className="text-xl font-semibold">
+      <div className="flex items-center justify-between mb-2 md:mb-4">
+        <div className="flex items-center space-x-1 md:space-x-2">
+          <h1 className="text-lg md:text-xl font-semibold">
             {activeView === "requests" ? "Yêu cầu nhắn tin" : "Tin nhắn"}
           </h1>
           <DropdownMenu>
@@ -112,12 +112,12 @@ export const InstagramInboxHeader: React.FC<InstagramInboxHeaderProps> = ({
           </DropdownMenu>
         </div>
 
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-1 md:space-x-2">
           <Button
             variant="ghost"
             size="icon"
             onClick={() => setSettingsOpen(true)}
-            className="h-8 w-8"
+            className="h-8 w-8 md:h-9 md:w-9"
           >
             <Settings className="h-4 w-4" />
           </Button>
@@ -126,12 +126,12 @@ export const InstagramInboxHeader: React.FC<InstagramInboxHeaderProps> = ({
 
       {}
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Search className="absolute left-2 md:left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
           placeholder="Tìm kiếm cuộc trò chuyện..."
           value={searchQuery}
           onChange={(e) => onSearchChange(e.target.value)}
-          className="pl-10 bg-muted border-0 rounded-xl h-9"
+          className="pl-8 md:pl-10 bg-muted border-0 rounded-xl h-8 md:h-9 text-sm md:text-base"
         />
       </div>
 

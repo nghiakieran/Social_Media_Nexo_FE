@@ -11,8 +11,6 @@ import {
   setActiveConversation,
   addMessage,
   addMessageWithUnreadUpdate,
-  addReaction,
-  removeReaction,
   setMessages,
   handleReadAll,
   handleTypingNotification,
@@ -20,6 +18,9 @@ import {
   updateMessagesPagination,
   setReplyingTo,
   clearReplyingTo,
+  updateMessageReactionsFromAggregated,
+  addReaction,
+  removeReaction,
 } from "../messageSlice";
 import {
   MessageDTO,
@@ -27,6 +28,7 @@ import {
   EReactionType,
   ReadAllDTO,
   TypingNotificationDTO,
+  ReactionUpdateDTO,
 } from "../types";
 
 export const ChatPage: React.FC = () => {
@@ -34,13 +36,16 @@ export const ChatPage: React.FC = () => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
 
-  const { conversations, messages, typingUsers, replyingTo } = useAppSelector(
-    (state) => state.message
-  );
+  const {
+    conversations,
+    messages: allMessages,
+    typingUsers,
+    replyingTo,
+  } = useAppSelector((state) => state.message);
   const { user } = useAppSelector((state) => state.auth);
 
   const currentChat = conversations.find((conv) => conv.id === Number(chatId));
-  const currentMessages = chatId ? messages[Number(chatId)] || [] : [];
+  const currentMessages = chatId ? allMessages[Number(chatId)] || [] : [];
 
   const [currentPage, setCurrentPage] = React.useState(0);
   const [hasMoreMessages, setHasMoreMessages] = React.useState(true);
@@ -77,6 +82,54 @@ export const ChatPage: React.FC = () => {
     },
     onReadAll: (readAllEvent: ReadAllDTO) => {
       dispatch(handleReadAll({ ...readAllEvent, currentUserId: user.id }));
+    },
+    onReactionUpdate: (update: ReactionUpdateDTO) => {
+      // Check if it's the new aggregated format (has reactions array)
+      if ("reactions" in update && Array.isArray(update.reactions)) {
+        // New format: aggregated reactions from backend
+        // Find conversationId from messages if not in update
+        let conversationId = chatId ? Number(chatId) : null;
+        if (!conversationId) {
+          // Try to find from messages
+          const foundConvId = Object.keys(allMessages).find((convId) =>
+            allMessages[Number(convId)]?.some(
+              (msg) => msg.id === update.messageId
+            )
+          );
+          if (foundConvId) {
+            conversationId = Number(foundConvId);
+          }
+        }
+
+        if (conversationId) {
+          dispatch(
+            updateMessageReactionsFromAggregated({
+              conversationId,
+              messageId: update.messageId,
+              aggregatedReactions: update.reactions,
+            })
+          );
+        }
+      } else if ("action" in update && "reaction" in update) {
+        // Legacy format: single reaction with action
+        if (update.action === "ADD") {
+          dispatch(
+            addReaction({
+              messageId: update.messageId,
+              conversationId: update.conversationId,
+              reaction: update.reaction,
+            })
+          );
+        } else if (update.action === "REMOVE") {
+          dispatch(
+            removeReaction({
+              messageId: update.messageId,
+              conversationId: update.conversationId,
+              userId: update.reaction.userId,
+            })
+          );
+        }
+      }
     },
     autoConnect: true,
   });
@@ -209,38 +262,66 @@ export const ChatPage: React.FC = () => {
   const handleAddReaction = async (messageId: string, emoji: string) => {
     if (!chatId || !user) return;
     try {
-      const { messageApi } = await import("../services/messageApi");
-      await messageApi.addReaction(Number(messageId), emoji as EReactionType);
+      // Optimistic update: add reaction immediately
+      const message = currentMessages.find((m) => m.id === Number(messageId));
+      if (message) {
+        const existingReaction = message.reactions.find(
+          (r) => r.userId === user.id
+        );
 
-      dispatch(
-        addReaction({
-          messageId: Number(messageId),
-          conversationId: Number(chatId),
-          reaction: {
-            userId: user.id,
-            username: user.username,
-            reactionType: emoji as EReactionType,
-          },
-        })
-      );
+        if (existingReaction && existingReaction.reactionType === emoji) {
+          return;
+        }
+
+        if (existingReaction && existingReaction.reactionType !== emoji) {
+          // Remove old reaction first
+          dispatch(
+            removeReaction({
+              messageId: Number(messageId),
+              conversationId: Number(chatId),
+              userId: user.id,
+            })
+          );
+          // Send remove via WebSocket
+          ws.sendRemoveReaction(
+            Number(messageId),
+            existingReaction.reactionType
+          );
+        }
+
+        // Always add the new reaction (if different from existing)
+        dispatch(
+          addReaction({
+            messageId: Number(messageId),
+            conversationId: Number(chatId),
+            reaction: {
+              userId: user.id,
+              username: user.username || user.fullName || `user_${user.id}`,
+              reactionType: emoji as EReactionType,
+            },
+          })
+        );
+        ws.sendReaction(Number(messageId), emoji as EReactionType);
+      }
+      // WebSocket handler will update state with correct aggregated data when it arrives
     } catch (error) {
       // Error handled silently
     }
   };
 
-  const handleRemoveReaction = async (messageId: string) => {
+  const handleRemoveReaction = async (
+    messageId: string,
+    reactionType: string
+  ) => {
     if (!chatId || !user) return;
     try {
       const message = currentMessages.find((m) => m.id === Number(messageId));
-      const userReaction = message?.reactions.find((r) => r.userId === user.id);
+      const userReaction = message?.reactions.find(
+        (r) => r.userId === user.id && r.reactionType === reactionType
+      );
       if (!userReaction) return;
 
-      const { messageApi } = await import("../services/messageApi");
-      await messageApi.removeReaction(
-        Number(messageId),
-        userReaction.reactionType
-      );
-
+      // Optimistic update: remove reaction immediately
       dispatch(
         removeReaction({
           messageId: Number(messageId),
@@ -248,6 +329,10 @@ export const ChatPage: React.FC = () => {
           userId: user.id,
         })
       );
+
+      // Send remove reaction via WebSocket - backend will broadcast update to all clients
+      ws.sendRemoveReaction(Number(messageId), userReaction.reactionType);
+      // WebSocket handler will update state with correct aggregated data when it arrives
     } catch (error) {
       // Error handled silently
     }

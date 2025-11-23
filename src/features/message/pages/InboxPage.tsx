@@ -24,8 +24,7 @@ import {
   addMessage,
   addMessageWithUnreadUpdate,
   setActiveConversation,
-  addReaction,
-  removeReaction,
+  updateMessageReactionsFromAggregated,
   handleReadAll,
   handleTypingNotification,
   clearOldTypingIndicators,
@@ -44,8 +43,10 @@ import {
   PresenceStatusDTO,
   ReadAllDTO,
   TypingNotificationDTO,
+  ReactionUpdateDTO,
 } from "../types";
 import { MessageSquarePlus } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export const InboxPage: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -110,6 +111,45 @@ export const InboxPage: React.FC = () => {
     },
     onReadAll: (readAllEvent: ReadAllDTO) => {
       dispatch(handleReadAll({ ...readAllEvent, currentUserId: user.id }));
+    },
+    onReactionUpdate: (update: ReactionUpdateDTO) => {
+      // Check if it's the new aggregated format (has reactions array)
+      if ("reactions" in update && Array.isArray(update.reactions)) {
+        // New format: aggregated reactions from backend
+        // Find conversationId from messages
+        const conversationId = Object.keys(messages).find((convId) =>
+          messages[Number(convId)]?.some((msg) => msg.id === update.messageId)
+        );
+        
+        if (conversationId) {
+          dispatch(
+            updateMessageReactionsFromAggregated({
+              conversationId: Number(conversationId),
+              messageId: update.messageId,
+              aggregatedReactions: update.reactions,
+            })
+          );
+        }
+      } else if ("action" in update && "reaction" in update) {
+        // Legacy format: single reaction with action
+        if (update.action === "ADD") {
+          dispatch(
+            addReaction({
+              messageId: update.messageId,
+              conversationId: update.conversationId,
+              reaction: update.reaction,
+            })
+          );
+        } else if (update.action === "REMOVE") {
+          dispatch(
+            removeReaction({
+              messageId: update.messageId,
+              conversationId: update.conversationId,
+              userId: update.reaction.userId,
+            })
+          );
+        }
+      }
     },
     onPresence: (presence: PresenceStatusDTO) => {
       setPresenceUpdates((prev) => ({
@@ -349,8 +389,6 @@ export const InboxPage: React.FC = () => {
     if (!activeConversationId || !user) return;
 
     try {
-      const { messageApi } = await import("../services/messageApi");
-
       const currentMessage = messages[activeConversationId]?.find(
         (m) => m.id === Number(messageId)
       );
@@ -358,48 +396,29 @@ export const InboxPage: React.FC = () => {
         (r) => r.userId === user.id
       );
 
+      // If user already has this reaction type, toggle it off (remove)
       if (currentUserReaction?.reactionType === reactionType) {
-        dispatch(
-          removeReaction({
-            messageId: Number(messageId),
-            conversationId: activeConversationId,
-            userId: user.id,
-          })
-        );
-
-        await messageApi.removeReaction(
+        ws.sendRemoveReaction(
           Number(messageId),
           currentUserReaction.reactionType
         );
+        // No need to dispatch - WebSocket handler will update state automatically
         return;
       }
 
-      dispatch(
-        addReaction({
-          messageId: Number(messageId),
-          conversationId: activeConversationId,
-          reaction: {
-            userId: user.id,
-            username: user.username,
-            reactionType: reactionType as EReactionType,
-          },
-        })
-      );
-
+      // If user has a different reaction, remove it first
       if (currentUserReaction) {
-        await messageApi.removeReaction(
+        ws.sendRemoveReaction(
           Number(messageId),
           currentUserReaction.reactionType
         );
       }
 
-      await messageApi.addReaction(
-        Number(messageId),
-        reactionType as EReactionType
-      );
+      // Add new reaction via WebSocket - backend will broadcast update to all clients
+      ws.sendReaction(Number(messageId), reactionType as EReactionType);
+      // No need to dispatch - WebSocket handler will update state automatically
     } catch (error) {
       console.error("Error adding reaction:", error);
-      // TODO: Rollback state nếu API fail
     }
   };
 
@@ -410,22 +429,11 @@ export const InboxPage: React.FC = () => {
     if (!activeConversationId || !user) return;
 
     try {
-      dispatch(
-        removeReaction({
-          messageId: Number(messageId),
-          conversationId: activeConversationId,
-          userId: user.id,
-        })
-      );
-
-      const { messageApi } = await import("../services/messageApi");
-      await messageApi.removeReaction(
-        Number(messageId),
-        reactionType as EReactionType
-      );
+      // Send remove reaction via WebSocket - backend will broadcast update to all clients
+      ws.sendRemoveReaction(Number(messageId), reactionType as EReactionType);
+      // No need to dispatch - WebSocket handler will update state automatically
     } catch (error) {
       console.error("Error removing reaction:", error);
-      // TODO: Rollback state nếu API fail
     }
   };
 
@@ -527,7 +535,15 @@ export const InboxPage: React.FC = () => {
 
   return (
     <div className="h-screen flex bg-background overflow-hidden">
-      <div className="w-80 border-r border-border flex flex-col bg-background shrink-0">
+      {/* Chat List - Hidden on mobile when viewing chat */}
+      <div
+        className={cn(
+          "w-80 border-r border-border flex flex-col bg-background shrink-0 transition-transform duration-300",
+          activeConversationId
+            ? "hidden md:flex"
+            : "flex"
+        )}
+      >
         <InstagramInboxHeader
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
@@ -584,7 +600,8 @@ export const InboxPage: React.FC = () => {
         </div>
       </div>
 
-      <div className="flex-1 flex flex-col">
+      {/* Chat Window - Full width on mobile */}
+      <div className="flex-1 flex flex-col w-full md:w-auto">
         {activeConversationId && currentChat ? (
           <>
             <InstagramChatHeader

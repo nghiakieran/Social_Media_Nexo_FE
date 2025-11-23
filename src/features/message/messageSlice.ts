@@ -12,6 +12,7 @@ import type {
   ReadReceiptDTO,
   ReadAllDTO,
   ReactionDTO,
+  AggregatedReactionDTO,
 } from "./types";
 
 export interface MessageState {
@@ -491,9 +492,15 @@ const messageSlice = createSlice({
       );
 
       if (message) {
+        // Initialize reactions array if it doesn't exist
+        if (!message.reactions) {
+          message.reactions = [];
+        }
+        // Remove existing reaction from this user if any
         message.reactions = message.reactions.filter(
           (r) => r.userId !== reaction.userId
         );
+        // Add new reaction
         message.reactions.push(reaction);
       }
     },
@@ -512,9 +519,86 @@ const messageSlice = createSlice({
       );
 
       if (message) {
+        // Initialize reactions array if it doesn't exist
+        if (!message.reactions) {
+          message.reactions = [];
+        }
+        // Remove reaction from this user
         message.reactions = message.reactions.filter(
           (r) => r.userId !== userId
         );
+      }
+    },
+
+    updateMessageReactions: (
+      state,
+      action: PayloadAction<{
+        conversationId: number;
+        messageId: number;
+        reactions: ReactionDTO[];
+      }>
+    ) => {
+      const { conversationId, messageId, reactions } = action.payload;
+      const message = state.messages[conversationId]?.find(
+        (m) => m.id === messageId
+      );
+
+      if (message) {
+        message.reactions = reactions;
+      }
+    },
+
+    // Update reactions from aggregated format (real-time from backend)
+    updateMessageReactionsFromAggregated: (
+      state,
+      action: PayloadAction<{
+        conversationId: number;
+        messageId: number;
+        aggregatedReactions: AggregatedReactionDTO[];
+      }>
+    ) => {
+      const { conversationId, messageId, aggregatedReactions } = action.payload;
+      const message = state.messages[conversationId]?.find(
+        (m) => m.id === messageId
+      );
+
+      if (message) {
+        // Convert aggregated reactions to ReactionDTO format
+        // Preserve existing reaction details (username, etc.) when possible
+        const newReactions: ReactionDTO[] = [];
+        
+        aggregatedReactions.forEach((agg) => {
+          // For each reaction type, create entries for each userId
+          agg.userIds.forEach((userId) => {
+            // Try to find existing reaction to preserve username and other details
+            const existing = message.reactions.find(
+              (r) => r.userId === userId && r.reactionType === agg.reactionType
+            );
+            
+            if (existing) {
+              // Preserve existing reaction with all its details
+              newReactions.push(existing);
+            } else {
+              // New reaction - try to get user info from conversation participants
+              const conversation = state.conversations.find(
+                (c) => c.id === conversationId
+              );
+              const participant = conversation?.participants.find(
+                (p) => p.id === userId
+              );
+              
+              // Create new reaction entry
+              newReactions.push({
+                userId,
+                username: participant?.username || `user_${userId}`, // Use participant info if available
+                reactionType: agg.reactionType,
+              });
+            }
+          });
+        });
+
+        // Update message reactions
+        message.reactions = newReactions;
       }
     },
 
@@ -764,6 +848,8 @@ export const {
   updateOnlineStatus,
   addReaction,
   removeReaction,
+  updateMessageReactions,
+  updateMessageReactionsFromAggregated,
   openFloatingConversation,
   closeFloatingConversation,
   minimizeFloatingConversation,
