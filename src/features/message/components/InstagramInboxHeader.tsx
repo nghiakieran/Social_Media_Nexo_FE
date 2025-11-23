@@ -58,9 +58,7 @@ export const InstagramInboxHeader: React.FC<InstagramInboxHeaderProps> = ({
         if (profile.onlineStatus !== undefined) {
           setActivityStatus(profile.onlineStatus);
         }
-      } catch (error) {
-        console.error("Error loading online status:", error);
-      }
+      } catch (error) { /* empty */ }
     };
 
     loadOnlineStatus();
@@ -81,7 +79,6 @@ export const InstagramInboxHeader: React.FC<InstagramInboxHeaderProps> = ({
       const api = (await import("@/lib/axios")).default;
       await api.post("/presence/clear-cache");
     } catch (error) {
-      console.error("Error updating online status:", error);
       setActivityStatus(!checked);
     } finally {
       setIsLoading(false);

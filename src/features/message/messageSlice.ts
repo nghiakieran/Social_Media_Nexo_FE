@@ -24,6 +24,7 @@ export interface MessageState {
   minimizedConversations: number[];
   loading: boolean;
   error: string | null;
+  replyingTo: MessageDTO | null;
   conversationsPagination: {
     page: number;
     size: number;
@@ -35,6 +36,7 @@ export interface MessageState {
       page: number;
       size: number;
       totalPages: number;
+      totalElements: number;
       hasMore: boolean;
     };
   };
@@ -50,6 +52,7 @@ const initialState: MessageState = {
   minimizedConversations: [],
   loading: false,
   error: null,
+  replyingTo: null,
   conversationsPagination: {
     page: 0,
     size: 20,
@@ -318,13 +321,21 @@ const messageSlice = createSlice({
 
     setActiveConversation: (state, action: PayloadAction<number | null>) => {
       state.activeConversationId = action.payload;
-
+      state.replyingTo = null;
       if (action.payload) {
         const conv = state.conversations.find((c) => c.id === action.payload);
         if (conv) {
           conv.unreadCount = 0;
         }
       }
+    },
+
+    setReplyingTo: (state, action: PayloadAction<MessageDTO | null>) => {
+      state.replyingTo = action.payload;
+    },
+
+    clearReplyingTo: (state) => {
+      state.replyingTo = null;
     },
 
     handleTypingNotification: (
@@ -542,6 +553,32 @@ const messageSlice = createSlice({
     clearError: (state) => {
       state.error = null;
     },
+
+    updateMessagesPagination: (
+      state,
+      action: PayloadAction<{
+        conversationId: number;
+        pagination: {
+          page?: number;
+          size?: number;
+          totalPages?: number;
+          totalElements?: number;
+          hasMore?: boolean;
+        };
+      }>
+    ) => {
+      const { conversationId, pagination } = action.payload;
+      if (!state.messagesPagination[conversationId]) {
+        state.messagesPagination[conversationId] = {
+          page: 0,
+          size: 20,
+          totalPages: 0,
+          totalElements: 0,
+          hasMore: true,
+        };
+      }
+      Object.assign(state.messagesPagination[conversationId], pagination);
+    },
   },
 
   extraReducers: (builder) => {
@@ -613,7 +650,18 @@ const messageSlice = createSlice({
         const { conversationId, data } = action.payload;
         const { content, totalPages, number, last } = data;
 
-        if (number === 0) {
+        console.log(
+          "Fetched messages for page:",
+          number,
+          "totalElements:",
+          data.totalElements,
+          "content length:",
+          content.length
+        );
+
+        const requestedPage = action.meta.arg.page || 0;
+
+        if (requestedPage === 1) {
           state.messages[conversationId] = content.map((msg) => ({
             ...msg,
             isRead: false,
@@ -632,11 +680,22 @@ const messageSlice = createSlice({
         }
 
         state.messagesPagination[conversationId] = {
-          page: number,
+          page: requestedPage,
           size: content.length,
           totalPages,
+          totalElements: data.totalElements || 0,
           hasMore: !last,
         };
+
+        // Remove duplicate messages by id
+        state.messages[conversationId] = state.messages[conversationId].filter(
+          (msg, index, arr) => arr.findIndex((m) => m.id === msg.id) === index
+        );
+
+        console.log(
+          "Messages after fetch:",
+          state.messages[conversationId].length
+        );
       })
       .addCase(fetchMessages.rejected, (state, action) => {
         state.loading = false;
@@ -710,6 +769,9 @@ export const {
   minimizeFloatingConversation,
   restoreFloatingConversation,
   clearError,
+  updateMessagesPagination,
+  setReplyingTo,
+  clearReplyingTo,
 } = messageSlice.actions;
 
 export default messageSlice.reducer;

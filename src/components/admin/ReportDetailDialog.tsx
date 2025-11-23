@@ -9,7 +9,15 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { CheckCircle, XCircle, Flag, User, FileText, Trash2, Lock } from "lucide-react";
+import {
+  CheckCircle,
+  XCircle,
+  Flag,
+  User,
+  FileText,
+  Trash2,
+  Lock,
+} from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -34,7 +42,11 @@ interface ReportDetailDialogProps {
   };
 }
 
-export function ReportDetailDialog({ open, onOpenChange, report }: ReportDetailDialogProps) {
+export function ReportDetailDialog({
+  open,
+  onOpenChange,
+  report,
+}: ReportDetailDialogProps) {
   const [adminNote, setAdminNote] = useState("");
   const [processing, setProcessing] = useState(false);
 
@@ -137,14 +149,18 @@ export function ReportDetailDialog({ open, onOpenChange, report }: ReportDetailD
                   )}
                   <div>
                     <p className="font-medium">{report.reportedUser}</p>
-                    <p className="text-sm text-muted-foreground">Người bị báo cáo</p>
+                    <p className="text-sm text-muted-foreground">
+                      Người bị báo cáo
+                    </p>
                   </div>
                 </div>
 
                 {/* Reported Content */}
                 {report.reportedContent && (
                   <div className="p-3 rounded-lg bg-muted">
-                    <p className="text-sm font-medium mb-2">Nội dung bị báo cáo:</p>
+                    <p className="text-sm font-medium mb-2">
+                      Nội dung bị báo cáo:
+                    </p>
                     <p className="text-sm">{report.reportedContent}</p>
                   </div>
                 )}
@@ -153,17 +169,17 @@ export function ReportDetailDialog({ open, onOpenChange, report }: ReportDetailD
                 {report.reportedMediaUrl && (
                   <div className="rounded-lg overflow-hidden border">
                     {report.reportedType === "reel" ? (
-                      <video 
-                        src={report.reportedMediaUrl} 
-                        controls 
+                      <video
+                        src={report.reportedMediaUrl}
+                        controls
                         className="w-full max-h-[300px] object-contain"
                       >
                         Trình duyệt không hỗ trợ video
                       </video>
                     ) : (
-                      <img 
-                        src={report.reportedMediaUrl} 
-                        alt="Reported content" 
+                      <img
+                        src={report.reportedMediaUrl}
+                        alt="Reported content"
                         className="w-full max-h-[300px] object-contain"
                       />
                     )}
@@ -186,7 +202,9 @@ export function ReportDetailDialog({ open, onOpenChange, report }: ReportDetailD
                 {report.detailedReason && (
                   <div className="p-3 rounded-lg border">
                     <p className="font-medium text-sm mb-1">Chi tiết:</p>
-                    <p className="text-sm whitespace-pre-wrap">{report.detailedReason}</p>
+                    <p className="text-sm whitespace-pre-wrap">
+                      {report.detailedReason}
+                    </p>
                   </div>
                 )}
               </div>
@@ -197,7 +215,9 @@ export function ReportDetailDialog({ open, onOpenChange, report }: ReportDetailD
               <>
                 <Separator />
                 <div>
-                  <h4 className="font-semibold mb-3">Ảnh chứng minh ({report.evidenceImages.length})</h4>
+                  <h4 className="font-semibold mb-3">
+                    Ảnh chứng minh ({report.evidenceImages.length})
+                  </h4>
                   <div className="grid grid-cols-2 gap-3">
                     {report.evidenceImages.map((image, index) => (
                       <img
@@ -228,8 +248,8 @@ export function ReportDetailDialog({ open, onOpenChange, report }: ReportDetailD
                 </div>
 
                 <div className="grid grid-cols-3 gap-3">
-                  <Button 
-                    variant="default" 
+                  <Button
+                    variant="default"
                     onClick={handleApprove}
                     disabled={processing}
                     className="bg-success hover:bg-success/90"
@@ -237,7 +257,7 @@ export function ReportDetailDialog({ open, onOpenChange, report }: ReportDetailD
                     <CheckCircle className="w-4 h-4 mr-2" />
                     Duyệt báo cáo
                   </Button>
-                  <Button 
+                  <Button
                     variant="destructive"
                     onClick={handleReject}
                     disabled={processing}
@@ -245,10 +265,7 @@ export function ReportDetailDialog({ open, onOpenChange, report }: ReportDetailD
                     <XCircle className="w-4 h-4 mr-2" />
                     Từ chối
                   </Button>
-                  <Button 
-                    variant="outline"
-                    disabled={processing}
-                  >
+                  <Button variant="outline" disabled={processing}>
                     <Lock className="w-4 h-4 mr-2" />
                     Khóa tài khoản
                   </Button>
@@ -272,7 +289,9 @@ export function ReportDetailDialog({ open, onOpenChange, report }: ReportDetailD
               <>
                 <Separator />
                 <div className="p-4 rounded-lg bg-success/10 border border-success/20">
-                  <p className="text-sm font-medium text-success">Báo cáo đã được xử lý</p>
+                  <p className="text-sm font-medium text-success">
+                    Báo cáo đã được xử lý
+                  </p>
                   <p className="text-sm text-muted-foreground mt-1">
                     Không còn hành động nào cần thực hiện
                   </p>

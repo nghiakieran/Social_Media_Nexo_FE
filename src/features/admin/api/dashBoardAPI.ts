@@ -38,7 +38,10 @@ export const fetchInteractChartData = async (from: Date, to: Date) => {
   };
 
   try {
-    const res = await api.post<any>("/posts/admin/dashboard/interactions", body);
+    const res = await api.post<any>(
+      "/posts/admin/dashboard/interactions",
+      body
+    );
     return res.data;
   } catch (error) {
     console.error("Không thể tải dữ liệu:", error);

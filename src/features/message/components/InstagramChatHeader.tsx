@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import {
@@ -67,11 +67,76 @@ export const InstagramChatHeader: React.FC<InstagramChatHeaderProps> = ({
   const [blockDialogOpen, setBlockDialogOpen] = useState(false);
   const [isBlocking, setIsBlocking] = useState(false);
   const [targetUser, setTargetUser] = useState<UserDTO | null>(null);
+  const [currentUserOnlineStatus, setCurrentUserOnlineStatus] = useState<
+    boolean | undefined
+  >(undefined);
+  const [isLoadingOnlineStatus, setIsLoadingOnlineStatus] = useState(true);
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  const otherUser = chat?.participants?.find((p) => p.id !== currentUserId);
-  const shouldShowPresence = otherUser?.onlineStatus !== false; // Hiển thị nếu undefined hoặc true
+  useEffect(() => {
+    const loadCurrentUserOnlineStatus = async () => {
+      console.log("[InstagramChatHeader] Bắt đầu load currentUserOnlineStatus");
+      setIsLoadingOnlineStatus(true);
+      try {
+        const { getCurrentUserProfile } = await import(
+          "@/features/profile/api/profileApi"
+        );
+        const profile = await getCurrentUserProfile();
+        console.log(
+          "[InstagramChatHeader] Loaded profile.onlineStatus:",
+          profile.onlineStatus
+        );
+        setCurrentUserOnlineStatus(profile.onlineStatus);
+      } catch (error) {
+        console.error(
+          "[InstagramChatHeader] Error loading current user online status:",
+          error
+        );
+      } finally {
+        setIsLoadingOnlineStatus(false);
+        console.log(
+          "[InstagramChatHeader] Hoàn thành load currentUserOnlineStatus"
+        );
+      }
+    };
+
+    loadCurrentUserOnlineStatus();
+  }, []);
+
+  const otherUser = useMemo(
+    () => chat?.participants?.find((p) => p.id !== currentUserId),
+    [chat?.participants, currentUserId]
+  );
+
+  // Chỉ hiển thị presence khi:
+  // 1. Đã load xong onlineStatus (isLoadingOnlineStatus = false)
+  // 2. currentUserOnlineStatus !== false (nếu false thì KHÔNG hiển thị)
+  // 3. otherUser?.onlineStatus !== false
+  // Nếu currentUserOnlineStatus === false, thì KHÔNG hiển thị presence (ẩn thời gian hoạt động)
+  const shouldShowPresence = useMemo(() => {
+    const result =
+      !isLoadingOnlineStatus &&
+      currentUserOnlineStatus !== false &&
+      otherUser?.onlineStatus !== false;
+
+    // Debug log - luôn hiển thị để debug
+    console.log("[InstagramChatHeader] shouldShowPresence:", result, {
+      isLoadingOnlineStatus,
+      currentUserOnlineStatus,
+      otherUserOnlineStatus: otherUser?.onlineStatus,
+      lastSeen,
+      chatId: chat?.id,
+    });
+
+    return result;
+  }, [
+    isLoadingOnlineStatus,
+    currentUserOnlineStatus,
+    otherUser?.onlineStatus,
+    lastSeen,
+    chat?.id,
+  ]);
 
   const handleOpenNicknameDialog = async () => {
     if (!chat?.id || !currentUserId) return;
@@ -277,23 +342,21 @@ export const InstagramChatHeader: React.FC<InstagramChatHeaderProps> = ({
           <h3 className="font-semibold text-sm truncate">
             {chat.fullname ?? ""}
           </h3>
-          <p className="text-xs text-muted-foreground">
-            {chat.blockedByMe ? (
+          {chat.blockedByMe ? (
+            <p className="text-xs text-muted-foreground">
               <span className="text-destructive font-medium">
                 Bạn đã chặn người này
               </span>
-            ) : shouldShowPresence ? (
-              isOnline ? (
-                "Đang hoạt động"
-              ) : lastSeen && formatLastSeen(lastSeen) ? (
-                formatLastSeen(lastSeen)
-              ) : (
-                ""
-              )
-            ) : (
-              ""
-            )}
-          </p>
+            </p>
+          ) : shouldShowPresence ? (
+            <p className="text-xs text-muted-foreground">
+              {isOnline
+                ? "Đang hoạt động"
+                : lastSeen && formatLastSeen(lastSeen)
+                ? formatLastSeen(lastSeen)
+                : null}
+            </p>
+          ) : null}
         </div>
       </div>
 

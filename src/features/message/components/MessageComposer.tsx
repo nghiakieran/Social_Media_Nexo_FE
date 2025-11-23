@@ -10,12 +10,14 @@ import {
   Image,
   Camera,
   ShieldBan,
+  X,
 } from "lucide-react";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import type { MessageDTO } from "../types";
 
 interface MessageComposerProps {
   onSendMessage: (
@@ -29,6 +31,8 @@ interface MessageComposerProps {
   isBlockedByMe?: boolean;
   isBlockedByThem?: boolean;
   fullname?: string;
+  replyingTo?: MessageDTO | null;
+  onCancelReply?: () => void;
 }
 
 export const MessageComposer: React.FC<MessageComposerProps> = ({
@@ -40,7 +44,10 @@ export const MessageComposer: React.FC<MessageComposerProps> = ({
   isBlockedByMe = false,
   isBlockedByThem = false,
   fullname = "người dùng này",
+  replyingTo,
+  onCancelReply,
 }) => {
+  console.log("MessageComposer replyingTo:", replyingTo);
   const [message, setMessage] = useState("");
   const [isRecording, setIsRecording] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -167,108 +174,133 @@ export const MessageComposer: React.FC<MessageComposerProps> = ({
   }
 
   return (
-    <div className={cn("p-4 border-t border-border bg-background", className)}>
-      <div className="flex items-end space-x-2">
-        {}
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button variant="ghost" size="icon" className="shrink-0">
-              <Smile className="h-4 w-4" />
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-80 p-2">
-            <div className="grid grid-cols-6 gap-1">
-              {emojis.map((emoji) => (
-                <Button
-                  key={emoji}
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 w-8 p-0"
-                  onClick={() => handleEmojiSelect(emoji)}
-                >
-                  {emoji}
-                </Button>
-              ))}
+    <div className={cn("border-t border-border bg-background", className)}>
+      {replyingTo && (
+        <div className="px-4 py-2 border-b border-border bg-muted/50">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 flex-1 min-w-0">
+              <div className="text-sm text-muted-foreground">Trả lời</div>
+              <div className="text-sm font-medium truncate">
+                {replyingTo.sender.fullName}
+              </div>
+              <div className="text-sm text-muted-foreground truncate flex-1">
+                {replyingTo.content}
+              </div>
             </div>
-          </PopoverContent>
-        </Popover>
-
-        {}
-        <div className="flex-1 relative">
-          <Textarea
-            ref={textareaRef}
-            value={message}
-            onChange={handleInputChange}
-            onKeyDown={handleKeyDown}
-            placeholder={placeholder}
-            className="min-h-[40px] max-h-[120px] resize-none pr-12 py-2"
-            rows={1}
-          />
-
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-6 w-6 shrink-0"
+              onClick={onCancelReply}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      )}
+      <div className="p-4">
+        <div className="flex items-end space-x-2">
           {}
           <Popover>
             <PopoverTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="absolute right-1 top-1 h-8 w-8"
-              >
-                <Paperclip className="h-4 w-4" />
+              <Button variant="ghost" size="icon" className="shrink-0">
+                <Smile className="h-4 w-4" />
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-48 p-2">
-              <div className="space-y-1">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="w-full justify-start"
-                  onClick={() => handleFileUpload("image")}
-                >
-                  <Image className="h-4 w-4 mr-2" />
-                  Ảnh
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="w-full justify-start"
-                  onClick={() => handleFileUpload("image")}
-                >
-                  <Camera className="h-4 w-4 mr-2" />
-                  Camera
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="w-full justify-start"
-                  onClick={() => handleFileUpload("file")}
-                >
-                  <Paperclip className="h-4 w-4 mr-2" />
-                  Tệp tin
-                </Button>
+            <PopoverContent className="w-80 p-2">
+              <div className="grid grid-cols-6 gap-1">
+                {emojis.map((emoji) => (
+                  <Button
+                    key={emoji}
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 p-0"
+                    onClick={() => handleEmojiSelect(emoji)}
+                  >
+                    {emoji}
+                  </Button>
+                ))}
               </div>
             </PopoverContent>
           </Popover>
-        </div>
 
-        {}
-        {message.trim() ? (
-          <Button
-            onClick={handleSend}
-            size="icon"
-            className="shrink-0 bg-primary hover:bg-primary/90"
-          >
-            <Send className="h-4 w-4" />
-          </Button>
-        ) : (
-          <Button
-            onClick={toggleRecording}
-            size="icon"
-            variant={isRecording ? "destructive" : "ghost"}
-            className={cn("shrink-0", isRecording && "animate-pulse")}
-          >
-            <Mic className="h-4 w-4" />
-          </Button>
-        )}
+          {}
+          <div className="flex-1 relative">
+            <Textarea
+              ref={textareaRef}
+              value={message}
+              onChange={handleInputChange}
+              onKeyDown={handleKeyDown}
+              placeholder={placeholder}
+              className="min-h-[40px] max-h-[120px] resize-none pr-12 py-2"
+              rows={1}
+            />
+
+            {}
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-1 top-1 h-8 w-8"
+                >
+                  <Paperclip className="h-4 w-4" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-48 p-2">
+                <div className="space-y-1">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="w-full justify-start"
+                    onClick={() => handleFileUpload("image")}
+                  >
+                    <Image className="h-4 w-4 mr-2" />
+                    Ảnh
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="w-full justify-start"
+                    onClick={() => handleFileUpload("image")}
+                  >
+                    <Camera className="h-4 w-4 mr-2" />
+                    Camera
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="w-full justify-start"
+                    onClick={() => handleFileUpload("file")}
+                  >
+                    <Paperclip className="h-4 w-4 mr-2" />
+                    Tệp tin
+                  </Button>
+                </div>
+              </PopoverContent>
+            </Popover>
+          </div>
+
+          {}
+          {message.trim() ? (
+            <Button
+              onClick={handleSend}
+              size="icon"
+              className="shrink-0 bg-primary hover:bg-primary/90"
+            >
+              <Send className="h-4 w-4" />
+            </Button>
+          ) : (
+            <Button
+              onClick={toggleRecording}
+              size="icon"
+              variant={isRecording ? "destructive" : "ghost"}
+              className={cn("shrink-0", isRecording && "animate-pulse")}
+            >
+              <Mic className="h-4 w-4" />
+            </Button>
+          )}
+        </div>
       </div>
     </div>
   );
