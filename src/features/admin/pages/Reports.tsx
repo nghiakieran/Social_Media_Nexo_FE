@@ -1,10 +1,25 @@
-import { useState } from "react";
-import { Search, Filter, MoreHorizontal, Eye, CheckCircle, XCircle, Flag, User, FileText } from "lucide-react";
+import { useState, useEffect } from "react";
+import {
+  Search,
+  Filter,
+  MoreHorizontal,
+  Eye,
+  CheckCircle,
+  XCircle,
+  Flag,
+  User,
+  FileText,
+  ChevronLeft,
+  ChevronRight,
+  FilmIcon,
+  Clock, // Add Clock Icon for IN_REVIEW
+} from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ReportDetailDialog } from "@/components/admin/ReportDetailDialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Table,
   TableBody,
@@ -26,91 +41,209 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  fetchReportsByType,
+  ReportSummary,
+} from "@/features/admin/api/reportManagementAPI";
 
-const mockReports = [
-  {
-    id: "1",
-    reporter: "Nguyễn Văn A",
-    reportedType: "post",
-    reportedUser: "Trần Thị B",
-    reason: "Nội dung không phù hợp",
-    status: "pending",
-    date: "2024-11-10",
-    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=1",
-    reportedUserAvatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=2",
-    detailedReason: "Bài viết chứa hình ảnh nhạy cảm không phù hợp với cộng đồng. Đã nhiều người báo cáo về vấn đề này.",
-    reportedContent: "Nội dung bài viết có hình ảnh không phù hợp...",
-    reportedMediaUrl: "https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=800",
-    evidenceImages: [
-      "https://images.unsplash.com/photo-1516841273335-e39b37888115?w=400",
-      "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400",
-    ],
-  },
-  {
-    id: "2",
-    reporter: "Lê Văn C",
-    reportedType: "user",
-    reportedUser: "Phạm Thị D",
-    reason: "Spam",
-    status: "processing",
-    date: "2024-11-09",
-    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=2",
-    reportedUserAvatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=4",
-    detailedReason: "Tài khoản này liên tục gửi tin nhắn spam quảng cáo sản phẩm không rõ nguồn gốc.",
-    evidenceImages: [
-      "https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=400",
-    ],
-  },
-  {
-    id: "3",
-    reporter: "Hoàng Thị E",
-    reportedType: "comment",
-    reportedUser: "Vũ Văn F",
-    reason: "Ngôn từ bạo lực",
-    status: "resolved",
-    date: "2024-11-08",
-    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=3",
-    reportedUserAvatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=6",
-    detailedReason: "Bình luận chứa ngôn từ thô tục, đe dọa người khác.",
-    reportedContent: "Bình luận có nội dung đe dọa và xúc phạm...",
-    evidenceImages: [
-      "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=400",
-      "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=400",
-    ],
-  },
-];
+// Mapping Status
+const STATUS_MAP = {
+  PENDING: { label: "Chờ xử lý", color: "bg-yellow-100 text-yellow-800" },
+  IN_REVIEW: { label: "Đang xem xét", color: "bg-blue-100 text-blue-800" },
+  APPROVED: { label: "Đã duyệt", color: "bg-green-100 text-green-800" },
+  REJECTED: { label: "Từ chối", color: "bg-red-100 text-red-800" },
+};
+
+const getStatusConfig = (status) =>
+  STATUS_MAP[status] || { label: status, color: "bg-gray-100 text-gray-800" };
+
+const ReportTable = ({ data, onSelectReport }) => (
+  <Table>
+    <TableHeader>
+      <TableRow>
+        <TableHead>Người báo cáo</TableHead>
+        <TableHead>Đối tượng bị báo cáo</TableHead>
+        <TableHead>Lý do</TableHead>
+        <TableHead>Ngày tạo</TableHead>
+        <TableHead>Trạng thái</TableHead>
+        <TableHead></TableHead>
+      </TableRow>
+    </TableHeader>
+    <TableBody>
+      {data.length > 0 ? (
+        data.map((report) => {
+          const statusConfig = getStatusConfig(report.reportStatus);
+          return (
+            <TableRow key={report.id}>
+              <TableCell>
+                <div className="flex items-center gap-3">
+                  {/* Placeholder Avatar or fetch from API if available */}
+                  <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-xs font-bold">
+                    {report.reporterName?.charAt(0).toUpperCase() || "?"}
+                  </div>
+                  <span className="font-medium">{report.reporterName}</span>
+                </div>
+              </TableCell>
+              <TableCell>{report.ownerPostName}</TableCell>
+              <TableCell className="max-w-xs truncate" title={report.reason}>
+                {report.reason}
+              </TableCell>
+              <TableCell>
+                {new Date(report.createdAt).toLocaleDateString("vi-VN")}
+              </TableCell>
+              <TableCell>
+                <span
+                  className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                    getStatusConfig(report.reportStatus).color
+                  }`}
+                >
+                  {getStatusConfig(report.reportStatus).label}
+                </span>
+              </TableCell>
+              <TableCell>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="sm">
+                      <MoreHorizontal className="w-4 h-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => onSelectReport(report)}>
+                      <Eye className="w-4 h-4 mr-2" />
+                      Xem chi tiết
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </TableCell>
+            </TableRow>
+          );
+        })
+      ) : (
+        <TableRow>
+          <TableCell
+            colSpan={6}
+            className="h-24 text-center text-muted-foreground"
+          >
+            Không có dữ liệu
+          </TableCell>
+        </TableRow>
+      )}
+    </TableBody>
+  </Table>
+);
+
+const PaginationFooter = ({ currentPage, totalPages, onPageChange }) => (
+  <div className="flex items-center justify-end space-x-2 py-4">
+    <div className="flex-1 text-sm text-muted-foreground">
+      Trang {currentPage + 1} / {totalPages || 1}
+    </div>
+    <div className="space-x-2">
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => onPageChange(Math.max(currentPage - 1, 0))}
+        disabled={currentPage === 0}
+      >
+        <ChevronLeft className="h-4 w-4" />
+        Trước
+      </Button>
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => onPageChange(Math.min(currentPage + 1, totalPages - 1))}
+        disabled={currentPage >= totalPages - 1}
+      >
+        Sau
+        <ChevronRight className="h-4 w-4" />
+      </Button>
+    </div>
+  </div>
+);
 
 export default function Reports() {
+  const [reports, setReports] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [totalPages, setTotalPages] = useState(0);
+  const [totalElements, setTotalElements] = useState(0);
+  const [totalPending, setTotalPending] = useState(0);
+  const [totalProcessing, setTotalProcessing] = useState(0);
+  const [totalApproved, setTotalApproved] = useState(0);
+  const [totalRejected, setTotalRejected] = useState(0);
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [selectedReport, setSelectedReport] = useState<typeof mockReports[0] | null>(null);
+  // Debounce search
+  const [debouncedSearch, setDebouncedSearch] = useState("");
 
-  const getStatusBadge = (status: string) => {
-    const variants = {
-      pending: "warning",
-      processing: "default",
-      resolved: "success",
-    } as const;
-    return variants[status as keyof typeof variants] || "secondary";
-  };
+  // Filter states
+  const [statusFilter, setStatusFilter] = useState("ALL"); // "ALL", "PENDING", "APPROVED", "REJECTED", "IN_REVIEW"
+  const [activeTab, setActiveTab] = useState("post"); // "user", "post", "reel", "comment" (if applicable)
+  const [currentPage, setCurrentPage] = useState(0);
+  const [selectedReport, setSelectedReport] = useState(null);
 
-  const getStatusText = (status: string) => {
-    const texts = {
-      pending: "Chưa xử lý",
-      processing: "Đang xử lý",
-      resolved: "Đã xử lý",
+  // Debounce effect
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  // Reset page when filters change
+  useEffect(() => {
+    setCurrentPage(0);
+  }, [debouncedSearch, statusFilter, activeTab]);
+
+  // Fetch Data
+  useEffect(() => {
+    const loadData = async () => {
+      setLoading(true);
+      try {
+        // Map UI status to API status (or undefined if ALL)
+        const apiStatus = statusFilter === "ALL" ? undefined : statusFilter;
+
+        // Map UI tab to API type ('post' | 'reel' | 'user')
+        // Note: 'comment' is not yet in API, handle if needed or hide tab
+        let apiType = activeTab;
+        if (activeTab === "comment") {
+          // Placeholder logic or fetch 'post' temporarily
+          apiType = "post";
+        }
+
+        const data = await fetchReportsByType(apiType, {
+          pageNo: currentPage,
+          pageSize: 10,
+          status: apiStatus,
+          keyword: debouncedSearch,
+        });
+
+        setReports(data.reportSummaries.content || []);
+        setTotalPages(data.totalPages || 0);
+        setTotalElements(
+          data.pendingQuantity +
+            data.processingQuantity +
+            data.approvedQuantity +
+            data.rejectQuantity || 0
+        );
+        setTotalPending(data.pendingQuantity || 0);
+        setTotalProcessing(data.processingQuantity || 0);
+        setTotalApproved(data.approvedQuantity || 0);
+        setTotalRejected(data.rejectQuantity || 0);
+      } catch (error) {
+        console.error("Failed to fetch reports", error);
+        setReports([]);
+      } finally {
+        setLoading(false);
+      }
     };
-    return texts[status as keyof typeof texts] || status;
-  };
 
-  const getReportedTypeIcon = (type: string) => {
-    const icons = {
-      post: FileText,
-      user: User,
-      comment: Flag,
-    };
-    return icons[type as keyof typeof icons] || Flag;
-  };
+    loadData();
+  }, [currentPage, debouncedSearch, statusFilter, activeTab]);
+
+  // Helper to count specific statuses (Mock logic for stats cards as API doesn't return counts yet)
+  // Ideally, you'd have a separate stats API or the list API returns metadata.
+  // For now, using totalElements as a general indicator or 0.
+  const pendingCount = 0; // Placeholder
+  const approvedCount = 0; // Placeholder
+  const rejectedCount = 0; // Placeholder
 
   return (
     <div className="space-y-6">
@@ -121,17 +254,20 @@ export default function Reports() {
         <p className="text-muted-foreground">Xử lý các báo cáo từ người dùng</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      {/* Thống kê - Currently using placeholders or derived data if possible */}
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
         <Card>
           <CardContent className="p-4">
-            <div className="text-2xl font-bold">{mockReports.length}</div>
-            <div className="text-sm text-muted-foreground">Tổng báo cáo</div>
+            <div className="text-2xl font-bold">{totalElements}</div>
+            <div className="text-sm text-muted-foreground">
+              Tổng báo cáo (Current Filter)
+            </div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
             <div className="text-2xl font-bold text-warning">
-              {mockReports.filter(r => r.status === "pending").length}
+              {totalPending}
             </div>
             <div className="text-sm text-muted-foreground">Chưa xử lý</div>
           </CardContent>
@@ -139,132 +275,115 @@ export default function Reports() {
         <Card>
           <CardContent className="p-4">
             <div className="text-2xl font-bold text-primary">
-              {mockReports.filter(r => r.status === "processing").length}
+              {totalProcessing}
             </div>
-            <div className="text-sm text-muted-foreground">Đang xử lý</div>
+            <div className="text-sm text-muted-foreground">Đang xem xét</div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
             <div className="text-2xl font-bold text-success">
-              {mockReports.filter(r => r.status === "resolved").length}
+              {totalApproved}
             </div>
-            <div className="text-sm text-muted-foreground">Đã xử lý</div>
+            <div className="text-sm text-muted-foreground">Đã duyệt</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="text-2xl font-bold text-red-600">
+              {totalRejected}
+            </div>
+            <div className="text-sm text-muted-foreground">Từ chối</div>
           </CardContent>
         </Card>
       </div>
 
-      <Card>
-        <CardHeader>
-          <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
-            <CardTitle>Danh sách báo cáo</CardTitle>
-            <div className="flex gap-2 w-full md:w-auto">
-              <div className="relative flex-1 md:w-64">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                  placeholder="Tìm kiếm..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="pl-9"
-                />
-              </div>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-40">
-                  <Filter className="w-4 h-4 mr-2" />
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Tất cả</SelectItem>
-                  <SelectItem value="pending">Chưa xử lý</SelectItem>
-                  <SelectItem value="processing">Đang xử lý</SelectItem>
-                  <SelectItem value="resolved">Đã xử lý</SelectItem>
-                </SelectContent>
-              </Select>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
+          <TabsList>
+            {/* <TabsTrigger value="user" className="flex items-center gap-2">
+              <User className="w-4 h-4" /> Người dùng
+            </TabsTrigger> */}
+            <TabsTrigger value="post" className="flex items-center gap-2">
+              <FileText className="w-4 h-4" /> Bài viết
+            </TabsTrigger>
+            <TabsTrigger value="reel" className="flex items-center gap-2">
+              <FilmIcon className="w-4 h-4" /> Thước phim
+            </TabsTrigger>
+            {/* Hide Comment tab if API not ready */}
+            {/* <TabsTrigger value="comment" className="flex items-center gap-2">
+              <Flag className="w-4 h-4" /> Bình luận
+            </TabsTrigger> */}
+          </TabsList>
+
+          <div className="flex gap-2 w-full md:w-auto">
+            <div className="relative flex-1 md:w-64">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                placeholder="Tìm kiếm..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-9"
+              />
             </div>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-40">
+                <Filter className="w-4 h-4 mr-2" />
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">Tất cả</SelectItem>
+                <SelectItem value="PENDING">Chờ xử lý</SelectItem>
+                <SelectItem value="IN_REVIEW">Đang xem xét</SelectItem>
+                <SelectItem value="APPROVED">Đã duyệt</SelectItem>
+                <SelectItem value="REJECTED">Từ chối</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Người báo cáo</TableHead>
-                <TableHead>Đối tượng</TableHead>
-                <TableHead>Người bị báo cáo</TableHead>
-                <TableHead>Lý do</TableHead>
-                <TableHead>Ngày</TableHead>
-                <TableHead>Trạng thái</TableHead>
-                <TableHead></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {mockReports.map((report) => {
-                const TypeIcon = getReportedTypeIcon(report.reportedType);
-                return (
-                  <TableRow key={report.id}>
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        <img
-                          src={report.avatar}
-                          alt={report.reporter}
-                          className="w-10 h-10 rounded-full"
-                        />
-                        <span className="font-medium">{report.reporter}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline">
-                        <TypeIcon className="w-3 h-3 mr-1" />
-                        {report.reportedType}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>{report.reportedUser}</TableCell>
-                    <TableCell className="max-w-xs truncate">{report.reason}</TableCell>
-                    <TableCell>{report.date}</TableCell>
-                    <TableCell>
-                      <Badge variant={getStatusBadge(report.status)}>
-                        {getStatusText(report.status)}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm">
-                            <MoreHorizontal className="w-4 h-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => setSelectedReport(report)}>
-                            <Eye className="w-4 h-4 mr-2" />
-                            Xem chi tiết
-                          </DropdownMenuItem>
-                          {report.status === "pending" && (
-                            <>
-                              <DropdownMenuItem>
-                                <CheckCircle className="w-4 h-4 mr-2" />
-                                Duyệt báo cáo
-                              </DropdownMenuItem>
-                              <DropdownMenuItem className="text-destructive">
-                                <XCircle className="w-4 h-4 mr-2" />
-                                Từ chối
-                              </DropdownMenuItem>
-                            </>
-                          )}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+        </div>
+
+        {/* Content cho các Tabs - Sử dụng chung logic render vì cấu trúc bảng giống nhau */}
+        {["user", "post", "reel"].map((tabValue) => (
+          <TabsContent key={tabValue} value={tabValue}>
+            <Card>
+              <CardHeader>
+                <CardTitle>
+                  Danh sách báo cáo{" "}
+                  {tabValue === "user"
+                    ? "người dùng"
+                    : tabValue === "post"
+                    ? "bài viết"
+                    : "thước phim"}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {loading ? (
+                  <div className="text-center py-10">Đang tải dữ liệu...</div>
+                ) : (
+                  <>
+                    <ReportTable
+                      data={reports}
+                      onSelectReport={setSelectedReport}
+                    />
+                    <PaginationFooter
+                      currentPage={currentPage}
+                      totalPages={totalPages}
+                      onPageChange={setCurrentPage}
+                    />
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+        ))}
+      </Tabs>
 
       {selectedReport && (
         <ReportDetailDialog
           open={!!selectedReport}
           onOpenChange={(open) => !open && setSelectedReport(null)}
-          report={selectedReport}
+          reportId={selectedReport.id}
+          reportType={activeTab}
         />
       )}
     </div>

@@ -24,6 +24,8 @@ import {
   clearComments,
 } from "@/features/interaction/interactionSlice";
 import { useEffect } from "react";
+import { ReportPostDialog } from "@/features/post/components/ReportPostDialog";
+import { reportPost } from "@/features/post/api/postApi";
 
 interface PostGridProps {
   posts: ProfilePost[];
@@ -56,12 +58,12 @@ export const PostGrid = ({
   const [isBookmarkedById, setIsBookmarkedById] = useState<
     Record<string, boolean>
   >({});
-  
+  const [reportingPost, setReportingPost] = useState<ProfilePost | null>(null);
   // Get comments from Redux state
   const { comments: reduxComments } = useAppSelector(
     (state) => state.interaction.comments
   );
-  
+
   // Load comments when post is selected
   useEffect(() => {
     if (selectedPost) {
@@ -74,6 +76,35 @@ export const PostGrid = ({
       );
     }
   }, [dispatch, selectedPost]);
+
+  const handleReportSubmit = async (
+    postId: string,
+    reason: string,
+    details?: string
+  ) => {
+    try {
+      await reportPost(postId, reason, details);
+
+      toast({
+        title: "Đã gửi báo cáo",
+        description:
+          "Cảm ơn bạn đã báo cáo. Chúng tôi sẽ xem xét bài viết này.",
+      });
+
+      setReportingPost(null);
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Lỗi",
+        description: "Không thể gửi báo cáo. Vui lòng thử lại sau.",
+      });
+    }
+  };
+
+  const handleOpenReport = (post: ProfilePost) => {
+    setReportingPost(post);
+    setSelectedPost(null);
+  };
 
   interface CDComment {
     id: string;
@@ -305,7 +336,9 @@ export const PostGrid = ({
         <div className="w-12 h-12 md:w-16 md:h-16 border-2 border-muted rounded-full flex items-center justify-center mb-3 md:mb-4">
           <MessageCircle className="w-6 h-6 md:w-8 md:h-8 text-muted-foreground" />
         </div>
-        <h3 className="text-base md:text-lg font-semibold mb-2">Chưa có bài viết</h3>
+        <h3 className="text-base md:text-lg font-semibold mb-2">
+          Chưa có bài viết
+        </h3>
         <p className="text-sm md:text-base text-muted-foreground text-center">
           Khi bạn chia sẻ ảnh và video, các bài viết sẽ xuất hiện ở đây.
         </p>
@@ -389,7 +422,9 @@ export const PostGrid = ({
           onLikeComment={handleLikeCommentAPI}
           onReplyComment={handleReplyCommentAPI}
           onLikePost={handleLikePostAPI}
-          isPostLiked={isPostLiked[selectedPost.id] ?? selectedPost.isLiked ?? false}
+          isPostLiked={
+            isPostLiked[selectedPost.id] ?? selectedPost.isLiked ?? false
+          }
           onOpenShareDialog={() => setIsShareOpen(true)}
           isShareDialogOpen={isShareOpen}
           onNavigateToProfile={(userName) => navigate(`/${userName}`)}
@@ -429,18 +464,32 @@ export const PostGrid = ({
                       navigate(`/posts/${selectedPost.id}`);
                     },
                   },
-                  { label: "Giới thiệu về tài khoản này", action: () => {} },
+                  {
+                    label: "Giới thiệu về tài khoản này",
+                    action: () => {
+                      console.log("Navigating to post:", selectedPost.id);
+                    },
+                  },
                   { label: "Hủy", action: () => {} },
                 ]
               : [
-                  { label: "Báo cáo", action: () => {}, isDestructive: true },
+                  {
+                    label: "Báo cáo",
+                    action: () => handleOpenReport(selectedPost),
+                    isDestructive: true,
+                  },
                   {
                     label: "Đi đến bài viết",
                     action: () => {
                       navigate(`/posts/${selectedPost.id}`);
                     },
                   },
-                  { label: "Giới thiệu về tài khoản này", action: () => {} },
+                  {
+                    label: "Giới thiệu về tài khoản này",
+                    action: () => {
+                      console.log("Navigating to post:", selectedPost.id);
+                    },
+                  },
                   { label: "Hủy", action: () => {} },
                 ]
           }
@@ -469,7 +518,9 @@ export const PostGrid = ({
           onLikeComment={handleLikeCommentAPI}
           onReplyComment={handleReplyCommentAPI}
           onLikePost={handleLikePostAPI}
-          isPostLiked={isPostLiked[selectedPost.id] ?? selectedPost.isLiked ?? false}
+          isPostLiked={
+            isPostLiked[selectedPost.id] ?? selectedPost.isLiked ?? false
+          }
           actionMenuItems={
             currentUser && selectedPost.userId === currentUser.id.toString()
               ? [
@@ -500,7 +551,10 @@ export const PostGrid = ({
                   { label: "Hủy", action: () => {} },
                 ]
               : [
-                  { label: "Báo cáo", action: () => {} },
+                  {
+                    label: "Báo cáo",
+                    action: () => handleOpenReport(selectedPost),
+                  },
                   {
                     label: "Đi đến bài viết",
                     action: () => {
@@ -553,6 +607,15 @@ export const PostGrid = ({
           }
           initialMediaUrl={editingPost.media?.map((m) => m.url) || []}
           onSave={handleSaveEdit}
+        />
+      )}
+
+      {reportingPost && (
+        <ReportPostDialog
+          isOpen={!!reportingPost}
+          onClose={() => setReportingPost(null)}
+          postId={reportingPost.id}
+          onReport={handleReportSubmit}
         />
       )}
     </>

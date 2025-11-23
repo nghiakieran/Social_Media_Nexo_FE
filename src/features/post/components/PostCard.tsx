@@ -538,6 +538,7 @@ export const PostCard = ({
         onReport(post.id);
         break;
       case "goToPost":
+        console.log("Navigating to post:", post.id);
         handleGoToPost(post.id);
         break;
       case "share":
@@ -812,14 +813,24 @@ export const PostCard = ({
             >
               {latestLikeName ? (
                 <>
-                  <span className="font-medium hover:underline">{latestLikeName}</span>
+                  <span className="font-medium hover:underline">
+                    {latestLikeName}
+                  </span>
                   {likesCount > 1 && (
                     <>
-                      <span className="text-gray-600 dark:text-gray-300"> và </span>
-                      <span className="font-medium hover:underline">những người khác</span>
+                      <span className="text-gray-600 dark:text-gray-300">
+                        {" "}
+                        và{" "}
+                      </span>
+                      <span className="font-medium hover:underline">
+                        những người khác
+                      </span>
                     </>
                   )}
-                  <span className="text-gray-600 dark:text-gray-300"> đã thích</span>
+                  <span className="text-gray-600 dark:text-gray-300">
+                    {" "}
+                    đã thích
+                  </span>
                 </>
               ) : (
                 <span className="text-gray-600 dark:text-gray-300">

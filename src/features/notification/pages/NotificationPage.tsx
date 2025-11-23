@@ -10,13 +10,16 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { useAppDispatch, useAppSelector } from "@/store";
 import { Check, UserPlus } from "lucide-react";
-import React, { useEffect, useMemo } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { mockNotifications } from "../__mocks__/notifications";
 import { NotificationItem } from "../components/NotificationItem";
 import TabSwitcher from "../components/TabSwitcher";
 import {
+  appendNotifications,
+  getNotificationsThunk,
   markAllAsRead,
   markAsRead,
+  readAllNotificationsThunk,
   setActiveTab,
   setNotifications,
 } from "../notificationSlice";
@@ -24,34 +27,39 @@ import {
 const NotificationPage: React.FC = () => {
   const dispatch = useAppDispatch();
   const { toast } = useToast();
-  const { notifications, activeTab, unreadCount } = useAppSelector(
+  const { notifications, activeTab, unreadCount, loading } = useAppSelector(
     (state) => state.notification
   );
   const { followRequests, showFollowRequestsDialog, isLoading } =
     useAppSelector((state) => state.profile);
   const currentUser = useAppSelector((state) => state.auth.user);
 
-  // Load mock data on component mount
-  useEffect(() => {
-    dispatch(setNotifications(mockNotifications));
+  const [page, setPage] = useState(0);
+  const limit = 20;
 
-    // Fetch follow requests if user has private account
+  // Load notifications page 1 on mount
+  useEffect(() => {
+    setPage(0);
+    dispatch(getNotificationsThunk({ page: 0, limit }));
     if (currentUser?.isPrivate) {
       dispatch(fetchFollowRequestsAsync({}));
     }
   }, [dispatch, currentUser]);
 
-  // Filter notifications based on active tab
   const filteredNotifications = useMemo(() => {
     const safeNotifications = notifications || [];
     switch (activeTab) {
       case "following":
         return safeNotifications.filter(
-          (n) => n.type === "like" || n.type === "comment"
+          (n) =>
+            n.notificationType.toLowerCase().includes("like") ||
+            n.notificationType.toLowerCase().includes("comment")
         );
       case "you":
         return safeNotifications.filter(
-          (n) => n.type === "follow" || n.type === "hashtag"
+          (n) =>
+            n.notificationType.toLowerCase().includes("follow") ||
+            n.notificationType.toLowerCase().includes("hashtag")
         );
       default:
         return safeNotifications;
@@ -59,11 +67,11 @@ const NotificationPage: React.FC = () => {
   }, [notifications, activeTab]);
 
   const handleMarkAsRead = (id: string) => {
-    dispatch(markAsRead(id));
+    dispatch(markAsRead(Number(id)));
   };
 
   const handleMarkAllAsRead = () => {
-    dispatch(markAllAsRead());
+    dispatch(readAllNotificationsThunk());
     toast({
       title: "Đã đánh dấu",
       description: "Tất cả thông báo đã được đánh dấu là đã đọc",
@@ -86,10 +94,29 @@ const NotificationPage: React.FC = () => {
     dispatch(rejectFollowRequestAsync(username));
   };
 
+  // Infinite scroll
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const target = e.currentTarget;
+    if (
+      target.scrollHeight - target.scrollTop - target.clientHeight < 100 &&
+      !loading
+    ) {
+      const nextPage = page + 1;
+      setPage(nextPage);
+
+      dispatch(getNotificationsThunk({ page: nextPage, limit }))
+        .unwrap()
+        .then((res) => {
+          dispatch(appendNotifications(res.content));
+        })
+        .catch((err) => console.error(err));
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <div className="border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-20">
+      <div className="border-b border-border bg-background/95 backdrop-blur sticky top-0 z-20">
         <div className="flex items-center justify-between p-4">
           <h1 className="text-xl font-semibold">Thông báo</h1>
           {unreadCount > 0 && (
@@ -106,36 +133,32 @@ const NotificationPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Follow Requests Section - Only show if user has private account and pending requests */}
-      {currentUser?.isPrivate &&
-        followRequests &&
-        followRequests.length > 0 && (
-          <div className="border-b border-border bg-background">
-            <div className="p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                    <UserPlus className="w-5 h-5 text-primary" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-sm">Yêu cầu theo dõi</h3>
-                    <p className="text-xs text-muted-foreground">
-                      {followRequests?.length || 0} yêu cầu đang chờ
-                    </p>
-                  </div>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleShowFollowRequests}
-                  className="text-primary hover:text-white"
-                >
-                  Xem tất cả
-                </Button>
+      {/* Follow Requests */}
+      {currentUser?.isPrivate && followRequests?.length > 0 && (
+        <div className="border-b border-border bg-background">
+          <div className="p-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                <UserPlus className="w-5 h-5 text-primary" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-sm">Yêu cầu theo dõi</h3>
+                <p className="text-xs text-muted-foreground">
+                  {followRequests?.length} yêu cầu đang chờ
+                </p>
               </div>
             </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleShowFollowRequests}
+              className="text-primary hover:text-white"
+            >
+              Xem tất cả
+            </Button>
           </div>
-        )}
+        </div>
+      )}
 
       {/* Tab Switcher */}
       <TabSwitcher
@@ -145,26 +168,27 @@ const NotificationPage: React.FC = () => {
       />
 
       {/* Notifications List */}
-      <ScrollArea className="h-[calc(100vh-140px)]">
+      <ScrollArea
+        className="h-[calc(100vh-140px)]"
+        onScroll={handleScroll} // gắn scroll event
+      >
         <div className="divide-y divide-border">
           {filteredNotifications.length > 0 ? (
-            <>
-              {filteredNotifications.map((notification, index) => (
-                <div
-                  key={notification.id}
-                  className="animate-fade-in"
-                  style={{
-                    animationDelay: `${index * 0.05}s`,
-                    animationFillMode: "both",
-                  }}
-                >
-                  <NotificationItem
-                    notification={notification}
-                    onMarkAsRead={handleMarkAsRead}
-                  />
-                </div>
-              ))}
-            </>
+            filteredNotifications.map((notification, index) => (
+              <div
+                key={notification.id}
+                className="animate-fade-in"
+                style={{
+                  animationDelay: `${index * 0.05}s`,
+                  animationFillMode: "both",
+                }}
+              >
+                <NotificationItem
+                  notification={notification}
+                  onMarkAsRead={handleMarkAsRead}
+                />
+              </div>
+            ))
           ) : (
             <div className="flex flex-col items-center justify-center py-16 px-4">
               <div className="w-24 h-24 rounded-full bg-muted flex items-center justify-center mb-4">
@@ -176,9 +200,8 @@ const NotificationPage: React.FC = () => {
               <p className="text-muted-foreground text-center max-w-sm">
                 {activeTab === "all"
                   ? "Bạn đã xem hết tất cả thông báo"
-                  : `Không có thông báo nào trong tab "${
-                      activeTab === "following" ? "Đang theo dõi" : "Bạn"
-                    }"`}
+                  : `Không có thông báo nào trong tab "${activeTab === "following" ? "Đang theo dõi" : "Bạn"
+                  }"`}
               </p>
             </div>
           )}
@@ -199,3 +222,4 @@ const NotificationPage: React.FC = () => {
 };
 
 export default NotificationPage;
+

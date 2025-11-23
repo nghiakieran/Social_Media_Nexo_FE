@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -21,25 +21,18 @@ import {
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import {
+  getPostReportById,
+  getReelReportById,
+  handelPostReportById,
+  handelReelReportById,
+} from "@/features/admin/api/reportManagementAPI";
 
 interface ReportDetailDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  report: {
-    id: string;
-    reporter: string;
-    reportedType: string;
-    reportedUser: string;
-    reason: string;
-    status: string;
-    date: string;
-    avatar: string;
-    detailedReason?: string;
-    evidenceImages?: string[];
-    reportedContent?: string;
-    reportedMediaUrl?: string;
-    reportedUserAvatar?: string;
-  };
+  reportId: number;
+  reportType: string;
 }
 
 export function ReportDetailDialog({
@@ -49,96 +42,144 @@ export function ReportDetailDialog({
 }: ReportDetailDialogProps) {
   const [adminNote, setAdminNote] = useState("");
   const [processing, setProcessing] = useState(false);
+  const [report, setReport] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
 
   const getStatusBadge = (status: string) => {
     const variants = {
       pending: "warning" as const,
-      processing: "default" as const,
-      resolved: "success" as const,
+      in_review: "default" as const,
+      approved: "success" as const,
+      rejected: "destructive" as const,
     };
     return variants[status as keyof typeof variants] || "secondary";
   };
 
-  const getStatusText = (status: string) => {
-    const texts = {
-      pending: "Chưa xử lý",
-      processing: "Đang xử lý",
-      resolved: "Đã xử lý",
-    };
-    return texts[status as keyof typeof texts] || status;
+  const fetchReport = async () => {
+    if (!reportId || !reportType) return;
+
+    setLoading(true);
+    console.log("Fetching report:", reportId, reportType);
+    try {
+      if (reportType === "post") {
+        const res = await getPostReportById(reportId);
+        setReport(res);
+        setAdminNote(res.note || "");
+      } else if (reportType === "reel") {
+        const res = await getReelReportById(reportId);
+        setReport(res);
+        setAdminNote(res.note || "");
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+  useEffect(() => {
+    fetchReport();
+  }, [reportId, reportType]);
+
+  const formatDate = (dateString: string) => {
+    try {
+      return new Date(dateString).toLocaleDateString("vi-VN", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    } catch {
+      return dateString;
+    }
   };
 
-  const getReportedTypeIcon = (type: string) => {
-    const icons = {
-      post: FileText,
-      user: User,
-      comment: Flag,
-    };
-    const Icon = icons[type as keyof typeof icons] || Flag;
-    return <Icon className="w-4 h-4" />;
-  };
+  const mediaItems = useMemo(() => {
+    if (!report?.mediaUrls || !Array.isArray(report.mediaUrls)) return [];
 
-  const handleApprove = () => {
+    return report.mediaUrls.map((url, index) => {
+      const isVideo = url.endsWith(".mp4") || url.includes(".m3u8");
+
+      return {
+        id: `post-media-${report?.id ?? "loading"}-${index}`,
+        type: isVideo ? "video" : "image",
+        url,
+        alt: `Post media ${index + 1}`,
+      };
+    });
+  }, [report?.id, report?.mediaUrls]);
+
+  const handleChangeStatus = async (newStatus: string) => {
+    if (!report) return;
     setProcessing(true);
-    // Handle approval logic
-    console.log("Approving report:", report.id, "Note:", adminNote);
-    setTimeout(() => {
+
+    try {
+      if (reportType === "post") {
+        await handelPostReportById(report.id, newStatus, adminNote);
+      } else if (reportType === "reel") {
+        await handelReelReportById(report.id, newStatus, adminNote);
+      }
+
+      setReport({ ...report, reportStatus: newStatus });
+    } catch (err) {
+      console.error("Lỗi cập nhật trạng thái:", err);
+    } finally {
       setProcessing(false);
-      onOpenChange(false);
-    }, 1000);
+    }
   };
 
-  const handleReject = () => {
-    setProcessing(true);
-    // Handle rejection logic
-    console.log("Rejecting report:", report.id, "Note:", adminNote);
-    setTimeout(() => {
-      setProcessing(false);
-      onOpenChange(false);
-    }, 1000);
-  };
+  if (loading || !report) {
+    return (
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Đang tải...</DialogTitle>
+          </DialogHeader>
 
+          <p className="text-center py-6">Đang tải dữ liệu báo cáo...</p>
+        </DialogContent>
+      </Dialog>
+    );
+  }
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             Chi tiết báo cáo
-            <Badge variant={getStatusBadge(report.status)}>
-              {getStatusText(report.status)}
+            <Badge
+              variant={getStatusBadge(report?.reportStatus?.toLowerCase())}
+            >
+              {report?.reportStatus}
             </Badge>
           </DialogTitle>
         </DialogHeader>
 
         <ScrollArea className="max-h-[calc(90vh-120px)]">
           <div className="space-y-6 pr-4">
-            {/* Reporter Info */}
+            {/* Reporter */}
             <div>
               <h4 className="font-semibold mb-3">Người báo cáo</h4>
               <div className="flex items-center gap-3 p-3 rounded-lg border">
                 <Avatar className="w-10 h-10">
-                  <AvatarImage src={report.avatar} />
-                  <AvatarFallback>{report.reporter[0]}</AvatarFallback>
+                  <AvatarImage src={report?.reporterAvatarUrl} />
+                  <AvatarFallback>
+                    {report?.reporterName?.[0] ?? "?"}
+                  </AvatarFallback>
                 </Avatar>
+
                 <div>
-                  <p className="font-medium">{report.reporter}</p>
-                  <p className="text-sm text-muted-foreground">{report.date}</p>
+                  <p className="font-medium">{report?.reporterName}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {formatDate(report?.createdAt)}
+                  </p>
                 </div>
               </div>
             </div>
 
             <Separator />
 
-            {/* Reported Object */}
+            {/* Reported object */}
             <div>
               <h4 className="font-semibold mb-3">Đối tượng bị báo cáo</h4>
-              <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <Badge variant="outline">
-                    {getReportedTypeIcon(report.reportedType)}
-                    <span className="ml-1">{report.reportedType}</span>
-                  </Badge>
-                </div>
 
                 <div className="flex items-center gap-3 p-3 rounded-lg border">
                   {report.reportedUserAvatar && (
@@ -185,19 +226,37 @@ export function ReportDetailDialog({
                     )}
                   </div>
                 )}
+                <div>
+                  <p className="font-medium">{report?.ownerPostName}</p>
+                  <p className="text-sm text-muted-foreground">
+                    Người bị báo cáo
+                  </p>
+                </div>
               </div>
+
+              {report?.caption && (
+                <div className="p-3 rounded-lg bg-muted mt-3">
+                  <p className="font-medium text-sm mb-2">
+                    Nội dung bị báo cáo:
+                  </p>
+                  <p className="text-sm">{report?.caption}</p>
+                </div>
+              )}
             </div>
 
+            {mediaItems.length > 0 && (
+              <div className="rounded-lg overflow-hidden bg-black/5 border">
+                <MediaSlider
+                  media={mediaItems}
+                  className="w-full aspect-auto max-h-[500px]"
+                />
+              </div>
+            )}
             <Separator />
 
             {/* Reason */}
             <div>
               <h4 className="font-semibold mb-3">Lý do báo cáo</h4>
-              <div className="space-y-3">
-                <div className="p-3 rounded-lg bg-muted">
-                  <p className="font-medium text-sm mb-1">Danh mục:</p>
-                  <p className="text-sm">{report.reason}</p>
-                </div>
 
                 {report.detailedReason && (
                   <div className="p-3 rounded-lg border">
@@ -208,10 +267,24 @@ export function ReportDetailDialog({
                   </div>
                 )}
               </div>
+
+              {report?.detailedReason && (
+                <div className="p-3 rounded-lg border mt-3">
+                  <p className="font-medium text-sm mb-1">Chi tiết:</p>
+                  <p className="text-sm">{report?.detail}</p>
+                </div>
+              )}
             </div>
 
-            {/* Evidence Images */}
-            {report.evidenceImages && report.evidenceImages.length > 0 && (
+            <Label className="mt-4">Ghi chú của admin</Label>
+            <Textarea
+              value={adminNote}
+              onChange={(e) => setAdminNote(e.target.value)}
+              placeholder="Nhập ghi chú xử lý..."
+              className="mt-2"
+            />
+            {/* Pending actions */}
+            {report?.reportStatus === "PENDING" && (
               <>
                 <Separator />
                 <div>
@@ -232,19 +305,17 @@ export function ReportDetailDialog({
               </>
             )}
 
-            {report.status === "pending" && (
+            {report?.reportStatus === "IN_REVIEW" && (
               <>
                 <Separator />
-                <div>
-                  <Label htmlFor="admin-note">Ghi chú của admin</Label>
-                  <Textarea
-                    id="admin-note"
-                    placeholder="Thêm ghi chú về quyết định xử lý..."
-                    value={adminNote}
-                    onChange={(e) => setAdminNote(e.target.value)}
-                    className="mt-2"
-                    rows={4}
-                  />
+
+                <div className="p-4 rounded-lg bg-blue-50 border border-blue-300">
+                  <p className="text-sm font-semibold text-blue-800">
+                    Báo cáo đang được xử lý
+                  </p>
+                  <p className="text-sm text-blue-700 mt-1">
+                    Báo cáo đang được cân nhắc để xử lý.
+                  </p>
                 </div>
 
                 <div className="grid grid-cols-3 gap-3">
@@ -252,17 +323,18 @@ export function ReportDetailDialog({
                     variant="default"
                     onClick={handleApprove}
                     disabled={processing}
-                    className="bg-success hover:bg-success/90"
+                    onClick={() => handleChangeStatus("APPROVED")}
                   >
-                    <CheckCircle className="w-4 h-4 mr-2" />
+                    <CheckCircle className="w-4 h-4" />
                     Duyệt báo cáo
                   </Button>
                   <Button
                     variant="destructive"
                     onClick={handleReject}
                     disabled={processing}
+                    onClick={() => handleChangeStatus("REJECTED")}
                   >
-                    <XCircle className="w-4 h-4 mr-2" />
+                    <XCircle className="w-4 h-4" />
                     Từ chối
                   </Button>
                   <Button variant="outline" disabled={processing}>
@@ -273,19 +345,30 @@ export function ReportDetailDialog({
               </>
             )}
 
-            {report.status === "processing" && (
+            {report?.reportStatus === "APPROVED" && (
               <>
                 <Separator />
-                <div className="p-4 rounded-lg bg-primary/10 border border-primary/20">
-                  <p className="text-sm font-medium">Báo cáo đang được xử lý</p>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Vui lòng hoàn tất xử lý hoặc chuyển trạng thái
+                <div className="p-4 rounded-lg bg-green-100 border border-green-300">
+                  <p className="text-sm font-semibold text-green-800">
+                    Báo cáo đã được duyệt
                   </p>
+                  <p className="text-sm text-green-700 mt-1">
+                    Nội dung vi phạm đã được xử lý theo quy định.
+                  </p>
+                </div>
+
+                <div className="flex flex-wrap gap-3 mt-4 justify-end">
+                  {!report.isActive && (
+                    <Button variant="outline" disabled={processing}>
+                      <Lock className="w-4 h-4" />
+                      Mở khóa bài viết
+                    </Button>
+                  )}
                 </div>
               </>
             )}
 
-            {report.status === "resolved" && (
+            {report?.reportStatus === "REJECTED" && (
               <>
                 <Separator />
                 <div className="p-4 rounded-lg bg-success/10 border border-success/20">
