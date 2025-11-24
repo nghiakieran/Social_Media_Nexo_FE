@@ -4,6 +4,8 @@ import { useAppDispatch } from "@/store";
 import { oauthLoginAsync } from "../authSlice";
 import { Loader } from "@/components/common/Loader";
 import { useToast } from "@/hooks/use-toast";
+import { ACCESS_TOKEN_STORAGE_KEY } from "@/utils/constants";
+import { hasAdminRole } from "@/lib/utils";
 
 export const OAuthCallbackPage = () => {
   const navigate = useNavigate();
@@ -44,7 +46,14 @@ export const OAuthCallbackPage = () => {
           title: "Đăng nhập thành công!",
           description: "Chào mừng trở lại!",
         });
-        navigate("/");
+        
+        // Check if user has ADMIN role and redirect accordingly
+        const accessToken = localStorage.getItem(ACCESS_TOKEN_STORAGE_KEY);
+        if (hasAdminRole(accessToken)) {
+          navigate("/admin");
+        } else {
+          navigate("/");
+        }
       } catch (error) {
         console.error("OAuth login failed:", error);
         navigate("/auth/login?error=oauth_login_failed");

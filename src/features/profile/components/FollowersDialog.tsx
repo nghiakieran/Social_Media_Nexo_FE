@@ -82,6 +82,9 @@ export const FollowersDialog = ({
   const { toast } = useToast();
   const { isLoading } = useAppSelector((state) => state.profile);
   const currentUser = useAppSelector((state) => state.auth.user);
+  const listContainerRef = useRef<HTMLDivElement | null>(null);
+  const hasInitialFetchRef = useRef(false);
+  const lastSearchRef = useRef<string>("");
 
   // Keep local users in sync with props
   useEffect(() => {
@@ -100,45 +103,56 @@ export const FollowersDialog = ({
     : followingHasMore;
   const currentPageNum = isFollowersDialog ? followersPage : followingPage;
 
-  // Clear search when dialog opens
+  // Reset search when dialog opens and clear tracking when it closes
   useEffect(() => {
     if (isOpen) {
       clearSearch();
+    } else {
+      hasInitialFetchRef.current = false;
+      lastSearchRef.current = "";
     }
   }, [isOpen, clearSearch]);
 
-  // Search effect - trigger API call when debounced value changes
-  // Gọi API kể cả khi search rỗng (để load lại toàn bộ danh sách)
+  const fetchPage = useCallback(
+    (pageNo: number, searchQuery?: string) => {
+      if (!username) return;
+
+      const payload = {
+        username,
+        pageNo,
+        pageSize: 10,
+        search: searchQuery,
+      };
+
+      if (isFollowersDialog) {
+        dispatch(fetchFollowersByUsernameAsync(payload));
+      } else {
+        dispatch(fetchFollowingByUsernameAsync(payload));
+      }
+    },
+    [dispatch, username, isFollowersDialog]
+  );
+
+  // Trigger API when dialog opens or search term changes (after debounce)
   useEffect(() => {
     if (!username || !isOpen) return;
 
-    // Reset to first page when search changes
-    if (isFollowersDialog) {
-      dispatch(
-        fetchFollowersByUsernameAsync({
-          username,
-          pageNo: 0,
-          pageSize: 10,
-          search: debouncedValue || undefined,
-        })
-      );
-    } else {
-      dispatch(
-        fetchFollowingByUsernameAsync({
-          username,
-          pageNo: 0,
-          pageSize: 10,
-          search: debouncedValue || undefined,
-        })
-      );
+    const normalizedSearch = debouncedValue?.trim() ?? "";
+    const searchChanged = normalizedSearch !== lastSearchRef.current;
+
+    if (!hasInitialFetchRef.current || searchChanged) {
+      hasInitialFetchRef.current = true;
+      lastSearchRef.current = normalizedSearch;
+      fetchPage(0, normalizedSearch ? normalizedSearch : undefined);
     }
-  }, [debouncedValue, username, isOpen, isFollowersDialog, dispatch]);
+  }, [debouncedValue, username, isOpen, fetchPage]);
 
   // Load more handler for infinite scroll
   const handleLoadMore = useCallback(() => {
     if (!username || !currentHasMore || isLoading) return;
 
     const nextPage = currentPageNum + 1;
+    const searchQuery = debouncedValue?.trim() || undefined;
 
     if (isFollowersDialog) {
       dispatch(
@@ -146,7 +160,7 @@ export const FollowersDialog = ({
           username,
           pageNo: nextPage,
           pageSize: 10,
-          search: debouncedValue || undefined,
+          search: searchQuery,
         })
       );
     } else {
@@ -155,7 +169,7 @@ export const FollowersDialog = ({
           username,
           pageNo: nextPage,
           pageSize: 10,
-          search: debouncedValue || undefined,
+          search: searchQuery,
         })
       );
     }
@@ -173,7 +187,8 @@ export const FollowersDialog = ({
   const { lastElementRef } = useInfiniteScroll(handleLoadMore, {
     hasMore: currentHasMore,
     isLoading,
-    threshold: 100,
+    threshold: 50,
+    rootRef: listContainerRef,
   });
 
   // Filter users - backend search is now handling the search
@@ -370,7 +385,11 @@ export const FollowersDialog = ({
               <SearchInput
                 value={searchValue}
                 onChange={setSearchValue}
-                onClear={clearSearch}
+                onClear={() => {
+                  hasInitialFetchRef.current = false;
+                  lastSearchRef.current = "";
+                  clearSearch();
+                }}
                 placeholder="Tìm kiếm theo tên hoặc username..."
                 isDebouncing={isDebouncing}
                 className="bg-muted/50"
@@ -378,7 +397,10 @@ export const FollowersDialog = ({
             </div>
 
             {/* User List - fixed height for stable UX */}
-            <div className="h-[340px] overflow-y-auto space-y-1.5">
+            <div
+              ref={listContainerRef}
+              className="h-[340px] overflow-y-auto space-y-1.5"
+            >
               {filteredUsers.length === 0 ? (
                 <div className="h-full flex items-center justify-center text-muted-foreground">
                   {searchValue ? "Không tìm thấy kết quả" : "Danh sách trống"}

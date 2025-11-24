@@ -61,6 +61,7 @@ import { PrivateAccountMessage } from "../components/PrivateAccountMessage";
 import { SavedCollectionsContent } from "@/features/saved/components/SavedCollectionsContent";
 import { HiddenPostsContent } from "../components/HiddenPostsContent";
 import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
+import { reportUser } from "../api/profileApi";
 
 export const ProfilePage = () => {
   const { username } = useParams<{ username: string }>();
@@ -438,6 +439,13 @@ export const ProfilePage = () => {
 
   const handleReport = () => {
     dispatch(setShowReportDialog(true));
+  };
+
+  const handleReportSubmit = async (reason: string) => {
+    if (!username) {
+      throw new Error("Không tìm thấy thông tin người dùng");
+    }
+    await reportUser(username, { reason });
   };
 
   const handleAddToCloseFriends = () => {
@@ -835,6 +843,7 @@ export const ProfilePage = () => {
         isOpen={showReportDialog}
         onClose={() => dispatch(setShowReportDialog(false))}
         user={currentProfile}
+        onSubmit={handleReportSubmit}
       />
 
       <AvatarChangeDialog

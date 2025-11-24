@@ -27,6 +27,7 @@ import {
   handelPostReportById,
   handelReelReportById,
 } from "@/features/admin/api/reportManagementAPI";
+import MediaSlider from "@/features/post/components/MediaSlider";
 
 interface ReportDetailDialogProps {
   open: boolean;
@@ -38,18 +39,19 @@ interface ReportDetailDialogProps {
 export function ReportDetailDialog({
   open,
   onOpenChange,
-  report,
+  reportId,
+  reportType,
 }: ReportDetailDialogProps) {
   const [adminNote, setAdminNote] = useState("");
   const [processing, setProcessing] = useState(false);
-  const [report, setReport] = useState<any>(null);
+  const [report, setReport] = useState(null);
   const [loading, setLoading] = useState(false);
 
   const getStatusBadge = (status: string) => {
     const variants = {
-      pending: "warning" as const,
+      pending: "secondary" as const,
       in_review: "default" as const,
-      approved: "success" as const,
+      approved: "default" as const,
       rejected: "destructive" as const,
     };
     return variants[status as keyof typeof variants] || "secondary";
@@ -181,57 +183,56 @@ export function ReportDetailDialog({
             <div>
               <h4 className="font-semibold mb-3">Đối tượng bị báo cáo</h4>
 
-                <div className="flex items-center gap-3 p-3 rounded-lg border">
-                  {report.reportedUserAvatar && (
-                    <Avatar className="w-10 h-10">
-                      <AvatarImage src={report.reportedUserAvatar} />
-                      <AvatarFallback>{report.reportedUser[0]}</AvatarFallback>
-                    </Avatar>
-                  )}
-                  <div>
-                    <p className="font-medium">{report.reportedUser}</p>
-                    <p className="text-sm text-muted-foreground">
-                      Người bị báo cáo
-                    </p>
-                  </div>
-                </div>
-
-                {/* Reported Content */}
-                {report.reportedContent && (
-                  <div className="p-3 rounded-lg bg-muted">
-                    <p className="text-sm font-medium mb-2">
-                      Nội dung bị báo cáo:
-                    </p>
-                    <p className="text-sm">{report.reportedContent}</p>
-                  </div>
-                )}
-
-                {/* Reported Media */}
-                {report.reportedMediaUrl && (
-                  <div className="rounded-lg overflow-hidden border">
-                    {report.reportedType === "reel" ? (
-                      <video
-                        src={report.reportedMediaUrl}
-                        controls
-                        className="w-full max-h-[300px] object-contain"
-                      >
-                        Trình duyệt không hỗ trợ video
-                      </video>
-                    ) : (
-                      <img
-                        src={report.reportedMediaUrl}
-                        alt="Reported content"
-                        className="w-full max-h-[300px] object-contain"
-                      />
-                    )}
-                  </div>
+              <div className="flex items-center gap-3 p-3 rounded-lg border">
+                {report.reportedUserAvatar && (
+                  <Avatar className="w-10 h-10">
+                    <AvatarImage src={report.reportedUserAvatar} />
+                    <AvatarFallback>{report.reportedUser[0]}</AvatarFallback>
+                  </Avatar>
                 )}
                 <div>
-                  <p className="font-medium">{report?.ownerPostName}</p>
+                  <p className="font-medium">{report.reportedUser}</p>
                   <p className="text-sm text-muted-foreground">
                     Người bị báo cáo
                   </p>
                 </div>
+              </div>
+
+              {/* Reported Content */}
+              {report.reportedContent && (
+                <div className="p-3 rounded-lg bg-muted">
+                  <p className="text-sm font-medium mb-2">
+                    Nội dung bị báo cáo:
+                  </p>
+                  <p className="text-sm">{report.reportedContent}</p>
+                </div>
+              )}
+
+              {/* Reported Media */}
+              {report.reportedMediaUrl && (
+                <div className="rounded-lg overflow-hidden border">
+                  {report.reportedType === "reel" ? (
+                    <video
+                      src={report.reportedMediaUrl}
+                      controls
+                      className="w-full max-h-[300px] object-contain"
+                    >
+                      Trình duyệt không hỗ trợ video
+                    </video>
+                  ) : (
+                    <img
+                      src={report.reportedMediaUrl}
+                      alt="Reported content"
+                      className="w-full max-h-[300px] object-contain"
+                    />
+                  )}
+                </div>
+              )}
+              <div>
+                <p className="font-medium">{report?.ownerPostName}</p>
+                <p className="text-sm text-muted-foreground">
+                  Người bị báo cáo
+                </p>
               </div>
 
               {report?.caption && (
@@ -258,20 +259,12 @@ export function ReportDetailDialog({
             <div>
               <h4 className="font-semibold mb-3">Lý do báo cáo</h4>
 
-                {report.detailedReason && (
-                  <div className="p-3 rounded-lg border">
-                    <p className="font-medium text-sm mb-1">Chi tiết:</p>
-                    <p className="text-sm whitespace-pre-wrap">
-                      {report.detailedReason}
-                    </p>
-                  </div>
-                )}
-              </div>
-
-              {report?.detailedReason && (
-                <div className="p-3 rounded-lg border mt-3">
+              {report.detailedReason && (
+                <div className="p-3 rounded-lg border">
                   <p className="font-medium text-sm mb-1">Chi tiết:</p>
-                  <p className="text-sm">{report?.detail}</p>
+                  <p className="text-sm whitespace-pre-wrap">
+                    {report.detailedReason}
+                  </p>
                 </div>
               )}
             </div>
@@ -321,18 +314,16 @@ export function ReportDetailDialog({
                 <div className="grid grid-cols-3 gap-3">
                   <Button
                     variant="default"
-                    onClick={handleApprove}
-                    disabled={processing}
                     onClick={() => handleChangeStatus("APPROVED")}
+                    disabled={processing}
                   >
                     <CheckCircle className="w-4 h-4" />
                     Duyệt báo cáo
                   </Button>
                   <Button
                     variant="destructive"
-                    onClick={handleReject}
-                    disabled={processing}
                     onClick={() => handleChangeStatus("REJECTED")}
+                    disabled={processing}
                   >
                     <XCircle className="w-4 h-4" />
                     Từ chối

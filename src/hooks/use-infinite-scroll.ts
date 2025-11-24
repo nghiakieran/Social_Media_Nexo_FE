@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useRef } from 'react';
+import { useEffect, useCallback, useRef } from "react";
 
 interface UseInfiniteScrollOptions {
   hasMore: boolean;
@@ -23,7 +23,7 @@ export const useInfiniteScroll = (
       // Don't trigger if loading or has error
       if (isLoading || error) return;
       if (observer.current) observer.current.disconnect();
-      
+
       observer.current = new IntersectionObserver(
         (entries) => {
           // Only trigger if intersecting, has more data, and no error
@@ -35,7 +35,7 @@ export const useInfiniteScroll = (
           rootMargin: `${threshold}px`,
         }
       );
-      
+
       if (node) observer.current.observe(node);
     },
     [isLoading, hasMore, onLoadMore, threshold, error]

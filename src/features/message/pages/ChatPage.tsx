@@ -111,7 +111,6 @@ export const ChatPage: React.FC = () => {
           );
         }
       } else if ("action" in update && "reaction" in update) {
-        // Legacy format: single reaction with action
         if (update.action === "ADD") {
           dispatch(
             addReaction({

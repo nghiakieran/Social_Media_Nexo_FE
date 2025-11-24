@@ -18,6 +18,7 @@ interface ReportUserDialogProps {
   isOpen: boolean;
   onClose: () => void;
   user: UserProfile;
+  onSubmit: (reason: string) => Promise<void>;
 }
 
 const reportReasons = [
@@ -31,12 +32,13 @@ const reportReasons = [
   { id: 'other', label: 'Lý do khác' },
 ];
 
-export const ReportUserDialog = ({ isOpen, onClose, user }: ReportUserDialogProps) => {
+export const ReportUserDialog = ({ isOpen, onClose, user, onSubmit }: ReportUserDialogProps) => {
   const [selectedReason, setSelectedReason] = useState('');
   const [additionalInfo, setAdditionalInfo] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!selectedReason) {
       toast({
         title: 'Vui lòng chọn lý do',
@@ -46,14 +48,45 @@ export const ReportUserDialog = ({ isOpen, onClose, user }: ReportUserDialogProp
       return;
     }
 
-    toast({
-      title: 'Đã gửi báo cáo',
-      description: 'Cảm ơn bạn đã báo cáo. Chúng tôi sẽ xem xét báo cáo của bạn.',
-    });
+    // Combine selected reason and additional info
+    const reasonLabel = reportReasons.find(r => r.id === selectedReason)?.label || selectedReason;
+    let finalReason = reasonLabel;
     
-    setSelectedReason('');
-    setAdditionalInfo('');
-    onClose();
+    if (selectedReason === 'other' && additionalInfo.trim()) {
+      finalReason = additionalInfo.trim();
+    } else if (additionalInfo.trim()) {
+      finalReason = `${reasonLabel}: ${additionalInfo.trim()}`;
+    }
+
+    // Validate max length (500 characters)
+    if (finalReason.length > 500) {
+      toast({
+        title: 'Lý do quá dài',
+        description: 'Lý do báo cáo không được vượt quá 500 ký tự.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      await onSubmit(finalReason);
+      toast({
+        title: 'Đã gửi báo cáo',
+        description: 'Cảm ơn bạn đã báo cáo. Chúng tôi sẽ xem xét báo cáo của bạn.',
+      });
+      setSelectedReason('');
+      setAdditionalInfo('');
+      onClose();
+    } catch (error) {
+      toast({
+        title: 'Lỗi',
+        description: error instanceof Error ? error.message : 'Có lỗi xảy ra khi gửi báo cáo. Vui lòng thử lại.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -97,14 +130,15 @@ export const ReportUserDialog = ({ isOpen, onClose, user }: ReportUserDialogProp
             variant="destructive" 
             onClick={handleSubmit}
             className="w-full"
-            disabled={!selectedReason}
+            disabled={!selectedReason || isSubmitting}
           >
-            Gửi báo cáo
+            {isSubmitting ? 'Đang gửi...' : 'Gửi báo cáo'}
           </Button>
           <Button 
             variant="outline" 
             onClick={onClose}
             className="w-full"
+            disabled={isSubmitting}
           >
             Hủy
           </Button>
