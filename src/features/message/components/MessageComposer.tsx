@@ -47,7 +47,6 @@ export const MessageComposer: React.FC<MessageComposerProps> = ({
   replyingTo,
   onCancelReply,
 }) => {
-  console.log("MessageComposer replyingTo:", replyingTo);
   const [message, setMessage] = useState("");
   const [isRecording, setIsRecording] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);

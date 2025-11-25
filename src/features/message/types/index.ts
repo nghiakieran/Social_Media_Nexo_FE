@@ -49,15 +49,28 @@ export interface ReactionDetailDTO {
   createdAt: string;
 }
 
+export interface MediaDTO {
+  id: number;
+  url: string;
+  type: string;
+  filename?: string;
+  size?: number;
+}
+
 export interface MessageDTO {
   id: number;
   conversationId: number;
   sender: UserDTO;
   content: string;
   messageType: EMessageType;
-  createdAt: string;
+  status: string;
+  replyToMessageId?: number | null;
   replyToMessage?: MessageDTO | null;
+  mediaList: MediaDTO[];
   reactions: ReactionDTO[];
+  isEdited?: boolean | null;
+  editedAt?: string | null;
+  createdAt: string;
 }
 
 export interface ConversationResponseDTO {
@@ -74,6 +87,7 @@ export interface ConversationResponseDTO {
   isArchived?: boolean;
   isMuted?: boolean;
   lastReadMessageId?: number;
+  senderUserId?: number;
 }
 
 export interface SendMessageRequest {

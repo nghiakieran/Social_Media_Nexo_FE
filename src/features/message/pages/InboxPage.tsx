@@ -34,6 +34,8 @@ import {
   fetchMessages,
   setReplyingTo,
   clearReplyingTo,
+  addReaction,
+  removeReaction,
 } from "../messageSlice";
 import {
   MessageDTO,
@@ -113,14 +115,11 @@ export const InboxPage: React.FC = () => {
       dispatch(handleReadAll({ ...readAllEvent, currentUserId: user.id }));
     },
     onReactionUpdate: (update: ReactionUpdateDTO) => {
-      // Check if it's the new aggregated format (has reactions array)
       if ("reactions" in update && Array.isArray(update.reactions)) {
-        // New format: aggregated reactions from backend
-        // Find conversationId from messages
         const conversationId = Object.keys(messages).find((convId) =>
           messages[Number(convId)]?.some((msg) => msg.id === update.messageId)
         );
-        
+
         if (conversationId) {
           dispatch(
             updateMessageReactionsFromAggregated({
@@ -539,9 +538,7 @@ export const InboxPage: React.FC = () => {
       <div
         className={cn(
           "w-80 border-r border-border flex flex-col bg-background shrink-0 transition-transform duration-300",
-          activeConversationId
-            ? "hidden md:flex"
-            : "flex"
+          activeConversationId ? "hidden md:flex" : "flex"
         )}
       >
         <InstagramInboxHeader
@@ -632,7 +629,8 @@ export const InboxPage: React.FC = () => {
               className="flex-1"
             />
             {currentChat.status === EConversationStatus.PENDING &&
-            currentChat.lastMessage?.sender.id !== user?.id ? (
+            currentChat.lastMessage &&
+            currentChat.lastMessage.sender.id !== user?.id ? (
               <MessageRequestActions
                 conversation={currentChat}
                 currentUserId={user?.id}
@@ -654,7 +652,6 @@ export const InboxPage: React.FC = () => {
                 }
                 replyingTo={replyingTo}
                 onCancelReply={() => dispatch(clearReplyingTo())}
-                currentUserId={user?.id}
                 onUnblock={async () => {
                   const targetUser = currentChat.participants.find(
                     (p) => p.id !== user?.id
