@@ -1,11 +1,11 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { Check, X, UserCircle } from "lucide-react";
-import { ConversationUI } from "../types";
+import { ConversationResponseDTO } from "../types";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 interface MessageRequestActionsProps {
-  conversation: ConversationUI;
+  conversation: ConversationResponseDTO;
   currentUserId?: number;
   onAccept: (conversationId: number) => void;
   onDecline: (conversationId: number) => void;
