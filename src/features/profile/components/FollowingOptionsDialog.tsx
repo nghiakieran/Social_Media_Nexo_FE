@@ -27,6 +27,7 @@ interface FollowingOptionsDialogProps {
   profile: UserProfile;
   onUnfollow: () => void;
   onAddToCloseFriends: () => void;
+  onRemoveFromCloseFriends: () => void;
   onAddToFavorites: () => void;
   onRestrict: () => void;
   onBlockUser: () => void;
@@ -38,6 +39,7 @@ export const FollowingOptionsDialog = ({
   profile,
   onUnfollow,
   onAddToCloseFriends,
+  onRemoveFromCloseFriends,
   onAddToFavorites,
   onRestrict,
   onBlockUser,
@@ -49,32 +51,23 @@ export const FollowingOptionsDialog = ({
     onClose();
   };
 
-  const handleAddToCloseFriends = () => {
+  const handleToggleCloseFriends = () => {
     onAddToCloseFriends();
+    const isNowCloseFriend = !profile.isCloseFriend;
     toast({
-      title: "Đã thêm vào danh sách bạn thân",
-      description: `${profile.name} đã được thêm vào danh sách bạn thân của bạn`,
+      title: isNowCloseFriend
+        ? "Đã thêm vào danh sách bạn thân"
+        : "Đã xóa khỏi danh sách bạn thân",
+      description: `${profile.name} ${
+        isNowCloseFriend ? "đã được thêm vào" : "đã được xóa khỏi"
+      } danh sách bạn thân`,
     });
     onClose();
   };
 
-  const handleAddToFavorites = () => {
-    onAddToFavorites();
-    toast({
-      title: "Đã thêm vào mục yêu thích",
-      description: `${profile.name} đã được thêm vào mục yêu thích`,
-    });
-    onClose();
-  };
+  const handleAddToCloseFriends = handleToggleCloseFriends;
+  const handleRemoveFromCloseFriends = handleToggleCloseFriends;
 
-  const handleRestrict = () => {
-    onRestrict();
-    toast({
-      title: "Đã hạn chế",
-      description: `${profile.name} đã bị hạn chế`,
-    });
-    onClose();
-  };
 
   const handleBlockUser = () => {
     onBlockUser();
@@ -109,31 +102,36 @@ export const FollowingOptionsDialog = ({
 
           {/* Options */}
           <div className="py-">
-            {/* Thêm vào danh sách bạn thân */}
-            <Button
-              variant="ghost"
-              className="w-full justify-between px-4 py-4 text-left hover:bg-muted hover:text-inherit"
-              onClick={handleAddToCloseFriends}
-            >
-              <div className="flex items-center gap-3">
-                <Heart className="w-5 h-5 text-primary" />
-                <span className="font-normal">Thêm vào danh sách bạn thân</span>
-              </div>
-              <ChevronRight className="w-4 h-4 text-muted-foreground" />
-            </Button>
-
-            {/* Thêm vào mục yêu thích */}
-            <Button
-              variant="ghost"
-              className="w-full justify-between px-4 py-4 text-left hover:bg-muted hover:text-inherit"
-              onClick={handleAddToFavorites}
-            >
-              <div className="flex items-center gap-3">
-                <Heart className="w-5 h-5 text-red-500" />
-                <span className="font-normal">Thêm vào mục yêu thích</span>
-              </div>
-              <ChevronRight className="w-4 h-4 text-muted-foreground" />
-            </Button>
+            {/* Thêm vào danh sách bạn thân / Xóa khỏi danh sách bạn thân */}
+            {profile.isCloseFriend ? (
+              <Button
+                variant="ghost"
+                className="w-full justify-between px-4 py-4 text-left hover:bg-muted hover:text-inherit"
+                onClick={handleRemoveFromCloseFriends}
+              >
+                <div className="flex items-center gap-3">
+                  <Heart className="w-5 h-5 text-primary" />
+                  <span className="font-normal">
+                    Xóa khỏi danh sách bạn thân
+                  </span>
+                </div>
+                <ChevronRight className="w-4 h-4 text-muted-foreground" />
+              </Button>
+            ) : (
+              <Button
+                variant="ghost"
+                className="w-full justify-between px-4 py-4 text-left hover:bg-muted hover:text-inherit"
+                onClick={handleAddToCloseFriends}
+              >
+                <div className="flex items-center gap-3">
+                  <Heart className="w-5 h-5 text-primary" />
+                  <span className="font-normal">
+                    Thêm vào danh sách bạn thân
+                  </span>
+                </div>
+                <ChevronRight className="w-4 h-4 text-muted-foreground" />
+              </Button>
+            )}
 
             {/* Cấm đăng */}
             <Button
@@ -143,20 +141,7 @@ export const FollowingOptionsDialog = ({
             >
               <div className="flex items-center gap-3">
                 <Shield className="w-5 h-5 text-muted-foreground" />
-                <span className="font-normal">Cấm đăng</span>
-              </div>
-              <ChevronRight className="w-4 h-4 text-muted-foreground" />
-            </Button>
-
-            {/* Hạn chế */}
-            <Button
-              variant="ghost"
-              className="w-full justify-between px-4 py-4 text-left hover:bg-muted hover:text-inherit"
-              onClick={handleRestrict}
-            >
-              <div className="flex items-center gap-3">
-                <Eye className="w-5 h-5 text-muted-foreground" />
-                <span className="font-normal">Hạn chế</span>
+                <span className="font-normal">Chặn</span>
               </div>
               <ChevronRight className="w-4 h-4 text-muted-foreground" />
             </Button>

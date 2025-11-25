@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useDispatch } from "react-redux";
 import {
   Search,
   Filter,
@@ -19,6 +20,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ReportDetailDialog } from "@/components/admin/ReportDetailDialog";
+import { UserReportDetailDialog } from "@/components/admin/UserReportDetailDialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Table,
@@ -41,10 +43,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { AppDispatch, useAppSelector } from "@/store";
 import {
-  fetchReportsByType,
-  ReportSummary,
-} from "@/features/admin/api/reportManagementAPI";
+  fetchReportsAsync,
+  setActiveTab,
+  setStatusFilter,
+  setCurrentPage,
+  setSearch,
+  setSelectedReport,
+  type UserReport,
+  type PostReelReport,
+} from "../adminSlice";
 
 // Mapping Status
 const STATUS_MAP = {
@@ -57,80 +66,116 @@ const STATUS_MAP = {
 const getStatusConfig = (status) =>
   STATUS_MAP[status] || { label: status, color: "bg-gray-100 text-gray-800" };
 
-const ReportTable = ({ data, onSelectReport }) => (
-  <Table>
-    <TableHeader>
-      <TableRow>
-        <TableHead>Người báo cáo</TableHead>
-        <TableHead>Đối tượng bị báo cáo</TableHead>
-        <TableHead>Lý do</TableHead>
-        <TableHead>Ngày tạo</TableHead>
-        <TableHead>Trạng thái</TableHead>
-        <TableHead></TableHead>
-      </TableRow>
-    </TableHeader>
-    <TableBody>
-      {data.length > 0 ? (
-        data.map((report) => {
-          const statusConfig = getStatusConfig(report.reportStatus);
-          return (
-            <TableRow key={report.id}>
-              <TableCell>
-                <div className="flex items-center gap-3">
-                  {/* Placeholder Avatar or fetch from API if available */}
-                  <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-xs font-bold">
-                    {report.reporterName?.charAt(0).toUpperCase() || "?"}
-                  </div>
-                  <span className="font-medium">{report.reporterName}</span>
-                </div>
-              </TableCell>
-              <TableCell>{report.ownerPostName}</TableCell>
-              <TableCell className="max-w-xs truncate" title={report.reason}>
-                {report.reason}
-              </TableCell>
-              <TableCell>
-                {new Date(report.createdAt).toLocaleDateString("vi-VN")}
-              </TableCell>
-              <TableCell>
-                <span
-                  className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                    getStatusConfig(report.reportStatus).color
-                  }`}
-                >
-                  {getStatusConfig(report.reportStatus).label}
-                </span>
-              </TableCell>
-              <TableCell>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="sm">
-                      <MoreHorizontal className="w-4 h-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => onSelectReport(report)}>
-                      <Eye className="w-4 h-4 mr-2" />
-                      Xem chi tiết
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </TableCell>
-            </TableRow>
-          );
-        })
-      ) : (
+const ReportTable = ({ data, onSelectReport, reportType = "post" }) => {
+  // Xử lý format khác nhau cho user reports vs post/reel reports
+  const getReporterName = (report) => {
+    if (reportType === "user") {
+      return report.reporterUsername || "N/A";
+    }
+    return report.reporterName || "N/A";
+  };
+
+  const getReportedName = (report) => {
+    if (reportType === "user") {
+      return report.reportedUsername || "N/A";
+    }
+    return report.ownerPostName || "N/A";
+  };
+
+  const getStatus = (report) => {
+    if (reportType === "user") {
+      return report.status || "PENDING";
+    }
+    return report.reportStatus || "PENDING";
+  };
+
+  const getReportId = (report) => {
+    if (reportType === "user") {
+      // User reports không có id duy nhất, dùng composite key
+      return `${report.reporterId}-${report.reportedId}`;
+    }
+    return report.id;
+  };
+
+  return (
+    <Table>
+      <TableHeader>
         <TableRow>
-          <TableCell
-            colSpan={6}
-            className="h-24 text-center text-muted-foreground"
-          >
-            Không có dữ liệu
-          </TableCell>
+          <TableHead>Người báo cáo</TableHead>
+          <TableHead>
+            {reportType === "user"
+              ? "Người bị báo cáo"
+              : "Đối tượng bị báo cáo"}
+          </TableHead>
+          <TableHead>Lý do</TableHead>
+          <TableHead>Ngày tạo</TableHead>
+          <TableHead>Trạng thái</TableHead>
+          <TableHead></TableHead>
         </TableRow>
-      )}
-    </TableBody>
-  </Table>
-);
+      </TableHeader>
+      <TableBody>
+        {data.length > 0 ? (
+          data.map((report) => {
+            const status = getStatus(report);
+            const statusConfig = getStatusConfig(status);
+            return (
+              <TableRow key={getReportId(report)}>
+                <TableCell>
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-xs font-bold">
+                      {getReporterName(report)?.charAt(0).toUpperCase() || "?"}
+                    </div>
+                    <span className="font-medium">
+                      {getReporterName(report)}
+                    </span>
+                  </div>
+                </TableCell>
+                <TableCell>{getReportedName(report)}</TableCell>
+                <TableCell className="max-w-xs truncate" title={report.reason}>
+                  {report.reason}
+                </TableCell>
+                <TableCell>
+                  {new Date(report.createdAt).toLocaleDateString("vi-VN")}
+                </TableCell>
+                <TableCell>
+                  <span
+                    className={`px-2 py-1 rounded-full text-xs font-semibold ${statusConfig.color}`}
+                  >
+                    {statusConfig.label}
+                  </span>
+                </TableCell>
+                <TableCell>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="sm">
+                        <MoreHorizontal className="w-4 h-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => onSelectReport(report)}>
+                        <Eye className="w-4 h-4 mr-2" />
+                        Xem chi tiết
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </TableCell>
+              </TableRow>
+            );
+          })
+        ) : (
+          <TableRow>
+            <TableCell
+              colSpan={6}
+              className="h-24 text-center text-muted-foreground"
+            >
+              Không có dữ liệu
+            </TableCell>
+          </TableRow>
+        )}
+      </TableBody>
+    </Table>
+  );
+};
 
 const PaginationFooter = ({ currentPage, totalPages, onPageChange }) => (
   <div className="flex items-center justify-end space-x-2 py-4">
@@ -161,23 +206,25 @@ const PaginationFooter = ({ currentPage, totalPages, onPageChange }) => (
 );
 
 export default function Reports() {
-  const [reports, setReports] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [totalPages, setTotalPages] = useState(0);
-  const [totalElements, setTotalElements] = useState(0);
-  const [totalPending, setTotalPending] = useState(0);
-  const [totalProcessing, setTotalProcessing] = useState(0);
-  const [totalApproved, setTotalApproved] = useState(0);
-  const [totalRejected, setTotalRejected] = useState(0);
-  const [search, setSearch] = useState("");
+  const dispatch = useDispatch<AppDispatch>();
+  const {
+    reports,
+    isLoading: loading,
+    totalPages,
+    totalElements,
+    totalPending,
+    totalProcessing,
+    totalApproved,
+    totalRejected,
+    activeTab,
+    statusFilter,
+    currentPage,
+    selectedReport,
+    search,
+  } = useAppSelector((state) => state.admin);
+
   // Debounce search
   const [debouncedSearch, setDebouncedSearch] = useState("");
-
-  // Filter states
-  const [statusFilter, setStatusFilter] = useState("ALL"); // "ALL", "PENDING", "APPROVED", "REJECTED", "IN_REVIEW"
-  const [activeTab, setActiveTab] = useState("post"); // "user", "post", "reel", "comment" (if applicable)
-  const [currentPage, setCurrentPage] = useState(0);
-  const [selectedReport, setSelectedReport] = useState(null);
 
   // Debounce effect
   useEffect(() => {
@@ -187,56 +234,21 @@ export default function Reports() {
     return () => clearTimeout(timer);
   }, [search]);
 
-  // Reset page when filters change
-  useEffect(() => {
-    setCurrentPage(0);
-  }, [debouncedSearch, statusFilter, activeTab]);
-
   // Fetch Data
   useEffect(() => {
-    const loadData = async () => {
-      setLoading(true);
-      try {
-        // Map UI status to API status (or undefined if ALL)
-        const apiStatus = statusFilter === "ALL" ? undefined : statusFilter;
+    const apiStatus = statusFilter === "ALL" ? undefined : statusFilter;
+    const apiType = activeTab as "post" | "reel" | "user";
 
-        // Map UI tab to API type ('post' | 'reel' | 'user')
-        // Note: 'comment' is not yet in API, handle if needed or hide tab
-        let apiType = activeTab;
-        if (activeTab === "comment") {
-          // Placeholder logic or fetch 'post' temporarily
-          apiType = "post";
-        }
-
-        const data = await fetchReportsByType(apiType, {
-          pageNo: currentPage,
-          pageSize: 10,
-          status: apiStatus,
-          keyword: debouncedSearch,
-        });
-
-        setReports(data.reportSummaries.content || []);
-        setTotalPages(data.totalPages || 0);
-        setTotalElements(
-          data.pendingQuantity +
-            data.processingQuantity +
-            data.approvedQuantity +
-            data.rejectQuantity || 0
-        );
-        setTotalPending(data.pendingQuantity || 0);
-        setTotalProcessing(data.processingQuantity || 0);
-        setTotalApproved(data.approvedQuantity || 0);
-        setTotalRejected(data.rejectQuantity || 0);
-      } catch (error) {
-        console.error("Failed to fetch reports", error);
-        setReports([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadData();
-  }, [currentPage, debouncedSearch, statusFilter, activeTab]);
+    dispatch(
+      fetchReportsAsync({
+        type: apiType,
+        pageNo: currentPage,
+        pageSize: 10,
+        status: apiStatus,
+        keyword: debouncedSearch || undefined,
+      })
+    );
+  }, [dispatch, currentPage, debouncedSearch, statusFilter, activeTab]);
 
   // Helper to count specific statuses (Mock logic for stats cards as API doesn't return counts yet)
   // Ideally, you'd have a separate stats API or the list API returns metadata.
@@ -298,22 +310,24 @@ export default function Reports() {
         </Card>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+      <Tabs
+        value={activeTab}
+        onValueChange={(value) =>
+          dispatch(setActiveTab(value as "post" | "reel" | "user"))
+        }
+        className="w-full"
+      >
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
           <TabsList>
-            {/* <TabsTrigger value="user" className="flex items-center gap-2">
+            <TabsTrigger value="user" className="flex items-center gap-2">
               <User className="w-4 h-4" /> Người dùng
-            </TabsTrigger> */}
+            </TabsTrigger>
             <TabsTrigger value="post" className="flex items-center gap-2">
               <FileText className="w-4 h-4" /> Bài viết
             </TabsTrigger>
             <TabsTrigger value="reel" className="flex items-center gap-2">
               <FilmIcon className="w-4 h-4" /> Thước phim
             </TabsTrigger>
-            {/* Hide Comment tab if API not ready */}
-            {/* <TabsTrigger value="comment" className="flex items-center gap-2">
-              <Flag className="w-4 h-4" /> Bình luận
-            </TabsTrigger> */}
           </TabsList>
 
           <div className="flex gap-2 w-full md:w-auto">
@@ -322,11 +336,25 @@ export default function Reports() {
               <Input
                 placeholder="Tìm kiếm..."
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                onChange={(e) => dispatch(setSearch(e.target.value))}
                 className="pl-9"
               />
             </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <Select
+              value={statusFilter}
+              onValueChange={(value) =>
+                dispatch(
+                  setStatusFilter(
+                    value as
+                      | "ALL"
+                      | "PENDING"
+                      | "IN_REVIEW"
+                      | "APPROVED"
+                      | "REJECTED"
+                  )
+                )
+              }
+            >
               <SelectTrigger className="w-40">
                 <Filter className="w-4 h-4 mr-2" />
                 <SelectValue />
@@ -363,12 +391,15 @@ export default function Reports() {
                   <>
                     <ReportTable
                       data={reports}
-                      onSelectReport={setSelectedReport}
+                      onSelectReport={(report) =>
+                        dispatch(setSelectedReport(report))
+                      }
+                      reportType={tabValue}
                     />
                     <PaginationFooter
                       currentPage={currentPage}
                       totalPages={totalPages}
-                      onPageChange={setCurrentPage}
+                      onPageChange={(page) => dispatch(setCurrentPage(page))}
                     />
                   </>
                 )}
@@ -378,11 +409,34 @@ export default function Reports() {
         ))}
       </Tabs>
 
-      {selectedReport && (
+      {selectedReport && activeTab === "user" && (
+        <UserReportDetailDialog
+          open={!!selectedReport}
+          onOpenChange={(open) => !open && dispatch(setSelectedReport(null))}
+          report={selectedReport as UserReport}
+          onStatusUpdate={() => {
+            // Refresh data after status update - Redux will automatically trigger refetch
+            dispatch(setSelectedReport(null));
+            // Trigger refetch by dispatching fetchReportsAsync again
+            const apiStatus = statusFilter === "ALL" ? undefined : statusFilter;
+            dispatch(
+              fetchReportsAsync({
+                type: activeTab,
+                pageNo: currentPage,
+                pageSize: 10,
+                status: apiStatus,
+                keyword: debouncedSearch || undefined,
+              })
+            );
+          }}
+        />
+      )}
+
+      {selectedReport && activeTab !== "user" && (
         <ReportDetailDialog
           open={!!selectedReport}
-          onOpenChange={(open) => !open && setSelectedReport(null)}
-          reportId={selectedReport.id}
+          onOpenChange={(open) => !open && dispatch(setSelectedReport(null))}
+          reportId={(selectedReport as PostReelReport).id}
           reportType={activeTab}
         />
       )}

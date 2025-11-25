@@ -11,7 +11,8 @@ import { useAppDispatch, useAppSelector } from "@/store";
 import { loginAsync } from "../authSlice";
 import { mockAuthDelay } from "../__mocks__/users";
 import type { LoginFormData } from "../types";
-import { AUTH_REGISTER_ENDPOINT } from "@/utils/constants";
+import { AUTH_REGISTER_ENDPOINT, ACCESS_TOKEN_STORAGE_KEY } from "@/utils/constants";
+import { hasAdminRole } from "@/lib/utils";
 
 export const LoginForm = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -36,17 +37,10 @@ export const LoginForm = () => {
         description: "Chào mừng trở lại!",
       });
 
-      const token = localStorage.getItem("access_token");
-      if (token) {
-        const payload = parseJwt(token);
-        // Kiểm tra role
-        const roles =
-          payload?.resource_access?.["auth-service-client"]?.roles || [];
-        if (roles.includes("ADMIN")) {
-          navigate("/admin");
-        } else {
-          navigate("/");
-        }
+      // Check if user has ADMIN role and redirect accordingly
+      const accessToken = localStorage.getItem(ACCESS_TOKEN_STORAGE_KEY);
+      if (hasAdminRole(accessToken)) {
+        navigate("/admin");
       } else {
         navigate("/");
       }
@@ -91,23 +85,19 @@ export const LoginForm = () => {
   }, [location.search, toast]);
 
   const handleOAuth = async (provider: string) => {
-    await mockAuthDelay();
-    toast({
-      title: `Đăng nhập ${provider}`,
-      description: "Tính năng này sẽ có sẵn sớm!",
+    const baseUrl =
+      "http://localhost:9090/realms/nexo-network/protocol/openid-connect/auth";
+    const params = new URLSearchParams({
+      client_id: "auth-service-client",
+      redirect_uri: "http://localhost:3000/auth/oauth/callback",
+      response_type: "code",
+      kc_idp_hint: provider,
     });
+    const authUrl = `${baseUrl}?${params.toString()}`;
+    window.location.href = authUrl;
   };
 
-  function parseJwt(token: string) {
-    try {
-      const base64Payload = token.split(".")[1];
-      const payload = atob(base64Payload);
-      return JSON.parse(payload);
-    } catch (e) {
-      console.error("Invalid JWT", e);
-      return null;
-    }
-  }
+
   return (
     <div className="w-full max-w-sm mx-auto">
       <div className="text-center mb-8">

@@ -24,13 +24,16 @@ import {
   addMessage,
   addMessageWithUnreadUpdate,
   setActiveConversation,
-  addReaction,
-  removeReaction,
+  updateMessageReactionsFromAggregated,
   handleReadAll,
   handleTypingNotification,
   clearOldTypingIndicators,
   acceptRequest,
   declineRequest,
+  updateMessagesPagination,
+  fetchMessages,
+  setReplyingTo,
+  clearReplyingTo,
 } from "../messageSlice";
 import {
   MessageDTO,
@@ -40,14 +43,22 @@ import {
   PresenceStatusDTO,
   ReadAllDTO,
   TypingNotificationDTO,
+  ReactionUpdateDTO,
 } from "../types";
 import { MessageSquarePlus } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export const InboxPage: React.FC = () => {
   const dispatch = useAppDispatch();
   const location = useLocation();
-  const { conversations, messages, activeConversationId, typingUsers } =
-    useAppSelector((state) => state.message);
+  const {
+    conversations,
+    messages,
+    activeConversationId,
+    typingUsers,
+    messagesPagination,
+    replyingTo,
+  } = useAppSelector((state) => state.message);
   const { user } = useAppSelector((state) => state.auth);
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -56,16 +67,17 @@ export const InboxPage: React.FC = () => {
     "primary"
   );
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [presenceUpdates, setPresenceUpdates] = useState<
     Record<number, { isOnline: boolean; lastSeen?: string }>
   >({});
 
-  // Get conversationId from navigation state
+  const lastLoadMoreTimeRef = useRef<number>(0);
+
   const targetConversationId = location.state?.conversationId as
     | number
     | undefined;
 
-  // Track if this is initial load from navigation
   const isNavigationLoad = useRef(!!targetConversationId);
 
   const userIds = useMemo(
@@ -100,6 +112,45 @@ export const InboxPage: React.FC = () => {
     onReadAll: (readAllEvent: ReadAllDTO) => {
       dispatch(handleReadAll({ ...readAllEvent, currentUserId: user.id }));
     },
+    onReactionUpdate: (update: ReactionUpdateDTO) => {
+      // Check if it's the new aggregated format (has reactions array)
+      if ("reactions" in update && Array.isArray(update.reactions)) {
+        // New format: aggregated reactions from backend
+        // Find conversationId from messages
+        const conversationId = Object.keys(messages).find((convId) =>
+          messages[Number(convId)]?.some((msg) => msg.id === update.messageId)
+        );
+        
+        if (conversationId) {
+          dispatch(
+            updateMessageReactionsFromAggregated({
+              conversationId: Number(conversationId),
+              messageId: update.messageId,
+              aggregatedReactions: update.reactions,
+            })
+          );
+        }
+      } else if ("action" in update && "reaction" in update) {
+        // Legacy format: single reaction with action
+        if (update.action === "ADD") {
+          dispatch(
+            addReaction({
+              messageId: update.messageId,
+              conversationId: update.conversationId,
+              reaction: update.reaction,
+            })
+          );
+        } else if (update.action === "REMOVE") {
+          dispatch(
+            removeReaction({
+              messageId: update.messageId,
+              conversationId: update.conversationId,
+              userId: update.reaction.userId,
+            })
+          );
+        }
+      }
+    },
     onPresence: (presence: PresenceStatusDTO) => {
       setPresenceUpdates((prev) => ({
         ...prev,
@@ -120,6 +171,8 @@ export const InboxPage: React.FC = () => {
         const { messageApi } = await import("../services/messageApi");
         const response = await messageApi.getMessages({
           conversationId: Number(chatId),
+          page: 1,
+          size: 8,
         });
         if (response?.data?.content) {
           dispatch(
@@ -128,9 +181,21 @@ export const InboxPage: React.FC = () => {
               messages: response.data.content,
             })
           );
+          dispatch(
+            updateMessagesPagination({
+              conversationId: Number(chatId),
+              pagination: {
+                page: 1,
+                size: response.data.size,
+                totalPages: response.data.totalPages,
+                totalElements: response.data.totalElements,
+                hasMore: !response.data.last,
+              },
+            })
+          );
         }
       } catch (error) {
-        console.error("Error loading messages:", error);
+        // Error handled silently
       }
     },
     [dispatch]
@@ -163,7 +228,7 @@ export const InboxPage: React.FC = () => {
           dispatch(setConversations(response.data.content));
         }
       } catch (error) {
-        console.error("Error fetching conversations:", error);
+        // Error handled silently
       } finally {
         setIsLoading(false);
       }
@@ -303,10 +368,12 @@ export const InboxPage: React.FC = () => {
           ? EMessageType.IMAGE
           : type === "file"
           ? EMessageType.FILE
-          : EMessageType.AUDIO
+          : EMessageType.AUDIO,
+        replyingTo ? replyingTo.id : undefined
       );
+      dispatch(clearReplyingTo());
     } catch (error) {
-      console.error("Error sending message:", error);
+      // Error handled silently
     }
   };
 
@@ -322,8 +389,6 @@ export const InboxPage: React.FC = () => {
     if (!activeConversationId || !user) return;
 
     try {
-      const { messageApi } = await import("../services/messageApi");
-
       const currentMessage = messages[activeConversationId]?.find(
         (m) => m.id === Number(messageId)
       );
@@ -331,51 +396,29 @@ export const InboxPage: React.FC = () => {
         (r) => r.userId === user.id
       );
 
-      // Nếu click vào cùng reaction đang có, thì xóa nó đi
+      // If user already has this reaction type, toggle it off (remove)
       if (currentUserReaction?.reactionType === reactionType) {
-        dispatch(
-          removeReaction({
-            messageId: Number(messageId),
-            conversationId: activeConversationId,
-            userId: user.id,
-          })
-        );
-
-        await messageApi.removeReaction(
+        ws.sendRemoveReaction(
           Number(messageId),
           currentUserReaction.reactionType
         );
+        // No need to dispatch - WebSocket handler will update state automatically
         return;
       }
 
-      // Optimistic update: addReaction tự động xóa reaction cũ và thêm mới
-      dispatch(
-        addReaction({
-          messageId: Number(messageId),
-          conversationId: activeConversationId,
-          reaction: {
-            userId: user.id,
-            username: user.username,
-            reactionType: reactionType as EReactionType,
-          },
-        })
-      );
-
-      // Nếu có reaction cũ (khác loại), xóa nó trên server trước
+      // If user has a different reaction, remove it first
       if (currentUserReaction) {
-        await messageApi.removeReaction(
+        ws.sendRemoveReaction(
           Number(messageId),
           currentUserReaction.reactionType
         );
       }
 
-      await messageApi.addReaction(
-        Number(messageId),
-        reactionType as EReactionType
-      );
+      // Add new reaction via WebSocket - backend will broadcast update to all clients
+      ws.sendReaction(Number(messageId), reactionType as EReactionType);
+      // No need to dispatch - WebSocket handler will update state automatically
     } catch (error) {
       console.error("Error adding reaction:", error);
-      // TODO: Rollback state nếu API fail
     }
   };
 
@@ -386,79 +429,52 @@ export const InboxPage: React.FC = () => {
     if (!activeConversationId || !user) return;
 
     try {
-      // Optimistic update: xóa reaction trong Redux store
-      dispatch(
-        removeReaction({
-          messageId: Number(messageId),
-          conversationId: activeConversationId,
-          userId: user.id,
-        })
-      );
-
-      // Gọi API để xóa reaction trên server
-      const { messageApi } = await import("../services/messageApi");
-      await messageApi.removeReaction(
-        Number(messageId),
-        reactionType as EReactionType
-      );
+      // Send remove reaction via WebSocket - backend will broadcast update to all clients
+      ws.sendRemoveReaction(Number(messageId), reactionType as EReactionType);
+      // No need to dispatch - WebSocket handler will update state automatically
     } catch (error) {
       console.error("Error removing reaction:", error);
-      // TODO: Rollback state nếu API fail
     }
   };
 
-  const handleForwardMessage = (messageId: string, userIds: string[]) => {
-    // TODO: Implement forward message
-  };
+  const handleForwardMessage = (messageId: string, userIds: string[]) => {};
 
-  const handleDeleteMessage = (messageId: string) => {
-    // TODO: Implement delete message
-  };
+  const handleDeleteMessage = (messageId: string) => {};
 
-  const handleReplyToMessage = (messageId: string) => {
-    // TODO: Implement reply to message
-  };
+  const handleReplyToMessage = useCallback(
+    (message: MessageDTO) => {
+      dispatch(setReplyingTo(message));
+    },
+    [dispatch]
+  );
 
-  const handleMarkMessageAsRead = (messageId: number) => {
-    if (!activeConversationId) return;
-
-    ws.markMessageAsRead(messageId, activeConversationId);
-  };
-
-  const handleNewMessage = () => {
-    // TODO: Implement new message modal
-  };
+  const handleNewMessage = () => {};
 
   const handleViewChange = (view: "primary" | "requests") => {
     setActiveView(view);
-    // Reset filter when switching views
     if (view === "requests") {
       setActiveFilter("all");
     }
   };
 
-  const handleCallAction = (type: "voice" | "video") => {
-    // TODO: Implement voice/video call
-  };
+  const handleCallAction = (type: "voice" | "video") => {};
 
   const handleAcceptRequest = async (conversationId: number) => {
     try {
       await dispatch(acceptRequest(conversationId)).unwrap();
-      // Conversation status will be updated in Redux store
     } catch (error) {
-      console.error("Error accepting request:", error);
+      // Error handled silently
     }
   };
 
   const handleDeclineRequest = async (conversationId: number) => {
     try {
       await dispatch(declineRequest(conversationId)).unwrap();
-      // Clear active conversation if it was the declined one
       if (activeConversationId === conversationId) {
         dispatch(setActiveConversation(null));
       }
     } catch (error) {
-      console.error("Error declining request:", error);
+      // Error handled silently
     }
   };
 
@@ -481,14 +497,53 @@ export const InboxPage: React.FC = () => {
         dispatch(setConversations(response.data.content));
       }
     } catch (error) {
-      console.error("Error refreshing conversations:", error);
+      // Error handled silently
     }
   };
 
+  const handleMarkMessageAsRead = (messageId: number) => {
+    if (!activeConversationId) return;
+
+    ws.markMessageAsRead(messageId, activeConversationId);
+  };
+
+  const handleLoadMoreMessages = useCallback(async () => {
+    if (!activeConversationId || isLoadingMore) return;
+
+    const now = Date.now();
+    if (now - lastLoadMoreTimeRef.current < 1000) return;
+    lastLoadMoreTimeRef.current = now;
+
+    const currentPage = messagesPagination[activeConversationId]?.page || 0;
+    const nextPage = currentPage + 1;
+
+    setIsLoadingMore(true);
+    try {
+      await dispatch(
+        fetchMessages({
+          conversationId: activeConversationId,
+          page: nextPage,
+          size: 8,
+        })
+      ).unwrap();
+    } catch (error) {
+      // Error handled silently
+    } finally {
+      setIsLoadingMore(false);
+    }
+  }, [activeConversationId, dispatch, isLoadingMore, messagesPagination]);
+
   return (
     <div className="h-screen flex bg-background overflow-hidden">
-      {}
-      <div className="w-80 border-r border-border flex flex-col bg-background shrink-0">
+      {/* Chat List - Hidden on mobile when viewing chat */}
+      <div
+        className={cn(
+          "w-80 border-r border-border flex flex-col bg-background shrink-0 transition-transform duration-300",
+          activeConversationId
+            ? "hidden md:flex"
+            : "flex"
+        )}
+      >
         <InstagramInboxHeader
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
@@ -545,8 +600,8 @@ export const InboxPage: React.FC = () => {
         </div>
       </div>
 
-      {}
-      <div className="flex-1 flex flex-col">
+      {/* Chat Window - Full width on mobile */}
+      <div className="flex-1 flex flex-col w-full md:w-auto">
         {activeConversationId && currentChat ? (
           <>
             <InstagramChatHeader
@@ -569,6 +624,11 @@ export const InboxPage: React.FC = () => {
               onDeleteMessage={handleDeleteMessage}
               onReplyToMessage={handleReplyToMessage}
               onMarkAsRead={handleMarkMessageAsRead}
+              onLoadMoreMessages={handleLoadMoreMessages}
+              hasMoreMessages={
+                messagesPagination[activeConversationId]?.hasMore || false
+              }
+              isLoadingMore={isLoadingMore}
               className="flex-1"
             />
             {currentChat.status === EConversationStatus.PENDING &&
@@ -592,6 +652,9 @@ export const InboxPage: React.FC = () => {
                   currentChat.participants.find((p) => p.id !== user?.id)
                     ?.fullName || currentChat.fullname
                 }
+                replyingTo={replyingTo}
+                onCancelReply={() => dispatch(clearReplyingTo())}
+                currentUserId={user?.id}
                 onUnblock={async () => {
                   const targetUser = currentChat.participants.find(
                     (p) => p.id !== user?.id
@@ -604,7 +667,7 @@ export const InboxPage: React.FC = () => {
                       await unblockUser(targetUser.username);
                       await handleRefreshConversations();
                     } catch (error) {
-                      console.error("Error unblocking user:", error);
+                      // Error handled silently
                     }
                   }
                 }}

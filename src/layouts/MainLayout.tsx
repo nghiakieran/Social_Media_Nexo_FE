@@ -1,3 +1,4 @@
+import React from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import { Sidebar } from "@/components/common/Sidebar";
 import { FloatingMessageTab } from "@/features/message/components/FloatingMessageTab";
@@ -7,16 +8,8 @@ import {
   closeFloatingConversation,
   minimizeFloatingConversation,
   restoreFloatingConversation,
-  addMessage,
-  addReaction,
-  removeReaction,
+  fetchMessages,
 } from "@/features/message/messageSlice";
-import {
-  ConversationUI,
-  MessageUI,
-  EReactionType,
-} from "@/features/message/types";
-import { EMessageType } from "@/features/message/types";
 import { Suggestions } from "@/components/common/Suggestions";
 
 export const MainLayout = () => {
@@ -31,34 +24,28 @@ export const MainLayout = () => {
     minimizedConversations,
   } = useAppSelector((state) => state.message);
 
-  const handleFloatingSendMessage =
-    (conversationId: number) =>
-    (content: string, type: "image" | "text" | "file" | "voice") => {
-      // Map type string to EMessageType
-      const typeMap: Record<string, EMessageType> = {
-        text: EMessageType.TEXT,
-        image: EMessageType.IMAGE,
-        file: EMessageType.FILE,
-        voice: EMessageType.AUDIO,
-      };
-      const newMessage: MessageUI = {
-        id: Date.now(),
-        conversationId,
-        sender: {
-          id: 1,
-          username: "currentUser",
-          avatarUrl: "",
-          fullName: "Current User",
-        },
-        content,
-        messageType: typeMap[type] || EMessageType.TEXT,
-        createdAt: new Date().toISOString(),
-        reactions: [],
-        isRead: false,
-        isSending: false,
-      };
-      dispatch(addMessage(newMessage));
-    };
+  const [showMessageTab, setShowMessageTab] = React.useState(false);
+
+  // Load messages when floating chat opens
+  React.useEffect(() => {
+    floatingConversations.forEach((conversationId) => {
+      const conversation = conversations.find((c) => c.id === conversationId);
+      if (conversation && !messages[conversationId]) {
+        // Load initial messages if not already loaded
+        dispatch(
+          fetchMessages({
+            conversationId,
+            page: 0,
+            size: 20,
+          })
+        );
+      }
+    });
+    // Reset showMessageTab when a floating chat opens
+    if (floatingConversations.length > 0) {
+      setShowMessageTab(false);
+    }
+  }, [floatingConversations, conversations, messages, dispatch]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -90,17 +77,22 @@ export const MainLayout = () => {
         )}
       </div>
 
-      {/* Floating Message Tab - Only show on desktop and non-message pages */}
-      {!location.pathname.includes("/messages") && (
+      {/* Floating Message Tab - Only show on desktop and non-message pages, hide when floating chats are open */}
+      {!location.pathname.includes("/messages") && floatingConversations.length === 0 && (
         <div className="hidden lg:block">
-          <FloatingMessageTab />
+          <FloatingMessageTab defaultOpen={showMessageTab} />
         </div>
       )}
 
-      {/* Floating Chat Windows */}
-      {floatingConversations.map((conversationId, index) => {
+      {/* Floating Chat Windows - Hide on messages page */}
+      {!isMessagesPage && floatingConversations.map((conversationId, index) => {
         const floatingChat = conversations.find((c) => c.id === conversationId);
-        const floatingMessages = messages[conversationId] || [];
+        const rawMessages = messages[conversationId] || [];
+        // Sort messages by createdAt ascending (oldest first, newest last)
+        const floatingMessages = [...rawMessages].sort(
+          (a, b) =>
+            new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+        );
 
         if (!floatingChat) return null;
 
@@ -118,28 +110,10 @@ export const MainLayout = () => {
             onRestore={() =>
               dispatch(restoreFloatingConversation(conversationId))
             }
-            onSendMessage={handleFloatingSendMessage(conversationId)}
-            onAddReaction={(messageId: string, emoji: string) => {
-              dispatch(
-                addReaction({
-                  conversationId,
-                  messageId: Number(messageId),
-                  reaction: {
-                    userId: 1,
-                    username: "currentUser",
-                    reactionType: emoji as EReactionType,
-                  },
-                })
-              );
-            }}
-            onRemoveReaction={(messageId: string) => {
-              dispatch(
-                removeReaction({
-                  conversationId,
-                  messageId: Number(messageId),
-                  userId: 1,
-                })
-              );
+            onBack={() => {
+              // Close floating chat and show FloatingMessageTab list view
+              dispatch(closeFloatingConversation(conversationId));
+              setShowMessageTab(true);
             }}
           />
         );

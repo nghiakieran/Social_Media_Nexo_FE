@@ -4,7 +4,11 @@ import { StatsCard } from "@/components/admin/StatsCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { format } from "date-fns";
 import { vi } from "date-fns/locale";
 import {
@@ -20,7 +24,13 @@ import {
   Legend,
 } from "recharts";
 import { MockChartData, MockTopHashtags } from "../__mocks__/mockDatas";
-import { fetchDashboardCardData, fetchUserChartData, fetchPostChartData,fetchInteractChartData,fetchReportChartData } from "../api/dashBoardAPI";
+import {
+  fetchDashboardCardData,
+  fetchUserChartData,
+  fetchPostChartData,
+  fetchInteractChartData,
+  fetchReportChartData,
+} from "../api/dashBoardAPI";
 
 const mockChartData = MockChartData;
 
@@ -30,8 +40,8 @@ export default function Dashboard() {
   const today = new Date();
   const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
   const [dateRange, setDateRange] = useState<{ from?: Date; to?: Date }>({
-      from: firstDayOfMonth,
-      to: today,
+    from: firstDayOfMonth,
+    to: today,
   });
   const [dashboardDataCard, setDashboardDataCard] = useState(null);
   const [userChart, setUserChart] = useState(null);
@@ -44,17 +54,35 @@ export default function Dashboard() {
       if (dateRange.from && dateRange.to) {
         const userRes = await fetchUserChartData(dateRange.from, dateRange.to);
         const postRes = await fetchPostChartData(dateRange.from, dateRange.to);
-        const interactRes = await fetchInteractChartData(dateRange.from, dateRange.to);
-        const reportRes = await fetchReportChartData(dateRange.from, dateRange.to);
+        const interactRes = await fetchInteractChartData(
+          dateRange.from,
+          dateRange.to
+        );
+        const reportRes = await fetchReportChartData(
+          dateRange.from,
+          dateRange.to
+        );
 
         // console.log("User Data:", userRes);
         // console.log("Post Data:", postRes);
         // console.log("Interact Data:", interactRes);
         // console.log("Report Data:", reportRes);
-        setUserChart(formatChartData(userRes.data.time, userRes.data.data, "users"));
-        setPostChart(formatChartData(postRes.data.time, postRes.data.data, "posts"));
-        setInteractChart(formatChartData(interactRes.data.time, interactRes.data.data, "interactions"));
-        setReportChart(formatChartData(reportRes.data.time, reportRes.data.data, "reports"));
+        setUserChart(
+          formatChartData(userRes.data.time, userRes.data.data, "users")
+        );
+        setPostChart(
+          formatChartData(postRes.data.time, postRes.data.data, "posts")
+        );
+        setInteractChart(
+          formatChartData(
+            interactRes.data.time,
+            interactRes.data.data,
+            "interactions"
+          )
+        );
+        setReportChart(
+          formatChartData(reportRes.data.time, reportRes.data.data, "reports")
+        );
       }
     };
     loadData();
@@ -63,12 +91,12 @@ export default function Dashboard() {
     }
   }, [dateRange]);
 
- useEffect(() => {
+  useEffect(() => {
     const loadCardData = async () => {
       const data = await fetchDashboardCardData();
       setDashboardDataCard(data.data);
     };
-  loadCardData();
+    loadCardData();
   }, []);
 
   const formatChartData = (time: string[], data: number[], key: string) => {
@@ -84,12 +112,14 @@ export default function Dashboard() {
           </h1>
           <p className="text-muted-foreground">Tổng quan hoạt động hệ thống</p>
         </div>
-        
+
         <Popover>
           <PopoverTrigger asChild>
             <Button variant="outline">
               {dateRange.from && dateRange.to
-                ? `${format(dateRange.from, "dd/MM/yyyy", { locale: vi })} - ${format(dateRange.to, "dd/MM/yyyy", { locale: vi })}`
+                ? `${format(dateRange.from, "dd/MM/yyyy", {
+                    locale: vi,
+                  })} - ${format(dateRange.to, "dd/MM/yyyy", { locale: vi })}`
                 : "Chọn khoảng thời gian"}
             </Button>
           </PopoverTrigger>
@@ -182,7 +212,11 @@ export default function Dashboard() {
                 <XAxis dataKey="date" className="text-xs" />
                 <YAxis className="text-xs" />
                 <Tooltip />
-                <Bar dataKey="posts" fill="hsl(var(--instagram-pink))" radius={[8, 8, 0, 0]} />
+                <Bar
+                  dataKey="posts"
+                  fill="hsl(var(--instagram-pink))"
+                  radius={[8, 8, 0, 0]}
+                />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
@@ -228,7 +262,11 @@ export default function Dashboard() {
                 <XAxis dataKey="date" className="text-xs" />
                 <YAxis className="text-xs" />
                 <Tooltip />
-                <Bar dataKey="reports" fill="hsl(var(--destructive))" radius={[8, 8, 0, 0]} />
+                <Bar
+                  dataKey="reports"
+                  fill="hsl(var(--destructive))"
+                  radius={[8, 8, 0, 0]}
+                />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
@@ -252,9 +290,13 @@ export default function Dashboard() {
                 </div>
                 <div className="flex-1">
                   <p className="font-semibold">{hashtag.tag}</p>
-                  <p className="text-sm text-muted-foreground">{hashtag.count} lượt sử dụng</p>
+                  <p className="text-sm text-muted-foreground">
+                    {hashtag.count} lượt sử dụng
+                  </p>
                 </div>
-                <span className="text-sm font-medium text-success">{hashtag.trend}</span>
+                <span className="text-sm font-medium text-success">
+                  {hashtag.trend}
+                </span>
               </div>
             ))}
           </div>

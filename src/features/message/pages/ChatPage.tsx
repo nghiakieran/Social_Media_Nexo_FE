@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useCallback } from "react";
+import React, { useEffect, useMemo, useCallback, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "@/store";
 import { useWebSocket } from "../hooks/useWebSocket";
@@ -11,12 +11,16 @@ import {
   setActiveConversation,
   addMessage,
   addMessageWithUnreadUpdate,
-  addReaction,
-  removeReaction,
   setMessages,
   handleReadAll,
   handleTypingNotification,
   clearOldTypingIndicators,
+  updateMessagesPagination,
+  setReplyingTo,
+  clearReplyingTo,
+  updateMessageReactionsFromAggregated,
+  addReaction,
+  removeReaction,
 } from "../messageSlice";
 import {
   MessageDTO,
@@ -24,6 +28,7 @@ import {
   EReactionType,
   ReadAllDTO,
   TypingNotificationDTO,
+  ReactionUpdateDTO,
 } from "../types";
 
 export const ChatPage: React.FC = () => {
@@ -31,20 +36,26 @@ export const ChatPage: React.FC = () => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
 
-  const { conversations, messages, activeConversationId, typingUsers } =
-    useAppSelector((state) => state.message);
+  const {
+    conversations,
+    messages: allMessages,
+    typingUsers,
+    replyingTo,
+  } = useAppSelector((state) => state.message);
   const { user } = useAppSelector((state) => state.auth);
 
   const currentChat = conversations.find((conv) => conv.id === Number(chatId));
-  const currentMessages = chatId ? messages[chatId] || [] : [];
+  const currentMessages = chatId ? allMessages[Number(chatId)] || [] : [];
+
+  const [currentPage, setCurrentPage] = React.useState(0);
+  const [hasMoreMessages, setHasMoreMessages] = React.useState(true);
+  const [isLoadingMore, setIsLoadingMore] = React.useState(false);
+  const isLoadingRef = useRef(false);
 
   const isOtherUserTyping = useMemo(() => {
     if (!chatId || !user) return false;
     const typingInChat = typingUsers[Number(chatId)] || [];
-    const isTyping = typingInChat.some((t) => t.userId !== user.id);
-
-    
-    return isTyping;
+    return typingInChat.some((t) => t.userId !== user.id);
   }, [chatId, typingUsers, user]);
 
   const otherUserId = useMemo(
@@ -67,10 +78,57 @@ export const ChatPage: React.FC = () => {
       }
     },
     onTyping: (typing: TypingNotificationDTO) => {
-            dispatch(handleTypingNotification(typing));
+      dispatch(handleTypingNotification(typing));
     },
     onReadAll: (readAllEvent: ReadAllDTO) => {
-            dispatch(handleReadAll({ ...readAllEvent, currentUserId: user.id }));
+      dispatch(handleReadAll({ ...readAllEvent, currentUserId: user.id }));
+    },
+    onReactionUpdate: (update: ReactionUpdateDTO) => {
+      // Check if it's the new aggregated format (has reactions array)
+      if ("reactions" in update && Array.isArray(update.reactions)) {
+        // New format: aggregated reactions from backend
+        // Find conversationId from messages if not in update
+        let conversationId = chatId ? Number(chatId) : null;
+        if (!conversationId) {
+          // Try to find from messages
+          const foundConvId = Object.keys(allMessages).find((convId) =>
+            allMessages[Number(convId)]?.some(
+              (msg) => msg.id === update.messageId
+            )
+          );
+          if (foundConvId) {
+            conversationId = Number(foundConvId);
+          }
+        }
+
+        if (conversationId) {
+          dispatch(
+            updateMessageReactionsFromAggregated({
+              conversationId,
+              messageId: update.messageId,
+              aggregatedReactions: update.reactions,
+            })
+          );
+        }
+      } else if ("action" in update && "reaction" in update) {
+        if (update.action === "ADD") {
+          dispatch(
+            addReaction({
+              messageId: update.messageId,
+              conversationId: update.conversationId,
+              reaction: update.reaction,
+            })
+          );
+        } else if (update.action === "REMOVE") {
+          dispatch(
+            removeReaction({
+              messageId: update.messageId,
+              conversationId: update.conversationId,
+              userId: update.reaction.userId,
+            })
+          );
+        }
+      }
     },
     autoConnect: true,
   });
@@ -79,12 +137,23 @@ export const ChatPage: React.FC = () => {
     if (chatId) {
       dispatch(setActiveConversation(Number(chatId)));
 
-      const fetchMessages = async () => {
+      setCurrentPage(0);
+      setHasMoreMessages(true);
+      setIsLoadingMore(false);
+      isLoadingRef.current = false;
+
+      const fetchInitialMessages = async () => {
         try {
+          setIsLoadingMore(true);
+          isLoadingRef.current = true;
+
           const { messageApi } = await import("../services/messageApi");
           const response = await messageApi.getMessages({
             conversationId: Number(chatId),
+            page: 0,
+            size: 20,
           });
+
           if (response?.data?.content) {
             dispatch(
               setMessages({
@@ -92,18 +161,76 @@ export const ChatPage: React.FC = () => {
                 messages: response.data.content,
               })
             );
+
+            dispatch(
+              updateMessagesPagination({
+                conversationId: Number(chatId),
+                pagination: {
+                  page: 0,
+                  size: 20,
+                  totalPages: response.data.totalPages,
+                  totalElements: response.data.totalElements,
+                  hasMore: !response.data.last,
+                },
+              })
+            );
+
+            setHasMoreMessages(!response.data.last);
           }
         } catch (error) {
-                  }
+          // Error handled silently
+        } finally {
+          setIsLoadingMore(false);
+          isLoadingRef.current = false;
+        }
       };
 
-      fetchMessages();
-
+      fetchInitialMessages();
       ws.subscribeToConversation(Number(chatId));
-
       ws.markConversationAsRead(Number(chatId));
-          }
+    }
   }, [chatId, dispatch, ws]);
+
+  const handleLoadMoreMessages = async () => {
+    if (!chatId || !hasMoreMessages || isLoadingRef.current) return;
+
+    try {
+      setIsLoadingMore(true);
+      isLoadingRef.current = true;
+
+      const { messageApi } = await import("../services/messageApi");
+      const nextPage = currentPage + 1;
+
+      const response = await messageApi.getMessages({
+        conversationId: Number(chatId),
+        page: nextPage,
+        size: 20,
+      });
+
+      if (response?.data?.content && response.data.content.length > 0) {
+        const newOlderMessages = response.data.content;
+
+        const updatedMessages = [...newOlderMessages, ...currentMessages];
+
+        dispatch(
+          setMessages({
+            conversationId: Number(chatId),
+            messages: updatedMessages,
+          })
+        );
+
+        setCurrentPage(nextPage);
+        setHasMoreMessages(!response.data.last);
+      } else {
+        setHasMoreMessages(false);
+      }
+    } catch (error) {
+      // Error handled silently
+    } finally {
+      setIsLoadingMore(false);
+      isLoadingRef.current = false;
+    }
+  };
 
   const handleSendMessage = (
     content: string,
@@ -117,61 +244,83 @@ export const ChatPage: React.FC = () => {
       file: EMessageType.FILE,
       voice: EMessageType.AUDIO,
     };
-    const newMessage: MessageDTO = {
-      id: Date.now(),
-      conversationId: Number(chatId),
-      sender: {
-        id: 1,
-        username: "currentUser",
-        avatarUrl: "",
-        fullName: "Current User",
-      },
-      content,
-      messageType: typeMap[type] || EMessageType.TEXT,
-      createdAt: new Date().toISOString(),
-      reactions: [],
-    };
 
-    dispatch(addMessage(newMessage));
+    try {
+      ws.sendMessage(
+        Number(chatId),
+        content,
+        typeMap[type] || EMessageType.TEXT,
+        replyingTo ? replyingTo.id : undefined
+      );
+      dispatch(clearReplyingTo());
+    } catch (error) {
+      // Error handled silently
+    }
   };
 
   const handleAddReaction = async (messageId: string, emoji: string) => {
     if (!chatId || !user) return;
-
     try {
-      const { messageApi } = await import("../services/messageApi");
-      await messageApi.addReaction(Number(messageId), emoji as EReactionType);
+      // Optimistic update: add reaction immediately
+      const message = currentMessages.find((m) => m.id === Number(messageId));
+      if (message) {
+        const existingReaction = message.reactions.find(
+          (r) => r.userId === user.id
+        );
 
-      dispatch(
-        addReaction({
-          messageId: Number(messageId),
-          conversationId: Number(chatId),
-          reaction: {
-            userId: user.id,
-            username: user.username,
-            reactionType: emoji as EReactionType,
-          },
-        })
-      );
+        if (existingReaction && existingReaction.reactionType === emoji) {
+          return;
+        }
+
+        if (existingReaction && existingReaction.reactionType !== emoji) {
+          // Remove old reaction first
+          dispatch(
+            removeReaction({
+              messageId: Number(messageId),
+              conversationId: Number(chatId),
+              userId: user.id,
+            })
+          );
+          // Send remove via WebSocket
+          ws.sendRemoveReaction(
+            Number(messageId),
+            existingReaction.reactionType
+          );
+        }
+
+        // Always add the new reaction (if different from existing)
+        dispatch(
+          addReaction({
+            messageId: Number(messageId),
+            conversationId: Number(chatId),
+            reaction: {
+              userId: user.id,
+              username: user.username || user.fullName || `user_${user.id}`,
+              reactionType: emoji as EReactionType,
+            },
+          })
+        );
+        ws.sendReaction(Number(messageId), emoji as EReactionType);
+      }
+      // WebSocket handler will update state with correct aggregated data when it arrives
     } catch (error) {
-          }
+      // Error handled silently
+    }
   };
 
-  const handleRemoveReaction = async (messageId: string) => {
+  const handleRemoveReaction = async (
+    messageId: string,
+    reactionType: string
+  ) => {
     if (!chatId || !user) return;
-
     try {
       const message = currentMessages.find((m) => m.id === Number(messageId));
-      const userReaction = message?.reactions.find((r) => r.userId === user.id);
-
+      const userReaction = message?.reactions.find(
+        (r) => r.userId === user.id && r.reactionType === reactionType
+      );
       if (!userReaction) return;
 
-      const { messageApi } = await import("../services/messageApi");
-      await messageApi.removeReaction(
-        Number(messageId),
-        userReaction.reactionType
-      );
-
+      // Optimistic update: remove reaction immediately
       dispatch(
         removeReaction({
           messageId: Number(messageId),
@@ -179,56 +328,43 @@ export const ChatPage: React.FC = () => {
           userId: user.id,
         })
       );
+
+      // Send remove reaction via WebSocket - backend will broadcast update to all clients
+      ws.sendRemoveReaction(Number(messageId), userReaction.reactionType);
+      // WebSocket handler will update state with correct aggregated data when it arrives
     } catch (error) {
-          }
+      // Error handled silently
+    }
   };
-
-  const handleForwardMessage = (messageId: string, userIds: string[]) => {
-      };
-
-  const handleDeleteMessage = (messageId: string) => {
-      };
-
-  const handleReplyToMessage = (messageId: string) => {
-      };
-
-  const handleMarkMessageAsRead = (messageId: number) => {
-    if (!chatId) return;
-
-    ws.markMessageAsRead(messageId, Number(chatId));
-      };
 
   const handleTyping = useCallback(
     (isTyping: boolean) => {
-      
-      if (!chatId) {
-                return;
+      if (chatId && isTyping) {
+        ws.sendTyping(Number(chatId));
       }
-
-      if (isTyping) {
-                ws.sendTyping(Number(chatId));
-              }
     },
     [chatId, ws]
   );
 
   useEffect(() => {
-      }, [handleTyping, chatId]);
-
-  useEffect(() => {
     const interval = setInterval(() => {
       dispatch(clearOldTypingIndicators());
     }, 1000);
-
     return () => clearInterval(interval);
   }, [dispatch]);
 
-  const handleCallAction = (type: "voice" | "video") => {
-      };
+  const handleReplyToMessage = useCallback(
+    (message: MessageDTO) => {
+      if (!message || typeof message !== "object" || !("id" in message)) {
+        return;
+      }
 
-  const handleGoBack = () => {
-    navigate("/messages");
-  };
+      dispatch(setReplyingTo(message));
+    },
+    [dispatch]
+  );
+
+  const handleGoBack = () => navigate("/messages");
 
   if (!currentChat) {
     return (
@@ -248,14 +384,12 @@ export const ChatPage: React.FC = () => {
       <InstagramChatHeader
         chat={currentChat}
         onBack={handleGoBack}
-        onCall={handleCallAction}
         showBackButton={true}
         isOnline={otherUserId ? presenceMap[otherUserId] || false : false}
         lastSeen={otherUserId ? lastSeenMap[otherUserId] : undefined}
         currentUserId={user?.id}
       />
 
-      {}
       <div className="flex-1 flex flex-col min-h-0">
         <ChatWindow
           chat={currentChat}
@@ -263,16 +397,24 @@ export const ChatPage: React.FC = () => {
           isTyping={isOtherUserTyping}
           onAddReaction={handleAddReaction}
           onRemoveReaction={handleRemoveReaction}
-          onForwardMessage={handleForwardMessage}
-          onDeleteMessage={handleDeleteMessage}
+          onForwardMessage={() => {}}
+          onDeleteMessage={() => {}}
           onReplyToMessage={handleReplyToMessage}
-          onMarkAsRead={handleMarkMessageAsRead}
+          onMarkAsRead={(msgId) =>
+            chatId && ws.markMessageAsRead(msgId, Number(chatId))
+          }
+          onLoadMoreMessages={handleLoadMoreMessages}
+          hasMoreMessages={hasMoreMessages}
+          isLoadingMore={isLoadingMore}
           className="flex-1 min-h-0"
         />
 
         <MessageComposer
           onSendMessage={handleSendMessage}
           onTyping={handleTyping}
+          replyingTo={replyingTo}
+          onCancelReply={() => dispatch(clearReplyingTo())}
+          currentUserId={user?.id}
         />
       </div>
     </div>

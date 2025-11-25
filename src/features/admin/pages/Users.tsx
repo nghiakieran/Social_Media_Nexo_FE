@@ -48,9 +48,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { UserStatsDialog } from "@/components/admin/UserStatsDialog";
 import axios from "@/lib/axios";
 import { useDebouncedSearch } from "@/hooks/use-debounce-search";
 import { useToast } from "@/hooks/use-toast";
+import { banUser, unbanUser } from "../api/userManagementAPI";
 
 interface UserResponseAdmin {
   id: number;
@@ -59,7 +61,9 @@ interface UserResponseAdmin {
   email: string;
   role: string;
   account_status: string;
-  violation_count: number;
+  violation_count: number | null;
+  posts_count: number;
+  interactions_count: number;
 }
 
 interface UserSearchResponseAdmin {
@@ -90,8 +94,11 @@ interface UIUser {
 }
 
 export default function Users() {
-  const { debouncedValue: search, setSearchValue: setSearch } =
-    useDebouncedSearch("", 300);
+  const {
+    searchValue: searchInput,
+    debouncedValue: search,
+    setSearchValue: setSearch,
+  } = useDebouncedSearch("", 200);
   const { toast } = useToast();
   const [statusFilter, setStatusFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
@@ -107,6 +114,9 @@ export default function Users() {
   const [assignRoleOpen, setAssignRoleOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UIUser | null>(null);
   const [selectedRole, setSelectedRole] = useState("");
+  const [statsDialogOpen, setStatsDialogOpen] = useState(false);
+  const [selectedUserForStats, setSelectedUserForStats] =
+    useState<UIUser | null>(null);
 
   const fetchUsers = useCallback(async () => {
     setLoading(true);
@@ -133,8 +143,8 @@ export default function Users() {
           email: apiUser.email,
           role: apiUser.role,
           status: apiUser.account_status.toLowerCase(),
-          posts: 0,
-          interactions: 0,
+          posts: apiUser.posts_count || 0,
+          interactions: apiUser.interactions_count || 0,
           violations: apiUser.violation_count || 0,
           avatar: "https://via.placeholder.com/40",
         };
@@ -364,7 +374,7 @@ export default function Users() {
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
                   placeholder="Tìm kiếm..."
-                  value={search}
+                  value={searchInput}
                   onChange={(e) => setSearch(e.target.value)}
                   className="pl-9"
                 />
@@ -427,7 +437,9 @@ export default function Users() {
                           <div className="text-sm">
                             <div>{user.posts} bài viết</div>
                             <div className="text-muted-foreground">
-                              {user.interactions} tương tác
+                              {user.interactions > 0
+                                ? `${user.interactions} tương tác`
+                                : "Chưa có tương tác"}
                             </div>
                           </div>
                         </TableCell>
@@ -448,17 +460,63 @@ export default function Users() {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => {
+                                  setSelectedUserForStats(user);
+                                  setStatsDialogOpen(true);
+                                }}
+                              >
                                 <TrendingUp className="w-4 h-4 mr-2" />
                                 Xem thống kê
                               </DropdownMenuItem>
                               {user.status === "locked" ? (
-                                <DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={async () => {
+                                    try {
+                                      await unbanUser(user.name);
+                                      toast({
+                                        title: "Thành công",
+                                        description:
+                                          "Tài khoản đã được mở khóa",
+                                      });
+                                      setTimeout(() => {
+                                        fetchUsers();
+                                      }, 1000);
+                                    } catch (error) {
+                                      toast({
+                                        title: "Lỗi",
+                                        description:
+                                          "Không thể mở khóa tài khoản",
+                                        variant: "destructive",
+                                      });
+                                    }
+                                  }}
+                                >
                                   <Unlock className="w-4 h-4 mr-2" />
                                   Mở khóa tài khoản
                                 </DropdownMenuItem>
                               ) : (
-                                <DropdownMenuItem className="text-destructive">
+                                <DropdownMenuItem
+                                  className="text-destructive"
+                                  onClick={async () => {
+                                    try {
+                                      await banUser(user.name);
+                                      toast({
+                                        title: "Thành công",
+                                        description: "Tài khoản đã được khóa",
+                                      });
+                                      setTimeout(() => {
+                                        fetchUsers();
+                                      }, 1000);
+                                    } catch (error) {
+                                      toast({
+                                        title: "Lỗi",
+                                        description: "Không thể khóa tài khoản",
+                                        variant: "destructive",
+                                      });
+                                    }
+                                  }}
+                                >
                                   <Lock className="w-4 h-4 mr-2" />
                                   Khóa tài khoản
                                 </DropdownMenuItem>
@@ -560,6 +618,19 @@ export default function Users() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* User Stats Dialog */}
+      {selectedUserForStats && (
+        <UserStatsDialog
+          open={statsDialogOpen}
+          onOpenChange={setStatsDialogOpen}
+          userId={selectedUserForStats.id}
+          userName={selectedUserForStats.name}
+          userEmail={selectedUserForStats.email}
+          userRole={selectedUserForStats.role}
+          userStatus={selectedUserForStats.status}
+        />
+      )}
     </div>
   );
 }

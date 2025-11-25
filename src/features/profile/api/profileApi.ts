@@ -267,3 +267,74 @@ export const unblockUser = async (username: string): Promise<void> => {
 export const deleteAvatar = async (): Promise<void> => {
   await api.delete("/users/profile/avatar");
 };
+
+/**
+ * Change password
+ * @param oldPassword - Current password
+ * @param newPassword - New password
+ * @param confirmNewPassword - Confirm new password
+ */
+export interface ChangePasswordRequest {
+  oldPassword: string;
+  newPassword: string;
+  confirmNewPassword: string;
+}
+
+export interface ChangePasswordResponse {
+  status: number;
+  message: string;
+  data?: unknown;
+}
+
+export const changePassword = async (
+  request: ChangePasswordRequest
+): Promise<ChangePasswordResponse> => {
+  const response = await api.post<ChangePasswordResponse>(
+    "/users/change-password",
+    request
+  );
+  return response.data;
+};
+
+export interface ReportUserRequest {
+  reason: string;
+}
+
+export interface ReportUserResponse {
+  reporterId: number;
+  reporterUsername: string;
+  reportedId: number;
+  reportedUsername: string;
+  reason: string;
+  status: string;
+  createdAt: string;
+}
+
+export interface ReportUserApiResponse {
+  status: number;
+  message: string;
+  data: ReportUserResponse;
+}
+
+export const reportUser = async (
+  username: string,
+  request: ReportUserRequest
+): Promise<ReportUserResponse> => {
+  try {
+    const response = await api.post<ReportUserApiResponse>(
+      `/users/reports/${username}`,
+      request
+    );
+    return response.data.data;
+  } catch (error: unknown) {
+    if (error && typeof error === "object" && "response" in error) {
+      const apiError = error as { response?: { data?: { message?: string } } };
+      throw new Error(
+        apiError.response?.data?.message ||
+          "Có lỗi xảy ra khi báo cáo người dùng"
+      );
+    }
+
+    throw new Error("Không thể kết nối đến server. Vui lòng thử lại.");
+  }
+};

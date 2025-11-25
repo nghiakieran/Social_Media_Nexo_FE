@@ -3,6 +3,7 @@ import type {
   User,
   LoginRequest,
   LoginResponse,
+  OAuthLoginResponse,
   RegisterRequest,
   RegisterResponse,
 } from "./types";
@@ -35,6 +36,8 @@ const transformToUser = (userProfile: UserProfile): User => ({
   followers: userProfile.followersCount,
   following: userProfile.followingCount,
 });
+
+type OAuthLoginResult = User | { missing_info: boolean; temp_token: string };
 
 interface AuthState {
   user: User | null;
@@ -130,6 +133,39 @@ const authSlice = createSlice({
             ? payload
             : payload?.message || "Đăng nhập thất bại";
       })
+      .addCase(oauthLoginAsync.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(
+        oauthLoginAsync.fulfilled,
+        (state, action: PayloadAction<OAuthLoginResult>) => {
+          if ("missing_info" in action.payload) {
+            // User needs to complete profile, don't set authenticated state
+            state.isLoading = false;
+            state.error = null;
+          } else {
+            // Normal login success
+            state.user = action.payload;
+            state.isAuthenticated = true;
+            state.isLoading = false;
+            state.error = null;
+            state.twoFactorRequired = false;
+            state.twoFactorToken = null;
+          }
+        }
+      )
+      .addCase(oauthLoginAsync.rejected, (state, action) => {
+        state.isLoading = false;
+        const payload = action.payload as
+          | { status?: number; message?: string }
+          | string
+          | undefined;
+        state.error =
+          typeof payload === "string"
+            ? payload
+            : payload?.message || "Đăng nhập OAuth thất bại";
+      })
       .addCase(
         hydrateAuthAsync.fulfilled,
         (state, action: PayloadAction<User | null>) => {
@@ -213,6 +249,79 @@ export const loginAsync = createAsyncThunk(
       const status = axiosError?.response?.status;
       const message =
         axiosError?.response?.data?.message || "Đăng nhập thất bại";
+      return rejectWithValue({ status, message });
+    }
+  }
+);
+
+export const oauthLoginAsync = createAsyncThunk(
+  "auth/oauthLoginAsync",
+  async (code: string, { rejectWithValue }) => {
+    try {
+      const response = await api.post<OAuthLoginResponse>(
+        "/auth/oauth/callback",
+        {
+          code,
+          redirectUri: "http://localhost:3000/auth/oauth/callback",
+        }
+      );
+      const data = response.data.data;
+
+      if (data.missing_info) {
+        return {
+          missing_info: true,
+          temp_token: data.access_token,
+        };
+      }
+
+      const { access_token, refresh_token } = data;
+
+      // Store tokens
+      localStorage.setItem(ACCESS_TOKEN_STORAGE_KEY, access_token);
+      localStorage.setItem(REFRESH_TOKEN_STORAGE_KEY, refresh_token);
+
+      // Update axios defaults
+      if (api.defaults.headers) {
+        if (api.defaults.headers instanceof AxiosHeaders) {
+          api.defaults.headers.set(
+            "Authorization",
+            `${BEARER_TOKEN_PREFIX} ${access_token}`
+          );
+        } else {
+          const defaultsHeaders = api.defaults.headers as unknown as {
+            common?: Record<string, string>;
+          };
+          defaultsHeaders.common = defaultsHeaders.common || {};
+          defaultsHeaders.common.Authorization = `${BEARER_TOKEN_PREFIX} ${access_token}`;
+        }
+      }
+
+      // Fetch user profile after successful login
+      try {
+        const profileData = await getCurrentUserProfile();
+        const userProfile = transformProfileData(profileData);
+        return transformToUser(userProfile);
+      } catch (profileError) {
+        // If profile fetch fails, still return a basic user object
+        console.warn("Failed to fetch user profile:", profileError);
+        return {
+          id: 1,
+          username: "user",
+          fullName: "User",
+          avatar: undefined,
+          bio: undefined,
+          isPrivate: false,
+          followers: 0,
+          following: 0,
+        } as User;
+      }
+    } catch (error: unknown) {
+      const axiosError = error as {
+        response?: { status?: number; data?: { message?: string } };
+      };
+      const status = axiosError?.response?.status;
+      const message =
+        axiosError?.response?.data?.message || "Đăng nhập OAuth thất bại";
       return rejectWithValue({ status, message });
     }
   }

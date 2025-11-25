@@ -13,6 +13,7 @@ import profileSlice from "@/features/profile/profileSlice";
 import savedSlice from "@/features/saved/savedSlice";
 import storySlice from "@/features/story/storySlice";
 import reelSlice from "@/features/reel/reelSlice";
+import adminSlice from "@/features/admin/adminSlice";
 
 export const store = configureStore({
   reducer: {
@@ -27,6 +28,7 @@ export const store = configureStore({
     saved: savedSlice,
     story: storySlice,
     reel: reelSlice,
+    admin: adminSlice,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

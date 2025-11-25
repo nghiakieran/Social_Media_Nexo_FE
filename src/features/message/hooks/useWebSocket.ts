@@ -3,7 +3,7 @@ import {
   getWebSocketService,
   WebSocketService,
 } from "../services/websocketService";
-import { EMessageType } from "../types";
+import { EMessageType, EReactionType } from "../types";
 import type {
   MessageDTO,
   TypingNotificationDTO,
@@ -12,6 +12,7 @@ import type {
   WebSocketErrorResponse,
   SendMessageRequest,
   PresenceStatusDTO,
+  ReactionUpdateDTO,
 } from "../types";
 
 interface UseWebSocketOptions {
@@ -19,6 +20,7 @@ interface UseWebSocketOptions {
   onTyping?: (notification: TypingNotificationDTO) => void;
   onReadReceipt?: (receipt: ReadReceiptDTO) => void;
   onReadAll?: (receipt: ReadAllDTO) => void;
+  onReactionUpdate?: (update: ReactionUpdateDTO) => void;
   onError?: (error: WebSocketErrorResponse) => void;
   onPresence?: (presence: PresenceStatusDTO) => void;
   autoConnect?: boolean;
@@ -30,6 +32,7 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
     onTyping,
     onReadReceipt,
     onReadAll,
+    onReactionUpdate,
     onError,
     onPresence,
     autoConnect = true,
@@ -79,11 +82,13 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
   const subscribeToConversation = useCallback(
     (conversationId: number) => {
       if (!wsRef.current?.isConnected()) {
-                return;
+        return;
       }
 
+      // If already subscribed, unsubscribe first to re-subscribe with new callbacks
       if (subscribedConversations.current.has(conversationId)) {
-        return; // Already subscribed
+        wsRef.current.unsubscribeFromConversation(conversationId);
+        subscribedConversations.current.delete(conversationId);
       }
 
       wsRef.current.subscribeToConversation(
@@ -91,12 +96,13 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
         (message) => onMessage?.(message),
         (notification) => onTyping?.(notification),
         (receipt) => onReadReceipt?.(receipt),
-        (receipt) => onReadAll?.(receipt)
+        (receipt) => onReadAll?.(receipt),
+        (update) => onReactionUpdate?.(update)
       );
 
       subscribedConversations.current.add(conversationId);
     },
-    [onMessage, onTyping, onReadReceipt, onReadAll]
+    [onMessage, onTyping, onReadReceipt, onReadAll, onReactionUpdate]
   );
 
   
@@ -183,6 +189,28 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
     }
   }, []);
 
+  // Send reaction via WebSocket
+  const sendReaction = useCallback(
+    (messageId: number, reactionType: EReactionType) => {
+      if (!wsRef.current?.isConnected()) {
+        throw new Error("WebSocket not connected");
+      }
+      wsRef.current.sendReaction(messageId, reactionType);
+    },
+    []
+  );
+
+  // Remove reaction via WebSocket
+  const sendRemoveReaction = useCallback(
+    (messageId: number, reactionType: EReactionType) => {
+      if (!wsRef.current?.isConnected()) {
+        throw new Error("WebSocket not connected");
+      }
+      wsRef.current.sendRemoveReaction(messageId, reactionType);
+    },
+    []
+  );
+
   useEffect(() => {
     if (autoConnect) {
       connect();
@@ -213,5 +241,7 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
     sendTyping,
     markMessageAsRead,
     markConversationAsRead,
+    sendReaction,
+    sendRemoveReaction,
   };
 };
