@@ -28,5 +28,24 @@ export const getUserStatistics = async (
   }
 };
 
+/**
+ * API khóa/mở khóa tài khoản người dùng
+ */
+export const banUser = async (username: string): Promise<void> => {
+  try {
+    await api.post(`/users/ban/${username}`);
+  } catch (error) {
+    console.error("Lỗi khi khóa tài khoản:", error);
+    throw error;
+  }
+};
 
-
+//API mở khoá
+export const unbanUser = async (username: string): Promise<void> => {
+  try {
+    await api.post(`/users/unban/${username}`);
+  } catch (error) {
+    console.error("Lỗi khi mở khóa tài khoản:", error);
+    throw error;
+  }
+};

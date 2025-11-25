@@ -61,7 +61,7 @@ import { PrivateAccountMessage } from "../components/PrivateAccountMessage";
 import { SavedCollectionsContent } from "@/features/saved/components/SavedCollectionsContent";
 import { HiddenPostsContent } from "../components/HiddenPostsContent";
 import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
-import { reportUser } from "../api/profileApi";
+import { reportUser, toggleCloseFriend } from "../api/profileApi";
 
 export const ProfilePage = () => {
   const { username } = useParams<{ username: string }>();
@@ -448,10 +448,73 @@ export const ProfilePage = () => {
     await reportUser(username, { reason });
   };
 
-  const handleAddToCloseFriends = () => {
-    // TODO: Implement add to close friends
-    console.log("Add to close friends");
+  const handleToggleCloseFriends = async () => {
+    if (!currentProfile) return;
+
+    try {
+      await toggleCloseFriend(currentProfile.username);
+
+      // Refresh profile để cập nhật isCloseFriend
+      if (isCurrentUser) {
+        dispatch(fetchCurrentUserProfileAsync());
+      } else if (username) {
+        dispatch(fetchUserProfileByUsernameAsync(username));
+      }
+
+      const isNowCloseFriend = !currentProfile.isCloseFriend;
+      toast({
+        title: isNowCloseFriend
+          ? "Đã thêm vào danh sách bạn thân"
+          : "Đã xóa khỏi danh sách bạn thân",
+        description: `${currentProfile.name} ${
+          isNowCloseFriend ? "đã được thêm vào" : "đã được xóa khỏi"
+        } danh sách bạn thân`,
+      });
+    } catch (error) {
+      toast({
+        title: "Lỗi",
+        description: "Không thể cập nhật danh sách bạn thân",
+        variant: "destructive",
+      });
+    }
   };
+
+  const handleCancelFollowRequest = async () => {
+    if (currentProfile) {
+      try {
+        const resultAction = await dispatch(
+          unfollowUserAsync(currentProfile.username)
+        );
+        if (unfollowUserAsync.fulfilled.match(resultAction)) {
+          // Refresh profile to update hasRequestedFollow
+          if (isCurrentUser) {
+            dispatch(fetchCurrentUserProfileAsync());
+          } else if (username) {
+            dispatch(fetchUserProfileByUsernameAsync(username));
+          }
+          toast({
+            title: "Đã hủy yêu cầu",
+            description: `Đã hủy yêu cầu theo dõi ${currentProfile.name}`,
+          });
+        } else {
+          toast({
+            title: "Lỗi",
+            description: "Không thể hủy yêu cầu theo dõi",
+            variant: "destructive",
+          });
+        }
+      } catch (error) {
+        toast({
+          title: "Lỗi",
+          description: "Đã xảy ra lỗi không mong muốn",
+          variant: "destructive",
+        });
+      }
+    }
+  };
+
+  const handleAddToCloseFriends = handleToggleCloseFriends;
+  const handleRemoveFromCloseFriends = handleToggleCloseFriends;
 
   const handleAddToFavorites = () => {
     // TODO: Implement add to favorites
@@ -749,10 +812,10 @@ export const ProfilePage = () => {
       <ProfileHeader
         profile={currentProfile}
         isCurrentUser={isCurrentUser}
-        followersCount={followers?.length || 0}
-        followingCount={calculateFollowingCount()}
+        followersCount={currentProfile.followersCount}
+        followingCount={currentProfile.followingCount}
         onFollow={handleFollow}
-        onUnfollow={handleFollow}
+        onUnfollow={handleCancelFollowRequest}
         onMessage={handleMessage}
         onEdit={handleEdit}
         onBlock={handleBlock}
@@ -760,7 +823,8 @@ export const ProfilePage = () => {
         onShowFollowers={() => dispatch(setShowFollowersDialog(true))}
         onShowFollowing={() => dispatch(setShowFollowingDialog(true))}
         onAvatarClick={handleAvatarClick}
-        onAddToCloseFriends={handleAddToCloseFriends}
+        onAddToCloseFriends={handleToggleCloseFriends}
+        onRemoveFromCloseFriends={handleToggleCloseFriends}
         onAddToFavorites={handleAddToFavorites}
         onRestrict={handleRestrict}
         onStoryClick={handleProfileStoryClick}

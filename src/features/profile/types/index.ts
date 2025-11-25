@@ -16,6 +16,7 @@ export interface ProfileData {
   following: number;
   isFollowing?: boolean;
   hasRequestedFollow?: boolean;
+  isCloseFriend?: boolean;
 }
 
 // Local State Types (for profile slice)
@@ -34,6 +35,7 @@ export interface UserProfile {
   isBlocked: boolean;
   isMuted: boolean;
   hasRequestedFollow: boolean; // Whether current user has sent follow request to this private account
+  isCloseFriend: boolean;
 }
 
 // Use Post from post feature directly
@@ -176,4 +178,5 @@ export const transformProfileData = (apiData: ProfileData): UserProfile => ({
   isBlocked: false,
   isMuted: false,
   hasRequestedFollow: apiData.hasRequestedFollow ?? false, // Get from API or default to false
+  isCloseFriend: apiData.isCloseFriend ?? false,
 });

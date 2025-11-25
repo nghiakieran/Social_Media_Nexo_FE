@@ -52,6 +52,7 @@ import { UserStatsDialog } from "@/components/admin/UserStatsDialog";
 import axios from "@/lib/axios";
 import { useDebouncedSearch } from "@/hooks/use-debounce-search";
 import { useToast } from "@/hooks/use-toast";
+import { banUser, unbanUser } from "../api/userManagementAPI";
 
 interface UserResponseAdmin {
   id: number;
@@ -469,12 +470,53 @@ export default function Users() {
                                 Xem thống kê
                               </DropdownMenuItem>
                               {user.status === "locked" ? (
-                                <DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={async () => {
+                                    try {
+                                      await unbanUser(user.name);
+                                      toast({
+                                        title: "Thành công",
+                                        description:
+                                          "Tài khoản đã được mở khóa",
+                                      });
+                                      setTimeout(() => {
+                                        fetchUsers();
+                                      }, 1000);
+                                    } catch (error) {
+                                      toast({
+                                        title: "Lỗi",
+                                        description:
+                                          "Không thể mở khóa tài khoản",
+                                        variant: "destructive",
+                                      });
+                                    }
+                                  }}
+                                >
                                   <Unlock className="w-4 h-4 mr-2" />
                                   Mở khóa tài khoản
                                 </DropdownMenuItem>
                               ) : (
-                                <DropdownMenuItem className="text-destructive">
+                                <DropdownMenuItem
+                                  className="text-destructive"
+                                  onClick={async () => {
+                                    try {
+                                      await banUser(user.name);
+                                      toast({
+                                        title: "Thành công",
+                                        description: "Tài khoản đã được khóa",
+                                      });
+                                      setTimeout(() => {
+                                        fetchUsers();
+                                      }, 1000);
+                                    } catch (error) {
+                                      toast({
+                                        title: "Lỗi",
+                                        description: "Không thể khóa tài khoản",
+                                        variant: "destructive",
+                                      });
+                                    }
+                                  }}
+                                >
                                   <Lock className="w-4 h-4 mr-2" />
                                   Khóa tài khoản
                                 </DropdownMenuItem>

@@ -1,10 +1,12 @@
-import { useEffect, useCallback, useRef } from "react";
+import { useEffect, useCallback, useRef, RefObject } from "react";
 
 interface UseInfiniteScrollOptions {
   hasMore: boolean;
   isLoading: boolean;
   threshold?: number;
   error?: string | null; // Add error handling
+  root?: HTMLElement | null;
+  rootRef?: RefObject<HTMLElement | null>;
 }
 
 interface UseInfiniteScrollReturn {
@@ -15,30 +17,50 @@ export const useInfiniteScroll = (
   onLoadMore: () => void,
   options: UseInfiniteScrollOptions
 ): UseInfiniteScrollReturn => {
-  const { hasMore, isLoading, threshold = 100, error = null } = options;
+  const {
+    hasMore,
+    isLoading,
+    threshold = 100,
+    error = null,
+    root,
+    rootRef,
+  } = options;
   const observer = useRef<IntersectionObserver>();
+  const isLoadingRef = useRef(isLoading);
+
+  useEffect(() => {
+    isLoadingRef.current = isLoading;
+  }, [isLoading]);
 
   const lastElementRef = useCallback(
     (node: HTMLElement | null) => {
-      // Don't trigger if loading or has error
-      if (isLoading || error) return;
-      if (observer.current) observer.current.disconnect();
+      if (observer.current) {
+        observer.current.disconnect();
+      }
+      if (!node || error) return;
+
+      const resolvedRoot = rootRef?.current ?? root ?? null;
 
       observer.current = new IntersectionObserver(
         (entries) => {
           // Only trigger if intersecting, has more data, and no error
-          if (entries[0].isIntersecting && hasMore && !error) {
+          if (
+            entries[0].isIntersecting &&
+            hasMore &&
+            !error &&
+            !isLoadingRef.current
+          ) {
             onLoadMore();
           }
         },
         {
+          root: resolvedRoot,
           rootMargin: `${threshold}px`,
         }
       );
-
-      if (node) observer.current.observe(node);
+      observer.current.observe(node);
     },
-    [isLoading, hasMore, onLoadMore, threshold, error]
+    [hasMore, onLoadMore, threshold, error, root, rootRef]
   );
 
   useEffect(() => {
