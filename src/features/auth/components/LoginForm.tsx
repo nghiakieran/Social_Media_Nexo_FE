@@ -1,18 +1,17 @@
-import { useState, useEffect } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { useForm } from 'react-hook-form';
-import { Eye, EyeOff, Mail, Lock } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { useToast } from '@/hooks/use-toast';
-import { OAuthButton } from './OAuthButton';
-import { useAppDispatch, useAppSelector } from '@/store';
-import { loginAsync } from '../authSlice';
-import { mockAuthDelay } from '../__mocks__/users';
-import type { LoginFormData } from '../types';
-import { AUTH_REGISTER_ENDPOINT } from '@/utils/constants';
-
+import { useState, useEffect } from "react";
+import { Link, useNavigate, useLocation } from "react-router-dom";
+import { useForm } from "react-hook-form";
+import { Eye, EyeOff, Mail, Lock } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
+import { OAuthButton } from "./OAuthButton";
+import { useAppDispatch, useAppSelector } from "@/store";
+import { loginAsync } from "../authSlice";
+import { mockAuthDelay } from "../__mocks__/users";
+import type { LoginFormData } from "../types";
+import { AUTH_REGISTER_ENDPOINT } from "@/utils/constants";
 
 export const LoginForm = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -37,15 +36,29 @@ export const LoginForm = () => {
         description: "Chào mừng trở lại!",
       });
 
-      navigate('/');
+      const token = localStorage.getItem("access_token");
+      if (token) {
+        const payload = parseJwt(token);
+        // Kiểm tra role
+        const roles =
+          payload?.resource_access?.["auth-service-client"]?.roles || [];
+        if (roles.includes("ADMIN")) {
+          navigate("/admin");
+        } else {
+          navigate("/");
+        }
+      } else {
+        navigate("/");
+      }
     } catch (error: unknown) {
       const err = error as { status?: number; message?: string } | string;
-      const status = typeof err === 'string' ? undefined : err.status;
+      const status = typeof err === "string" ? undefined : err.status;
       if (status === 400) {
         toast({
           variant: "destructive",
           title: "Chưa xác thực email",
-          description: "Vui lòng kiểm tra email và xác thực tài khoản trước khi đăng nhập.",
+          description:
+            "Vui lòng kiểm tra email và xác thực tài khoản trước khi đăng nhập.",
         });
       } else if (status === 401) {
         toast({
@@ -57,7 +70,9 @@ export const LoginForm = () => {
         toast({
           variant: "destructive",
           title: "Đăng nhập thất bại",
-          description: (typeof err === 'string' ? err : err?.message) || "Có lỗi xảy ra. Vui lòng thử lại.",
+          description:
+            (typeof err === "string" ? err : err?.message) ||
+            "Có lỗi xảy ra. Vui lòng thử lại.",
         });
       }
     }
@@ -66,11 +81,11 @@ export const LoginForm = () => {
   // Show session expired message based on query param
   useEffect(() => {
     const params = new URLSearchParams(location.search);
-    if (params.get('reason') === 'session_expired') {
+    if (params.get("reason") === "session_expired") {
       toast({
-        variant: 'destructive',
-        title: 'Phiên đăng nhập đã hết hạn',
-        description: 'Vui lòng đăng nhập lại để tiếp tục.',
+        variant: "destructive",
+        title: "Phiên đăng nhập đã hết hạn",
+        description: "Vui lòng đăng nhập lại để tiếp tục.",
       });
     }
   }, [location.search, toast]);
@@ -83,6 +98,16 @@ export const LoginForm = () => {
     });
   };
 
+  function parseJwt(token: string) {
+    try {
+      const base64Payload = token.split(".")[1];
+      const payload = atob(base64Payload);
+      return JSON.parse(payload);
+    } catch (e) {
+      console.error("Invalid JWT", e);
+      return null;
+    }
+  }
   return (
     <div className="w-full max-w-sm mx-auto">
       <div className="text-center mb-8">
@@ -103,11 +128,11 @@ export const LoginForm = () => {
               type="email"
               placeholder="your@email.com"
               className="pl-10"
-              {...register('email', {
-                required: 'Email là bắt buộc',
+              {...register("email", {
+                required: "Email là bắt buộc",
                 pattern: {
                   value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                  message: 'Email không hợp lệ',
+                  message: "Email không hợp lệ",
                 },
               })}
             />
@@ -124,14 +149,14 @@ export const LoginForm = () => {
             <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               id="password"
-              type={showPassword ? 'text' : 'password'}
+              type={showPassword ? "text" : "password"}
               placeholder="••••••••"
               className="pl-10 pr-10"
-              {...register('password', {
-                required: 'Mật khẩu là bắt buộc',
+              {...register("password", {
+                required: "Mật khẩu là bắt buộc",
                 minLength: {
                   value: 5,
-                  message: 'Mật khẩu phải có ít nhất 8 ký tự',
+                  message: "Mật khẩu phải có ít nhất 8 ký tự",
                 },
               })}
             />
@@ -142,11 +167,17 @@ export const LoginForm = () => {
               aria-hidden="true"
               className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
             >
-              {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              {showPassword ? (
+                <EyeOff className="h-4 w-4" />
+              ) : (
+                <Eye className="h-4 w-4" />
+              )}
             </button>
           </div>
           {errors.password && (
-            <p className="text-sm text-destructive">{errors.password.message}</p>
+            <p className="text-sm text-destructive">
+              {errors.password.message}
+            </p>
           )}
         </div>
 
@@ -168,7 +199,7 @@ export const LoginForm = () => {
           className="w-full h-11"
           disabled={isLoading}
         >
-          {isLoading ? 'Đang đăng nhập...' : 'Đăng nhập'}
+          {isLoading ? "Đang đăng nhập..." : "Đăng nhập"}
         </Button>
       </form>
 
@@ -181,14 +212,21 @@ export const LoginForm = () => {
 
       {/* OAuth Buttons */}
       <div className="space-y-3">
-        <OAuthButton provider="google" onAuth={handleOAuth} disabled={isLoading} />
+        <OAuthButton
+          provider="google"
+          onAuth={handleOAuth}
+          disabled={isLoading}
+        />
       </div>
 
       {/* Register Link */}
       <div className="text-center mt-6 pt-6 border-t border-border">
         <p className="text-sm text-muted-foreground">
-          Chưa có tài khoản?{' '}
-          <Link to={AUTH_REGISTER_ENDPOINT} className="text-primary hover:underline font-medium">
+          Chưa có tài khoản?{" "}
+          <Link
+            to={AUTH_REGISTER_ENDPOINT}
+            className="text-primary hover:underline font-medium"
+          >
             Đăng ký ngay
           </Link>
         </p>
