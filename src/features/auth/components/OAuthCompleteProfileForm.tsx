@@ -14,6 +14,7 @@ import {
   BEARER_TOKEN_PREFIX,
 } from "@/utils/constants";
 import { api } from "@/lib/axios";
+import { hasAdminRole } from "@/lib/utils";
 
 interface CompleteProfileFormData {
   username: string;
@@ -70,7 +71,13 @@ export const OAuthCompleteProfileForm = () => {
         description: "Tài khoản của bạn đã được cập nhật thành công!",
       });
 
-      navigate("/");
+      // Check if user has ADMIN role and redirect accordingly
+      const accessToken = localStorage.getItem(ACCESS_TOKEN_STORAGE_KEY);
+      if (hasAdminRole(accessToken)) {
+        navigate("/admin");
+      } else {
+        navigate("/");
+      }
     } catch (error: unknown) {
       const err = error as { message?: string };
       toast({

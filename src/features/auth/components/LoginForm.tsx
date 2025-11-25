@@ -11,7 +11,8 @@ import { useAppDispatch, useAppSelector } from "@/store";
 import { loginAsync } from "../authSlice";
 import { mockAuthDelay } from "../__mocks__/users";
 import type { LoginFormData } from "../types";
-import { AUTH_REGISTER_ENDPOINT } from "@/utils/constants";
+import { AUTH_REGISTER_ENDPOINT, ACCESS_TOKEN_STORAGE_KEY } from "@/utils/constants";
+import { hasAdminRole } from "@/lib/utils";
 
 export const LoginForm = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -36,7 +37,13 @@ export const LoginForm = () => {
         description: "Chào mừng trở lại!",
       });
 
-      navigate("/");
+      // Check if user has ADMIN role and redirect accordingly
+      const accessToken = localStorage.getItem(ACCESS_TOKEN_STORAGE_KEY);
+      if (hasAdminRole(accessToken)) {
+        navigate("/admin");
+      } else {
+        navigate("/");
+      }
     } catch (error: unknown) {
       const err = error as { status?: number; message?: string } | string;
       const status = typeof err === "string" ? undefined : err.status;

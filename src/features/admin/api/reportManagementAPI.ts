@@ -65,7 +65,12 @@ export const fetchReportsByType = async (
     case "reel":
       return fetchReportReels(params);
     case "user":
-      return fetchReportUsers(params);
+      return getAllUserReports({
+        status: params?.status as any,
+        page: params?.pageNo,
+        size: params?.pageSize,
+        sort: "createdAt",
+      });
     default:
       throw new Error("Loại báo cáo không hợp lệ");
   }
@@ -117,6 +122,45 @@ export const handelReelReportById = async (
     return res.data.data;
   } catch (error) {
     console.error("Lỗi khi tải danh sách báo cáo người dùng:", error);
+    throw error;
+  }
+};
+
+export const getAllUserReports = async (params?: {
+  status?: "PENDING" | "IN_REVIEW" | "APPROVED" | "REJECTED" | "CLOSED";
+  page?: number;
+  size?: number;
+  sort?: string;
+}) => {
+  try {
+    const res = await api.get<ApiResponse<any>>("/users/reports/all", {
+      params: {
+        page: params?.page ?? 0,
+        size: params?.size ?? 10,
+        sort: params?.sort ?? "createdAt",
+        ...(params?.status && { status: params.status }),
+      },
+    });
+    return res.data.data;
+  } catch (error) {
+    console.error("Lỗi khi tải danh sách báo cáo người dùng:", error);
+    throw error;
+  }
+};
+
+export const updateUserReportStatus = async (
+  reporterId: number,
+  reportedId: number,
+  status: "PENDING" | "IN_REVIEW" | "APPROVED" | "REJECTED" | "CLOSED"
+) => {
+  try {
+    const res = await api.put<ApiResponse<any>>(
+      `/users/reports/${reporterId}/${reportedId}/status`,
+      { status }
+    );
+    return res.data.data;
+  } catch (error) {
+    console.error("Lỗi khi cập nhật trạng thái báo cáo:", error);
     throw error;
   }
 };
