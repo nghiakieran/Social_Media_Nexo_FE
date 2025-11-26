@@ -213,9 +213,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
           }
         });
       });
-    }
-  
-    else if (
+    } else if (
       messagesLengthChanged &&
       currentScrollHeight > prevScrollHeight &&
       (isNearBottomRef.current ||
@@ -668,17 +666,25 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                             </div>
                           )}
 
-                          {message.messageType === "IMAGE" ? (
-                            <img
-                              src={message.content}
-                              alt="Sent image"
-                              className="rounded-lg max-w-full h-auto mt-1"
-                            />
-                          ) : (
-                            <p className="whitespace-pre-wrap leading-relaxed">
-                              {message.content}
-                            </p>
-                          )}
+                          <div className="space-y-2">
+                            {message.content?.trim() && (
+                              <p className="whitespace-pre-wrap leading-relaxed text-right">
+                                {message.content}
+                              </p>
+                            )}
+                            {message.messageType === "IMAGE" && (
+                              <div className="space-y-2">
+                                {message.mediaList.map((media, index) => (
+                                  <img
+                                    key={media.id || index}
+                                    src={media.mediaUrl}
+                                    alt={`Sent image ${index + 1}`}
+                                    className="rounded-lg max-w-full h-auto"
+                                  />
+                                ))}
+                              </div>
+                            )}
+                          </div>
 
                           <div
                             className={cn(

@@ -51,8 +51,8 @@ export interface ReactionDetailDTO {
 
 export interface MediaDTO {
   id: number;
-  url: string;
-  type: string;
+  mediaUrl: string;
+  mediaType: EMessageType;
   filename?: string;
   size?: number;
 }
@@ -95,6 +95,7 @@ export interface SendMessageRequest {
   content: string;
   messageType: EMessageType;
   replyToMessageId?: number | null;
+  mediaUrls?: string[] | null;
 }
 
 export interface ReactMessageRequest {
