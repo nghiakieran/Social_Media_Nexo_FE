@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
@@ -18,11 +18,13 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import type { MessageDTO } from "../types";
+import { api } from "@/lib/axios";
 
 interface MessageComposerProps {
   onSendMessage: (
     content: string,
-    type: "text" | "image" | "file" | "voice"
+    type: "text" | "image" | "file" | "voice",
+    mediaUrls?: string[]
   ) => void;
   onTyping: (isTyping: boolean) => void;
   onUnblock?: () => void;
@@ -49,8 +51,23 @@ export const MessageComposer: React.FC<MessageComposerProps> = ({
 }) => {
   const [message, setMessage] = useState("");
   const [isRecording, setIsRecording] = useState(false);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout>();
+
+  // Cleanup image preview URLs on unmount
+  useEffect(() => {
+    return () => {
+      imagePreviews.forEach((preview) => {
+        if (preview) {
+          URL.revokeObjectURL(preview);
+        }
+      });
+    };
+  }, [imagePreviews]);
 
   const emojis = [
     "😀",
@@ -67,9 +84,50 @@ export const MessageComposer: React.FC<MessageComposerProps> = ({
     "🎉",
   ];
 
-  const handleSend = () => {
-    if (message.trim()) {
-      onSendMessage(message.trim(), "text");
+  const handleSend = async () => {
+    if (message.trim() || selectedFiles.length > 0) {
+      if (selectedFiles.length > 0) {
+        setIsUploading(true);
+        try {
+          const formData = new FormData();
+          selectedFiles.forEach((file) => {
+            formData.append("files", file);
+          });
+
+          const uploadResponse = await api.post("/files/upload", formData, {
+            headers: {
+              "Content-Type": "multipart/form-data",
+            },
+            timeout: 30000,
+            onUploadProgress: (progressEvent) => {
+              const percentCompleted = Math.round(
+                (progressEvent.loaded * 100) / progressEvent.total
+              );
+              console.log(`Upload progress: ${percentCompleted}%`);
+            },
+          });
+
+          const mediaUrls = uploadResponse.data.data;
+          const urls = Array.isArray(mediaUrls) ? mediaUrls : [mediaUrls];
+
+          onSendMessage(message.trim(), "image", urls);
+        } catch (error) {
+          console.error("Upload failed:", error);
+          onSendMessage(message.trim(), "image");
+        } finally {
+          setIsUploading(false);
+        }
+      } else {
+        onSendMessage(message.trim(), "text");
+      }
+
+      imagePreviews.forEach((preview) => {
+        if (preview) {
+          URL.revokeObjectURL(preview);
+        }
+      });
+      setImagePreviews([]);
+      setSelectedFiles([]);
       setMessage("");
       onTyping(false);
       if (textareaRef.current) {
@@ -120,6 +178,44 @@ export const MessageComposer: React.FC<MessageComposerProps> = ({
 
   const handleFileUpload = (type: "image" | "file") => {
     onSendMessage(`Uploaded ${type}`, type);
+  };
+
+  const handleImageSelect = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Check if maximum limit reached
+      if (selectedFiles.length >= 6) {
+        return; // Don't add more files
+      }
+
+      // Check if file is already selected (prevent duplicates)
+      const isDuplicate = selectedFiles.some(
+        (selectedFile) =>
+          selectedFile.name === file.name &&
+          selectedFile.size === file.size &&
+          selectedFile.lastModified === file.lastModified
+      );
+
+      if (!isDuplicate) {
+        setSelectedFiles((prev) => [...prev, file]);
+        const previewUrl = URL.createObjectURL(file);
+        setImagePreviews((prev) => [...prev, previewUrl]);
+      }
+    }
+    e.target.value = "";
+  };
+
+  const removeSelectedFile = (index: number) => {
+    const previewUrl = imagePreviews[index];
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+    }
+    setSelectedFiles((prev) => prev.filter((_, i) => i !== index));
+    setImagePreviews((prev) => prev.filter((_, i) => i !== index));
   };
 
   const toggleRecording = () => {
@@ -197,12 +293,55 @@ export const MessageComposer: React.FC<MessageComposerProps> = ({
           </div>
         </div>
       )}
+      {selectedFiles.length > 0 && (
+        <div className="px-4 py-3 border-b border-border bg-muted/30">
+          <div className="flex items-start gap-3">
+            {/* Clickable placeholder to add more images - only show if under limit */}
+            {selectedFiles.length < 6 && (
+              <div
+                className="relative shrink-0 w-16 h-16 rounded-lg border-2 border-dashed border-muted-foreground/30 flex items-center justify-center cursor-pointer hover:border-muted-foreground/50 transition-colors"
+                onClick={handleImageSelect}
+              >
+                <Image className="h-6 w-6 text-muted-foreground" />
+              </div>
+            )}
+
+            {/* Render multiple image previews */}
+            <div className="flex gap-2 flex-wrap">
+              {imagePreviews.map((preview, index) => (
+                <div key={index} className="relative shrink-0">
+                  <img
+                    src={preview}
+                    alt={`Preview ${index + 1}`}
+                    className="w-16 h-16 object-cover rounded-lg border"
+                  />
+                  <Button
+                    variant="secondary"
+                    size="icon"
+                    className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-background border shadow-sm hover:bg-destructive hover:text-destructive-foreground"
+                    onClick={() => removeSelectedFile(index)}
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+            <div className="flex-1 min-w-0">
+              {/* File name removed as requested */}
+            </div>
+          </div>
+        </div>
+      )}
       <div className="p-2 md:p-4">
         <div className="flex items-end space-x-1 md:space-x-2">
           {}
           <Popover>
             <PopoverTrigger asChild>
-              <Button variant="ghost" size="icon" className="shrink-0 h-8 w-8 md:h-10 md:w-10">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="shrink-0 h-8 w-8 md:h-10 md:w-10"
+              >
                 <Smile className="h-4 w-4" />
               </Button>
             </PopoverTrigger>
@@ -252,7 +391,7 @@ export const MessageComposer: React.FC<MessageComposerProps> = ({
                     variant="ghost"
                     size="sm"
                     className="w-full justify-start"
-                    onClick={() => handleFileUpload("image")}
+                    onClick={handleImageSelect}
                   >
                     <Image className="h-4 w-4 mr-2" />
                     Ảnh
@@ -281,26 +420,43 @@ export const MessageComposer: React.FC<MessageComposerProps> = ({
           </div>
 
           {}
-          {message.trim() ? (
+          {message.trim() || selectedFiles.length > 0 ? (
             <Button
               onClick={handleSend}
+              disabled={isUploading}
               size="icon"
               className="shrink-0 h-8 w-8 md:h-10 md:w-10 bg-primary hover:bg-primary/90"
             >
-              <Send className="h-4 w-4" />
+              {isUploading ? (
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+              ) : (
+                <Send className="h-4 w-4" />
+              )}
             </Button>
           ) : (
             <Button
               onClick={toggleRecording}
               size="icon"
               variant={isRecording ? "destructive" : "ghost"}
-              className={cn("shrink-0 h-8 w-8 md:h-10 md:w-10", isRecording && "animate-pulse")}
+              className={cn(
+                "shrink-0 h-8 w-8 md:h-10 md:w-10",
+                isRecording && "animate-pulse"
+              )}
             >
               <Mic className="h-4 w-4" />
             </Button>
           )}
         </div>
       </div>
+
+      {/* Hidden file input */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        onChange={handleFileChange}
+        className="hidden"
+      />
     </div>
   );
 };

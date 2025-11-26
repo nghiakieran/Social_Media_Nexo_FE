@@ -137,7 +137,8 @@ export const FloatingChatWindow: React.FC<FloatingChatWindowProps> = ({
 
   const handleSendMessage = (
     content: string,
-    type: "text" | "image" | "file" | "voice"
+    type: "text" | "image" | "file" | "voice",
+    mediaUrls?: string[]
   ) => {
     const typeMap: Record<string, EMessageType> = {
       text: EMessageType.TEXT,
@@ -147,7 +148,13 @@ export const FloatingChatWindow: React.FC<FloatingChatWindowProps> = ({
     };
 
     try {
-      ws.sendMessage(chat.id, content, typeMap[type] || EMessageType.TEXT);
+      ws.sendMessage(
+        chat.id,
+        content,
+        typeMap[type] || EMessageType.TEXT,
+        undefined,
+        mediaUrls
+      );
     } catch (error) {
       console.error("Error sending message:", error);
     }

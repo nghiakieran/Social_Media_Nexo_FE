@@ -353,7 +353,8 @@ export const InboxPage: React.FC = () => {
 
   const handleSendMessage = (
     content: string,
-    type: "text" | "image" | "file" | "voice"
+    type: "text" | "image" | "file" | "voice",
+    mediaUrls?: string[]
   ) => {
     if (!activeConversationId) return;
 
@@ -368,7 +369,8 @@ export const InboxPage: React.FC = () => {
           : type === "file"
           ? EMessageType.FILE
           : EMessageType.AUDIO,
-        replyingTo ? replyingTo.id : undefined
+        replyingTo ? replyingTo.id : undefined,
+        mediaUrls
       );
       dispatch(clearReplyingTo());
     } catch (error) {

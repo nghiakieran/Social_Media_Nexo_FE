@@ -43,7 +43,6 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
   const [isConnecting, setIsConnecting] = useState(false);
   const subscribedConversations = useRef<Set<number>>(new Set());
 
-  
   const connect = useCallback(() => {
     if (wsRef.current?.isConnected()) {
       return;
@@ -63,12 +62,11 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
         setIsConnecting(false);
       },
       (error) => {
-                setIsConnecting(false);
+        setIsConnecting(false);
       }
     );
   }, []);
 
-  
   const disconnect = useCallback(() => {
     if (wsRef.current) {
       wsRef.current.disconnect();
@@ -78,7 +76,6 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
     }
   }, []);
 
-  
   const subscribeToConversation = useCallback(
     (conversationId: number) => {
       if (!wsRef.current?.isConnected()) {
@@ -105,7 +102,6 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
     [onMessage, onTyping, onReadReceipt, onReadAll, onReactionUpdate]
   );
 
-  
   const unsubscribeFromConversation = useCallback((conversationId: number) => {
     if (wsRef.current && subscribedConversations.current.has(conversationId)) {
       wsRef.current.unsubscribeFromConversation(conversationId);
@@ -113,7 +109,6 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
     }
   }, []);
 
-  
   const subscribeToPresence = useCallback(() => {
     if (!wsRef.current?.isConnected() || !onPresence) {
       return;
@@ -122,14 +117,12 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
     wsRef.current.subscribeToPresence(onPresence);
   }, [onPresence]);
 
-  
   const unsubscribeFromPresence = useCallback(() => {
     if (wsRef.current) {
       wsRef.current.unsubscribeFromPresence();
     }
   }, []);
 
-  
   const subscribeToErrors = useCallback(
     (username?: string) => {
       if (!wsRef.current?.isConnected() || !onError) {
@@ -141,13 +134,13 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
     [onError]
   );
 
-  
   const sendMessage = useCallback(
     (
       conversationId: number,
       content: string,
       messageType: EMessageType = EMessageType.TEXT,
-      replyToMessageId?: number
+      replyToMessageId?: number,
+      mediaUrls?: string[]
     ) => {
       if (!wsRef.current?.isConnected()) {
         throw new Error("WebSocket not connected");
@@ -158,6 +151,7 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
         content,
         messageType,
         replyToMessageId: replyToMessageId || null,
+        mediaUrls: mediaUrls || null,
       };
 
       wsRef.current.sendMessage(request);
@@ -165,14 +159,12 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
     []
   );
 
-  
   const sendTyping = useCallback((conversationId: number) => {
     if (wsRef.current?.isConnected()) {
       wsRef.current.sendTyping(conversationId);
     }
   }, []);
 
-  
   const markMessageAsRead = useCallback(
     (messageId: number, conversationId: number) => {
       if (wsRef.current?.isConnected()) {
@@ -182,7 +174,6 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
     []
   );
 
-  
   const markConversationAsRead = useCallback((conversationId: number) => {
     if (wsRef.current?.isConnected()) {
       wsRef.current.markConversationAsRead(conversationId);

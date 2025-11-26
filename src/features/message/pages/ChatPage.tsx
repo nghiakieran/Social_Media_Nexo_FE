@@ -234,7 +234,8 @@ export const ChatPage: React.FC = () => {
 
   const handleSendMessage = (
     content: string,
-    type: "text" | "image" | "file" | "voice"
+    type: "text" | "image" | "file" | "voice",
+    mediaUrls?: string[]
   ) => {
     if (!chatId) return;
 
@@ -250,7 +251,8 @@ export const ChatPage: React.FC = () => {
         Number(chatId),
         content,
         typeMap[type] || EMessageType.TEXT,
-        replyingTo ? replyingTo.id : undefined
+        replyingTo ? replyingTo.id : undefined,
+        mediaUrls
       );
       dispatch(clearReplyingTo());
     } catch (error) {
