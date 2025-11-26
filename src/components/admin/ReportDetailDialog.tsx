@@ -280,20 +280,35 @@ export function ReportDetailDialog({
             {report?.reportStatus === "PENDING" && (
               <>
                 <Separator />
-                <div>
-                  <h4 className="font-semibold mb-3">
-                    Ảnh chứng minh ({report.evidenceImages.length})
-                  </h4>
-                  <div className="grid grid-cols-2 gap-3">
-                    {report.evidenceImages.map((image, index) => (
-                      <img
-                        key={index}
-                        src={image}
-                        alt={`Evidence ${index + 1}`}
-                        className="rounded-lg border w-full h-48 object-cover cursor-pointer hover:opacity-90 transition-opacity"
-                      />
-                    ))}
-                  </div>
+                <div className="grid grid-cols-4 gap-3">
+                  <Button
+                    variant="secondary"
+                    onClick={() => handleChangeStatus("IN_REVIEW")}
+                    disabled={processing}
+                  >
+                    <CheckCircle className="w-4 h-4" />
+                    Đang xem xét
+                  </Button>
+                  <Button
+                    variant="default"
+                    onClick={() => handleChangeStatus("APPROVED")}
+                    disabled={processing}
+                  >
+                    <CheckCircle className="w-4 h-4" />
+                    Duyệt báo cáo
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    onClick={() => handleChangeStatus("REJECTED")}
+                    disabled={processing}
+                  >
+                    <XCircle className="w-4 h-4" />
+                    Từ chối
+                  </Button>
+                  <Button variant="outline" disabled={processing}>
+                    <Lock className="w-4 h-4 mr-2" />
+                    Khóa tài khoản
+                  </Button>
                 </div>
               </>
             )}
