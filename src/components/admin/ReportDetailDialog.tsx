@@ -22,8 +22,10 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import {
+  getCommentReportById,
   getPostReportById,
   getReelReportById,
+  handelCommentReportById,
   handelPostReportById,
   handelReelReportById,
 } from "@/features/admin/api/reportManagementAPI";
@@ -69,6 +71,10 @@ export function ReportDetailDialog({
         setAdminNote(res.note || "");
       } else if (reportType === "reel") {
         const res = await getReelReportById(reportId);
+        setReport(res);
+        setAdminNote(res.note || "");
+      } else {
+        const res = await getCommentReportById(reportId);
         setReport(res);
         setAdminNote(res.note || "");
       }
@@ -118,6 +124,8 @@ export function ReportDetailDialog({
         await handelPostReportById(report.id, newStatus, adminNote);
       } else if (reportType === "reel") {
         await handelReelReportById(report.id, newStatus, adminNote);
+      } else if (reportType === "comment") {
+        await handelCommentReportById(report.id, newStatus, adminNote);
       }
 
       setReport({ ...report, reportStatus: newStatus });
@@ -184,17 +192,12 @@ export function ReportDetailDialog({
               <h4 className="font-semibold mb-3">Đối tượng bị báo cáo</h4>
 
               <div className="flex items-center gap-3 p-3 rounded-lg border">
-                {report.reportedUserAvatar && (
-                  <Avatar className="w-10 h-10">
-                    <AvatarImage src={report.reportedUserAvatar} />
-                    <AvatarFallback>{report.reportedUser[0]}</AvatarFallback>
-                  </Avatar>
-                )}
+                <Avatar className="w-10 h-10">
+                  <AvatarImage src={report?.ownerPostAvatarUrl} />
+                  <AvatarFallback>{report?.ownerPostName[0]}</AvatarFallback>
+                </Avatar>
                 <div>
-                  <p className="font-medium">{report.reportedUser}</p>
-                  <p className="text-sm text-muted-foreground">
-                    Người bị báo cáo
-                  </p>
+                  <p className="font-medium">{report?.ownerPostName}</p>
                 </div>
               </div>
 
@@ -228,19 +231,20 @@ export function ReportDetailDialog({
                   )}
                 </div>
               )}
-              <div>
-                <p className="font-medium">{report?.ownerPostName}</p>
-                <p className="text-sm text-muted-foreground">
-                  Người bị báo cáo
-                </p>
-              </div>
 
               {report?.caption && (
                 <div className="p-3 rounded-lg bg-muted mt-3">
-                  <p className="font-medium text-sm mb-2">
-                    Nội dung bị báo cáo:
-                  </p>
+                  <p className="font-medium text-sm mb-2">Nội dung bài viết:</p>
                   <p className="text-sm">{report?.caption}</p>
+                </div>
+              )}
+
+              {report?.content && (
+                <div className="p-3 rounded-lg bg-muted mt-3">
+                  <p className="font-medium text-sm mb-2">
+                    Nội dung bình luận:
+                  </p>
+                  <p className="text-sm">{report?.content}</p>
                 </div>
               )}
             </div>
@@ -257,14 +261,13 @@ export function ReportDetailDialog({
 
             {/* Reason */}
             <div>
-              <h4 className="font-semibold mb-3">Lý do báo cáo</h4>
-
-              {report.detailedReason && (
+              <h4 className="font-semibold mb-3">
+                Lý do báo cáo: {report.reason}
+              </h4>
+              <h4 className="font-semibold mb-3">Chi tiết: </h4>
+              {report.detail && (
                 <div className="p-3 rounded-lg border">
-                  <p className="font-medium text-sm mb-1">Chi tiết:</p>
-                  <p className="text-sm whitespace-pre-wrap">
-                    {report.detailedReason}
-                  </p>
+                  <p className="text-sm whitespace-pre-wrap">{report.detail}</p>
                 </div>
               )}
             </div>

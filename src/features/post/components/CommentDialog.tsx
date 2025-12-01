@@ -38,6 +38,7 @@ import { getPostLikeDetailThunk } from "@/features/interaction";
 import { navigateToProfile } from "@/utils/navigation";
 import { useNavigate } from "react-router-dom";
 import { ReportPostDialog } from "@/features/post/components/ReportPostDialog";
+import { reportComment } from "../api/postApi";
 
 interface Comment {
   id: string;
@@ -955,7 +956,7 @@ export const CommentDialog = ({
               className="cursor-pointer"
               onClick={(e) => handleProfileClick(post.userName, e)}
             >
-            <Avatar className="w-8 h-8">
+              <Avatar className="w-8 h-8">
                 <AvatarImage
                   src={getAvatarUrl(post.avatarUrl)}
                   alt={post.userName}
@@ -963,7 +964,7 @@ export const CommentDialog = ({
                 <AvatarFallback>
                   {getAvatarInitials(post.userName)}
                 </AvatarFallback>
-            </Avatar>
+              </Avatar>
             </div>
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-1">
@@ -983,16 +984,16 @@ export const CommentDialog = ({
               isOpen={showReportDialog}
               onClose={() => setShowReportDialog(false)}
               postId={reportingCommentId}
-              onReport={(_, __, ___) => {
-                // TODO: call API
+              onReport={(commentId, reason, details) => {
+                reportComment(commentId, reason, details);
               }}
               title="Báo cáo bình luận"
             />
           )}
         </div>
 
-          {/* Comments List */}
-          <div className="flex-1 overflow-y-auto">
+        {/* Comments List */}
+        <div className="flex-1 overflow-y-auto">
           {commentsLoading && displayComments.length === 0 ? (
             <div className="flex justify-center items-center py-8">
               <Loader />
@@ -1016,7 +1017,7 @@ export const CommentDialog = ({
                       className="cursor-pointer"
                       onClick={(e) => handleProfileClick(comment.userName, e)}
                     >
-                    <Avatar className="w-8 h-8">
+                      <Avatar className="w-8 h-8">
                         <AvatarImage
                           src={getAvatarUrl(comment.avatarUrl)}
                           alt={comment.userName}
@@ -1024,7 +1025,7 @@ export const CommentDialog = ({
                         <AvatarFallback>
                           {getAvatarInitials(comment.userName)}
                         </AvatarFallback>
-                    </Avatar>
+                      </Avatar>
                     </div>
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
@@ -1096,7 +1097,8 @@ export const CommentDialog = ({
                     </div>
                   </div>
                   {/* Replies for mobile with toggle */}
-                  {(comment.replies && comment.replies.length > 0) || comment.hasMoreReplies ? (
+                  {(comment.replies && comment.replies.length > 0) ||
+                  comment.hasMoreReplies ? (
                     <div className="mt-2 ml-11">
                       {!expandedReplies[comment.id] ? (
                         <button
@@ -1130,9 +1132,12 @@ export const CommentDialog = ({
                                     </span>
                                   </div>
                                   <p className="text-xs leading-relaxed mb-2">
-                                    {parseMentions(reply.content, (username) => {
-                                      handleProfileClick(username);
-                                    })}
+                                    {parseMentions(
+                                      reply.content,
+                                      (username) => {
+                                        handleProfileClick(username);
+                                      }
+                                    )}
                                   </p>
                                   <div className="flex items-center gap-4">
                                     <span className="text-[11px] text-gray-500">
@@ -1189,23 +1194,27 @@ export const CommentDialog = ({
                               </div>
                             ))}
                             {/* Show "Load more" button if there are more replies */}
-                            {repliesHasMore[comment.id] && comment.replies && comment.replies.length >= 6 && (
-                              <div className="mt-2">
-                                {repliesLoading[comment.id] ? (
-                                  <div className="flex justify-center py-2">
-                                    <Loader />
-                                  </div>
-                                ) : (
-                                <button
-                                  type="button"
-                                    onClick={() => handleLoadMoreReplies(comment.id)}
-                                    className="text-xs text-gray-500 hover:text-gray-700"
-                                >
-                                    Xem thêm câu trả lời
-                                </button>
-                                )}
-                              </div>
-                            )}
+                            {repliesHasMore[comment.id] &&
+                              comment.replies &&
+                              comment.replies.length >= 6 && (
+                                <div className="mt-2">
+                                  {repliesLoading[comment.id] ? (
+                                    <div className="flex justify-center py-2">
+                                      <Loader />
+                                    </div>
+                                  ) : (
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        handleLoadMoreReplies(comment.id)
+                                      }
+                                      className="text-xs text-gray-500 hover:text-gray-700"
+                                    >
+                                      Xem thêm câu trả lời
+                                    </button>
+                                  )}
+                                </div>
+                              )}
                           </div>
                           <button
                             type="button"
@@ -1227,68 +1236,74 @@ export const CommentDialog = ({
               ))}
             </div>
           )}
-          </div>
+        </div>
 
-          {/* Comment Form */}
-          <div className="p-4 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 pb-24">
-            {replyingTo ? (
-              <form onSubmit={handleSubmitReply} className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-gray-500">Reply to comment</span>
-                  <button
-                    type="button"
-                    onClick={() => setReplyingTo(null)}
-                    className="text-xs text-blue-500 hover:text-blue-700"
-                  >
-                    Cancel
-                  </button>
-                </div>
-                <div className="flex gap-2">
-                  <Textarea
-                    ref={textareaRef}
-                    value={replyContent}
-                    onChange={(e) => setReplyContent(e.target.value)}
-                    placeholder="Add a reply..."
-                    className="flex-1 resize-none"
-                    rows={2}
-                  />
-                  <Button
-                    type="submit"
-                    disabled={!replyContent.trim()}
-                    className="px-4"
-                  >
-                    <Send className="w-4 h-4" />
-                  </Button>
-                </div>
-              </form>
-            ) : (
-              <form onSubmit={handleSubmitComment} className="flex gap-2">
+        {/* Comment Form */}
+        <div className="p-4 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 pb-24">
+          {replyingTo ? (
+            <form onSubmit={handleSubmitReply} className="space-y-2">
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-500">Reply to comment</span>
+                <button
+                  type="button"
+                  onClick={() => setReplyingTo(null)}
+                  className="text-xs text-blue-500 hover:text-blue-700"
+                >
+                  Cancel
+                </button>
+              </div>
+              <div className="flex gap-2">
                 <Textarea
                   ref={textareaRef}
-                  value={newComment}
-                  onChange={(e) => setNewComment(e.target.value)}
-                  placeholder="Add a comment..."
+                  value={replyContent}
+                  onChange={(e) => setReplyContent(e.target.value)}
+                  placeholder="Add a reply..."
                   className="flex-1 resize-none"
                   rows={2}
                 />
                 <Button
                   type="submit"
-                  disabled={!newComment.trim()}
+                  disabled={!replyContent.trim()}
                   className="px-4"
                 >
                   <Send className="w-4 h-4" />
                 </Button>
-              </form>
-            )}
-          </div>
+              </div>
+            </form>
+          ) : (
+            <form onSubmit={handleSubmitComment} className="flex gap-2">
+              <Textarea
+                ref={textareaRef}
+                value={newComment}
+                onChange={(e) => setNewComment(e.target.value)}
+                placeholder="Add a comment..."
+                className="flex-1 resize-none"
+                rows={2}
+              />
+              <Button
+                type="submit"
+                disabled={!newComment.trim()}
+                className="px-4"
+              >
+                <Send className="w-4 h-4" />
+              </Button>
+            </form>
+          )}
+        </div>
 
-          {/* Likes Dialog for mobile */}
-          <LikesDialog
-            isOpen={!!showLikesDialog}
-            onClose={closeLikesDialog}
-            targetType={showLikesDialog?.targetType === 'post' ? 'post' : undefined}
-            targetId={showLikesDialog?.targetType === 'post' ? parseInt(showLikesDialog.targetId) : undefined}
-          />
+        {/* Likes Dialog for mobile */}
+        <LikesDialog
+          isOpen={!!showLikesDialog}
+          onClose={closeLikesDialog}
+          targetType={
+            showLikesDialog?.targetType === "post" ? "post" : undefined
+          }
+          targetId={
+            showLikesDialog?.targetType === "post"
+              ? parseInt(showLikesDialog.targetId)
+              : undefined
+          }
+        />
       </div>
     );
   }
@@ -1930,8 +1945,8 @@ export const CommentDialog = ({
           isOpen={showReportDialog}
           onClose={() => setShowReportDialog(false)}
           postId={reportingCommentId}
-          onReport={(_, __, ___) => {
-            // TODO: CALL API
+          onReport={(commentId, reason, details) => {
+            reportComment(commentId, reason, details);
           }}
           title="Báo cáo bình luận"
         />
