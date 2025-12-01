@@ -2,10 +2,9 @@ import { createSlice, PayloadAction, createAsyncThunk } from "@reduxjs/toolkit";
 import {
   fetchReportsByType,
   updateUserReportStatus,
-  GetReportsParams,
 } from "./api/reportManagementAPI";
 
-export type ReportType = "post" | "reel" | "user";
+export type ReportType = "post" | "reel" | "user" | "comment";
 
 export interface UserReport {
   reporterId: number;
@@ -29,25 +28,25 @@ export interface PostReelReport {
 interface ReportsState {
   // Reports data
   reports: (UserReport | PostReelReport)[];
-  
+
   // Filters and pagination
   activeTab: ReportType;
   statusFilter: "ALL" | "PENDING" | "IN_REVIEW" | "APPROVED" | "REJECTED";
   currentPage: number;
   totalPages: number;
   totalElements: number;
-  
+
   // Statistics
   totalPending: number;
   totalProcessing: number;
   totalApproved: number;
   totalRejected: number;
-  
+
   // UI state
   isLoading: boolean;
   error: string | null;
   selectedReport: UserReport | PostReelReport | null;
-  
+
   // Search
   search: string;
 }
@@ -83,8 +82,7 @@ export const fetchReportsAsync = createAsyncThunk(
     { rejectWithValue }
   ) => {
     try {
-      const apiStatus =
-        params.status === "ALL" ? undefined : params.status;
+      const apiStatus = params.status === "ALL" ? undefined : params.status;
       const data = await fetchReportsByType(params.type, {
         pageNo: params.pageNo,
         pageSize: params.pageSize,
@@ -143,7 +141,9 @@ const adminSlice = createSlice({
     },
     setStatusFilter: (
       state,
-      action: PayloadAction<"ALL" | "PENDING" | "IN_REVIEW" | "APPROVED" | "REJECTED">
+      action: PayloadAction<
+        "ALL" | "PENDING" | "IN_REVIEW" | "APPROVED" | "REJECTED"
+      >
     ) => {
       state.statusFilter = action.payload;
       state.currentPage = 0; // Reset page when changing filter
@@ -200,9 +200,9 @@ const adminSlice = createSlice({
           state.totalPages = data.totalPages || 0;
           state.totalElements =
             data.pendingQuantity +
-            data.processingQuantity +
-            data.approvedQuantity +
-            data.rejectQuantity || 0;
+              data.processingQuantity +
+              data.approvedQuantity +
+              data.rejectQuantity || 0;
           state.totalPending = data.pendingQuantity || 0;
           state.totalProcessing = data.processingQuantity || 0;
           state.totalApproved = data.approvedQuantity || 0;
@@ -223,7 +223,7 @@ const adminSlice = createSlice({
       .addCase(updateUserReportStatusAsync.fulfilled, (state, action) => {
         state.isLoading = false;
         const { reporterId, reportedId, status } = action.payload;
-        
+
         // Update the report in the list if it exists
         const reportIndex = state.reports.findIndex(
           (r) =>
@@ -231,11 +231,11 @@ const adminSlice = createSlice({
             r.reporterId === reporterId &&
             r.reportedId === reportedId
         );
-        
+
         if (reportIndex !== -1) {
           const report = state.reports[reportIndex] as UserReport;
           state.reports[reportIndex] = { ...report, status };
-          
+
           // Update selected report if it's the same one
           if (
             state.selectedReport &&
@@ -264,5 +264,3 @@ export const {
 } = adminSlice.actions;
 
 export default adminSlice.reducer;
-
-

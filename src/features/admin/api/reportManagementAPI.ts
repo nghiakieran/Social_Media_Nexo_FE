@@ -36,6 +36,18 @@ export const fetchReportReels = async (params?: GetReportsParams) => {
   }
 };
 
+export const fetchReportComments = async (params?: GetReportsParams) => {
+  try {
+    const res = await api.get<ApiResponse<any>>("/posts/report/comments", {
+      params,
+    });
+    return res.data.data;
+  } catch (error) {
+    console.error("Lỗi khi tải danh sách báo cáo reels:", error);
+    throw error;
+  }
+};
+
 /**
  * API lấy danh sách báo cáo người dùng (User)
  */
@@ -56,7 +68,7 @@ export const fetchReportUsers = async (params?: GetReportsParams) => {
  * type: 'post' | 'reel' | 'user'
  */
 export const fetchReportsByType = async (
-  type: "post" | "reel" | "user",
+  type: "post" | "reel" | "user" | "comment",
   params?: GetReportsParams
 ) => {
   switch (type) {
@@ -64,6 +76,8 @@ export const fetchReportsByType = async (
       return fetchReportPosts(params);
     case "reel":
       return fetchReportReels(params);
+    case "comment":
+      return fetchReportComments(params);
     case "user":
       return getAllUserReports({
         status: params?.status as any,
@@ -85,6 +99,7 @@ export const getPostReportById = async (id: number) => {
     throw error;
   }
 };
+
 export const getReelReportById = async (id: number) => {
   try {
     const res = await api.get<ApiResponse<any>>("/posts/report/reels/" + id);
@@ -94,6 +109,17 @@ export const getReelReportById = async (id: number) => {
     throw error;
   }
 };
+
+export const getCommentReportById = async (id: number) => {
+  try {
+    const res = await api.get<ApiResponse<any>>("/posts/report/comments/" + id);
+    return res.data.data;
+  } catch (error) {
+    console.error("Lỗi khi tải danh sách báo cáo người dùng:", error);
+    throw error;
+  }
+};
+
 export const handelPostReportById = async (
   id: number,
   status: string,
@@ -118,6 +144,22 @@ export const handelReelReportById = async (
   try {
     const res = await api.put<ApiResponse<any>>(
       `/posts/report/reel/${id}/${status}?note=${note}`
+    );
+    return res.data.data;
+  } catch (error) {
+    console.error("Lỗi khi tải danh sách báo cáo người dùng:", error);
+    throw error;
+  }
+};
+
+export const handelCommentReportById = async (
+  id: number,
+  status: string,
+  note: string
+) => {
+  try {
+    const res = await api.put<ApiResponse<any>>(
+      `/posts/report/comment/${id}/${status}?note=${note}`
     );
     return res.data.data;
   } catch (error) {

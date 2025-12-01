@@ -13,7 +13,8 @@ import {
   ChevronLeft,
   ChevronRight,
   FilmIcon,
-  Clock, // Add Clock Icon for IN_REVIEW
+  Clock,
+  MessageCircle, // Add Clock Icon for IN_REVIEW
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -237,7 +238,7 @@ export default function Reports() {
   // Fetch Data
   useEffect(() => {
     const apiStatus = statusFilter === "ALL" ? undefined : statusFilter;
-    const apiType = activeTab as "post" | "reel" | "user";
+    const apiType = activeTab as "post" | "reel" | "user" | "comment";
 
     dispatch(
       fetchReportsAsync({
@@ -313,7 +314,7 @@ export default function Reports() {
       <Tabs
         value={activeTab}
         onValueChange={(value) =>
-          dispatch(setActiveTab(value as "post" | "reel" | "user"))
+          dispatch(setActiveTab(value as "post" | "reel" | "user" | "comment"))
         }
         className="w-full"
       >
@@ -327,6 +328,9 @@ export default function Reports() {
             </TabsTrigger>
             <TabsTrigger value="reel" className="flex items-center gap-2">
               <FilmIcon className="w-4 h-4" /> Thước phim
+            </TabsTrigger>
+            <TabsTrigger value="comment" className="flex items-center gap-2">
+              <MessageCircle className="w-4 h-4" /> Bình luận
             </TabsTrigger>
           </TabsList>
 
@@ -371,7 +375,7 @@ export default function Reports() {
         </div>
 
         {/* Content cho các Tabs - Sử dụng chung logic render vì cấu trúc bảng giống nhau */}
-        {["user", "post", "reel"].map((tabValue) => (
+        {["user", "post", "reel", "comment"].map((tabValue) => (
           <TabsContent key={tabValue} value={tabValue}>
             <Card>
               <CardHeader>
@@ -381,7 +385,9 @@ export default function Reports() {
                     ? "người dùng"
                     : tabValue === "post"
                     ? "bài viết"
-                    : "thước phim"}
+                    : tabValue === "reel"
+                    ? "thước phim"
+                    : "bình luận"}
                 </CardTitle>
               </CardHeader>
               <CardContent>
