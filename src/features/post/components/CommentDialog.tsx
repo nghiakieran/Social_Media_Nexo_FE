@@ -37,6 +37,7 @@ import { useToast } from "@/hooks/use-toast";
 import { getPostLikeDetailThunk } from "@/features/interaction";
 import { navigateToProfile } from "@/utils/navigation";
 import { useNavigate } from "react-router-dom";
+import { ReportPostDialog } from "@/features/post/components/ReportPostDialog";
 
 interface Comment {
   id: string;
@@ -182,6 +183,10 @@ export const CommentDialog = ({
   }>(null);
   const [hoveredItemId, setHoveredItemId] = useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showReportDialog, setShowReportDialog] = useState(false);
+  const [reportingCommentId, setReportingCommentId] = useState<string | null>(
+    null
+  );
 
   // Sync post like state when prop changes - ensure it's always in sync with API data per user
   useEffect(() => {
@@ -554,6 +559,9 @@ export const CommentDialog = ({
 
       // Don't close if Delete Confirm is open
       if (showDeleteConfirm) return;
+
+      // Don't close if Report Dialog is open
+      if (showReportDialog) return;
       
       if (
         dialogRef.current &&
@@ -586,6 +594,7 @@ export const CommentDialog = ({
     showActionMenu,
     showLikesDialog,
     showDeleteConfirm,
+    showReportDialog,
   ]);
 
   const handleSubmitComment = async (e: React.FormEvent) => {
@@ -861,7 +870,10 @@ export const CommentDialog = ({
   const handleCommentAction = (action: string) => {
     switch (action) {
       case "report":
-        // Handle report comment
+        if (currentCommentForAction && currentCommentForAction !== "post") {
+          setReportingCommentId(currentCommentForAction);
+          setShowReportDialog(true);
+        }
         handleCloseActionMenu();
         break;
       case "delete":
@@ -965,6 +977,18 @@ export const CommentDialog = ({
               <p className="text-sm leading-relaxed">{post.caption}</p>
             </div>
           </div>
+
+          {showReportDialog && reportingCommentId && (
+            <ReportPostDialog
+              isOpen={showReportDialog}
+              onClose={() => setShowReportDialog(false)}
+              postId={reportingCommentId}
+              onReport={(_, __, ___) => {
+                // TODO: call API
+              }}
+              title="Báo cáo bình luận"
+            />
+          )}
         </div>
 
           {/* Comments List */}
@@ -1900,6 +1924,18 @@ export const CommentDialog = ({
         targetType={showLikesDialog?.targetType === 'post' ? 'post' : undefined}
         targetId={showLikesDialog?.targetType === 'post' ? parseInt(showLikesDialog.targetId) : undefined}
       />
+
+      {showReportDialog && reportingCommentId && (
+        <ReportPostDialog
+          isOpen={showReportDialog}
+          onClose={() => setShowReportDialog(false)}
+          postId={reportingCommentId}
+          onReport={(_, __, ___) => {
+            // TODO: CALL API
+          }}
+          title="Báo cáo bình luận"
+        />
+      )}
 
       {/* Delete Confirmation Dialog - Style like ActionMenuDialog */}
       {showDeleteConfirm && (

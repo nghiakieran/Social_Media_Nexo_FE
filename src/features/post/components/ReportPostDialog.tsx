@@ -19,6 +19,7 @@ interface ReportPostDialogProps {
   onClose: () => void;
   postId: string;
   onReport: (postId: string, reason: string, details?: string) => void;
+  title?: string;
 }
 
 const reportReasons = [
@@ -69,6 +70,7 @@ export const ReportPostDialog = ({
   onClose,
   postId,
   onReport,
+  title,
 }: ReportPostDialogProps) => {
   const [selectedReason, setSelectedReason] = useState("");
   const [details, setDetails] = useState("");
@@ -127,7 +129,7 @@ export const ReportPostDialog = ({
         <DialogHeader className="p-6 pb-2">
           <DialogTitle className="flex items-center gap-2 text-destructive">
             <Flag className="w-5 h-5" />
-            Báo cáo bài viết
+            {title ?? "Báo cáo bài viết"}
           </DialogTitle>
         </DialogHeader>
 
