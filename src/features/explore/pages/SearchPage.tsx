@@ -28,6 +28,7 @@ import {
   setTrendingHashtags,
   searchUsersThunk,
 } from "../exploreSlice";
+import { getExploreHashtags } from "../api/exploreApi";
 
 export const SearchPage: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -50,31 +51,11 @@ export const SearchPage: React.FC = () => {
 
   // Initialize data
   useEffect(() => {
-    // Mock hashtags for trending section (replace with API call later)
-    const mockHashtags = [
-      {
-        id: "1",
-        name: "travel",
-        postsCount: 1200000,
-        isFollowing: false,
-        category: "trending" as const,
-      },
-      {
-        id: "2",
-        name: "food",
-        postsCount: 980000,
-        isFollowing: false,
-        category: "trending" as const,
-      },
-      {
-        id: "3",
-        name: "fashion",
-        postsCount: 750000,
-        isFollowing: false,
-        category: "trending" as const,
-      },
-    ];
-    dispatch(setTrendingHashtags(mockHashtags));
+    const fetchHashtags = async () => {
+      const data = await getExploreHashtags();
+      dispatch(setTrendingHashtags(data));
+    };
+    fetchHashtags();
   }, [dispatch]);
 
   // Auto search when debounced value changes
@@ -142,7 +123,8 @@ export const SearchPage: React.FC = () => {
       case "posts":
         return searchResults.posts.length;
       default:
-        return getTotalResults();
+        // return getTotalResults();
+        return searchResults.users.length;
     }
   };
 
@@ -236,21 +218,21 @@ export const SearchPage: React.FC = () => {
                   }
                 >
                   <TabsList className="grid w-full grid-cols-4">
-                    <TabsTrigger value="all" className="text-xs">
+                    {/* <TabsTrigger value="all" className="text-xs">
                       Tất cả ({getTotalResults()})
-                    </TabsTrigger>
+                    </TabsTrigger> */}
                     <TabsTrigger value="users" className="text-xs">
                       <Users className="h-3 w-3 mr-1" />
                       Người dùng ({getFilteredCount("users")})
                     </TabsTrigger>
-                    <TabsTrigger value="hashtags" className="text-xs">
+                    {/* <TabsTrigger value="hashtags" className="text-xs">
                       <Hash className="h-3 w-3 mr-1" />
                       Hashtag ({getFilteredCount("hashtags")})
                     </TabsTrigger>
                     <TabsTrigger value="posts" className="text-xs">
                       <Grid3X3 className="h-3 w-3 mr-1" />
                       Bài viết ({getFilteredCount("posts")})
-                    </TabsTrigger>
+                    </TabsTrigger> */}
                   </TabsList>
 
                   <TabsContent value={activeFilter} className="mt-6">
@@ -327,24 +309,23 @@ export const SearchPage: React.FC = () => {
                 </div>
               </div>
             )}
-
-            {/* Trending Hashtags */}
+            Trending Hashtags
             <TrendingSection
               hashtags={trendingHashtags}
               onHashtagClick={(hashtag) => {
-                const query = `#${hashtag.name}`;
-                setSearchValue(query);
-                dispatch(setSearchQuery(query));
-                handleSearch(query);
+                navigate(
+                  `/explore?hashtag=${encodeURIComponent(
+                    hashtag.name.replace(/^#/, "")
+                  )}`
+                );
               }}
               onFollowHashtag={(hashtagId) =>
                 dispatch(followHashtag(hashtagId))
               }
               onViewAll={() => console.log("View all trending")}
             />
-
             {/* Suggested Searches */}
-            <div className="space-y-4">
+            {/* <div className="space-y-4">
               <h3 className="text-lg font-semibold flex items-center">
                 <TrendingUp className="h-5 w-5 mr-2 text-muted-foreground" />
                 Tìm kiếm thịnh hành
@@ -365,8 +346,8 @@ export const SearchPage: React.FC = () => {
                     {search}
                   </Button>
                 ))}
-              </div>
-            </div>
+              </div> */}
+            {/* </div> */}
           </div>
         )}
       </div>

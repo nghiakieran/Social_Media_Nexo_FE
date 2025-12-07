@@ -4,6 +4,7 @@ import { getMediaType } from "@/utils/mediaUtils";
 export interface GetExploreRequest {
   pageNo?: number;
   pageSize?: number;
+  hashtag?: string;
 }
 
 export interface GetExploreResponse {

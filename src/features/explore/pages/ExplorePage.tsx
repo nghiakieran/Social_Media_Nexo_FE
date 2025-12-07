@@ -7,24 +7,25 @@ import { Compass, Sparkles, RefreshCw } from "lucide-react";
 import { getExplorePostsThunk, clearPosts, clearError } from "../exploreSlice";
 import { ExplorePost } from "../types";
 import { useNavigate } from "react-router-dom";
-
+import { useSearchParams } from "react-router-dom";
 export const ExplorePage: React.FC = () => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const { posts, isLoading, error, hasMore, currentPage } = useAppSelector(
     (state) => state.explore
   );
-
+  const [searchParams] = useSearchParams();
+  const hashtag = searchParams.get("hashtag") ?? null;
   // Load initial data
   useEffect(() => {
     dispatch(clearPosts());
     dispatch(clearError());
-    dispatch(getExplorePostsThunk({ pageNo: 0, pageSize: 10 }));
-  }, [dispatch]);
+    dispatch(getExplorePostsThunk({ pageNo: 0, pageSize: 10, hashtag }));
+  }, [dispatch, hashtag]);
 
   const handleRefresh = async () => {
     dispatch(clearPosts());
-    dispatch(getExplorePostsThunk({ pageNo: 0, pageSize: 10 }));
+    dispatch(getExplorePostsThunk({ pageNo: 0, pageSize: 10, hashtag }));
   };
 
   const handleLoadMore = () => {
@@ -56,10 +57,12 @@ export const ExplorePage: React.FC = () => {
                 <h1 className="text-2xl font-bold bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-transparent">
                   Explore
                 </h1>
-                <p className="text-sm text-muted-foreground">Discover amazing content</p>
+                <p className="text-sm text-muted-foreground">
+                  Discover amazing content
+                </p>
               </div>
             </div>
-            
+
             <Button
               variant="ghost"
               size="icon"
@@ -114,8 +117,12 @@ export const ExplorePage: React.FC = () => {
               <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-muted/50 flex items-center justify-center">
                 <Compass className="h-8 w-8 text-muted-foreground" />
               </div>
-              <h3 className="text-lg font-semibold text-foreground mb-2">No posts found</h3>
-              <p className="text-muted-foreground">Try refreshing to discover new content</p>
+              <h3 className="text-lg font-semibold text-foreground mb-2">
+                No posts found
+              </h3>
+              <p className="text-muted-foreground">
+                Try refreshing to discover new content
+              </p>
             </div>
           )}
         </div>

@@ -31,10 +31,11 @@ import {
   fetchInteractChartData,
   fetchReportChartData,
 } from "../api/dashBoardAPI";
+import { getExploreHashtags } from "@/features/explore/api/exploreApi";
 
 const mockChartData = MockChartData;
 
-const topHashtags = MockTopHashtags;
+const topHashtags1 = MockTopHashtags;
 
 export default function Dashboard() {
   const today = new Date();
@@ -48,6 +49,7 @@ export default function Dashboard() {
   const [postChart, setPostChart] = useState(null);
   const [interactChart, setInteractChart] = useState(null);
   const [reportChart, setReportChart] = useState(null);
+  const [topHashtags, setTopHashtags] = useState<any[]>([]);
 
   useEffect(() => {
     const loadData = async () => {
@@ -95,6 +97,9 @@ export default function Dashboard() {
     const loadCardData = async () => {
       const data = await fetchDashboardCardData();
       setDashboardDataCard(data.data);
+      const data2 = await getExploreHashtags();
+      console.log("Top Hashtags:", data2);
+      setTopHashtags(data2);
     };
     loadCardData();
   }, []);
@@ -284,19 +289,19 @@ export default function Dashboard() {
         <CardContent>
           <div className="space-y-4">
             {topHashtags.map((hashtag, index) => (
-              <div key={hashtag.tag} className="flex items-center gap-4">
+              <div key={hashtag.id} className="flex items-center gap-4">
                 <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white font-bold text-sm">
                   {index + 1}
                 </div>
                 <div className="flex-1">
-                  <p className="font-semibold">{hashtag.tag}</p>
+                  <p className="font-semibold">{hashtag.name}</p>
                   <p className="text-sm text-muted-foreground">
-                    {hashtag.count} lượt sử dụng
+                    {hashtag.usageCount} lượt sử dụng
                   </p>
                 </div>
-                <span className="text-sm font-medium text-success">
+                {/* <span className="text-sm font-medium text-success">
                   {hashtag.trend}
-                </span>
+                </span> */}
               </div>
             ))}
           </div>

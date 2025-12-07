@@ -82,9 +82,9 @@ export const SearchResultList: React.FC<SearchResultListProps> = ({
                       <p className="text-sm text-muted-foreground">
                         {user.name}
                       </p>
-                      <p className="text-xs text-muted-foreground">
+                      {/* <p className="text-xs text-muted-foreground">
                         {formatCount(user.followersCount)} người theo dõi
-                      </p>
+                      </p> */}
                     </div>
                   </div>
                   <Button

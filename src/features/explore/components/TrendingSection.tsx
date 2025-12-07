@@ -1,13 +1,13 @@
-import React from 'react';
-import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
-import { TrendingUp, Hash, ArrowRight, Sparkles } from 'lucide-react';
-import { Hashtag } from '../exploreSlice';
-import { HashtagChip } from './HashtagChip';
+import React from "react";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import { TrendingUp, Hash, ArrowRight, Sparkles } from "lucide-react";
+import { Hashtag } from "../exploreSlice";
+import { HashtagChip } from "./HashtagChip";
 
 interface TrendingSectionProps {
-  hashtags: Hashtag[];
-  onHashtagClick?: (hashtag: Hashtag) => void;
+  hashtags: any[];
+  onHashtagClick?: (hashtag: any) => void;
   onFollowHashtag?: (hashtagId: string) => void;
   onViewAll?: () => void;
   title?: string;
@@ -31,12 +31,11 @@ export const TrendingSection: React.FC<TrendingSectionProps> = ({
     return count.toString();
   };
 
-  const trendingHashtags = hashtags
-    .filter(h => h.category === 'trending')
-    .slice(0, 6);
+  console.log("TrendingSection hashtags:", hashtags);
+  const trendingHashtags = hashtags.slice(0, 6);
 
   return (
-    <div className={cn('space-y-4', className)}>
+    <div className={cn("space-y-4", className)}>
       {/* Section Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-2">
@@ -46,7 +45,7 @@ export const TrendingSection: React.FC<TrendingSectionProps> = ({
           <h2 className="text-xl font-bold">{title}</h2>
           <Sparkles className="h-5 w-5 text-primary" />
         </div>
-        
+
         {onViewAll && (
           <Button
             variant="ghost"
@@ -75,23 +74,23 @@ export const TrendingSection: React.FC<TrendingSectionProps> = ({
                   {index + 1}
                 </span>
               </div>
-              
+
               {/* Hashtag Info */}
               <div>
                 <div className="flex items-center space-x-1">
                   <Hash className="h-4 w-4 text-muted-foreground" />
                   <span className="font-semibold group-hover:text-primary transition-colors">
-                    {hashtag.name}
+                    {hashtag.name.replace(/^#/, "")}
                   </span>
                 </div>
                 <p className="text-sm text-muted-foreground">
-                  {formatCount(hashtag.postsCount)} posts
+                  {formatCount(hashtag.usageCount)} posts
                 </p>
               </div>
             </div>
 
             {/* Follow Button */}
-            <Button
+            {/* <Button
               variant={hashtag.isFollowing ? "secondary" : "outline"}
               size="sm"
               onClick={(e) => {
@@ -101,21 +100,25 @@ export const TrendingSection: React.FC<TrendingSectionProps> = ({
               className="opacity-0 group-hover:opacity-100 transition-opacity"
             >
               {hashtag.isFollowing ? 'Following' : 'Follow'}
-            </Button>
+            </Button> */}
           </div>
         ))}
       </div>
 
       {/* Quick Hashtag Chips */}
-      <div className="mt-6">
-        <h3 className="text-sm font-semibold text-muted-foreground mb-3">Popular categories</h3>
+      {/* <div className="mt-6">
+        <h3 className="text-sm font-semibold text-muted-foreground mb-3">
+          Popular categories
+        </h3>
         <div className="flex flex-wrap gap-2">
-          {['fashion', 'food', 'sports', 'entertainment'].map((category) => {
-            const categoryHashtags = hashtags.filter(h => h.category === category);
+          {["fashion", "food", "sports", "entertainment"].map((category) => {
+            const categoryHashtags = hashtags.filter(
+              (h) => h.category === category
+            );
             if (categoryHashtags.length === 0) return null;
-            
+
             const representativeHashtag = categoryHashtags[0];
-            
+
             return (
               <Button
                 key={category}
@@ -129,8 +132,8 @@ export const TrendingSection: React.FC<TrendingSectionProps> = ({
               </Button>
             );
           })}
-        </div>
-      </div>
+        </div> */}
+      {/* </div> */}
     </div>
   );
 };
