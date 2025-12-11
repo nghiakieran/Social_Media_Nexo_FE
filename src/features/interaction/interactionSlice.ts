@@ -1,155 +1,600 @@
-import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
+import {
+  createComment,
+  updateComment,
+  deleteComment,
+  getPostComments,
+  getReelComments,
+  getCommentReplies,
+} from "./api/commentApi";
+import {
+  likeComment,
+  likePost,
+  likeReel,
+  getPostLikeDetail,
+  getReelLikeDetail,
+  getCommentLikeDetail,
+} from "./api/likeApi";
+import { transformCommentData } from "./types";
+import type {
+  Comment,
+  CommentState,
+  LikeState,
+  CreateCommentRequest,
+  UpdateCommentRequest,
+  GetCommentsRequest,
+  CommentResponse,
+  LikeDetailApiResponse,
+} from "./types";
 
-interface Reaction {
-  id: string;
-  emoji: string;
-  userId: string;
-  userName: string;
-  createdAt: string;
-}
+// Comment State
+const initialCommentState: CommentState = {
+  comments: [],
+  isLoading: false,
+  isCreating: false,
+  isUpdating: false,
+  isDeleting: false,
+  error: null,
+  hasMore: true,
+  currentPage: 0,
+  totalPages: 0,
+};
 
-interface Comment {
-  id: string;
-  postId: string;
-  userId: string;
-  userName: string;
-  userAvatar: string;
-  content: string;
-  parentId?: string; // For nested replies
-  replies?: Comment[];
-  likesCount: number;
-  isLiked: boolean;
-  createdAt: string;
-  updatedAt: string;
-}
+// Like State
+const initialLikeState: LikeState = {
+  isLoading: false,
+  error: null,
+};
 
-interface Like {
-  id: string;
-  userId: string;
-  userName: string;
-  userAvatar: string;
-  targetId: string; // postId or commentId
-  targetType: 'post' | 'comment';
-  createdAt: string;
-}
-
-interface Share {
-  id: string;
-  userId: string;
-  postId: string;
-  shareType: 'feed' | 'story' | 'message' | 'link';
-  createdAt: string;
-}
-
-interface InteractionState {
-  comments: Comment[];
-  likes: Like[];
-  reactions: Reaction[];
-  shares: Share[];
-  isLoading: boolean;
-  error: string | null;
-  currentPostComments: Comment[];
-  commentsLoading: boolean;
+// Combined State
+export interface InteractionState {
+  comments: CommentState;
+  likes: LikeState;
 }
 
 const initialState: InteractionState = {
-  comments: [],
-  likes: [],
-  reactions: [],
-  shares: [],
-  isLoading: false,
-  error: null,
-  currentPostComments: [],
-  commentsLoading: false,
+  comments: initialCommentState,
+  likes: initialLikeState,
 };
 
+// Async Thunks for Comments
+export const createCommentThunk = createAsyncThunk(
+  "interaction/createComment",
+  async (commentData: CreateCommentRequest, { rejectWithValue }) => {
+    try {
+      const response = await createComment(commentData);
+      return response;
+    } catch (error: unknown) {
+      return rejectWithValue(
+        error instanceof Error
+          ? error.message
+          : "Có lỗi xảy ra khi tạo bình luận"
+      );
+    }
+  }
+);
+
+export const updateCommentThunk = createAsyncThunk(
+  "interaction/updateComment",
+  async (commentData: UpdateCommentRequest, { rejectWithValue }) => {
+    try {
+      const response = await updateComment(commentData);
+      return { commentId: commentData.id, response };
+    } catch (error: unknown) {
+      return rejectWithValue(
+        error instanceof Error
+          ? error.message
+          : "Có lỗi xảy ra khi cập nhật bình luận"
+      );
+    }
+  }
+);
+
+export const deleteCommentThunk = createAsyncThunk(
+  "interaction/deleteComment",
+  async (commentId: number, { rejectWithValue }) => {
+    try {
+      const response = await deleteComment(commentId);
+      return { commentId, response };
+    } catch (error: unknown) {
+      return rejectWithValue(
+        error instanceof Error
+          ? error.message
+          : "Có lỗi xảy ra khi xóa bình luận"
+      );
+    }
+  }
+);
+
+export const getPostCommentsThunk = createAsyncThunk(
+  "interaction/getPostComments",
+  async (
+    { postId, params }: { postId: number; params?: GetCommentsRequest },
+    { rejectWithValue }
+  ) => {
+    try {
+      const response = await getPostComments(postId, params);
+      return response.data;
+    } catch (error: unknown) {
+      return rejectWithValue(
+        error instanceof Error
+          ? error.message
+          : "Có lỗi xảy ra khi tải bình luận"
+      );
+    }
+  }
+);
+
+export const getReelCommentsThunk = createAsyncThunk(
+  "interaction/getReelComments",
+  async (
+    { reelId, params }: { reelId: number; params?: GetCommentsRequest },
+    { rejectWithValue }
+  ) => {
+    try {
+      const response = await getReelComments(reelId, params);
+      return response.data;
+    } catch (error: unknown) {
+      return rejectWithValue(
+        error instanceof Error
+          ? error.message
+          : "Có lỗi xảy ra khi tải bình luận"
+      );
+    }
+  }
+);
+
+export const getCommentRepliesThunk = createAsyncThunk(
+  "interaction/getCommentReplies",
+  async (
+    { commentId, params }: { commentId: number; params?: GetCommentsRequest },
+    { rejectWithValue }
+  ) => {
+    try {
+      const response = await getCommentReplies(commentId, params);
+      return { commentId, data: response.data };
+    } catch (error: unknown) {
+      return rejectWithValue(
+        error instanceof Error
+          ? error.message
+          : "Có lỗi xảy ra khi tải câu trả lời"
+      );
+    }
+  }
+);
+
+// Async Thunks for Likes
+export const likeCommentThunk = createAsyncThunk(
+  "interaction/likeComment",
+  async (commentId: number, { rejectWithValue }) => {
+    try {
+      const response = await likeComment(commentId);
+      return { commentId, response };
+    } catch (error: unknown) {
+      return rejectWithValue(
+        error instanceof Error
+          ? error.message
+          : "Có lỗi xảy ra khi thích bình luận"
+      );
+    }
+  }
+);
+
+export const likePostThunk = createAsyncThunk(
+  "interaction/likePost",
+  async (postId: number, { rejectWithValue }) => {
+    try {
+      const response = await likePost(postId);
+      return { postId, response };
+    } catch (error: unknown) {
+      return rejectWithValue(
+        error instanceof Error
+          ? error.message
+          : "Có lỗi xảy ra khi thích bài viết"
+      );
+    }
+  }
+);
+
+export const likeReelThunk = createAsyncThunk(
+  "interaction/likeReel",
+  async (reelId: number, { rejectWithValue }) => {
+    try {
+      const response = await likeReel(reelId);
+      return { reelId, response };
+    } catch (error: unknown) {
+      return rejectWithValue(
+        error instanceof Error ? error.message : "Có lỗi xảy ra khi thích reel"
+      );
+    }
+  }
+);
+
+export const getPostLikeDetailThunk = createAsyncThunk(
+  "interaction/getPostLikeDetail",
+  async (
+    {
+      postId,
+      params,
+    }: { postId: number; params?: { pageNo?: number; pageSize?: number } },
+    { rejectWithValue }
+  ) => {
+    try {
+      const response: LikeDetailApiResponse = await getPostLikeDetail(
+        postId,
+        params
+      );
+      return response.data;
+    } catch (error: unknown) {
+      return rejectWithValue(
+        error instanceof Error
+          ? error.message
+          : "Có lỗi xảy ra khi tải danh sách lượt thích"
+      );
+    }
+  }
+);
+
+export const getReelLikeDetailThunk = createAsyncThunk(
+  "interaction/getReelLikeDetail",
+  async (
+    {
+      reelId,
+      params,
+    }: { reelId: number; params?: { pageNo?: number; pageSize?: number } },
+    { rejectWithValue }
+  ) => {
+    try {
+      const response: LikeDetailApiResponse = await getReelLikeDetail(
+        reelId,
+        params
+      );
+      return response.data;
+    } catch (error: unknown) {
+      return rejectWithValue(
+        error instanceof Error
+          ? error.message
+          : "Có lỗi xảy ra khi tải danh sách lượt thích"
+      );
+    }
+  }
+);
+
+export const getCommentLikeDetailThunk = createAsyncThunk(
+  "interaction/getCommentLikeDetail",
+  async (
+    {
+      commentId,
+      params,
+    }: { commentId: number; params?: { pageNo?: number; pageSize?: number } },
+    { rejectWithValue }
+  ) => {
+    try {
+      const response: LikeDetailApiResponse = await getCommentLikeDetail(
+        commentId,
+        params
+      );
+      return response.data;
+    } catch (error: unknown) {
+      return rejectWithValue(
+        error instanceof Error
+          ? error.message
+          : "Có lỗi xảy ra khi tải danh sách lượt thích bình luận"
+      );
+    }
+  }
+);
+
 const interactionSlice = createSlice({
-  name: 'interaction',
+  name: "interaction",
   initialState,
   reducers: {
-    // Comments
-    fetchCommentsStart: (state, action: PayloadAction<string>) => {
-      state.commentsLoading = true;
-      state.error = null;
+    clearCommentError: (state) => {
+      state.comments.error = null;
     },
-    fetchCommentsSuccess: (state, action: PayloadAction<{ postId: string; comments: Comment[] }>) => {
-      state.currentPostComments = action.payload.comments;
-      state.commentsLoading = false;
+    clearLikeError: (state) => {
+      state.likes.error = null;
     },
-    fetchCommentsFailure: (state, action: PayloadAction<string>) => {
-      state.commentsLoading = false;
-      state.error = action.payload;
+    clearComments: (state) => {
+      state.comments.comments = [];
+      state.comments.currentPage = 0;
+      state.comments.totalPages = 0;
+      state.comments.hasMore = true;
     },
-    
-    addComment: (state, action: PayloadAction<Comment>) => {
-      state.currentPostComments.push(action.payload);
-      state.comments.push(action.payload);
+    updateCommentOptimistically: (
+      state,
+      action: PayloadAction<{ commentId: string; updates: Partial<Comment> }>
+    ) => {
+      const { commentId, updates } = action.payload;
+      const updateCommentInList = (comments: Comment[]): Comment[] => {
+        return comments.map((comment) => {
+          if (comment.id === commentId) {
+            return { ...comment, ...updates };
+          }
+          if (comment.replies && comment.replies.length > 0) {
+            return {
+              ...comment,
+              replies: updateCommentInList(comment.replies),
+            };
+          }
+          return comment;
+        });
+      };
+      state.comments.comments = updateCommentInList(state.comments.comments);
     },
-    
-    deleteComment: (state, action: PayloadAction<string>) => {
-      state.currentPostComments = state.currentPostComments.filter(c => c.id !== action.payload);
-      state.comments = state.comments.filter(c => c.id !== action.payload);
-    },
-    
-    toggleCommentLike: (state, action: PayloadAction<string>) => {
-      const comment = state.currentPostComments.find(c => c.id === action.payload);
-      if (comment) {
-        comment.isLiked = !comment.isLiked;
-        comment.likesCount += comment.isLiked ? 1 : -1;
-      }
-    },
-    
-    addReply: (state, action: PayloadAction<{ parentId: string; reply: Comment }>) => {
-      const parentComment = state.currentPostComments.find(c => c.id === action.payload.parentId);
-      if (parentComment) {
-        if (!parentComment.replies) parentComment.replies = [];
-        parentComment.replies.push(action.payload.reply);
-      }
-    },
-    
-    // Likes
-    addLike: (state, action: PayloadAction<Like>) => {
-      state.likes.push(action.payload);
-    },
-    
-    removeLike: (state, action: PayloadAction<string>) => {
-      state.likes = state.likes.filter(l => l.id !== action.payload);
-    },
-    
-    // Reactions
-    addReaction: (state, action: PayloadAction<Reaction>) => {
-      state.reactions.push(action.payload);
-    },
-    
-    removeReaction: (state, action: PayloadAction<string>) => {
-      state.reactions = state.reactions.filter(r => r.id !== action.payload);
-    },
-    
-    // Shares
-    addShare: (state, action: PayloadAction<Share>) => {
-      state.shares.push(action.payload);
-    },
-    
-    clearError: (state) => {
-      state.error = null;
-    },
+  },
+  extraReducers: (builder) => {
+    // Create Comment
+    builder
+      .addCase(createCommentThunk.pending, (state) => {
+        state.comments.isCreating = true;
+        state.comments.error = null;
+      })
+      .addCase(createCommentThunk.fulfilled, (state) => {
+        state.comments.isCreating = false;
+      })
+      .addCase(createCommentThunk.rejected, (state, action) => {
+        state.comments.isCreating = false;
+        state.comments.error = action.payload as string;
+      });
+
+    // Update Comment
+    builder
+      .addCase(updateCommentThunk.pending, (state) => {
+        state.comments.isUpdating = true;
+        state.comments.error = null;
+      })
+      .addCase(updateCommentThunk.fulfilled, (state) => {
+        state.comments.isUpdating = false;
+        // Comment will be refreshed when getComments is called
+      })
+      .addCase(updateCommentThunk.rejected, (state, action) => {
+        state.comments.isUpdating = false;
+        state.comments.error = action.payload as string;
+      });
+
+    // Delete Comment
+    builder
+      .addCase(deleteCommentThunk.pending, (state) => {
+        state.comments.isDeleting = true;
+        state.comments.error = null;
+      })
+      .addCase(deleteCommentThunk.fulfilled, (state, action) => {
+        state.comments.isDeleting = false;
+        const { commentId } = action.payload;
+        const removeCommentFromList = (comments: Comment[]): Comment[] => {
+          return comments
+            .filter((comment) => comment.id !== commentId.toString())
+            .map((comment) => {
+              if (comment.replies && comment.replies.length > 0) {
+                return {
+                  ...comment,
+                  replies: removeCommentFromList(comment.replies),
+                };
+              }
+              return comment;
+            });
+        };
+        state.comments.comments = removeCommentFromList(
+          state.comments.comments
+        );
+      })
+      .addCase(deleteCommentThunk.rejected, (state, action) => {
+        state.comments.isDeleting = false;
+        state.comments.error = action.payload as string;
+      });
+
+    // Get Post Comments
+    builder
+      .addCase(getPostCommentsThunk.pending, (state) => {
+        state.comments.isLoading = true;
+        state.comments.error = null;
+      })
+      .addCase(getPostCommentsThunk.fulfilled, (state, action) => {
+        state.comments.isLoading = false;
+        const { commentResponseList, totalPages, pageNo } = action.payload;
+        const transformedComments =
+          commentResponseList.map(transformCommentData);
+
+        if (pageNo === 0) {
+          // First page - replace all comments
+          state.comments.comments = transformedComments;
+        } else {
+          // Append new comments, avoid duplicates
+          const existingIds = new Set(state.comments.comments.map((c) => c.id));
+          const newComments = transformedComments.filter(
+            (c) => !existingIds.has(c.id)
+          );
+          state.comments.comments.push(...newComments);
+        }
+
+        state.comments.currentPage = pageNo;
+        state.comments.totalPages = totalPages;
+        state.comments.hasMore = !action.payload.last;
+      })
+      .addCase(getPostCommentsThunk.rejected, (state, action) => {
+        state.comments.isLoading = false;
+        state.comments.error = action.payload as string;
+      });
+
+    // Get Reel Comments
+    builder
+      .addCase(getReelCommentsThunk.pending, (state) => {
+        state.comments.isLoading = true;
+        state.comments.error = null;
+      })
+      .addCase(getReelCommentsThunk.fulfilled, (state, action) => {
+        state.comments.isLoading = false;
+        const { commentResponseList, totalPages, pageNo } = action.payload;
+        const transformedComments =
+          commentResponseList.map(transformCommentData);
+
+        if (pageNo === 0) {
+          // First page - replace all comments
+          state.comments.comments = transformedComments;
+        } else {
+          // Append new comments, avoid duplicates
+          const existingIds = new Set(state.comments.comments.map((c) => c.id));
+          const newComments = transformedComments.filter(
+            (c) => !existingIds.has(c.id)
+          );
+          state.comments.comments.push(...newComments);
+        }
+
+        state.comments.currentPage = pageNo;
+        state.comments.totalPages = totalPages;
+        state.comments.hasMore = !action.payload.last;
+      })
+      .addCase(getReelCommentsThunk.rejected, (state, action) => {
+        state.comments.isLoading = false;
+        state.comments.error = action.payload as string;
+      });
+
+    // Get Comment Replies
+    builder
+      .addCase(getCommentRepliesThunk.pending, (state) => {
+        state.comments.isLoading = true;
+        state.comments.error = null;
+      })
+      .addCase(getCommentRepliesThunk.fulfilled, (state, action) => {
+        state.comments.isLoading = false;
+        const { commentId, data } = action.payload;
+        const { commentResponseList, pageNo } = data;
+
+        // Transform replies - all replies have the same parentId (root comment)
+        // Don't use transformCommentData here because it creates nested structure from responseChildList
+        // Instead, transform flat - all replies are at the same level
+        const transformedReplies: Comment[] = commentResponseList.map(
+          (reply: CommentResponse) => ({
+            id: reply.id.toString(),
+            userId: reply.userId.toString(),
+            userName: reply.userName,
+            avatarUrl: reply.avatarUrl,
+            content: reply.content,
+            parentId: reply.parentId?.toString() || null,
+            likesCount: reply.quantityLike || 0,
+            replies: [], // All replies are flat, no nested structure
+            createdAt: reply.createdAt,
+            hasMoreReplies: reply.hasMoreReplies || false,
+            isLiked: reply.like || false,
+            isOwnComment: false,
+          })
+        );
+
+        // Find comment and update its replies (all replies at same level)
+        const updateCommentReplies = (comments: Comment[]): Comment[] => {
+          return comments.map((comment) => {
+            if (comment.id === commentId.toString()) {
+              if (pageNo === 0) {
+                // First page - replace replies
+                return { ...comment, replies: transformedReplies };
+              } else {
+                // Append new replies, avoid duplicates
+                const existingReplyIds = new Set(
+                  comment.replies.map((r) => r.id)
+                );
+                const newReplies = transformedReplies.filter(
+                  (r) => !existingReplyIds.has(r.id)
+                );
+                return {
+                  ...comment,
+                  replies: [...comment.replies, ...newReplies],
+                };
+              }
+            }
+            // Recursively update replies in nested comments
+            if (comment.replies && comment.replies.length > 0) {
+              return {
+                ...comment,
+                replies: updateCommentReplies(comment.replies),
+              };
+            }
+            return comment;
+          });
+        };
+
+        state.comments.comments = updateCommentReplies(state.comments.comments);
+      })
+      .addCase(getCommentRepliesThunk.rejected, (state, action) => {
+        state.comments.isLoading = false;
+        state.comments.error = action.payload as string;
+      });
+
+    // Like Comment
+    builder
+      .addCase(likeCommentThunk.pending, (state) => {
+        state.likes.isLoading = true;
+        state.likes.error = null;
+      })
+      .addCase(likeCommentThunk.fulfilled, (state, action) => {
+        state.likes.isLoading = false;
+        const { commentId } = action.payload;
+
+        // Update comment like status
+        const updateLikeInComment = (comments: Comment[]): Comment[] => {
+          return comments.map((comment) => {
+            if (comment.id === commentId.toString()) {
+              return {
+                ...comment,
+                isLiked: !comment.isLiked,
+                likesCount: comment.isLiked
+                  ? comment.likesCount - 1
+                  : comment.likesCount + 1,
+              };
+            }
+            if (comment.replies && comment.replies.length > 0) {
+              return {
+                ...comment,
+                replies: updateLikeInComment(comment.replies),
+              };
+            }
+            return comment;
+          });
+        };
+        state.comments.comments = updateLikeInComment(state.comments.comments);
+      })
+      .addCase(likeCommentThunk.rejected, (state, action) => {
+        state.likes.isLoading = false;
+        state.likes.error = action.payload as string;
+      });
+
+    // Like Post
+    builder
+      .addCase(likePostThunk.pending, (state) => {
+        state.likes.isLoading = true;
+        state.likes.error = null;
+      })
+      .addCase(likePostThunk.fulfilled, (state) => {
+        state.likes.isLoading = false;
+        // Post like status will be handled by post slice
+      })
+      .addCase(likePostThunk.rejected, (state, action) => {
+        state.likes.isLoading = false;
+        state.likes.error = action.payload as string;
+      });
+
+    // Like Reel
+    builder
+      .addCase(likeReelThunk.pending, (state) => {
+        state.likes.isLoading = true;
+        state.likes.error = null;
+      })
+      .addCase(likeReelThunk.fulfilled, (state) => {
+        state.likes.isLoading = false;
+        // Reel like status will be handled by reel slice
+      })
+      .addCase(likeReelThunk.rejected, (state, action) => {
+        state.likes.isLoading = false;
+        state.likes.error = action.payload as string;
+      });
   },
 });
 
 export const {
-  fetchCommentsStart,
-  fetchCommentsSuccess,
-  fetchCommentsFailure,
-  addComment,
-  deleteComment,
-  toggleCommentLike,
-  addReply,
-  addLike,
-  removeLike,
-  addReaction,
-  removeReaction,
-  addShare,
-  clearError,
+  clearCommentError,
+  clearLikeError,
+  clearComments,
+  updateCommentOptimistically,
 } = interactionSlice.actions;
 
 export default interactionSlice.reducer;

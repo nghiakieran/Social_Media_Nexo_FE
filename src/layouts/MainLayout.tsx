@@ -1,82 +1,120 @@
-import { Outlet, useLocation } from 'react-router-dom';
-import { Header } from '@/components/common/Header';
-import { Sidebar } from '@/components/common/Sidebar';
-import { FloatingMessageTab } from '@/features/message/components/FloatingMessageTab';
-import { FloatingChatWindow } from '@/features/message/components/FloatingChatWindow';
-import { useAppDispatch, useAppSelector } from '@/store';
+import React from "react";
+import { Outlet, useLocation } from "react-router-dom";
+import { Sidebar } from "@/components/common/Sidebar";
+import { FloatingMessageTab } from "@/features/message/components/FloatingMessageTab";
+import { FloatingChatWindow } from "@/features/message/components/FloatingChatWindow";
+import { useAppDispatch, useAppSelector } from "@/store";
 import {
-  closeFloatingChat,
-  minimizeFloatingChat,
-  restoreFloatingChat,
-  addMessage,
-  addReaction,
-  removeReaction,
-  Message,
-} from '@/features/message/messageSlice';
+  closeFloatingConversation,
+  minimizeFloatingConversation,
+  restoreFloatingConversation,
+  fetchMessages,
+} from "@/features/message/messageSlice";
+import { Suggestions } from "@/components/common/Suggestions";
 
 export const MainLayout = () => {
   const location = useLocation();
   const dispatch = useAppDispatch();
-  const { 
-    chats, 
-    messages, 
-    floatingChats, 
-    minimizedChats 
+  const isHome = location.pathname === "/";
+  const isMessagesPage = location.pathname.includes("/messages");
+  const {
+    conversations,
+    messages,
+    floatingConversations,
+    minimizedConversations,
   } = useAppSelector((state) => state.message);
 
-  const handleFloatingSendMessage = (chatId: string) => (content: string, type: 'text' | 'image' | 'file' | 'voice') => {
-    const newMessage: Message = {
-      id: `msg-${Date.now()}`,
-      chatId,
-      senderId: 'currentUser',
-      content,
-      type,
-      timestamp: new Date(),
-      isRead: false,
-    };
+  const [showMessageTab, setShowMessageTab] = React.useState(false);
 
-    dispatch(addMessage(newMessage));
-  };
+  // Load messages when floating chat opens
+  React.useEffect(() => {
+    floatingConversations.forEach((conversationId) => {
+      const conversation = conversations.find((c) => c.id === conversationId);
+      if (conversation && !messages[conversationId]) {
+        // Load initial messages if not already loaded
+        dispatch(
+          fetchMessages({
+            conversationId,
+            page: 0,
+            size: 20,
+          })
+        );
+      }
+    });
+    // Reset showMessageTab when a floating chat opens
+    if (floatingConversations.length > 0) {
+      setShowMessageTab(false);
+    }
+  }, [floatingConversations, conversations, messages, dispatch]);
 
   return (
     <div className="min-h-screen bg-background">
-      <Header />
       <div className="flex">
         <Sidebar />
-        <main className="flex-1 min-h-[calc(100vh-64px)]">
-          <Outlet />
-        </main>
+        {isMessagesPage ? (
+          <main className="flex-1 min-h-screen">
+            <Outlet />
+          </main>
+        ) : (
+          <main className="flex-1 flex justify-center min-h-screen pt-16 pb-16 lg:pt-0 lg:pb-0">
+            <div
+              className={
+                isHome
+                  ? "w-full max-w-lg xl:max-w-xl 2xl:max-w-2xl"
+                  : "w-full max-w-[935px]"
+              }
+            >
+              <Outlet />
+            </div>
+            {isHome && (
+              <div className="hidden xl:block xl:w-80 2xl:w-96">
+                <div className="sticky top-4 pt-8">
+                  <Suggestions />
+                </div>
+              </div>
+            )}
+          </main>
+        )}
       </div>
 
-      {/* Floating Message Tab - Only show on non-message pages */}
-      {!location.pathname.includes('/messages') && (
-        <FloatingMessageTab />
+      {/* Floating Message Tab - Only show on desktop and non-message pages, hide when floating chats are open */}
+      {!location.pathname.includes("/messages") && floatingConversations.length === 0 && (
+        <div className="hidden lg:block">
+          <FloatingMessageTab defaultOpen={showMessageTab} />
+        </div>
       )}
 
-      {/* Floating Chat Windows */}
-      {floatingChats.map((chatId, index) => {
-        const floatingChat = chats.find(c => c.id === chatId);
-        const floatingMessages = messages[chatId] || [];
-        
+      {/* Floating Chat Windows - Hide on messages page */}
+      {!isMessagesPage && floatingConversations.map((conversationId, index) => {
+        const floatingChat = conversations.find((c) => c.id === conversationId);
+        const rawMessages = messages[conversationId] || [];
+        // Sort messages by createdAt ascending (oldest first, newest last)
+        const floatingMessages = [...rawMessages].sort(
+          (a, b) =>
+            new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+        );
+
         if (!floatingChat) return null;
 
         return (
           <FloatingChatWindow
-            key={chatId}
+            key={conversationId}
             chat={floatingChat}
             messages={floatingMessages}
-            isMinimized={minimizedChats.includes(chatId)}
+            isMinimized={minimizedConversations.includes(conversationId)}
             position={index}
-            onClose={() => dispatch(closeFloatingChat(chatId))}
-            onMinimize={() => dispatch(minimizeFloatingChat(chatId))}
-            onRestore={() => dispatch(restoreFloatingChat(chatId))}
-            onSendMessage={handleFloatingSendMessage(chatId)}
-            onAddReaction={(messageId, emoji) => 
-              dispatch(addReaction({ messageId, chatId, userId: 'currentUser', emoji }))
+            onClose={() => dispatch(closeFloatingConversation(conversationId))}
+            onMinimize={() =>
+              dispatch(minimizeFloatingConversation(conversationId))
             }
-            onRemoveReaction={(messageId) =>
-              dispatch(removeReaction({ messageId, chatId, userId: 'currentUser' }))
+            onRestore={() =>
+              dispatch(restoreFloatingConversation(conversationId))
             }
+            onBack={() => {
+              // Close floating chat and show FloatingMessageTab list view
+              dispatch(closeFloatingConversation(conversationId));
+              setShowMessageTab(true);
+            }}
           />
         );
       })}

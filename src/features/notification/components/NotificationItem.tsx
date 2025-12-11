@@ -1,119 +1,147 @@
-import React from 'react';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Heart, MessageCircle, UserPlus, Hash, Bell } from 'lucide-react';
-import { Notification } from '../notificationSlice';
-import { formatDistanceToNow } from 'date-fns';
-import { vi } from 'date-fns/locale';
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Card, CardContent } from "@/components/ui/card";
+import { navigateToPost, navigateToPost2, navigateToProfile } from "@/utils/navigation";
+import { getAvatarUrl, getAvatarInitials } from "@/utils/avatar";
+import {
+  Bell,
+  Hash,
+  Heart,
+  MessageCircle,
+  ThumbsUp,
+  UserPlus,
+} from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { NotificationDTO } from "../types";
+import { formatTimeAgo } from "@/utils/timeFormat";
+import { readNotificationGroupThunk, readNotificationThunk } from "../notificationSlice";
+import { useAppDispatch } from "@/store";
 
 interface NotificationItemProps {
-  notification: Notification;
-  onMarkAsRead: (id: string) => void;
-  onClick?: () => void;
+  notification: NotificationDTO;
+  onMarkAsRead: (id: string | number) => void;
 }
 
-const NotificationItem: React.FC<NotificationItemProps> = ({ 
-  notification, 
-  onMarkAsRead, 
-  onClick 
-}) => {
+export const NotificationItem = ({
+  notification,
+  onMarkAsRead,
+}: NotificationItemProps) => {
+  const navigate = useNavigate();
+  const dispatch = useAppDispatch();
+  const user = notification.userList[0];
+
+
   const getNotificationIcon = () => {
-    const iconClass = "w-4 h-4";
-    switch (notification.type) {
-      case 'like':
-        return <Heart className={`${iconClass} text-destructive fill-destructive`} />;
-      case 'comment':
-        return <MessageCircle className={`${iconClass} text-primary`} />;
-      case 'follow':
-        return <UserPlus className={`${iconClass} text-secondary`} />;
-      case 'hashtag':
-        return <Hash className={`${iconClass} text-accent`} />;
-      case 'system':
-        return <Bell className={`${iconClass} text-muted-foreground`} />;
+    switch (notification.notificationType) {
+      case "LIKE_POST":
+      case "LIKE_STORY":
+      case "LIKE_COMMENT":
+      case "LIKE_REEL":
+        return <Heart className="w-4 h-4 text-red-500" />;
+      case "COMMENT_POST":
+      case "COMMENT_REEL":
+      case "COMMENT_MENTION":
+        return <MessageCircle className="w-4 h-4 text-blue-500" />;
+      case "FOLLOW":
+        return <UserPlus className="w-4 h-4 text-purple-500" />;
+      case "TAG":
+        return <Hash className="w-4 h-4 text-green-500" />;
+      case "MESSAGE":
+      case "SYSTEM":
       default:
-        return <Bell className={`${iconClass} text-muted-foreground`} />;
+        return <Bell className="w-4 h-4 text-orange-500" />;
     }
   };
 
-  const handleClick = () => {
-    if (!notification.isRead) {
-      onMarkAsRead(notification.id);
+  const handleClick = async () => {
+    try {
+      if (!notification.isRead) {
+        if (notification.userList && notification.userList.length > 1) {
+          await dispatch(
+            readNotificationGroupThunk({
+              targetUrl: notification.targetUrl || "",
+              notificationType: notification.notificationType,
+            })
+          ).unwrap();
+        } else {
+          await dispatch(readNotificationThunk(Number(notification.id))).unwrap();
+        }
+      }
+
+      if (notification.targetUrl) {
+        navigateToPost2(navigate, notification.targetUrl);
+      }
+    } catch (error) {
+      console.error("Đánh dấu thông báo lỗi:", error);
     }
-    onClick?.();
   };
 
-  const timeAgo = formatDistanceToNow(new Date(notification.timestamp), {
-    addSuffix: true,
-    locale: vi,
-  });
+  const handleProfileClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (user) {
+      navigateToProfile(navigate, user.userName);
+    }
+  };
 
   return (
-    <div 
-      className={`
-        flex items-start space-x-3 p-4 border-b border-border last:border-b-0 
-        cursor-pointer transition-all duration-200 hover:bg-muted/50 
-        animate-slide-in-right
-        ${!notification.isRead ? 'bg-primary/5' : ''}
-      `}
+    <Card
+      className={`cursor-pointer transition-all hover:shadow-md ${notification.isRead
+        ? "bg-card/50"
+        : "bg-primary/5 border-primary/20 shadow-sm"
+        }`}
       onClick={handleClick}
     >
-      <div className="relative">
-        <Avatar className="w-12 h-12 ring-2 ring-primary/10 transition-all duration-200 hover:ring-primary/30">
-          <AvatarImage 
-            src={notification.userAvatar} 
-            alt={notification.userName} 
-          />
-          <AvatarFallback>
-            {notification.userName.charAt(0).toUpperCase()}
-          </AvatarFallback>
-        </Avatar>
-        
-        {/* Notification type icon */}
-        <div className="absolute -bottom-1 -right-1 bg-background rounded-full p-1 border border-border">
-          {getNotificationIcon()}
-        </div>
-      </div>
+      <CardContent className="p-4">
+        <div className="flex items-start gap-3">
+          {/* Icon */}
+          <div className="flex-shrink-0 mt-1">{getNotificationIcon()}</div>
 
-      <div className="flex-1 min-w-0 space-y-1">
-        <div className="flex items-start justify-between">
-          <div className="space-y-1">
-            <p className="text-sm">
-              <span className="font-semibold text-foreground hover:underline">
-                {notification.userName}
-              </span>
-              <span className="text-muted-foreground ml-1">
-                {notification.content}
-              </span>
-            </p>
-            <p className="text-xs text-muted-foreground">
-              {timeAgo}
-            </p>
-          </div>
-          
-          {!notification.isRead && (
-            <Badge 
-              variant="destructive" 
-              className="w-2 h-2 p-0 rounded-full ml-2 animate-pulse"
-            />
-          )}
-        </div>
+          {/* Avatar */}
+          <Avatar
+            className="w-10 h-10 flex-shrink-0 cursor-pointer hover:ring-2 hover:ring-primary/20 transition-all"
+            onClick={handleProfileClick}
+          >
+            {user?.avatarUrl ? (
+              <AvatarImage src={getAvatarUrl(user.avatarUrl)} alt={user.userName} />
+            ) : (
+              <AvatarFallback>{getAvatarInitials(user?.userName || "U")}</AvatarFallback>
+            )}
+          </Avatar>
 
-        {/* Action buttons for certain notification types */}
-        {notification.type === 'follow' && (
-          <div className="pt-2">
-            <Button 
-              size="sm" 
-              variant="outline"
-              className="text-xs transition-all duration-200 hover:scale-[1.02]"
-            >
-              Theo dõi lại
-            </Button>
+          {/* Content */}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-start justify-between">
+              <div className="flex-1 min-w-0">
+                <p className="text-sm text-foreground">
+                  {notification.userList.length > 0 && (
+                    <span
+                      className="font-semibold hover:text-primary cursor-pointer"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigateToProfile(navigate, notification.userList[0].userName);
+                      }}
+                    >
+                      {notification.userList[0].userName}
+                    </span>
+                  )}
+                  {notification.userList.length > 1
+                    ? ``
+                    : " "}
+                  <span>
+                    {notification.message.replace(notification.userList[0].userName, "")}
+                  </span>
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {formatTimeAgo(new Date(notification.createdAt).toISOString())}
+                </p>
+              </div>
+
+              {!notification.isRead && (
+                <div className="w-2 h-2 bg-primary rounded-full flex-shrink-0 mt-2" />
+              )}
+            </div>
           </div>
-        )}
-      </div>
-    </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 };
-
-export default NotificationItem;

@@ -140,7 +140,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
               )}
 
               {/* Trending Searches */}
-              {trendingSearches.length > 0 && (
+              {/* {trendingSearches.length > 0 && (
                 <div className="p-3">
                   <h4 className="text-sm font-semibold mb-2 text-muted-foreground">Trending</h4>
                   {trendingSearches.slice(0, 5).map((search, index) => (
@@ -153,8 +153,8 @@ export const SearchBar: React.FC<SearchBarProps> = ({
                       <span className="text-sm">{search}</span>
                     </div>
                   ))}
-                </div>
-              )}
+                </div> */}
+              {/* )} */}
             </>
           )}
 

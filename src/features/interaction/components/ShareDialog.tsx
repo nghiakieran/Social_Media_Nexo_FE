@@ -1,29 +1,36 @@
-import { useState } from 'react';
-import { Share, Copy, MessageCircle, Instagram, Facebook, Twitter } from 'lucide-react';
+import { useState } from "react";
+import {
+  Share,
+  Copy,
+  MessageCircle,
+  Instagram,
+  Facebook,
+  Twitter,
+} from "lucide-react";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { useToast } from '@/hooks/use-toast';
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { useToast } from "@/hooks/use-toast";
 
 interface ShareDialogProps {
   isOpen: boolean;
   onClose: () => void;
   postId: string;
   postUrl: string;
-  onShare: (type: 'feed' | 'story' | 'message' | 'link') => void;
+  onShare: (type: "feed" | "story" | "message" | "link") => void;
 }
 
-export const ShareDialog = ({ 
-  isOpen, 
-  onClose, 
-  postId, 
-  postUrl, 
-  onShare 
+export const ShareDialog = ({
+  isOpen,
+  onClose,
+  postId,
+  postUrl,
+  onShare,
 }: ShareDialogProps) => {
   const [copied, setCopied] = useState(false);
   const { toast } = useToast();
@@ -33,7 +40,7 @@ export const ShareDialog = ({
       await navigator.clipboard.writeText(postUrl);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-      
+
       toast({
         title: "Đã sao chép!",
         description: "Link bài viết đã được sao chép vào clipboard.",
@@ -47,62 +54,66 @@ export const ShareDialog = ({
     }
   };
 
-  const handleShare = (type: 'feed' | 'story' | 'message' | 'link') => {
+  const handleShare = (type: "feed" | "story" | "message" | "link") => {
     onShare(type);
-    
+
     const messages = {
-      feed: 'Đã chia sẻ lên feed!',
-      story: 'Đã chia sẻ lên story!',
-      message: 'Đã gửi tin nhắn!',
-      link: 'Đã sao chép link!',
+      feed: "Đã chia sẻ lên feed!",
+      story: "Đã chia sẻ lên story!",
+      message: "Đã gửi tin nhắn!",
+      link: "Đã sao chép link!",
     };
-    
+
     toast({
       title: messages[type],
       duration: 2000,
     });
-    
+
     onClose();
   };
 
   const shareOptions = [
     {
-      id: 'feed',
-      label: 'Chia sẻ lên Feed',
-      description: 'Đăng lại bài viết này lên trang cá nhân',
+      id: "feed",
+      label: "Chia sẻ lên Feed",
+      description: "Đăng lại bài viết này lên trang cá nhân",
       icon: Instagram,
-      color: 'text-primary',
+      color: "text-primary",
     },
     {
-      id: 'story',
-      label: 'Chia sẻ lên Story',
-      description: 'Thêm vào story của bạn',
+      id: "story",
+      label: "Chia sẻ lên Story",
+      description: "Thêm vào story của bạn",
       icon: MessageCircle,
-      color: 'text-purple-500',
+      color: "text-purple-500",
     },
     {
-      id: 'message',
-      label: 'Gửi tin nhắn',
-      description: 'Chia sẻ qua tin nhắn riêng tư',
+      id: "message",
+      label: "Gửi tin nhắn",
+      description: "Chia sẻ qua tin nhắn riêng tư",
       icon: MessageCircle,
-      color: 'text-blue-500',
+      color: "text-blue-500",
     },
   ];
 
   const externalPlatforms = [
     {
-      id: 'facebook',
-      label: 'Facebook',
+      id: "facebook",
+      label: "Facebook",
       icon: Facebook,
-      color: 'text-blue-600',
-      url: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(postUrl)}`,
+      color: "text-blue-600",
+      url: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(
+        postUrl
+      )}`,
     },
     {
-      id: 'twitter',
-      label: 'Twitter',
+      id: "twitter",
+      label: "Twitter",
       icon: Twitter,
-      color: 'text-sky-500',
-      url: `https://twitter.com/intent/tweet?url=${encodeURIComponent(postUrl)}`,
+      color: "text-sky-500",
+      url: `https://twitter.com/intent/tweet?url=${encodeURIComponent(
+        postUrl
+      )}`,
     },
   ];
 
@@ -124,6 +135,7 @@ export const ShareDialog = ({
               {shareOptions.map((option) => (
                 <button
                   key={option.id}
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
                   onClick={() => handleShare(option.id as any)}
                   className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors text-left"
                 >
@@ -132,7 +144,9 @@ export const ShareDialog = ({
                   </div>
                   <div>
                     <p className="font-medium text-sm">{option.label}</p>
-                    <p className="text-xs text-muted-foreground">{option.description}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {option.description}
+                    </p>
                   </div>
                 </button>
               ))}
@@ -143,11 +157,7 @@ export const ShareDialog = ({
           <div>
             <h4 className="font-medium text-sm mb-3">Sao chép link</h4>
             <div className="flex gap-2">
-              <Input
-                value={postUrl}
-                readOnly
-                className="flex-1 text-sm"
-              />
+              <Input value={postUrl} readOnly className="flex-1 text-sm" />
               <Button
                 onClick={handleCopyLink}
                 variant={copied ? "default" : "outline"}
@@ -155,7 +165,7 @@ export const ShareDialog = ({
                 className="gap-2"
               >
                 <Copy className="w-4 h-4" />
-                {copied ? 'Đã sao chép' : 'Sao chép'}
+                {copied ? "Đã sao chép" : "Sao chép"}
               </Button>
             </div>
           </div>
@@ -171,8 +181,8 @@ export const ShareDialog = ({
                   size="sm"
                   className="gap-2"
                   onClick={() => {
-                    window.open(platform.url, '_blank', 'width=600,height=400');
-                    handleShare('link');
+                    window.open(platform.url, "_blank", "width=600,height=400");
+                    handleShare("link");
                   }}
                 >
                   <platform.icon className={`w-4 h-4 ${platform.color}`} />

@@ -1,20 +1,40 @@
-import React from 'react';
-import { Button } from '@/components/ui/button';
+import React, { useState } from "react";
+import { Button } from "@/components/ui/button";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from '@/components/ui/popover';
-import { cn } from '@/lib/utils';
+} from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
+import { EReactionType } from "../types";
+import { useAppSelector } from "@/store";
 
 interface ReactionMessageProps {
   messageId: string;
   reactions?: { [userId: string]: string };
-  onAddReaction: (emoji: string) => void;
-  onRemoveReaction: () => void;
+  onAddReaction: (reactionType: string) => void;
+  onRemoveReaction: (reactionType: string) => void;
   className?: string;
   trigger?: React.ReactNode;
 }
+
+const REACTION_EMOJI_MAP: Record<EReactionType, string> = {
+  [EReactionType.LIKE]: "👍",
+  [EReactionType.LOVE]: "❤️",
+  [EReactionType.HAHA]: "😂",
+  [EReactionType.WOW]: "😮",
+  [EReactionType.SAD]: "😢",
+  [EReactionType.ANGRY]: "😡",
+};
+
+const REACTION_TYPES = [
+  EReactionType.LIKE,
+  EReactionType.LOVE,
+  EReactionType.HAHA,
+  EReactionType.WOW,
+  EReactionType.SAD,
+  EReactionType.ANGRY,
+];
 
 export const ReactionMessage: React.FC<ReactionMessageProps> = ({
   messageId,
@@ -24,84 +44,55 @@ export const ReactionMessage: React.FC<ReactionMessageProps> = ({
   className,
   trigger,
 }) => {
-  const reactionEmojis = ['❤️', '😂', '😮', '😢', '😡', '👍', '👎', '🔥', '💯', '🎉'];
-  const currentUserReaction = reactions['currentUser'];
-  
-  // Group reactions by emoji
-  const groupedReactions = Object.values(reactions).reduce((acc, emoji) => {
-    acc[emoji] = (acc[emoji] || 0) + 1;
-    return acc;
-  }, {} as { [emoji: string]: number });
-
-  const hasReactions = Object.keys(groupedReactions).length > 0;
+  const { user } = useAppSelector((state) => state.auth);
+  // Find current user's reaction
+  const currentUserReaction = user?.id
+    ? reactions[user.id.toString()]
+    : reactions["currentUser"];
+  const [open, setOpen] = useState(false);
 
   return (
-    <div className={cn('relative', className)}>
-      {/* Reaction picker */}
-      <Popover>
-        <PopoverTrigger asChild>
-          {trigger || (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-            >
-              <span className="text-sm">😊</span>
-            </Button>
-          )}
-        </PopoverTrigger>
-        <PopoverContent className="w-80 p-2">
-          <div className="grid grid-cols-5 gap-1">
-            {reactionEmojis.map((emoji) => (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        {trigger || (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+          >
+            <span className="text-sm">😊</span>
+          </Button>
+        )}
+      </PopoverTrigger>
+      <PopoverContent className="w-auto p-2">
+        <div className="flex gap-1">
+          {REACTION_TYPES.map((reactionType) => {
+            const emoji = REACTION_EMOJI_MAP[reactionType];
+            return (
               <Button
-                key={emoji}
+                key={reactionType}
                 variant="ghost"
                 size="sm"
                 className={cn(
-                  'h-10 w-10 p-0 hover:bg-muted',
-                  currentUserReaction === emoji && 'bg-muted'
+                  "h-10 w-10 p-0 hover:bg-muted transition-all",
+                  currentUserReaction === reactionType && 
+                    "bg-primary/10 border-2 border-primary scale-110"
                 )}
                 onClick={() => {
-                  if (currentUserReaction === emoji) {
-                    onRemoveReaction();
+                  if (currentUserReaction === reactionType) {
+                    onRemoveReaction(reactionType);
                   } else {
-                    onAddReaction(emoji);
+                    onAddReaction(reactionType);
                   }
+                  setOpen(false);
                 }}
               >
                 <span className="text-lg">{emoji}</span>
               </Button>
-            ))}
-          </div>
-        </PopoverContent>
-      </Popover>
-
-      {/* Display reactions */}
-      {hasReactions && (
-        <div className="flex flex-wrap gap-1 mt-1">
-          {Object.entries(groupedReactions).map(([emoji, count]) => (
-            <Button
-              key={emoji}
-              variant="outline"
-              size="sm"
-              className={cn(
-                'h-6 px-2 text-xs rounded-full',
-                currentUserReaction === emoji && 'bg-primary/10 border-primary'
-              )}
-              onClick={() => {
-                if (currentUserReaction === emoji) {
-                  onRemoveReaction();
-                } else {
-                  onAddReaction(emoji);
-                }
-              }}
-            >
-              <span>{emoji}</span>
-              {count > 1 && <span className="ml-1">{count}</span>}
-            </Button>
-          ))}
+            );
+          })}
         </div>
-      )}
-    </div>
+      </PopoverContent>
+    </Popover>
   );
 };

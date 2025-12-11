@@ -3,12 +3,12 @@ export const mockPosts = [
     id: '1',
     userId: '1',
     userName: 'Nguyễn Văn A',
-    userAvatar: 'https://picsum.photos/40/40?random=101',
-    content: 'Beautiful sunset from my balcony! 🌅 #sunset #photography #evening',
+    avatarUrl: 'https://picsum.photos/40/40?random=101',
+    caption: 'Beautiful sunset from my balcony! 🌅 #sunset #photography #evening',
     media: [
       {
         id: 'm1',
-        type: 'image' as const,
+      type: 'image' as const,
         url: 'https://picsum.photos/600/600?random=1',
         alt: 'Sunset view',
       },
@@ -16,7 +16,6 @@ export const mockPosts = [
     privacy: 'public' as const,
     taggedUsers: ['user2', 'user3'],
     hashtags: ['sunset', 'photography', 'evening'],
-    location: 'Ho Chi Minh City, Vietnam',
     createdAt: '2024-01-15T18:30:00Z',
     updatedAt: '2024-01-15T18:30:00Z',
     likesCount: 124,
@@ -31,8 +30,8 @@ export const mockPosts = [
     id: '6',
     userId: '6',
     userName: 'Demo Violation',
-    userAvatar: 'https://picsum.photos/40/40?random=106',
-    content: 'This is spam content with EXCESSIVE CAPS!!! Click here for fake news and scam offers!!!!!',
+    avatarUrl: 'https://picsum.photos/40/40?random=106',
+    caption: 'This is spam content with EXCESSIVE CAPS!!! Click here for fake news and scam offers!!!!!',
     media: [
       {
         id: 'm6',
@@ -44,7 +43,6 @@ export const mockPosts = [
     privacy: 'public' as const,
     taggedUsers: [],
     hashtags: ['fake', 'spam'],
-    location: 'Unknown Location',
     createdAt: '2024-01-10T10:00:00Z',
     updatedAt: '2024-01-10T10:00:00Z',
     likesCount: 2,
@@ -60,8 +58,8 @@ export const mockPosts = [
     id: '2',
     userId: '2',
     userName: 'Trần Thị B',
-    userAvatar: 'https://picsum.photos/40/40?random=102',
-    content: 'Coffee time ☕ Perfect start to the weekend!',
+    avatarUrl: 'https://picsum.photos/40/40?random=102',
+    caption: 'Coffee time ☕ Perfect start to the weekend!',
     media: [
       {
         id: 'm2',
@@ -93,8 +91,8 @@ export const mockPosts = [
     id: '3',
     userId: '3',
     userName: 'Lê Văn C',
-    userAvatar: 'https://picsum.photos/40/40?random=103',
-    content: 'This content might violate community guidelines...',
+    avatarUrl: 'https://picsum.photos/40/40?random=103',
+    caption: 'This content might violate community guidelines...',
     media: [
       {
         id: 'm4',

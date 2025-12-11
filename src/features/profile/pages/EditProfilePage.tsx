@@ -2,18 +2,29 @@ import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { EditProfileForm } from '../components/EditProfileForm';
 import { useNavigate } from 'react-router-dom';
+import { useAppSelector } from '@/store';
+import type { UserProfile } from '../types';
 
 export const EditProfilePage = () => {
   const navigate = useNavigate();
+  const currentUser = useAppSelector((state) => state.auth.user);
 
-  const handleSave = (data: any) => {
-    // In a real app, this would save to backend
-    console.log('Saving profile data:', data);
-    navigate('/nghialc81');
+  const handleSave = (data: UserProfile) => {
+    // Navigate về profile của user hiện tại
+    if (currentUser?.username) {
+      navigate(`/${currentUser.username}`);
+    } else {
+      navigate('/');
+    }
   };
 
   const handleCancel = () => {
-    navigate('/nghialc81');
+    // Navigate về profile của user hiện tại
+    if (currentUser?.username) {
+      navigate(`/${currentUser.username}`);
+    } else {
+      navigate('/');
+    }
   };
 
   return (

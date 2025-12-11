@@ -1,186 +1,677 @@
-import React, { useEffect, useState } from 'react';
-import { useAppDispatch, useAppSelector } from '@/store';
-import { ChatList } from '../components/ChatList';
-import { ChatWindow } from '../components/ChatWindow';
-import { MessageComposer } from '../components/MessageComposer';
-
-import { InstagramInboxHeader } from '../components/InstagramInboxHeader';
-import { InstagramChatHeader } from '../components/InstagramChatHeader';
-import { QuickActionsBar } from '../components/QuickActionsBar';
-import { Button } from '@/components/ui/button';
+import React, {
+  useEffect,
+  useState,
+  useMemo,
+  useCallback,
+  useRef,
+} from "react";
+import { useLocation } from "react-router-dom";
+import { useWebSocket } from "../hooks/useWebSocket";
+import { useBatchPresence } from "../hooks/usePresence";
+import { useAppDispatch, useAppSelector } from "@/store";
+import { ChatList } from "../components/ChatList";
+import { ChatWindow } from "../components/ChatWindow";
+import { MessageComposer } from "../components/MessageComposer";
+import { MessageRequestActions } from "../components/MessageRequestActions";
+import { InstagramInboxHeader } from "../components/InstagramInboxHeader";
+import { InstagramChatHeader } from "../components/InstagramChatHeader";
+import { QuickActionsBar } from "../components/QuickActionsBar";
+import { Button } from "@/components/ui/button";
 import {
-  setChats,
+  setConversations,
+  upsertConversation,
   setMessages,
   addMessage,
-  setActiveChat,
+  addMessageWithUnreadUpdate,
+  setActiveConversation,
+  updateMessageReactionsFromAggregated,
+  handleReadAll,
+  handleTypingNotification,
+  clearOldTypingIndicators,
+  acceptRequest,
+  declineRequest,
+  updateMessagesPagination,
+  fetchMessages,
+  setReplyingTo,
+  clearReplyingTo,
   addReaction,
   removeReaction,
-  Chat,
-  Message,
-} from '../messageSlice';
-import { mockMessages } from '../__mocks__/messages';
-import { mockMessageUsers } from '../__mocks__/users';
-import { MessageSquarePlus, Phone, Video } from 'lucide-react';
+} from "../messageSlice";
+import {
+  MessageDTO,
+  EMessageType,
+  EReactionType,
+  EConversationStatus,
+  PresenceStatusDTO,
+  ReadAllDTO,
+  TypingNotificationDTO,
+  ReactionUpdateDTO,
+} from "../types";
+import { MessageSquarePlus } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export const InboxPage: React.FC = () => {
   const dispatch = useAppDispatch();
-  const { 
-    chats, 
-    messages, 
-    activeChat
+  const location = useLocation();
+  const {
+    conversations,
+    messages,
+    activeConversationId,
+    typingUsers,
+    messagesPagination,
+    replyingTo,
   } = useAppSelector((state) => state.message);
-  
-  const [searchQuery, setSearchQuery] = useState('');
-  const [activeFilter, setActiveFilter] = useState('all');
+  const { user } = useAppSelector((state) => state.auth);
 
-  // Initialize mock data
-  useEffect(() => {
-    const mockChats: Chat[] = mockMessageUsers.map((user, index) => ({
-      id: `chat-${index + 1}`,
-      participants: ['currentUser', user.id],
-      lastMessage: mockMessages[`chat-${index + 1}`]?.slice(-1)[0],
-      unreadCount: index === 0 ? 2 : index === 1 ? 1 : 0,
-      isOnline: user.isOnline,
-      isTyping: false,
-      avatar: user.avatar,
-      name: user.name,
-      lastSeen: user.lastSeen,
-    }));
+  const [searchQuery, setSearchQuery] = useState("");
+  const [activeFilter, setActiveFilter] = useState("all");
+  const [activeView, setActiveView] = useState<"primary" | "requests">(
+    "primary"
+  );
+  const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [presenceUpdates, setPresenceUpdates] = useState<
+    Record<number, { isOnline: boolean; lastSeen?: string }>
+  >({});
 
-    dispatch(setChats(mockChats));
+  const lastLoadMoreTimeRef = useRef<number>(0);
 
-    // Load messages for each chat
-    Object.entries(mockMessages).forEach(([chatId, chatMessages]) => {
-      dispatch(setMessages({ chatId, messages: chatMessages }));
-    });
-  }, [dispatch]);
+  const targetConversationId = location.state?.conversationId as
+    | number
+    | undefined;
 
-  const filteredChats = chats.filter(chat => {
-    const matchesSearch = chat.name.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    switch (activeFilter) {
-      case 'unread':
-        return matchesSearch && chat.unreadCount > 0;
-      case 'groups':
-        return matchesSearch && chat.participants.length > 2; // Mock group filter
-      case 'archived':
-        return false; // No archived chats in mock data
-      default:
-        return matchesSearch;
-    }
+  const isNavigationLoad = useRef(!!targetConversationId);
+
+  const userIds = useMemo(
+    () =>
+      conversations
+        .map((conv) => conv.participants.find((p) => p.id !== user?.id)?.id)
+        .filter((id): id is number => id !== undefined),
+    [conversations, user?.id]
+  );
+
+  const {
+    presenceMap,
+    lastSeenMap,
+    refetch: refetchPresence,
+  } = useBatchPresence(userIds);
+
+  useEffect(() => {}, [presenceMap, lastSeenMap, presenceUpdates, userIds]);
+
+  const ws = useWebSocket({
+    onMessage: (message: MessageDTO) => {
+      if (user?.id) {
+        dispatch(
+          addMessageWithUnreadUpdate({ message, currentUserId: user.id })
+        );
+      } else {
+        dispatch(addMessage(message));
+      }
+    },
+    onTyping: (typing: TypingNotificationDTO) => {
+      dispatch(handleTypingNotification(typing));
+    },
+    onReadAll: (readAllEvent: ReadAllDTO) => {
+      dispatch(handleReadAll({ ...readAllEvent, currentUserId: user.id }));
+    },
+    onReactionUpdate: (update: ReactionUpdateDTO) => {
+      if ("reactions" in update && Array.isArray(update.reactions)) {
+        const conversationId = Object.keys(messages).find((convId) =>
+          messages[Number(convId)]?.some((msg) => msg.id === update.messageId)
+        );
+
+        if (conversationId) {
+          dispatch(
+            updateMessageReactionsFromAggregated({
+              conversationId: Number(conversationId),
+              messageId: update.messageId,
+              aggregatedReactions: update.reactions,
+            })
+          );
+        }
+      } else if ("action" in update && "reaction" in update) {
+        // Legacy format: single reaction with action
+        if (update.action === "ADD") {
+          dispatch(
+            addReaction({
+              messageId: update.messageId,
+              conversationId: update.conversationId,
+              reaction: update.reaction,
+            })
+          );
+        } else if (update.action === "REMOVE") {
+          dispatch(
+            removeReaction({
+              messageId: update.messageId,
+              conversationId: update.conversationId,
+              userId: update.reaction.userId,
+            })
+          );
+        }
+      }
+    },
+    onPresence: (presence: PresenceStatusDTO) => {
+      setPresenceUpdates((prev) => ({
+        ...prev,
+        [presence.userId]: {
+          isOnline: presence.isOnline,
+          lastSeen: presence.lastSeen,
+        },
+      }));
+    },
+    autoConnect: true,
   });
 
-  const currentMessages = activeChat ? messages[activeChat] || [] : [];
-  const currentChat = chats.find(chat => chat.id === activeChat);
+  const handleChatSelect = useCallback(
+    async (chatId: string) => {
+      dispatch(setActiveConversation(Number(chatId)));
 
-  const handleChatSelect = (chatId: string) => {
-    dispatch(setActiveChat(chatId));
-  };
+      try {
+        const { messageApi } = await import("../services/messageApi");
+        const response = await messageApi.getMessages({
+          conversationId: Number(chatId),
+          page: 1,
+          size: 8,
+        });
+        if (response?.data?.content) {
+          dispatch(
+            setMessages({
+              conversationId: Number(chatId),
+              messages: response.data.content,
+            })
+          );
+          dispatch(
+            updateMessagesPagination({
+              conversationId: Number(chatId),
+              pagination: {
+                page: 1,
+                size: response.data.size,
+                totalPages: response.data.totalPages,
+                totalElements: response.data.totalElements,
+                hasMore: !response.data.last,
+              },
+            })
+          );
+        }
+      } catch (error) {
+        // Error handled silently
+      }
+    },
+    [dispatch]
+  );
 
-  const handleSendMessage = (content: string, type: 'text' | 'image' | 'file' | 'voice') => {
-    if (!activeChat) return;
+  useEffect(() => {
+    if (isNavigationLoad.current) {
+      isNavigationLoad.current = false;
+      setIsLoading(false);
+      return;
+    }
 
-    const newMessage: Message = {
-      id: `msg-${Date.now()}`,
-      chatId: activeChat,
-      senderId: 'currentUser',
-      content,
-      type,
-      timestamp: new Date(),
-      isRead: false,
+    const fetchConversations = async () => {
+      setIsLoading(true);
+      try {
+        const { conversationApi } = await import("../services/messageApi");
+        let response;
+
+        if (activeView === "requests") {
+          response = await conversationApi.getConversationRequests({});
+        } else if (activeFilter === "unread") {
+          response = await conversationApi.getUnreadConversations({});
+        } else if (activeFilter === "archived") {
+          response = await conversationApi.getArchivedConversations({});
+        } else {
+          response = await conversationApi.getConversations({});
+        }
+
+        if (response?.data?.content) {
+          dispatch(setConversations(response.data.content));
+        }
+      } catch (error) {
+        // Error handled silently
+      } finally {
+        setIsLoading(false);
+      }
     };
 
-    dispatch(addMessage(newMessage));
+    fetchConversations();
+  }, [dispatch, activeFilter, activeView]);
+
+  useEffect(() => {
+    if (targetConversationId && conversations.length > 0) {
+      const conversation = conversations.find(
+        (conv) => conv.id === targetConversationId
+      );
+      if (conversation) {
+        handleChatSelect(String(targetConversationId));
+      }
+    }
+  }, [targetConversationId, conversations, handleChatSelect]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      refetchPresence();
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, [refetchPresence]);
+
+  const filteredChats = conversations.filter((conv) => {
+    if (!conv.lastMessage && conv.id !== targetConversationId) {
+      return false;
+    }
+
+    if (activeView === "requests") {
+      if (conv.status === EConversationStatus.PENDING) {
+        const isRecipient = conv.lastMessage?.sender.id !== user?.id;
+        if (!isRecipient) {
+          return false;
+        }
+      } else {
+        return false;
+      }
+    } else {
+      if (conv.status === EConversationStatus.PENDING) {
+        const isRecipient = conv.lastMessage?.sender.id !== user?.id;
+        if (isRecipient) {
+          return false;
+        }
+      } else if (conv.status === EConversationStatus.DECLINED) {
+        const isRecipient = conv.lastMessage?.sender.id !== user?.id;
+        if (isRecipient) {
+          return false;
+        }
+      }
+    }
+
+    return conv.fullname.toLowerCase().includes(searchQuery.toLowerCase());
+  });
+
+  const currentMessages = activeConversationId
+    ? [...(messages[activeConversationId] || [])].sort(
+        (a, b) =>
+          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+      )
+    : [];
+
+  const currentChat = conversations.find(
+    (conv) => conv.id === activeConversationId
+  );
+
+  const currentChatOtherUser = useMemo(
+    () => currentChat?.participants.find((p) => p.id !== user?.id),
+    [currentChat, user?.id]
+  );
+
+  const currentChatPresence = useMemo(
+    () =>
+      currentChatOtherUser
+        ? presenceUpdates[currentChatOtherUser.id] || {
+            isOnline: presenceMap[currentChatOtherUser.id] || false,
+            lastSeen: lastSeenMap[currentChatOtherUser.id],
+          }
+        : null,
+    [currentChatOtherUser, presenceUpdates, presenceMap, lastSeenMap]
+  );
+
+  const isOtherUserTyping = useMemo(() => {
+    if (!activeConversationId || !user?.id) return false;
+
+    const typingInChat = typingUsers[activeConversationId] || [];
+    const isTyping = typingInChat.some((t) => t.userId !== user.id);
+
+    return isTyping;
+  }, [activeConversationId, typingUsers, user?.id]);
+
+  useEffect(() => {
+    if (currentChat && currentChatOtherUser) {
+      // Chat presence is already being tracked
+    }
+  }, [
+    currentChat,
+    currentChatOtherUser,
+    currentChatPresence,
+    presenceMap,
+    presenceUpdates,
+    lastSeenMap,
+  ]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      dispatch(clearOldTypingIndicators());
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [dispatch]);
+
+  useEffect(() => {
+    if (activeConversationId && ws) {
+      ws.subscribeToConversation(Number(activeConversationId));
+
+      ws.markConversationAsRead(Number(activeConversationId));
+    }
+  }, [activeConversationId, ws]);
+
+  const handleSendMessage = (
+    content: string,
+    type: "text" | "image" | "file" | "voice",
+    mediaUrls?: string[]
+  ) => {
+    if (!activeConversationId) return;
+
+    try {
+      ws.sendMessage(
+        activeConversationId,
+        content,
+        type === "text"
+          ? EMessageType.TEXT
+          : type === "image"
+          ? EMessageType.IMAGE
+          : type === "file"
+          ? EMessageType.FILE
+          : EMessageType.AUDIO,
+        replyingTo ? replyingTo.id : undefined,
+        mediaUrls
+      );
+      dispatch(clearReplyingTo());
+    } catch (error) {
+      // Error handled silently
+    }
   };
 
-  const handleAddReaction = (messageId: string, emoji: string) => {
-    if (!activeChat) return;
-    dispatch(addReaction({ messageId, chatId: activeChat, userId: 'currentUser', emoji }));
+  const handleTyping = (isTyping: boolean) => {
+    if (!activeConversationId) return;
+
+    if (isTyping) {
+      ws.sendTyping(activeConversationId);
+    }
   };
 
-  const handleRemoveReaction = (messageId: string) => {
-    if (!activeChat) return;
-    dispatch(removeReaction({ messageId, chatId: activeChat, userId: 'currentUser' }));
+  const handleAddReaction = async (messageId: string, reactionType: string) => {
+    if (!activeConversationId || !user) return;
+
+    try {
+      const currentMessage = messages[activeConversationId]?.find(
+        (m) => m.id === Number(messageId)
+      );
+      const currentUserReaction = currentMessage?.reactions.find(
+        (r) => r.userId === user.id
+      );
+
+      // If user already has this reaction type, toggle it off (remove)
+      if (currentUserReaction?.reactionType === reactionType) {
+        ws.sendRemoveReaction(
+          Number(messageId),
+          currentUserReaction.reactionType
+        );
+        // No need to dispatch - WebSocket handler will update state automatically
+        return;
+      }
+
+      // If user has a different reaction, remove it first
+      if (currentUserReaction) {
+        ws.sendRemoveReaction(
+          Number(messageId),
+          currentUserReaction.reactionType
+        );
+      }
+
+      // Add new reaction via WebSocket - backend will broadcast update to all clients
+      ws.sendReaction(Number(messageId), reactionType as EReactionType);
+      // No need to dispatch - WebSocket handler will update state automatically
+    } catch (error) {
+      console.error("Error adding reaction:", error);
+    }
   };
 
-  const handleForwardMessage = (messageId: string, userIds: string[]) => {
-    // Implementation for forwarding messages
-    console.log('Forward message', messageId, 'to users', userIds);
+  const handleRemoveReaction = async (
+    messageId: string,
+    reactionType: string
+  ) => {
+    if (!activeConversationId || !user) return;
+
+    try {
+      // Send remove reaction via WebSocket - backend will broadcast update to all clients
+      ws.sendRemoveReaction(Number(messageId), reactionType as EReactionType);
+      // No need to dispatch - WebSocket handler will update state automatically
+    } catch (error) {
+      console.error("Error removing reaction:", error);
+    }
   };
 
-  const handleDeleteMessage = (messageId: string) => {
-    // Implementation for deleting messages
-    console.log('Delete message', messageId);
+  const handleForwardMessage = (messageId: string, userIds: string[]) => {};
+
+  const handleDeleteMessage = (messageId: string) => {};
+
+  const handleReplyToMessage = useCallback(
+    (message: MessageDTO) => {
+      dispatch(setReplyingTo(message));
+    },
+    [dispatch]
+  );
+
+  const handleNewMessage = () => {};
+
+  const handleViewChange = (view: "primary" | "requests") => {
+    setActiveView(view);
+    if (view === "requests") {
+      setActiveFilter("all");
+    }
   };
 
-  const handleReplyToMessage = (messageId: string) => {
-    // Implementation for replying to messages
-    console.log('Reply to message', messageId);
+  const handleCallAction = (type: "voice" | "video") => {};
+
+  const handleAcceptRequest = async (conversationId: number) => {
+    try {
+      await dispatch(acceptRequest(conversationId)).unwrap();
+    } catch (error) {
+      // Error handled silently
+    }
   };
 
-  const handleNewMessage = () => {
-    // Implementation for new message
-    console.log('New message');
+  const handleDeclineRequest = async (conversationId: number) => {
+    try {
+      await dispatch(declineRequest(conversationId)).unwrap();
+      if (activeConversationId === conversationId) {
+        dispatch(setActiveConversation(null));
+      }
+    } catch (error) {
+      // Error handled silently
+    }
   };
 
-  const handleCallAction = (type: 'voice' | 'video') => {
-    // Implementation for call
-    console.log('Call:', type);
+  const handleRefreshConversations = async () => {
+    try {
+      const { conversationApi } = await import("../services/messageApi");
+      let response;
+
+      if (activeView === "requests") {
+        response = await conversationApi.getConversationRequests({});
+      } else if (activeFilter === "unread") {
+        response = await conversationApi.getUnreadConversations({});
+      } else if (activeFilter === "archived") {
+        response = await conversationApi.getArchivedConversations({});
+      } else {
+        response = await conversationApi.getConversations({});
+      }
+
+      if (response?.data?.content) {
+        dispatch(setConversations(response.data.content));
+      }
+    } catch (error) {
+      // Error handled silently
+    }
   };
 
+  const handleMarkMessageAsRead = (messageId: number) => {
+    if (!activeConversationId) return;
+
+    ws.markMessageAsRead(messageId, activeConversationId);
+  };
+
+  const handleLoadMoreMessages = useCallback(async () => {
+    if (!activeConversationId || isLoadingMore) return;
+
+    const now = Date.now();
+    if (now - lastLoadMoreTimeRef.current < 1000) return;
+    lastLoadMoreTimeRef.current = now;
+
+    const currentPage = messagesPagination[activeConversationId]?.page || 0;
+    const nextPage = currentPage + 1;
+
+    setIsLoadingMore(true);
+    try {
+      await dispatch(
+        fetchMessages({
+          conversationId: activeConversationId,
+          page: nextPage,
+          size: 8,
+        })
+      ).unwrap();
+    } catch (error) {
+      // Error handled silently
+    } finally {
+      setIsLoadingMore(false);
+    }
+  }, [activeConversationId, dispatch, isLoadingMore, messagesPagination]);
 
   return (
     <div className="h-screen flex bg-background overflow-hidden">
-      {/* Sidebar */}
-      <div className="w-80 border-r border-border flex flex-col bg-background shrink-0">
-        {/* Header */}
+      {/* Chat List - Hidden on mobile when viewing chat */}
+      <div
+        className={cn(
+          "w-80 border-r border-border flex flex-col bg-background shrink-0 transition-transform duration-300",
+          activeConversationId ? "hidden md:flex" : "flex"
+        )}
+      >
         <InstagramInboxHeader
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
           onNewMessage={handleNewMessage}
+          activeView={activeView}
+          onViewChange={handleViewChange}
         />
 
-        {/* Quick Filters */}
-        <QuickActionsBar
-          activeFilter={activeFilter}
-          onFilterChange={setActiveFilter}
-        />
-
-        {/* Chat List */}
-        <div className="flex-1 overflow-hidden">
-          <ChatList
-            chats={filteredChats}
-            activeChat={activeChat}
-            onChatSelect={handleChatSelect}
-            className="p-2"
+        {activeView === "primary" && (
+          <QuickActionsBar
+            activeFilter={activeFilter}
+            onFilterChange={setActiveFilter}
           />
+        )}
+
+        <div className="flex-1 overflow-hidden">
+          {isLoading ? (
+            <div className="flex items-center justify-center h-full">
+              <div className="text-center space-y-2">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+                <p className="text-sm text-muted-foreground">Đang tải...</p>
+              </div>
+            </div>
+          ) : filteredChats.length === 0 ? (
+            <div className="flex items-center justify-center h-full p-8">
+              <div className="text-center space-y-2">
+                <MessageSquarePlus className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
+                <h3 className="font-semibold text-foreground">
+                  Không có tin nhắn nào
+                </h3>
+                <p className="text-sm text-muted-foreground max-w-[200px]">
+                  Tin nhắn mới sẽ hiển thị tại đây
+                </p>
+              </div>
+            </div>
+          ) : (
+            <ChatList
+              chats={filteredChats}
+              activeChat={String(activeConversationId)}
+              onChatSelect={handleChatSelect}
+              className="p-2"
+              presenceMap={{
+                ...presenceMap,
+                ...Object.fromEntries(
+                  Object.entries(presenceUpdates).map(([id, status]) => [
+                    Number(id),
+                    status.isOnline,
+                  ])
+                ),
+              }}
+              currentUserId={user?.id}
+            />
+          )}
         </div>
       </div>
 
-      {/* Main Chat Area */}
-      <div className="flex-1 flex flex-col">
-        {activeChat && currentChat ? (
+      {/* Chat Window - Full width on mobile */}
+      <div className="flex-1 flex flex-col w-full md:w-auto">
+        {activeConversationId && currentChat ? (
           <>
             <InstagramChatHeader
               chat={currentChat}
               onCall={handleCallAction}
+              onNicknameUpdated={handleRefreshConversations}
+              onBlockStatusChanged={handleRefreshConversations}
               className="border-b border-border"
+              isOnline={currentChatPresence?.isOnline || false}
+              lastSeen={currentChatPresence?.lastSeen}
+              currentUserId={user?.id}
             />
             <ChatWindow
               chat={currentChat}
               messages={currentMessages}
-              isTyping={false}
+              isTyping={isOtherUserTyping}
               onAddReaction={handleAddReaction}
               onRemoveReaction={handleRemoveReaction}
               onForwardMessage={handleForwardMessage}
               onDeleteMessage={handleDeleteMessage}
               onReplyToMessage={handleReplyToMessage}
+              onMarkAsRead={handleMarkMessageAsRead}
+              onLoadMoreMessages={handleLoadMoreMessages}
+              hasMoreMessages={
+                messagesPagination[activeConversationId]?.hasMore || false
+              }
+              isLoadingMore={isLoadingMore}
               className="flex-1"
             />
-            <MessageComposer
-              onSendMessage={handleSendMessage}
-              onTyping={() => {}}
-            />
+            {currentChat.status === EConversationStatus.PENDING &&
+            currentChat.lastMessage &&
+            currentChat.lastMessage.sender.id !== user?.id ? (
+              <MessageRequestActions
+                conversation={currentChat}
+                currentUserId={user?.id}
+                onAccept={handleAcceptRequest}
+                onDecline={handleDeclineRequest}
+              />
+            ) : (
+              <MessageComposer
+                onSendMessage={handleSendMessage}
+                onTyping={handleTyping}
+                isBlockedByMe={currentChat.blockedByMe || false}
+                isBlockedByThem={
+                  currentChat.status === EConversationStatus.BLOCKED &&
+                  !currentChat.blockedByMe
+                }
+                fullname={
+                  currentChat.participants.find((p) => p.id !== user?.id)
+                    ?.fullName || currentChat.fullname
+                }
+                replyingTo={replyingTo}
+                onCancelReply={() => dispatch(clearReplyingTo())}
+                onUnblock={async () => {
+                  const targetUser = currentChat.participants.find(
+                    (p) => p.id !== user?.id
+                  );
+                  if (targetUser?.username) {
+                    try {
+                      const { unblockUser } = await import(
+                        "@/features/profile/api/profileApi"
+                      );
+                      await unblockUser(targetUser.username);
+                      await handleRefreshConversations();
+                    } catch (error) {
+                      // Error handled silently
+                    }
+                  }
+                }}
+              />
+            )}
           </>
         ) : (
           <div className="flex-1 flex items-center justify-center bg-gradient-subtle">
@@ -193,9 +684,13 @@ export const InboxPage: React.FC = () => {
                 <p className="text-muted-foreground mb-6 max-w-md">
                   Send private photos and messages to a friend or group
                 </p>
-                <Button 
-                  onClick={() => handleChatSelect(chats[0]?.id)}
+                <Button
+                  onClick={() =>
+                    filteredChats[0] &&
+                    handleChatSelect(String(filteredChats[0].id))
+                  }
                   className="bg-primary hover:bg-primary/90"
+                  disabled={!filteredChats[0]}
                 >
                   Send Message
                 </Button>
@@ -204,7 +699,6 @@ export const InboxPage: React.FC = () => {
           </div>
         )}
       </div>
-
     </div>
   );
 };
