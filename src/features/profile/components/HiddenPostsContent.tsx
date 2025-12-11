@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useAppDispatch, useAppSelector } from '@/store';
 import { getPostsThunk, togglePostActiveThunk } from '@/features/post/postSlice';
 import { Loader } from '@/components/common/Loader';
-import { EyeOff, Info, MessageCircle } from 'lucide-react';
+import { EyeOff, Info, MessageCircle, ImageOff } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useInfiniteScroll } from '@/hooks/use-infinite-scroll';
@@ -283,8 +283,12 @@ export const HiddenPostsContent = () => {
       <LazyGrid
         items={hiddenPosts.map((post) => ({
           id: post.id,
-          thumbnail: post.media[0]?.thumbnail || post.media[0]?.url || '',
-          type: (post.media[0]?.type === 'image' ? 'photo' : 'video') as 'photo' | 'video' | 'reel',
+          thumbnail: post.media[0]?.thumbnail || post.media[0]?.url || '/placeholder.svg',
+          type: (post.media[0]
+            ? post.media[0]?.type === 'image'
+              ? 'photo'
+              : 'video'
+            : 'photo') as 'photo' | 'video' | 'reel',
           caption: post.caption,
           likesCount: post.likesCount,
           commentsCount: post.commentsCount,
@@ -294,6 +298,16 @@ export const HiddenPostsContent = () => {
           if (post) handlePostClick(post);
         }}
         className="px-4 md:px-0 pb-4"
+        renderPlaceholder={(item) =>
+          item.thumbnail
+            ? undefined
+            : (
+                <div className="w-full h-full bg-muted flex flex-col items-center justify-center text-muted-foreground gap-2">
+                  <ImageOff className="w-6 h-6" />
+                  <span className="text-xs font-medium">Bài viết không có ảnh/video</span>
+                </div>
+              )
+        }
         renderOverlay={(item, isVisible) => (
           <>
             {/* Default overlay (likes, comments) */}

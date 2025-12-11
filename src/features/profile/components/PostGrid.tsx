@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Play, Heart, MessageCircle } from "lucide-react";
+import { Play, Heart, MessageCircle, ImageOff } from "lucide-react";
 import { ProfilePost } from "../profileSlice";
 import { CommentDialog } from "@/features/post/components/CommentDialog";
 import { MobilePostDetail } from "@/features/post/components/MobilePostDetail";
@@ -351,8 +351,15 @@ export const PostGrid = ({
       <LazyGrid
         items={posts.map((post, index) => ({
           id: post.id,
-          thumbnail: post.media[0]?.thumbnail || post.media[0]?.url || "",
-          type: (post.media[0]?.type === "image" ? "photo" : "video") as
+          thumbnail:
+            post.media[0]?.thumbnail ||
+            post.media[0]?.url ||
+            "/placeholder.svg",
+          type: (post.media[0]
+            ? post.media[0]?.type === "image"
+              ? "photo"
+              : "video"
+            : "photo") as
             | "photo"
             | "video"
             | "reel",
@@ -370,6 +377,16 @@ export const PostGrid = ({
         gap="md"
         enableProgressiveLoading={true}
         enableBlurToSharp={false}
+        renderPlaceholder={(item) =>
+          item.thumbnail
+            ? undefined
+            : (
+                <div className="w-full h-full bg-muted flex flex-col items-center justify-center text-muted-foreground gap-2">
+                  <ImageOff className="w-6 h-6" />
+                  <span className="text-xs font-medium">Bài viết không có ảnh/video</span>
+                </div>
+              )
+        }
         renderOverlay={(item, isVisible) => {
           if (!isVisible) return null;
 

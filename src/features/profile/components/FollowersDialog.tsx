@@ -81,7 +81,9 @@ export const FollowersDialog = ({
     FollowerUser | FollowingUser | null
   >(null);
   const { toast } = useToast();
-  const { isLoading } = useAppSelector((state) => state.profile);
+  const { isFollowersLoading, isFollowingLoading } = useAppSelector(
+    (state) => state.profile
+  );
   const currentUser = useAppSelector((state) => state.auth.user);
 
   useEffect(() => {
@@ -105,6 +107,7 @@ export const FollowersDialog = ({
     ? followersHasMore
     : followingHasMore;
   const currentPageNum = isFollowersDialog ? followersPage : followingPage;
+  const listLoading = isFollowersDialog ? isFollowersLoading : isFollowingLoading;
 
   useEffect(() => {
     if (!username || !isOpen) return;
@@ -155,7 +158,7 @@ export const FollowersDialog = ({
   ]);
 
   const handleLoadMore = useCallback(() => {
-    if (!username || !currentHasMore || isLoading || localUsers.length === 0)
+    if (!username || !currentHasMore || listLoading || localUsers.length === 0)
       return;
 
     const nextPage = currentPageNum + 1;
@@ -175,7 +178,7 @@ export const FollowersDialog = ({
   }, [
     username,
     currentHasMore,
-    isLoading,
+    listLoading,
     currentPageNum,
     isFollowersDialog,
     dispatch,
@@ -185,7 +188,7 @@ export const FollowersDialog = ({
 
   const { lastElementRef } = useInfiniteScroll(handleLoadMore, {
     hasMore: currentHasMore,
-    isLoading,
+    isLoading: listLoading,
     threshold: 100,
   });
 
@@ -418,7 +421,7 @@ export const FollowersDialog = ({
             <div className="h-[340px] overflow-y-auto space-y-1.5">
               {filteredUsers.length === 0 ? (
                 <div className="h-full flex items-center justify-center text-muted-foreground">
-                  {isLoading ? (
+                  {listLoading ? (
                     <Loader2 className="w-6 h-6 animate-spin" />
                   ) : searchValue ? (
                     "Không tìm thấy kết quả"
@@ -544,7 +547,7 @@ export const FollowersDialog = ({
               )}
 
               {/* Loading indicator */}
-              {isLoading && filteredUsers.length > 0 && (
+              {listLoading && filteredUsers.length > 0 && (
                 <div className="flex items-center justify-center py-4">
                   <Loader2 className="w-5 h-5 animate-spin" />
                   <span className="ml-2 text-sm text-muted-foreground">

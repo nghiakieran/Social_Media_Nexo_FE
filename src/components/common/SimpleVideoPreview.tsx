@@ -19,6 +19,10 @@ export const SimpleVideoPreview = ({
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
+    if (!videoUrl) {
+      return;
+    }
+
     const video = videoRef.current;
     if (!video) return;
 
@@ -71,6 +75,16 @@ export const SimpleVideoPreview = ({
       video.addEventListener("seeked", () => setIsLoaded(true));
     }
   }, [videoUrl]);
+
+  if (!videoUrl) {
+    return (
+      <div className={`relative w-full h-full ${className}`}>
+        <div className="absolute inset-0 flex items-center justify-center bg-muted text-muted-foreground text-xs font-medium">
+          Không có video
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={`w-full h-full ${className}`}>

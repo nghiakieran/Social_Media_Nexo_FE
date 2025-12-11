@@ -42,6 +42,8 @@ interface ProfileState {
   blockedUsers: BlockedUser[];
   activeTab: "posts" | "reels" | "saved" | "hidden";
   isLoading: boolean;
+  isFollowersLoading: boolean;
+  isFollowingLoading: boolean;
   error: string | null;
   showFollowersDialog: boolean;
   showFollowingDialog: boolean;
@@ -78,6 +80,8 @@ const initialState: ProfileState = {
   blockedUsers: [],
   activeTab: "posts",
   isLoading: false,
+  isFollowersLoading: false,
+  isFollowingLoading: false,
   error: null,
   showFollowersDialog: false,
   showFollowingDialog: false,
@@ -568,11 +572,11 @@ const profileSlice = createSlice({
       })
       // fetchFollowersByUsernameAsync
       .addCase(fetchFollowersByUsernameAsync.pending, (state) => {
-        state.isLoading = true;
+        state.isFollowersLoading = true;
         state.error = null;
       })
       .addCase(fetchFollowersByUsernameAsync.fulfilled, (state, action) => {
-        state.isLoading = false;
+        state.isFollowersLoading = false;
         const { content, pageNo, totalPages } = action.payload;
 
         if (pageNo === 0) {
@@ -587,16 +591,16 @@ const profileSlice = createSlice({
         state.error = null;
       })
       .addCase(fetchFollowersByUsernameAsync.rejected, (state, action) => {
-        state.isLoading = false;
+        state.isFollowersLoading = false;
         state.error = action.payload as string;
       })
       // fetchFollowingByUsernameAsync
       .addCase(fetchFollowingByUsernameAsync.pending, (state) => {
-        state.isLoading = true;
+        state.isFollowingLoading = true;
         state.error = null;
       })
       .addCase(fetchFollowingByUsernameAsync.fulfilled, (state, action) => {
-        state.isLoading = false;
+        state.isFollowingLoading = false;
         const { content, pageNo, totalPages } = action.payload;
 
         if (pageNo === 0) {
@@ -611,7 +615,7 @@ const profileSlice = createSlice({
         state.error = null;
       })
       .addCase(fetchFollowingByUsernameAsync.rejected, (state, action) => {
-        state.isLoading = false;
+        state.isFollowingLoading = false;
         state.error = action.payload as string;
       })
       .addCase(updateUserProfileAsync.pending, (state) => {

@@ -115,6 +115,10 @@ export const LazyGrid = ({
         const itemVisible = isVisible(item.id);
         const itemNearVisible = isNearVisible(item.id, items);
         const shouldLoad = itemVisible || itemNearVisible;
+        const hasThumbnail = Boolean(item.thumbnail);
+        const shouldShowMedia = shouldLoad && hasThumbnail;
+        const placeholderContent =
+          renderPlaceholder?.(item) || defaultPlaceholder(item);
 
         return (
           <div
@@ -124,36 +128,33 @@ export const LazyGrid = ({
             className={`relative aspect-square bg-muted cursor-pointer group overflow-hidden ${itemClassName}`}
             onClick={() => onItemClick?.(item)}
           >
-            {/* Placeholder */}
-            {!shouldLoad &&
-              (renderPlaceholder?.(item) || defaultPlaceholder(item))}
-
-            {/* Media - Video or Image */}
-            {shouldLoad && (
-              <>
-                {item.type === "video" || item.type === "reel" ? (
-                  <SimpleVideoPreview
-                    videoUrl={item.thumbnail}
-                    className="w-full h-full"
-                  />
-                ) : (
-                  <LazyImage
-                    src={item.thumbnail}
-                    alt={item.caption || "Post image"}
-                    className="w-full h-full"
-                    loading="lazy"
-                    decoding="async"
-                    enableProgressiveLoading={enableProgressiveLoading}
-                    enableBlurToSharp={enableBlurToSharp}
-                    lowResSrc={item.lowResThumbnail}
-                    placeholder={renderPlaceholder?.(item)}
-                  />
-                )}
-              </>
+            {/* Media or placeholder */}
+            {shouldShowMedia ? (
+              item.type === "video" || item.type === "reel" ? (
+                <SimpleVideoPreview
+                  videoUrl={item.thumbnail}
+                  className="w-full h-full"
+                />
+              ) : (
+                <LazyImage
+                  src={item.thumbnail}
+                  alt={item.caption || "Post image"}
+                  className="w-full h-full"
+                  loading="lazy"
+                  decoding="async"
+                  enableProgressiveLoading={enableProgressiveLoading}
+                  enableBlurToSharp={enableBlurToSharp}
+                  lowResSrc={item.lowResThumbnail}
+                  placeholder={renderPlaceholder?.(item)}
+                />
+              )
+            ) : (
+              placeholderContent
             )}
 
             {/* Overlay */}
             {shouldLoad &&
+              hasThumbnail &&
               (renderOverlay?.(item, itemVisible) ||
                 defaultOverlay(item, itemVisible))}
           </div>
