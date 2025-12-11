@@ -16,7 +16,7 @@ import {
   Share2,
   Users,
 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "@/store";
 import {
@@ -36,6 +36,13 @@ import { MediaSlider } from "../components/MediaSlider";
 import { ShareDialog } from "../components/ShareDialog";
 import { Loader } from "@/components/common/Loader";
 import type { Post } from "../types";
+import { CommentDialog } from "../components/CommentDialog";
+import {
+  clearComments,
+  createCommentThunk,
+  getPostCommentsThunk,
+  likeCommentThunk,
+} from "@/features/interaction/interactionSlice";
 
 // Interface for UI Post (extends API Post with additional UI properties)
 interface UIPost extends Post {
@@ -107,6 +114,11 @@ export const PostDetailPage = () => {
   }>(null);
   const [showActionMenu, setShowActionMenu] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
+  const [showCommentDialog, setShowCommentDialog] = useState(false);
+
+  const { comments: reduxComments } = useAppSelector(
+    (state) => state.interaction.comments
+  );
 
   const privacyIcons = {
     public: Globe,
@@ -271,6 +283,114 @@ export const PostDetailPage = () => {
 
   const handleBack = () => {
     navigate(-1);
+  };
+
+  // Comments data mapped for CommentDialog
+  const dialogComments = useMemo(() => {
+    return reduxComments.map((comment) => ({
+      id: comment.id,
+      userId: comment.userId,
+      userName: comment.userName,
+      avatarUrl: comment.avatarUrl,
+      content: comment.content,
+      likesCount: comment.likesCount,
+      isLiked: comment.isLiked,
+      createdAt: comment.createdAt,
+      replies:
+        comment.replies?.map((reply) => ({
+          id: reply.id,
+          userId: reply.userId,
+          userName: reply.userName,
+          avatarUrl: reply.avatarUrl,
+          content: reply.content,
+          likesCount: reply.likesCount,
+          isLiked: reply.isLiked,
+          createdAt: reply.createdAt,
+          replies: reply.replies,
+        })) || [],
+    }));
+  }, [reduxComments]);
+
+  // Fetch comments when opening dialog
+  useEffect(() => {
+    if (!showCommentDialog || !post) return;
+    dispatch(clearComments());
+    dispatch(
+      getPostCommentsThunk({
+        postId: parseInt(post.id),
+        params: { pageNo: 0, pageSize: 50 },
+      })
+    );
+  }, [dispatch, showCommentDialog, post]);
+
+  const handleAddComment = async (content: string) => {
+    if (!post || !user || !content.trim()) return;
+    try {
+      await dispatch(
+        createCommentThunk({
+          id: 0,
+          userId: user.id,
+          postId: parseInt(post.id),
+          reelId: 0,
+          parentId: 0,
+          content: content.trim(),
+          listMentionUserId: [],
+        })
+      ).unwrap();
+      dispatch(
+        getPostCommentsThunk({
+          postId: parseInt(post.id),
+          params: { pageNo: 0, pageSize: 50 },
+        })
+      );
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Lỗi",
+        description: "Không thể thêm bình luận.",
+      });
+    }
+  };
+
+  const handleReplyComment = async (parentId: string, content: string) => {
+    if (!post || !user || !content.trim()) return;
+    try {
+      await dispatch(
+        createCommentThunk({
+          id: 0,
+          userId: user.id,
+          postId: parseInt(post.id),
+          reelId: 0,
+          parentId: parseInt(parentId),
+          content: content.trim(),
+          listMentionUserId: [],
+        })
+      ).unwrap();
+      dispatch(
+        getPostCommentsThunk({
+          postId: parseInt(post.id),
+          params: { pageNo: 0, pageSize: 50 },
+        })
+      );
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Lỗi",
+        description: "Không thể trả lời bình luận.",
+      });
+    }
+  };
+
+  const handleLikeComment = async (commentId: string) => {
+    try {
+      await dispatch(likeCommentThunk(parseInt(commentId))).unwrap();
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Lỗi",
+        description: "Không thể thích bình luận.",
+      });
+    }
   };
 
   // Show loading state
@@ -480,6 +600,7 @@ export const PostDetailPage = () => {
                       variant="ghost"
                       size="sm"
                       className="flex items-center gap-2 px-3 py-2 rounded-full hover:text-primary"
+                      onClick={() => setShowCommentDialog(true)}
                     >
                       <MessageCircle className="w-5 h-5" />
                       <span className="hidden sm:inline">Bình luận</span>
@@ -559,6 +680,19 @@ export const PostDetailPage = () => {
       <LikesDialog
         isOpen={!!showLikesDialog}
         onClose={handleCloseLikesDialog}
+        targetType={
+          showLikesDialog?.targetType === "post"
+            ? "post"
+            : showLikesDialog?.targetType === "comment"
+            ? "comment"
+            : undefined
+        }
+        targetId={
+          showLikesDialog?.targetType === "post" ||
+          showLikesDialog?.targetType === "comment"
+            ? parseInt(showLikesDialog.targetId)
+            : undefined
+        }
         title={
           showLikesDialog?.targetType === "post"
             ? "Lượt thích"
@@ -587,6 +721,55 @@ export const PostDetailPage = () => {
         }
         initialMediaUrl={post.media.map((m) => m.url)}
         onSave={handleEditPost}
+      />
+
+      {/* Comment Dialog with full interaction APIs */}
+      <CommentDialog
+        isOpen={showCommentDialog}
+        onClose={() => setShowCommentDialog(false)}
+        post={{
+          id: post.id,
+          userId: post.userId,
+          userName: post.userName,
+          avatarUrl: post.avatarUrl,
+          caption: post.caption,
+          media: post.media || [],
+          likesCount: post.stats.likes,
+          commentsCount: post.stats.comments,
+          createdAt: post.createdAt,
+          updatedAt: post.updatedAt,
+          isActive: post.isActive,
+        }}
+        comments={dialogComments}
+        onAddComment={handleAddComment}
+        onLikeComment={handleLikeComment}
+        onReplyComment={handleReplyComment}
+        onLikePost={(postId) => {
+          if (postId.toString() === post.id) {
+            handleLikeChange(!interactions.isLiked, post.stats.likes);
+          }
+        }}
+        isPostLiked={interactions.isLiked}
+        onOpenShareDialog={() => setShowShareDialog(true)}
+        isShareDialogOpen={showShareDialog}
+        onNavigateToProfile={(userName) => navigate(`/${userName}`)}
+        onNavigateToPost={(pid) => navigate(`/posts/${pid}`)}
+        onDeletePost={async (pid) => {
+          try {
+            await dispatch(deletePostThunk(parseInt(pid))).unwrap();
+            toast({
+              title: "Đã xóa",
+              description: "Bài viết đã được xóa.",
+            });
+            navigate(-1);
+          } catch (error) {
+            toast({
+              variant: "destructive",
+              title: "Lỗi",
+              description: "Không thể xóa bài viết.",
+            });
+          }
+        }}
       />
     </div>
   );

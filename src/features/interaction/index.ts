@@ -18,6 +18,7 @@ export {
   likeReelThunk,
   getPostLikeDetailThunk,
   getReelLikeDetailThunk,
+  getCommentLikeDetailThunk,
   clearCommentError,
   clearLikeError,
   clearComments,

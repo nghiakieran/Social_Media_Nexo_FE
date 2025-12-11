@@ -120,3 +120,27 @@ export const getReelLikeDetail = async (
     throw new Error("Không thể kết nối đến server. Vui lòng thử lại.");
   }
 };
+
+// Get Like Detail - Comment
+export const getCommentLikeDetail = async (
+  commentId: number,
+  params: { pageNo?: number; pageSize?: number } = {}
+): Promise<LikeDetailApiResponse> => {
+  try {
+    const { pageNo = 0, pageSize = 10 } = params;
+    const response = await api.get<LikeDetailApiResponse>(
+      `/interaction/like/comment/${commentId}/detail`,
+      { params: { pageNo, pageSize } }
+    );
+    return response.data;
+  } catch (error: unknown) {
+    if (error && typeof error === "object" && "response" in error) {
+      const apiError = error as { response?: { data?: { message?: string } } };
+      throw new Error(
+        apiError.response?.data?.message ||
+          "Có lỗi xảy ra khi tải danh sách lượt thích bình luận"
+      );
+    }
+    throw new Error("Không thể kết nối đến server. Vui lòng thử lại.");
+  }
+};
