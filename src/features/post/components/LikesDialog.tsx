@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { ArrowLeft } from 'lucide-react';
 import { useAppDispatch } from '@/store';
-import { getPostLikeDetailThunk, getReelLikeDetailThunk } from '@/features/interaction';
+import { getPostLikeDetailThunk, getReelLikeDetailThunk, getCommentLikeDetailThunk } from '@/features/interaction';
 import { useInfiniteScroll } from '@/hooks/use-infinite-scroll';
 import { useNavigate } from 'react-router-dom';
 import { navigateToProfile } from '@/utils/navigation';
@@ -26,7 +26,7 @@ interface LikesDialogProps {
   infoText?: string;
   onClose: () => void;
   users?: Array<LikeUserItem>;
-  targetType?: 'post' | 'reel';
+  targetType?: 'post' | 'reel' | 'comment';
   targetId?: number;
   onToggleFollow?: (userId: string, nextIsFollowing: boolean) => void;
 }
@@ -148,13 +148,45 @@ useEffect(() => {
     setError(null);
     try {
       if (targetType === 'post') {
-        const data = await dispatch(getPostLikeDetailThunk({ postId: targetId, params: { pageNo: nextPage, pageSize: 10 } })).unwrap();
-        setList(prev => nextPage === 0 ? mapApiToItems(data.content) : [...prev, ...mapApiToItems(data.content)]);
+        const data = await dispatch(
+          getPostLikeDetailThunk({
+            postId: targetId,
+            params: { pageNo: nextPage, pageSize: 10 },
+          })
+        ).unwrap();
+        setList(prev =>
+          nextPage === 0
+            ? mapApiToItems(data.content)
+            : [...prev, ...mapApiToItems(data.content)]
+        );
         setHasMore(!data.last);
         setPageNo(data.pageNo);
-      } else {
-        const data = await dispatch(getReelLikeDetailThunk({ reelId: targetId, params: { pageNo: nextPage, pageSize: 10 } })).unwrap();
-        setList(prev => nextPage === 0 ? mapApiToItems(data.content) : [...prev, ...mapApiToItems(data.content)]);
+      } else if (targetType === 'reel') {
+        const data = await dispatch(
+          getReelLikeDetailThunk({
+            reelId: targetId,
+            params: { pageNo: nextPage, pageSize: 10 },
+          })
+        ).unwrap();
+        setList(prev =>
+          nextPage === 0
+            ? mapApiToItems(data.content)
+            : [...prev, ...mapApiToItems(data.content)]
+        );
+        setHasMore(!data.last);
+        setPageNo(data.pageNo);
+      } else if (targetType === 'comment') {
+        const data = await dispatch(
+          getCommentLikeDetailThunk({
+            commentId: targetId,
+            params: { pageNo: nextPage, pageSize: 10 },
+          })
+        ).unwrap();
+        setList(prev =>
+          nextPage === 0
+            ? mapApiToItems(data.content)
+            : [...prev, ...mapApiToItems(data.content)]
+        );
         setHasMore(!data.last);
         setPageNo(data.pageNo);
       }
@@ -236,7 +268,7 @@ useEffect(() => {
           <div className="p-4 space-y-4">
             {/* In dynamic mode, avoid showing fake placeholder users to prevent flicker */}
             {isDynamic && effectiveUsers.length === 0 && isLoading && (
-              <div className="text-xs text-gray-500">Đang tải...</div>
+              <div className="text-xs text-gray-500 text-center w-full">Đang tải...</div>
             )}
             {(!isDynamic
               ? (effectiveUsers.length ? effectiveUsers : Array.from({ length: 14 }).map((_, i) => ({ id: String(i), name: `user_${i+1}`, avatar: '', subtitle: 'Gợi ý cho bạn' })))

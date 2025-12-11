@@ -36,7 +36,7 @@ import {
 import { Loader } from "@/components/common/Loader";
 import { useToast } from "@/hooks/use-toast";
 import { getPostLikeDetailThunk } from "@/features/interaction";
-import { navigateToProfile } from "@/utils/navigation";
+import { navigateToProfile, navigateToPost } from "@/utils/navigation";
 import { useNavigate } from "react-router-dom";
 import { ReportPostDialog } from "@/features/post/components/ReportPostDialog";
 import { reportComment } from "../api/postApi";
@@ -891,6 +891,8 @@ export const CommentDialog = ({
         // Navigate to post detail page
         if (onNavigateToPost) {
           onNavigateToPost(post.id);
+        } else {
+          navigateToPost(navigate, post.id);
         }
         handleCloseActionMenu();
         onClose();
@@ -1297,10 +1299,15 @@ export const CommentDialog = ({
           isOpen={!!showLikesDialog}
           onClose={closeLikesDialog}
           targetType={
-            showLikesDialog?.targetType === "post" ? "post" : undefined
+            showLikesDialog?.targetType === "post"
+              ? "post"
+              : showLikesDialog?.targetType === "comment"
+              ? "comment"
+              : undefined
           }
           targetId={
-            showLikesDialog?.targetType === "post"
+            showLikesDialog?.targetType === "post" ||
+            showLikesDialog?.targetType === "comment"
               ? parseInt(showLikesDialog.targetId)
               : undefined
           }
@@ -1944,8 +1951,19 @@ export const CommentDialog = ({
       <LikesDialog
         isOpen={!!showLikesDialog}
         onClose={closeLikesDialog}
-        targetType={showLikesDialog?.targetType === 'post' ? 'post' : undefined}
-        targetId={showLikesDialog?.targetType === 'post' ? parseInt(showLikesDialog.targetId) : undefined}
+        targetType={
+          showLikesDialog?.targetType === "post"
+            ? "post"
+            : showLikesDialog?.targetType === "comment"
+            ? "comment"
+            : undefined
+        }
+        targetId={
+          showLikesDialog?.targetType === "post" ||
+          showLikesDialog?.targetType === "comment"
+            ? parseInt(showLikesDialog.targetId)
+            : undefined
+        }
       />
 
       {showReportDialog && reportingCommentId && (

@@ -13,6 +13,7 @@ import {
   likeReel,
   getPostLikeDetail,
   getReelLikeDetail,
+  getCommentLikeDetail,
 } from "./api/likeApi";
 import { transformCommentData } from "./types";
 import type {
@@ -254,6 +255,31 @@ export const getReelLikeDetailThunk = createAsyncThunk(
         error instanceof Error
           ? error.message
           : "Có lỗi xảy ra khi tải danh sách lượt thích"
+      );
+    }
+  }
+);
+
+export const getCommentLikeDetailThunk = createAsyncThunk(
+  "interaction/getCommentLikeDetail",
+  async (
+    {
+      commentId,
+      params,
+    }: { commentId: number; params?: { pageNo?: number; pageSize?: number } },
+    { rejectWithValue }
+  ) => {
+    try {
+      const response: LikeDetailApiResponse = await getCommentLikeDetail(
+        commentId,
+        params
+      );
+      return response.data;
+    } catch (error: unknown) {
+      return rejectWithValue(
+        error instanceof Error
+          ? error.message
+          : "Có lỗi xảy ra khi tải danh sách lượt thích bình luận"
       );
     }
   }

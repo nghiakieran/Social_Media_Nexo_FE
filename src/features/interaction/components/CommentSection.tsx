@@ -748,6 +748,23 @@ export const CommentSection = ({ postId, className }: CommentSectionProps) => {
       <LikesDialog
         isOpen={!!showLikesDialog}
         onClose={handleCloseLikesDialog}
+        targetType={
+          showLikesDialog?.targetType === "comment"
+            ? "comment"
+            : showLikesDialog?.targetType === "reply"
+            ? "comment"
+            : showLikesDialog?.targetType === "post"
+            ? "post"
+            : undefined
+        }
+        targetId={
+          showLikesDialog &&
+          (showLikesDialog.targetType === "comment" ||
+            showLikesDialog.targetType === "reply" ||
+            showLikesDialog.targetType === "post")
+            ? parseInt(showLikesDialog.targetId)
+            : undefined
+        }
         title={
           showLikesDialog?.targetType === "comment"
             ? "Lượt thích bình luận"
