@@ -8,6 +8,7 @@ import {
   Send,
   Bookmark,
   ArrowLeft,
+  ImageOff,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -1332,7 +1333,7 @@ export const CommentDialog = ({
             minWidth: "511.5px",
           }}
         >
-          {post.media && post.media.length > 0 && (
+          {post.media && post.media.length > 0 ? (
             <MediaSlider
               media={post.media.map((media) => ({
                 id: media.id,
@@ -1342,6 +1343,13 @@ export const CommentDialog = ({
               }))}
               className="w-full h-full"
             />
+          ) : (
+            <div className="flex flex-col items-center justify-center text-muted-foreground gap-3 w-full h-full bg-muted">
+              <div className="p-3 rounded-full bg-muted-foreground/10">
+                <ImageOff className="w-8 h-8" />
+              </div>
+              <p className="text-sm font-medium">Bài viết chỉ có nội dung chữ</p>
+            </div>
           )}
         </div>
 

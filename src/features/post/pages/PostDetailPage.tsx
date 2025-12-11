@@ -469,7 +469,6 @@ export const PostDetailPage = () => {
                       isLiked={interactions.isLiked}
                       likesCount={post.stats.likes}
                       size="sm"
-                      variant="ghost"
                       showCount={false}
                       onLikeChange={handleLikeChange}
                       className="flex items-center gap-2 px-3 py-2 rounded-full transition-colors"
