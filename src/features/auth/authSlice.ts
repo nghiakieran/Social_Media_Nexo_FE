@@ -17,6 +17,7 @@ import {
   ACCESS_TOKEN_STORAGE_KEY,
   REFRESH_TOKEN_STORAGE_KEY,
   BEARER_TOKEN_PREFIX,
+  OAUTH_REDIRECT_URI,
 } from "@/utils/constants";
 import { AxiosHeaders } from "axios";
 import { getCurrentUserProfile } from "@/features/profile/api/profileApi";
@@ -262,7 +263,7 @@ export const oauthLoginAsync = createAsyncThunk(
         "/auth/oauth/callback",
         {
           code,
-          redirectUri: "http://localhost:3000/auth/oauth/callback",
+          redirectUri: OAUTH_REDIRECT_URI,
         }
       );
       const data = response.data.data;

@@ -11,7 +11,11 @@ import { useAppDispatch, useAppSelector } from "@/store";
 import { loginAsync } from "../authSlice";
 import { mockAuthDelay } from "../__mocks__/users";
 import type { LoginFormData } from "../types";
-import { AUTH_REGISTER_ENDPOINT, ACCESS_TOKEN_STORAGE_KEY } from "@/utils/constants";
+import {
+  AUTH_REGISTER_ENDPOINT,
+  ACCESS_TOKEN_STORAGE_KEY,
+  OAUTH_AUTH_BASE_URL,
+} from "@/utils/constants";
 import { hasAdminRole } from "@/lib/utils";
 
 export const LoginForm = () => {
@@ -85,18 +89,18 @@ export const LoginForm = () => {
   }, [location.search, toast]);
 
   const handleOAuth = async (provider: string) => {
-    const baseUrl =
-      "http://localhost:9090/realms/nexo-network/protocol/openid-connect/auth";
+    const baseUrl = OAUTH_AUTH_BASE_URL;
     const params = new URLSearchParams({
       client_id: "auth-service-client",
-      redirect_uri: "http://localhost:3000/auth/oauth/callback",
+      redirect_uri:
+        import.meta.env.VITE_OAUTH_REDIRECT_URI ||
+        "http://localhost:3000/auth/oauth/callback",
       response_type: "code",
       kc_idp_hint: provider,
     });
     const authUrl = `${baseUrl}?${params.toString()}`;
     window.location.href = authUrl;
   };
-
 
   return (
     <div className="w-full max-w-sm mx-auto">
