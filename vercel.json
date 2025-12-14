@@ -1,11 +1,6 @@
 {
   "rewrites": [
     {
-      "source": "/api/:path*",
-      "destination": "https://api.nexo.nayamishop.id.vn/:path*"
-    },
-    
-    {
       "source": "/(.*)",
       "destination": "/index.html"
     }
