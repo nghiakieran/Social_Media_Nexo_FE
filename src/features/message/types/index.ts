@@ -4,6 +4,7 @@ export enum EMessageType {
   VIDEO = "VIDEO",
   AUDIO = "AUDIO",
   FILE = "FILE",
+  STORY = "STORY",
 }
 
 export enum EReactionType {
@@ -68,6 +69,8 @@ export interface MessageDTO {
   replyToMessage?: MessageDTO | null;
   mediaList: MediaDTO[];
   reactions: ReactionDTO[];
+  storyId?: number | null;
+  storyMediaUrl?: string | null;
   isEdited?: boolean | null;
   editedAt?: string | null;
   createdAt: string;
