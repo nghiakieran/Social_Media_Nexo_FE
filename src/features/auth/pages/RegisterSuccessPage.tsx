@@ -20,7 +20,9 @@ export const RegisterSuccessPage = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [isResending, setIsResending] = useState(false);
-  const [cooldownRemaining, setCooldownRemaining] = useState<number | null>(null);
+  const [cooldownRemaining, setCooldownRemaining] = useState<number | null>(
+    null
+  );
 
   useEffect(() => {
     if (!userId) {
@@ -32,7 +34,9 @@ export const RegisterSuccessPage = () => {
     if (cooldownRemaining === null || cooldownRemaining <= 0) return;
 
     const timer = setTimeout(() => {
-      setCooldownRemaining((prev) => (prev !== null && prev > 1 ? prev - 1 : null));
+      setCooldownRemaining((prev) =>
+        prev !== null && prev > 1 ? prev - 1 : null
+      );
     }, 1000);
 
     return () => clearTimeout(timer);
