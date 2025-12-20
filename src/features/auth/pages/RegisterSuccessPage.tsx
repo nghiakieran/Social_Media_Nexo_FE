@@ -20,12 +20,23 @@ export const RegisterSuccessPage = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [isResending, setIsResending] = useState(false);
+  const [cooldownRemaining, setCooldownRemaining] = useState<number | null>(null);
 
   useEffect(() => {
     if (!userId) {
       navigate("/auth/register");
     }
   }, [userId, navigate]);
+
+  useEffect(() => {
+    if (cooldownRemaining === null || cooldownRemaining <= 0) return;
+
+    const timer = setTimeout(() => {
+      setCooldownRemaining((prev) => (prev !== null && prev > 1 ? prev - 1 : null));
+    }, 1000);
+
+    return () => clearTimeout(timer);
+  }, [cooldownRemaining]);
 
   const handleResendVerification = async () => {
     if (!userId) return;
@@ -38,6 +49,8 @@ export const RegisterSuccessPage = () => {
         title: "Đã gửi lại email",
         description: "Vui lòng kiểm tra hộp thư của bạn.",
       });
+
+      setCooldownRemaining(60);
     } catch (error) {
       toast({
         variant: "destructive",
@@ -97,12 +110,17 @@ export const RegisterSuccessPage = () => {
             onClick={handleResendVerification}
             variant="outline"
             className="w-full"
-            disabled={isResending}
+            disabled={isResending || cooldownRemaining !== null}
           >
             {isResending ? (
               <>
                 <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
                 Đang gửi...
+              </>
+            ) : cooldownRemaining !== null ? (
+              <>
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Gửi lại sau {cooldownRemaining}s
               </>
             ) : (
               <>
