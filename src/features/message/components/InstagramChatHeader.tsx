@@ -339,7 +339,15 @@ export const InstagramChatHeader: React.FC<InstagramChatHeaderProps> = ({
         </div>
 
         <div className="flex-1 min-w-0">
-          <h3 className="font-semibold text-sm md:text-base truncate">
+          <h3
+            className="font-semibold text-sm md:text-base truncate cursor-pointer hover:underline"
+            onClick={() => {
+              if (chat.username) navigate(`/${chat.username}`);
+            }}
+            tabIndex={0}
+            role="button"
+            aria-label={`Xem trang cá nhân của ${chat.fullname ?? ""}`}
+          >
             {chat.fullname ?? ""}
           </h3>
           {chat.blockedByMe ? (
@@ -381,7 +389,11 @@ export const InstagramChatHeader: React.FC<InstagramChatHeaderProps> = ({
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-8 w-8 md:h-9 md:w-9">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 md:h-9 md:w-9"
+            >
               <MoreVertical className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>

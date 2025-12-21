@@ -80,6 +80,7 @@ export interface ConversationResponseDTO {
   id: number;
   fullname: string;
   avatarUrl: string;
+  username: string;
   participants: UserDTO[];
   lastMessage: MessageDTO | null;
   unreadCount: number;
