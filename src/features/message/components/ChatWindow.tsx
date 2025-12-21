@@ -8,12 +8,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
   Reply,
   Copy,
   Forward,
@@ -21,6 +15,8 @@ import {
   MoreVertical,
   Check,
   CheckCheck,
+  Play,
+  X, // <--- Import thêm icon X để đóng story
 } from "lucide-react";
 import { TypingIndicator } from "./TypingIndicator";
 import { ReactionMessage } from "./ReactionMessage";
@@ -72,6 +68,9 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
   const topSentinelRef = useRef<HTMLDivElement>(null);
   const loadMoreObserverRef = useRef<IntersectionObserver | null>(null);
 
+  // State để quản lý việc xem Story full màn hình
+  const [viewingStory, setViewingStory] = useState<string | null>(null);
+
   const [forwardDialog, setForwardDialog] = useState<{
     open: boolean;
     messageId: string;
@@ -89,11 +88,9 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
     [messageId: number]: number;
   }>({});
 
-  // Clear reactionsCount when message.reactions changes (optimistic updates)
   useEffect(() => {
     messages.forEach((message) => {
       if (message.reactions && message.reactions.length > 0) {
-        // Clear cached count when reactions are updated
         setReactionsCount((prev) => {
           const newCount = { ...prev };
           delete newCount[message.id];
@@ -114,7 +111,17 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
   const isLoadingMoreRef = useRef<boolean>(false);
   const lastLoadMoreScrollTopRef = useRef<number>(-1);
 
-  // Reset scroll flag when chat changes
+  // Effect để tự động đóng story sau 5 giây (giả lập chạy story)
+  useEffect(() => {
+    let timeout: NodeJS.Timeout;
+    if (viewingStory) {
+      timeout = setTimeout(() => {
+        setViewingStory(null);
+      }, 5000); // 5 giây
+    }
+    return () => clearTimeout(timeout);
+  }, [viewingStory]);
+
   useEffect(() => {
     if (prevChatIdRef.current !== chat.id) {
       hasScrolledToBottomRef.current = false;
@@ -125,7 +132,6 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
     }
   }, [chat.id]);
 
-  // Save scroll position before messages change
   useLayoutEffect(() => {
     const scrollArea = scrollAreaRef.current;
     if (scrollArea) {
@@ -140,7 +146,6 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
     }
   }, [messages]);
 
-  // Adjust scroll position when messages change
   useLayoutEffect(() => {
     const scrollArea = scrollAreaRef.current;
     if (!scrollArea) return;
@@ -151,39 +156,29 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
     const messagesLengthChanged =
       messages.length !== prevMessagesLengthRef.current;
 
-    // Update messages length ref
     prevMessagesLengthRef.current = messages.length;
 
-    // If loading more messages at the top (scrollHeight increased and we're near top)
     if (
       messagesLengthChanged &&
       currentScrollHeight > prevScrollHeight &&
-      prevScrollTop < 500 && // Near top of scroll
-      !isNearBottomRef.current // Not near bottom
+      prevScrollTop < 500 &&
+      !isNearBottomRef.current
     ) {
-      // Calculate the height difference (new messages added at top)
       const heightDifference = currentScrollHeight - prevScrollHeight;
 
-      // Maintain scroll position by adjusting scrollTop
-      // This keeps the user's view stable when new messages are added above
-      // Sử dụng double requestAnimationFrame để đảm bảo DOM đã render xong
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
           if (scrollArea) {
             const newScrollTop = prevScrollTop + heightDifference;
             scrollArea.scrollTop = newScrollTop;
 
-            // Sau khi maintain scroll position, kiểm tra xem có cần load tiếp không
-            // Nếu scrollTop vẫn còn nhỏ (gần top) và có thêm messages, trigger load tiếp
             setTimeout(() => {
               if (scrollArea && scrollArea.scrollTop < 200) {
-                // Kiểm tra xem sentinel có trong viewport không
                 if (topSentinelRef.current && loadMoreObserverRef.current) {
-                  // Force check intersection
                   const rect = topSentinelRef.current.getBoundingClientRect();
                   const rootRect = scrollArea.getBoundingClientRect();
                   const isVisible =
-                    rect.top < rootRect.bottom + 150 && // rootMargin: 150px
+                    rect.top < rootRect.bottom + 150 &&
                     rect.bottom > rootRect.top - 150;
 
                   if (
@@ -220,7 +215,6 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
         !hasScrolledToBottomRef.current ||
         prevScrollTop > 100)
     ) {
-      // Scroll to bottom for new messages
       requestAnimationFrame(() => {
         if (scrollArea) {
           scrollArea.scrollTop = scrollArea.scrollHeight;
@@ -249,7 +243,6 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
       lastLoadMoreScrollTopRef.current = scrollTop;
       onLoadMoreMessages();
 
-      // Reset flag sau một khoảng thời gian để cho phép load tiếp
       setTimeout(() => {
         if (!isLoadingMore) {
           isLoadingMoreRef.current = false;
@@ -297,15 +290,12 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
     markedAsReadRef.current.clear();
   }, [chat.id]);
 
-  // IntersectionObserver để detect khi scroll đến top và load more
   useEffect(() => {
-    // Disconnect observer cũ nếu có
     if (loadMoreObserverRef.current) {
       loadMoreObserverRef.current.disconnect();
       loadMoreObserverRef.current = null;
     }
 
-    // Reset flags khi chat thay đổi
     isLoadingMoreRef.current = false;
     lastLoadMoreScrollTopRef.current = -1;
 
@@ -313,14 +303,12 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
       return;
     }
 
-    // Tạo observer mới với delay nhỏ để đảm bảo DOM đã render
     const timeoutId = setTimeout(() => {
       if (!topSentinelRef.current || !scrollAreaRef.current) return;
 
       loadMoreObserverRef.current = new IntersectionObserver(
         (entries) => {
           const entry = entries[0];
-          // Trigger khi sentinel bắt đầu xuất hiện hoặc vẫn đang trong viewport
           if (
             entry.isIntersecting &&
             !isLoadingMoreRef.current &&
@@ -332,24 +320,18 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
             if (!scrollArea) return;
 
             const currentScrollTop = scrollArea.scrollTop;
-
-            // Chỉ trigger nếu scroll position đã thay đổi đáng kể từ lần load trước
-            // hoặc đây là lần đầu tiên
             const shouldTrigger =
               lastLoadMoreScrollTopRef.current === -1 ||
               Math.abs(currentScrollTop - lastLoadMoreScrollTopRef.current) >
                 10 ||
-              currentScrollTop < 100; // Nếu đang ở rất gần top, luôn trigger
+              currentScrollTop < 100;
 
             if (shouldTrigger) {
               isLoadingMoreRef.current = true;
               lastLoadMoreScrollTopRef.current = currentScrollTop;
               onLoadMoreMessages();
 
-              // Reset flag sau một khoảng thời gian
-              // Nhưng không reset ngay để tránh trigger nhiều lần
               setTimeout(() => {
-                // Chỉ reset nếu không còn đang loading
                 if (!isLoadingMore) {
                   isLoadingMoreRef.current = false;
                 }
@@ -359,8 +341,8 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
         },
         {
           root: scrollAreaRef.current,
-          rootMargin: "200px", // Trigger sớm hơn 200px trước khi đến top để mượt mà hơn
-          threshold: [0, 0.1, 0.5, 1], // Trigger ở nhiều threshold để đảm bảo detect được
+          rootMargin: "200px",
+          threshold: [0, 0.1, 0.5, 1],
         }
       );
 
@@ -378,9 +360,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
     };
   }, [onLoadMoreMessages, hasMoreMessages, isLoadingMore, chat.id]);
 
-  // Tự động check và load tiếp sau khi loading xong nếu vẫn ở gần top
   useEffect(() => {
-    // Chỉ check khi vừa finish loading (isLoadingMore chuyển từ true sang false)
     if (isLoadingMore || !hasMoreMessages || !onLoadMoreMessages) {
       return;
     }
@@ -390,23 +370,18 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
       return;
     }
 
-    // Delay một chút để đảm bảo DOM đã update
     const timeoutId = setTimeout(() => {
       if (!scrollArea || !topSentinelRef.current) return;
 
       const scrollTop = scrollArea.scrollTop;
 
-      // Nếu vẫn ở gần top và chưa load gần đây
       if (scrollTop < 200 && !isLoadingMoreRef.current) {
-        // Kiểm tra xem sentinel có trong viewport không
         const rect = topSentinelRef.current.getBoundingClientRect();
         const rootRect = scrollArea.getBoundingClientRect();
         const isVisible =
-          rect.top < rootRect.bottom + 200 && // rootMargin: 200px
-          rect.bottom > rootRect.top - 200;
+          rect.top < rootRect.bottom + 200 && rect.bottom > rootRect.top - 200;
 
         if (isVisible) {
-          // Trigger load more tiếp
           isLoadingMoreRef.current = true;
           lastLoadMoreScrollTopRef.current = scrollTop;
           onLoadMoreMessages();
@@ -423,12 +398,10 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
     return () => clearTimeout(timeoutId);
   }, [isLoadingMore, hasMoreMessages, onLoadMoreMessages]);
 
-  // Scroll to bottom when chat changes
   useEffect(() => {
     const scrollArea = scrollAreaRef.current;
     if (scrollArea) {
       hasScrolledToBottomRef.current = false;
-      // Use requestAnimationFrame and setTimeout to ensure DOM is fully rendered
       requestAnimationFrame(() => {
         setTimeout(() => {
           if (scrollArea) {
@@ -440,11 +413,9 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
     }
   }, [chat.id]);
 
-  // Scroll to bottom when messages are first loaded for a conversation
   useEffect(() => {
     const scrollArea = scrollAreaRef.current;
     if (scrollArea && messages.length > 0 && !hasScrolledToBottomRef.current) {
-      // Wait for DOM to render messages
       requestAnimationFrame(() => {
         setTimeout(() => {
           if (scrollArea) {
@@ -557,7 +528,6 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
           data-scroll-area
         >
           <div className="space-y-4">
-            {/* Sentinel element để detect khi scroll đến top */}
             {hasMoreMessages && (
               <div
                 ref={topSentinelRef}
@@ -566,7 +536,6 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
               />
             )}
 
-            {/* Spinner hiển thị khi đang load tin cũ */}
             {isLoadingMore && (
               <div className="flex justify-center py-2 w-full">
                 <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary"></div>
@@ -581,6 +550,26 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
               const showDateSeparator =
                 !prevMessageDate ||
                 messageDate.toDateString() !== prevMessageDate.toDateString();
+
+              const renderTime = (className?: string) => (
+                <span
+                  className={cn(
+                    "text-[10px] select-none inline-flex items-center gap-1",
+                    className
+                  )}
+                >
+                  {new Date(message.createdAt).toLocaleTimeString("vi-VN", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    hour12: false,
+                  })}
+                  {isOwn && message.id === lastOwnMessageId && (
+                    <span title={getReadStatus(message, isOwn)?.tooltip}>
+                      {getReadStatus(message, isOwn)?.icon}
+                    </span>
+                  )}
+                </span>
+              );
 
               return (
                 <div
@@ -608,12 +597,12 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
 
                   <div
                     className={cn(
-                      "group flex items-start gap-2",
+                      "group flex items-end gap-2",
                       isOwn ? "justify-end" : "justify-start"
                     )}
                   >
                     {!isOwn && (
-                      <Avatar className="h-8 w-8 flex-shrink-0 mt-1">
+                      <Avatar className="h-8 w-8 flex-shrink-0 mb-1">
                         <AvatarImage
                           src={message.sender.avatarUrl || chat.avatarUrl}
                           alt={message.sender.fullName}
@@ -626,94 +615,131 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
 
                     <div
                       className={cn(
-                        "flex flex-col gap-1 max-w-[85%] md:max-w-[70%] w-full",
+                        "flex flex-col max-w-[85%] md:max-w-[70%]",
                         isOwn ? "items-end" : "items-start"
                       )}
                     >
-                      <div
-                        className={cn(
-                          "relative group/msg",
-                          message.reactions?.length > 0 && "mb-6"
-                        )}
-                      >
-                        {/* Message Bubble */}
+                      {message.replyToMessage && (
                         <div
                           className={cn(
-                            "px-4 py-2 rounded-2xl relative break-words text-sm shadow-sm max-w-full",
-                            isOwn
-                              ? "bg-primary text-primary-foreground rounded-br-sm"
-                              : "bg-muted text-foreground rounded-bl-sm border border-border/50"
+                            "text-xs text-muted-foreground mb-1 opacity-80 px-1",
+                            isOwn ? "text-right" : "text-left"
                           )}
                         >
-                          {/* Reply Message */}
-                          {message.replyToMessage && (
+                          Đã trả lời tin của{" "}
+                          <span className="font-medium text-foreground">
+                            @{message.replyToMessage.sender.fullName}
+                          </span>
+                        </div>
+                      )}
+
+                      <div className="relative group/msg flex flex-col gap-1.5">
+                        {message.messageType === "STORY" &&
+                          message.storyMediaUrl && (
                             <div
                               className={cn(
-                                "mb-2 px-3 py-2 rounded-lg border-l-2 text-xs max-w-full",
-                                isOwn
-                                  ? "bg-primary-foreground/10 border-primary-foreground/30 text-primary-foreground/80"
-                                  : "bg-background/50 border-border text-muted-foreground"
+                                "relative",
+                                isOwn ? "ml-auto" : "mr-auto"
                               )}
+                              onClick={() =>
+                                setViewingStory(message.storyMediaUrl)
+                              }
                             >
-                              <div className="font-medium text-xs mb-1">
-                                Trả lời {message.replyToMessage.sender.fullName}
-                              </div>
-                              <div className="break-words line-clamp-3 overflow-hidden">
-                                {message.replyToMessage.messageType === "IMAGE"
-                                  ? "📷 Hình ảnh"
-                                  : message.replyToMessage.content}
+                              <div
+                                className={cn(
+                                  "relative overflow-hidden rounded-xl bg-black border border-border/10 shadow-md",
+                                  "w-[140px] md:w-[160px] aspect-[9/16]",
+                                  "group/story cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all duration-300"
+                                )}
+                              >
+                                <img
+                                  src={message.storyMediaUrl}
+                                  alt="Story media"
+                                  className="w-full h-full object-cover transition-transform duration-700 group-hover/story:scale-105 opacity-90"
+                                />
+                                <div className="absolute inset-0 bg-black/20 pointer-events-none" />
+
+                                {/* Play Button Centered */}
+                                <div className="absolute inset-0 flex items-center justify-center pointer-events-none group-hover/story:scale-110 transition-transform">
+                                  <div className="bg-white/20 backdrop-blur-sm p-3 rounded-full shadow-lg border border-white/30">
+                                    <Play
+                                      className="w-5 h-5 text-white fill-white ml-0.5"
+                                      strokeWidth={2.5}
+                                    />
+                                  </div>
+                                </div>
+
+                                <div className="absolute top-3 left-3 px-2 py-0.5 rounded-full bg-black/40 backdrop-blur-md border border-white/10">
+                                  <span className="text-[9px] font-bold text-white uppercase tracking-wider flex items-center gap-1">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+                                    Story
+                                  </span>
+                                </div>
+
+                                {!message.content?.trim() && (
+                                  <div className="absolute bottom-2 right-2 text-white/90 drop-shadow-md">
+                                    {renderTime("text-white/80")}
+                                  </div>
+                                )}
                               </div>
                             </div>
                           )}
 
-                          <div className="space-y-2">
-                            {message.content?.trim() && (
-                              <p className="whitespace-pre-wrap leading-relaxed text-right">
-                                {message.content}
-                              </p>
-                            )}
-                            {message.messageType === "IMAGE" && (
-                              <div className="space-y-2">
-                                {message.mediaList.map((media, index) => (
-                                  <img
-                                    key={media.id || index}
-                                    src={media.mediaUrl}
-                                    alt={`Sent image ${index + 1}`}
-                                    className="rounded-lg max-w-full h-auto"
-                                  />
-                                ))}
-                              </div>
-                            )}
-                          </div>
-
+                        {message.messageType === "IMAGE" && (
                           <div
                             className={cn(
-                              "text-[10px] opacity-70 mt-1 flex items-center gap-1 select-none",
-                              isOwn
-                                ? "justify-end text-primary-foreground/80"
-                                : "text-muted-foreground"
+                              "flex flex-col gap-1",
+                              isOwn ? "items-end" : "items-start"
                             )}
                           >
-                            <span>
-                              {new Date(message.createdAt).toLocaleTimeString(
-                                "vi-VN",
-                                {
-                                  hour: "2-digit",
-                                  minute: "2-digit",
-                                  hour12: false,
-                                }
-                              )}
-                            </span>
-                            {isOwn && message.id === lastOwnMessageId && (
-                              <span
-                                title={getReadStatus(message, isOwn)?.tooltip}
+                            {message.mediaList.map((media, idx) => (
+                              <div
+                                key={media.id || idx}
+                                className="relative rounded-lg overflow-hidden border border-border/10 shadow-sm max-w-full"
                               >
-                                {getReadStatus(message, isOwn)?.icon}
-                              </span>
-                            )}
+                                <img
+                                  src={media.mediaUrl}
+                                  alt="Image"
+                                  className="max-w-full h-auto max-h-[400px] object-cover"
+                                />
+                                {idx === message.mediaList.length - 1 &&
+                                  !message.content?.trim() && (
+                                    <div className="absolute bottom-1 right-1 px-1.5 py-0.5 bg-black/40 backdrop-blur-sm rounded-full text-white/90">
+                                      {renderTime("text-white")}
+                                    </div>
+                                  )}
+                              </div>
+                            ))}
                           </div>
-                        </div>
+                        )}
 
+                        {/* === TEXT CONTENT === */}
+                        {message.content?.trim() && (
+                          <div
+                            className={cn(
+                              "px-4 py-2 rounded-2xl relative break-words text-sm shadow-sm w-fit",
+                              isOwn
+                                ? "bg-primary text-primary-foreground rounded-br-sm ml-auto"
+                                : "bg-muted text-foreground rounded-bl-sm mr-auto"
+                            )}
+                          >
+                            <p className="whitespace-pre-wrap leading-relaxed">
+                              {message.content}
+                            </p>
+                            <div
+                              className={cn(
+                                "mt-1 text-right opacity-70",
+                                isOwn
+                                  ? "text-primary-foreground/80"
+                                  : "text-muted-foreground"
+                              )}
+                            >
+                              {renderTime()}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* === HOVER ACTIONS === */}
                         <div
                           className={cn(
                             "absolute top-1/2 -translate-y-1/2 opacity-0 group-hover/msg:opacity-100 transition-all duration-200 z-10 flex items-center gap-1 px-2 py-1 bg-background/95 backdrop-blur-sm rounded-full shadow-sm border border-border/50",
@@ -722,7 +748,6 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                               : "-right-12 md:-right-20"
                           )}
                         >
-                          {/* Reaction Bar */}
                           <div className="flex items-center">
                             <ReactionMessage
                               messageId={String(message.id)}
@@ -751,7 +776,6 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                             />
                           </div>
 
-                          {/* Menu Dropdown */}
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button
@@ -809,7 +833,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                           </DropdownMenu>
                         </div>
 
-                        {/* Reactions Display */}
+                        {/* === REACTION DISPLAY === */}
                         {(() => {
                           const reactionsLength =
                             message.reactions?.length ?? 0;
@@ -826,7 +850,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                           return hasReactions ? (
                             <button
                               className={cn(
-                                "absolute -bottom-2 translate-y-full flex flex-row items-center gap-0.5 border rounded-full px-2 py-1 bg-background shadow-sm hover:scale-105 transition-transform cursor-pointer",
+                                "absolute -bottom-2 translate-y-full flex flex-row items-center gap-0.5 border rounded-full px-2 py-1 bg-background shadow-sm hover:scale-105 transition-transform cursor-pointer z-20",
                                 isOwn ? "right-0" : "left-0"
                               )}
                               onClick={() =>
@@ -892,7 +916,50 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
         </div>
       </div>
 
-      {/* Dialogs components (ForwardDialog, ReactionsDialog) giữ nguyên như cũ */}
+      {/* === STORY VIEWER OVERLAY === */}
+      {viewingStory && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 animate-in fade-in duration-300">
+          <div className="relative w-full h-full md:w-auto md:h-[85vh] md:aspect-[9/16] bg-black flex flex-col animate-in zoom-in-95 duration-300">
+            {/* Header / Progress Bar */}
+            <div className="absolute top-0 left-0 right-0 z-20 p-4 space-y-2">
+              <div className="flex gap-1 h-1">
+                {/* Simulated Progress Bar */}
+                <div className="flex-1 bg-white/30 rounded-full overflow-hidden">
+                  <div className="h-full bg-white animate-[progress_5s_linear_forwards] w-0 origin-left" />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Avatar className="w-8 h-8 border border-white/20">
+                    <AvatarImage src={chat.avatarUrl} />
+                    <AvatarFallback>...</AvatarFallback>
+                  </Avatar>
+                  <span className="text-white text-sm font-medium shadow-sm">
+                    {chat.conversationName || "Story"}
+                  </span>
+                  <span className="text-white/60 text-xs">1 giờ</span>
+                </div>
+                <button
+                  onClick={() => setViewingStory(null)}
+                  className="p-1 rounded-full hover:bg-white/20 transition-colors text-white"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+            </div>
+
+            {/* Story Content (Currently Image, can be swapped for Video) */}
+            <img
+              src={viewingStory}
+              alt="Viewing Story"
+              className="w-full h-full object-contain md:object-cover md:rounded-lg"
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Existing Dialogs */}
       <ForwardMessageDialog
         open={forwardDialog.open}
         onOpenChange={(open) => setForwardDialog((p) => ({ ...p, open }))}
@@ -918,6 +985,13 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
         userId={user?.id}
         messageId={reactionsDialog.messageId}
       />
+
+      <style>{`
+        @keyframes progress {
+          from { width: 0%; }
+          to { width: 100%; }
+        }
+      `}</style>
     </>
   );
 };
