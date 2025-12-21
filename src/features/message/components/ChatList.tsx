@@ -136,6 +136,8 @@ export const ChatList: React.FC<ChatListProps> = ({
                               "Đã gửi tin nhắn thoại"}
                             {chat.lastMessage.messageType === "FILE" &&
                               "Đã gửi tệp đính kèm"}
+                            {chat.lastMessage.messageType === "STORY" &&
+                              "Đã trả lời tin "}
                           </span>
                         )}
                       </p>
