@@ -938,7 +938,6 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                   <span className="text-white text-sm font-medium shadow-sm">
                     {chat.fullname || "Story"}
                   </span>
-                  <span className="text-white/60 text-xs">1 giờ</span>
                 </div>
                 <button
                   onClick={() => setViewingStory(null)}
