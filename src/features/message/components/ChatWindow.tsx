@@ -936,7 +936,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                     <AvatarFallback>...</AvatarFallback>
                   </Avatar>
                   <span className="text-white text-sm font-medium shadow-sm">
-                    {chat.conversationName || "Story"}
+                    {chat.fullname || "Story"}
                   </span>
                   <span className="text-white/60 text-xs">1 giờ</span>
                 </div>
