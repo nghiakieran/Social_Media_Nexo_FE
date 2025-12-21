@@ -610,6 +610,7 @@ export const StoryViewer = memo(
                 onQuickReply={handleQuickReply}
                 onReactionClick={handleReactionClick}
                 onViewerListToggle={() => setShowViewerList(!showViewerList)}
+                showSendButton={!!replyText.trim()}
               />
 
               {/* Mobile navigation areas */}
