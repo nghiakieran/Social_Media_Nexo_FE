@@ -223,7 +223,7 @@ export const SearchPage: React.FC = () => {
                     </TabsTrigger> */}
                     <TabsTrigger value="users" className="text-xs">
                       <Users className="h-3 w-3 mr-1" />
-                      Người dùng ({getFilteredCount("users")})
+                      Người dùng
                     </TabsTrigger>
                     {/* <TabsTrigger value="hashtags" className="text-xs">
                       <Hash className="h-3 w-3 mr-1" />
