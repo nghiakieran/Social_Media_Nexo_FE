@@ -51,9 +51,7 @@ export const InstagramStoryRing: React.FC<InstagramStoryRingProps> = ({
         className={cn(
           "rounded-full",
           ringPadding[size],
-          hasUnread
-            ? "bg-gradient-story"
-            : "bg-gradient-to-r from-muted-foreground/30 to-muted-foreground/30"
+          
         )}
       >
         <div className={cn("rounded-full bg-background", ringPadding[size])}>

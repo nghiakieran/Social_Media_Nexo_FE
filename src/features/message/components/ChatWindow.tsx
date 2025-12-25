@@ -16,7 +16,8 @@ import {
   Check,
   CheckCheck,
   Play,
-  X, // <--- Import thêm icon X để đóng story
+  X,
+  Video as VideoIcon, // Import thêm icon Video
 } from "lucide-react";
 import { TypingIndicator } from "./TypingIndicator";
 import { ReactionMessage } from "./ReactionMessage";
@@ -46,6 +47,13 @@ interface ChatWindowProps {
   className?: string;
 }
 
+// Hàm kiểm tra xem URL có phải là video không
+const checkIsVideo = (url: string | null | undefined) => {
+  if (!url) return false;
+  // Kiểm tra đuôi file hoặc từ khóa trong URL (Cloudinary thường có /video/)
+  return url.includes("/video/") || /\.(mp4|mov|webm|ogg|mkv|m3u8)$/i.test(url);
+};
+
 export const ChatWindow: React.FC<ChatWindowProps> = ({
   chat,
   messages,
@@ -68,7 +76,6 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
   const topSentinelRef = useRef<HTMLDivElement>(null);
   const loadMoreObserverRef = useRef<IntersectionObserver | null>(null);
 
-  // State để quản lý việc xem Story full màn hình
   const [viewingStory, setViewingStory] = useState<string | null>(null);
 
   const [forwardDialog, setForwardDialog] = useState<{
@@ -87,6 +94,10 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
   const [reactionsCount, setReactionsCount] = useState<{
     [messageId: number]: number;
   }>({});
+
+  const [highlightedMessageId, setHighlightedMessageId] = useState<
+    number | null
+  >(null);
 
   useEffect(() => {
     messages.forEach((message) => {
@@ -111,13 +122,18 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
   const isLoadingMoreRef = useRef<boolean>(false);
   const lastLoadMoreScrollTopRef = useRef<number>(-1);
 
-  // Effect để tự động đóng story sau 5 giây (giả lập chạy story)
+  // Xử lý thời gian story tự đóng
   useEffect(() => {
     let timeout: NodeJS.Timeout;
     if (viewingStory) {
+      // Nếu là video thì có thể muốn để video tự hết mới đóng,
+      // ở đây tạm set 10s cho video hoặc 5s cho ảnh
+      const isVideo = checkIsVideo(viewingStory);
+      const duration = isVideo ? 15000 : 5000; // Tăng thời gian nếu là video
+
       timeout = setTimeout(() => {
         setViewingStory(null);
-      }, 5000); // 5 giây
+      }, duration);
     }
     return () => clearTimeout(timeout);
   }, [viewingStory]);
@@ -515,6 +531,17 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
     setForwardDialog({ open: false, messageId: "", content: "" });
   };
 
+  const handleScrollToMessage = (messageId: number) => {
+    const element = messageRefs.current.get(messageId);
+    if (element) {
+      element.scrollIntoView({ behavior: "smooth", block: "center" });
+      setHighlightedMessageId(messageId);
+      setTimeout(() => {
+        setHighlightedMessageId(null);
+      }, 1500);
+    }
+  };
+
   return (
     <>
       <div
@@ -550,6 +577,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
               const showDateSeparator =
                 !prevMessageDate ||
                 messageDate.toDateString() !== prevMessageDate.toDateString();
+              const isHighlighted = highlightedMessageId === message.id;
 
               const renderTime = (className?: string) => (
                 <span
@@ -574,7 +602,10 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
               return (
                 <div
                   key={message.id}
-                  className="space-y-2 py-2"
+                  className={cn(
+                    "space-y-2 py-2 transition-colors duration-1000 rounded-lg px-2 -mx-2",
+                    isHighlighted ? "bg-primary/10" : "bg-transparent"
+                  )}
                   ref={(el) => {
                     if (el) messageRefs.current.set(message.id, el);
                     else messageRefs.current.delete(message.id);
@@ -621,15 +652,34 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                     >
                       {message.replyToMessage && (
                         <div
+                          onClick={() =>
+                            handleScrollToMessage(message.replyToMessage.id)
+                          }
                           className={cn(
-                            "text-xs text-muted-foreground mb-1 opacity-80 px-1",
-                            isOwn ? "text-right" : "text-left"
+                            "mb-1 px-3 py-2 rounded-lg border-l-[3px] text-xs max-w-full w-fit cursor-pointer hover:opacity-80 transition-opacity",
+                            isOwn
+                              ? "bg-primary/5 border-primary/40 text-primary/80"
+                              : "bg-muted/50 border-muted-foreground/30 text-muted-foreground"
                           )}
                         >
-                          Đã trả lời tin của{" "}
-                          <span className="font-medium text-foreground">
-                            @{message.replyToMessage.sender.fullName}
-                          </span>
+                          <div className="font-semibold text-[11px] mb-0.5 opacity-90 flex items-center gap-1">
+                            <Reply className="w-3 h-3" />
+                            Trả lời {message.replyToMessage.sender.fullName}
+                          </div>
+                          <div className="break-words line-clamp-2 overflow-hidden italic opacity-80">
+                            {message.replyToMessage.messageType === "IMAGE" ? (
+                              <span className="flex items-center gap-1">
+                                📷 Hình ảnh
+                              </span>
+                            ) : message.replyToMessage.messageType ===
+                              "STORY" ? (
+                              <span className="flex items-center gap-1">
+                                🎥 Story
+                              </span>
+                            ) : (
+                              message.replyToMessage.content
+                            )}
+                          </div>
                         </div>
                       )}
 
@@ -652,14 +702,26 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                                   "group/story cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all duration-300"
                                 )}
                               >
-                                <img
-                                  src={message.storyMediaUrl}
-                                  alt="Story media"
-                                  className="w-full h-full object-cover transition-transform duration-700 group-hover/story:scale-105 opacity-90"
-                                />
+                                {/* Xử lý Thumbnail Video hoặc Ảnh */}
+                                {checkIsVideo(message.storyMediaUrl) ? (
+                                  <video
+                                    src={message.storyMediaUrl}
+                                    className="w-full h-full object-cover opacity-90 transition-transform duration-700 group-hover/story:scale-105"
+                                    muted
+                                    playsInline
+                                    loop // Tùy chọn: loop để tạo hiệu ứng động
+                                    // Không autoplay để tránh nặng trang, chỉ hiện poster hoặc frame đầu
+                                  />
+                                ) : (
+                                  <img
+                                    src={message.storyMediaUrl}
+                                    alt="Story media"
+                                    className="w-full h-full object-cover transition-transform duration-700 group-hover/story:scale-105 opacity-90"
+                                  />
+                                )}
+
                                 <div className="absolute inset-0 bg-black/20 pointer-events-none" />
 
-                                {/* Play Button Centered */}
                                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none group-hover/story:scale-110 transition-transform">
                                   <div className="bg-white/20 backdrop-blur-sm p-3 rounded-full shadow-lg border border-white/30">
                                     <Play
@@ -713,7 +775,6 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                           </div>
                         )}
 
-                        {/* === TEXT CONTENT === */}
                         {message.content?.trim() && (
                           <div
                             className={cn(
@@ -739,7 +800,6 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                           </div>
                         )}
 
-                        {/* === HOVER ACTIONS === */}
                         <div
                           className={cn(
                             "absolute top-1/2 -translate-y-1/2 opacity-0 group-hover/msg:opacity-100 transition-all duration-200 z-10 flex items-center gap-1 px-2 py-1 bg-background/95 backdrop-blur-sm rounded-full shadow-sm border border-border/50",
@@ -833,7 +893,6 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                           </DropdownMenu>
                         </div>
 
-                        {/* === REACTION DISPLAY === */}
                         {(() => {
                           const reactionsLength =
                             message.reactions?.length ?? 0;
@@ -916,14 +975,11 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
         </div>
       </div>
 
-      {/* === STORY VIEWER OVERLAY === */}
       {viewingStory && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 animate-in fade-in duration-300">
           <div className="relative w-full h-full md:w-auto md:h-[85vh] md:aspect-[9/16] bg-black flex flex-col animate-in zoom-in-95 duration-300">
-            {/* Header / Progress Bar */}
             <div className="absolute top-0 left-0 right-0 z-20 p-4 space-y-2">
               <div className="flex gap-1 h-1">
-                {/* Simulated Progress Bar */}
                 <div className="flex-1 bg-white/30 rounded-full overflow-hidden">
                   <div className="h-full bg-white animate-[progress_5s_linear_forwards] w-0 origin-left" />
                 </div>
@@ -948,17 +1004,28 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
               </div>
             </div>
 
-            {/* Story Content (Currently Image, can be swapped for Video) */}
-            <img
-              src={viewingStory}
-              alt="Viewing Story"
-              className="w-full h-full object-contain md:object-cover md:rounded-lg"
-            />
+            {/* Hiển thị Video hoặc Ảnh trong chế độ xem Full */}
+            {checkIsVideo(viewingStory) ? (
+              <video
+                src={viewingStory}
+                className="w-full h-full object-contain md:object-cover md:rounded-lg"
+                autoPlay
+                controls
+                playsInline
+                // Lưu ý: Nếu URL là file .m3u8 (HLS), video tag trên Chrome/Windows sẽ không chạy được
+                // Cần dùng thư viện như hls.js hoặc react-player để hỗ trợ tốt nhất
+              />
+            ) : (
+              <img
+                src={viewingStory}
+                alt="Viewing Story"
+                className="w-full h-full object-contain md:object-cover md:rounded-lg"
+              />
+            )}
           </div>
         </div>
       )}
 
-      {/* Existing Dialogs */}
       <ForwardMessageDialog
         open={forwardDialog.open}
         onOpenChange={(open) => setForwardDialog((p) => ({ ...p, open }))}
