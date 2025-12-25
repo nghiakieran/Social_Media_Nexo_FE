@@ -49,7 +49,10 @@ interface ChatWindowProps {
 
 const checkIsVideo = (url: string | null | undefined) => {
   if (!url) return false;
-  return url.includes("/video/") || /\.(mp4|mov|webm|ogg|mkv|m3u8)$/i.test(url);
+  return (
+    url.includes("/video/") ||
+    /\.(mp4|mov|webm|ogg|mkv|m3u8)$/i.test(url)
+  );
 };
 
 export const ChatWindow: React.FC<ChatWindowProps> = ({
@@ -93,9 +96,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
     [messageId: number]: number;
   }>({});
 
-  const [highlightedMessageId, setHighlightedMessageId] = useState<
-    number | null
-  >(null);
+  const [highlightedMessageId, setHighlightedMessageId] = useState<number | null>(null);
 
   useEffect(() => {
     messages.forEach((message) => {
@@ -125,7 +126,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
     if (viewingStory) {
       const isVideo = checkIsVideo(viewingStory);
       const duration = isVideo ? 15000 : 5000;
-
+      
       timeout = setTimeout(() => {
         setViewingStory(null);
       }, duration);
@@ -140,9 +141,14 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
       prevMessagesLengthRef.current = 0;
       isLoadingMoreRef.current = false;
       lastLoadMoreScrollTopRef.current = -1;
-
+      
+      // Khi chuyển chat, luôn reset scroll xuống dưới cùng
       if (scrollAreaRef.current) {
-        scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight;
+        requestAnimationFrame(() => {
+            if(scrollAreaRef.current) {
+                scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight;
+            }
+        });
       }
     }
   }, [chat.id]);
@@ -161,6 +167,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
     }
   }, [messages]);
 
+  // Logic scroll chính
   useLayoutEffect(() => {
     const scrollArea = scrollAreaRef.current;
     if (!scrollArea) return;
@@ -173,14 +180,16 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
 
     prevMessagesLengthRef.current = messages.length;
 
+    // Kiểm tra tin nhắn cuối cùng có phải của mình không
     const lastMessage = messages[messages.length - 1];
-    const isLastMessageMine = user && lastMessage?.sender?.id === user.id;
+    const isLastMessageMine = user && lastMessage?.sender && String(lastMessage.sender.id) === String(user.id);
 
     if (
       messagesLengthChanged &&
       currentScrollHeight > prevScrollHeight &&
       prevScrollTop < 500 &&
-      !isNearBottomRef.current
+      !isNearBottomRef.current &&
+      !isLastMessageMine // Chỉ giữ vị trí khi load more message cũ, và tin nhắn mới ko phải của mình
     ) {
       const heightDifference = currentScrollHeight - prevScrollHeight;
 
@@ -191,6 +200,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
             scrollArea.scrollTop = newScrollTop;
 
             setTimeout(() => {
+              // Logic check load more cũ
               if (scrollArea && scrollArea.scrollTop < 200) {
                 if (topSentinelRef.current && loadMoreObserverRef.current) {
                   const rect = topSentinelRef.current.getBoundingClientRect();
@@ -230,6 +240,10 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
       messagesLengthChanged ||
       (!hasScrolledToBottomRef.current && messages.length > 0)
     ) {
+      // Logic cuộn xuống dưới:
+      // 1. Đang ở gần đáy
+      // 2. Hoặc lần đầu vào chưa cuộn
+      // 3. HOẶC tin nhắn mới nhất là CỦA MÌNH (isLastMessageMine) -> BẮT BUỘC CUỘN
       if (
         isNearBottomRef.current ||
         !hasScrolledToBottomRef.current ||
@@ -237,7 +251,11 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
       ) {
         requestAnimationFrame(() => {
           if (scrollArea) {
-            scrollArea.scrollTop = scrollArea.scrollHeight;
+            // Dùng scrollTo để có thể set behavior smooth
+            scrollArea.scrollTo({
+                top: scrollArea.scrollHeight,
+                behavior: isLastMessageMine ? "smooth" : "auto"
+            });
             hasScrolledToBottomRef.current = true;
           }
         });
@@ -629,9 +647,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                     >
                       {message.replyToMessage && (
                         <div
-                          onClick={() =>
-                            handleScrollToMessage(message.replyToMessage.id)
-                          }
+                          onClick={() => handleScrollToMessage(message.replyToMessage.id)}
                           className={cn(
                             "mb-1 px-3 py-2 rounded-lg border-l-[3px] text-xs max-w-full w-fit cursor-pointer hover:opacity-80 transition-opacity",
                             isOwn
@@ -648,8 +664,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                               <span className="flex items-center gap-1">
                                 📷 Hình ảnh
                               </span>
-                            ) : message.replyToMessage.messageType ===
-                              "STORY" ? (
+                            ) : message.replyToMessage.messageType === "STORY" ? (
                               <span className="flex items-center gap-1">
                                 🎥 Story
                               </span>
@@ -694,7 +709,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                                     className="w-full h-full object-cover transition-transform duration-700 group-hover/story:scale-105 opacity-90"
                                   />
                                 )}
-
+                                
                                 <div className="absolute inset-0 bg-black/20 pointer-events-none" />
 
                                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none group-hover/story:scale-110 transition-transform">
@@ -842,28 +857,6 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                                 <Copy className="h-4 w-4 mr-2" />
                                 Sao chép
                               </DropdownMenuItem>
-                              {/* <DropdownMenuItem
-                                onClick={() =>
-                                  handleForwardMessage(
-                                    String(message.id),
-                                    message.content
-                                  )
-                                }
-                              >
-                                <Forward className="h-4 w-4 mr-2" />
-                                Chuyển tiếp
-                              </DropdownMenuItem>
-                              {isOwn && (
-                                <DropdownMenuItem
-                                  onClick={() =>
-                                    onDeleteMessage(String(message.id))
-                                  }
-                                  className="text-destructive"
-                                >
-                                  <Trash2 className="h-4 w-4 mr-2" />
-                                  Xóa
-                                </DropdownMenuItem> */}
-                              {/* )} */}
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </div>
