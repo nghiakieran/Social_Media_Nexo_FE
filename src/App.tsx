@@ -4,7 +4,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthLayout } from "@/layouts/AuthLayout";
 import { MainLayout } from "@/layouts/MainLayout";
-import { store } from "@/store";
+import { store, useAppDispatch, useAppSelector } from "@/store";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Provider } from "react-redux";
 import {
@@ -17,6 +17,16 @@ import {
 } from "react-router-dom";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { useEffect } from "react";
+
+// Utils & Constants
+import { hydrateAuthAsync } from "@/features/auth/authSlice";
+import { setOnUnauthorizedNavigate } from "@/lib/axios";
+import {
+  AUTH_LOGIN_ENDPOINT,
+  ACCESS_TOKEN_STORAGE_KEY,
+} from "@/utils/constants";
+import { WebSocketProvider } from "./utils/WebSocketProvider";
+import { hasAdminRole } from "@/lib/utils";
 
 // Pages
 import AdminModeration from "./pages/AdminModeration";
@@ -58,10 +68,6 @@ import { ChatPage } from "./features/message/pages/ChatPage";
 import { InboxPage } from "./features/message/pages/InboxPage";
 
 // Profile Pages
-import { hydrateAuthAsync } from "@/features/auth/authSlice";
-import { setOnUnauthorizedNavigate } from "@/lib/axios";
-import { useAppDispatch, useAppSelector } from "@/store";
-import { AUTH_LOGIN_ENDPOINT } from "@/utils/constants";
 import { AccountSettingsPage } from "./features/profile/pages/AccountSettingsPage";
 import { BlockedUsersPage } from "./features/profile/pages/BlockedUsersPage";
 import { CloseFriendsPage } from "./features/profile/pages/CloseFriendsPage";
@@ -82,9 +88,6 @@ import Comments from "./features/admin/pages/Comments";
 import Posts from "./features/admin/pages/Posts";
 import Reports from "./features/admin/pages/Reports";
 
-// Utils
-import { WebSocketProvider } from "./utils/WebSocketProvider";
-
 const queryClient = new QueryClient();
 
 const NavigationBinder = () => {
@@ -103,16 +106,57 @@ const HydrateOnStart = () => {
   return null;
 };
 
+// --- GUARD COMPONENTS ---
+
+// 1. RequireAuth: Bắt buộc phải đăng nhập mới được vào
 const RequireAuth = ({ children }: { children: JSX.Element }) => {
   const { isAuthenticated, isHydrated } = useAppSelector((state) => state.auth);
   const location = useLocation();
-  if (!isHydrated) return null; // or loader
+
+  if (!isHydrated) return null; // Chờ load state từ localStorage
+
   if (!isAuthenticated)
     return (
       <Navigate to={AUTH_LOGIN_ENDPOINT} replace state={{ from: location }} />
     );
   return children;
 };
+
+// 2. GuestGuard: Đã đăng nhập thì KHÔNG được vào (dành cho trang Login/Register)
+const GuestGuard = ({ children }: { children: JSX.Element }) => {
+  const { isAuthenticated, isHydrated } = useAppSelector((state) => state.auth);
+
+  if (!isHydrated) return null; // Chờ xác định trạng thái đăng nhập
+
+  if (isAuthenticated) {
+    // Nếu đã login, đá về trang chủ (Sau đó UserGuard/AdminGuard sẽ lo phần còn lại)
+    return <Navigate to="/" replace />;
+  }
+
+  return children;
+};
+
+// 3. AdminGuard: Chặn User thường, chỉ cho Admin vào
+const AdminGuard = ({ children }: { children: JSX.Element }) => {
+  const token = localStorage.getItem(ACCESS_TOKEN_STORAGE_KEY);
+
+  if (!token || !hasAdminRole(token)) {
+    return <Navigate to="/" replace />;
+  }
+  return children;
+};
+
+// 4. UserGuard: Chặn Admin, chỉ cho User thường vào
+const UserGuard = ({ children }: { children: JSX.Element }) => {
+  const token = localStorage.getItem(ACCESS_TOKEN_STORAGE_KEY);
+
+  if (token && hasAdminRole(token)) {
+    return <Navigate to="/admin" replace />;
+  }
+  return children;
+};
+
+// ------------------------
 
 const AuthenticatedAppWrapper = ({ children }: { children: JSX.Element }) => {
   const { isAuthenticated } = useAppSelector((state) => state.auth);
@@ -132,13 +176,15 @@ const App = () => (
               <NavigationBinder />
               <HydrateOnStart />
               <Routes>
-                {/* Main App Routes */}
+                {/* --- USER ROUTES --- */}
                 <Route
                   path="/"
                   element={
                     <RequireAuth>
                       <AuthenticatedAppWrapper>
-                        <MainLayout />
+                        <UserGuard>
+                          <MainLayout />
+                        </UserGuard>
                       </AuthenticatedAppWrapper>
                     </RequireAuth>
                   }
@@ -184,15 +230,40 @@ const App = () => (
                     path="people/suggestions"
                     element={<PeopleSuggestions />}
                   />
-                  <Route
-                    path="admin/moderation"
-                    element={<AdminModeration />}
-                  />
                   <Route path="about" element={<About />} />
                 </Route>
 
-                {/* Auth Routes */}
-                <Route path="/auth" element={<AuthLayout />}>
+                {/* --- ADMIN ROUTES --- */}
+                <Route
+                  path="/admin"
+                  element={
+                    <RequireAuth>
+                      <AuthenticatedAppWrapper>
+                        <AdminGuard>
+                          <AdminLayout />
+                        </AdminGuard>
+                      </AuthenticatedAppWrapper>
+                    </RequireAuth>
+                  }
+                >
+                  <Route index element={<Dashboard />} />
+                  <Route path="users" element={<Users />} />
+                  <Route path="posts" element={<Posts />} />
+                  <Route path="reports" element={<Reports />} />
+                  <Route path="comments" element={<Comments />} />
+                  <Route path="settings" element={<Settings />} />
+                  <Route path="moderation" element={<AdminModeration />} />
+                </Route>
+
+                {/* --- AUTH ROUTES (Đã bọc GuestGuard) --- */}
+                <Route
+                  path="/auth"
+                  element={
+                    <GuestGuard>
+                      <AuthLayout />
+                    </GuestGuard>
+                  }
+                >
                   <Route path="login" element={<LoginPage />} />
                   <Route path="register" element={<RegisterPage />} />
                   <Route
@@ -212,16 +283,6 @@ const App = () => (
                     path="oauth/complete-profile"
                     element={<OAuthCompleteProfilePage />}
                   />
-                </Route>
-
-                {/* Admin Routes */}
-                <Route path="/admin" element={<AdminLayout />}>
-                  <Route index element={<Dashboard />} />
-                  <Route path="users" element={<Users />} />
-                  <Route path="posts" element={<Posts />} />
-                  <Route path="reports" element={<Reports />} />
-                  <Route path="comments" element={<Comments />} />
-                  <Route path="settings" element={<Settings />} />
                 </Route>
 
                 {/* Catch-all */}
