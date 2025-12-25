@@ -17,7 +17,7 @@ import {
   CheckCheck,
   Play,
   X,
-  Video as VideoIcon, // Import thêm icon Video
+  Video as VideoIcon,
 } from "lucide-react";
 import { TypingIndicator } from "./TypingIndicator";
 import { ReactionMessage } from "./ReactionMessage";
@@ -47,10 +47,8 @@ interface ChatWindowProps {
   className?: string;
 }
 
-// Hàm kiểm tra xem URL có phải là video không
 const checkIsVideo = (url: string | null | undefined) => {
   if (!url) return false;
-  // Kiểm tra đuôi file hoặc từ khóa trong URL (Cloudinary thường có /video/)
   return url.includes("/video/") || /\.(mp4|mov|webm|ogg|mkv|m3u8)$/i.test(url);
 };
 
@@ -122,14 +120,11 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
   const isLoadingMoreRef = useRef<boolean>(false);
   const lastLoadMoreScrollTopRef = useRef<number>(-1);
 
-  // Xử lý thời gian story tự đóng
   useEffect(() => {
     let timeout: NodeJS.Timeout;
     if (viewingStory) {
-      // Nếu là video thì có thể muốn để video tự hết mới đóng,
-      // ở đây tạm set 10s cho video hoặc 5s cho ảnh
       const isVideo = checkIsVideo(viewingStory);
-      const duration = isVideo ? 15000 : 5000; // Tăng thời gian nếu là video
+      const duration = isVideo ? 15000 : 5000;
 
       timeout = setTimeout(() => {
         setViewingStory(null);
@@ -145,6 +140,10 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
       prevMessagesLengthRef.current = 0;
       isLoadingMoreRef.current = false;
       lastLoadMoreScrollTopRef.current = -1;
+
+      if (scrollAreaRef.current) {
+        scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight;
+      }
     }
   }, [chat.id]);
 
@@ -173,6 +172,9 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
       messages.length !== prevMessagesLengthRef.current;
 
     prevMessagesLengthRef.current = messages.length;
+
+    const lastMessage = messages[messages.length - 1];
+    const isLastMessageMine = user && lastMessage?.sender?.id === user.id;
 
     if (
       messagesLengthChanged &&
@@ -225,19 +227,23 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
         });
       });
     } else if (
-      messagesLengthChanged &&
-      currentScrollHeight > prevScrollHeight &&
-      (isNearBottomRef.current ||
-        !hasScrolledToBottomRef.current ||
-        prevScrollTop > 100)
+      messagesLengthChanged ||
+      (!hasScrolledToBottomRef.current && messages.length > 0)
     ) {
-      requestAnimationFrame(() => {
-        if (scrollArea) {
-          scrollArea.scrollTop = scrollArea.scrollHeight;
-        }
-      });
+      if (
+        isNearBottomRef.current ||
+        !hasScrolledToBottomRef.current ||
+        isLastMessageMine
+      ) {
+        requestAnimationFrame(() => {
+          if (scrollArea) {
+            scrollArea.scrollTop = scrollArea.scrollHeight;
+            hasScrolledToBottomRef.current = true;
+          }
+        });
+      }
     }
-  }, [messages, hasMoreMessages, isLoadingMore, onLoadMoreMessages]);
+  }, [messages, hasMoreMessages, isLoadingMore, onLoadMoreMessages, user]);
 
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
     const target = e.currentTarget;
@@ -413,35 +419,6 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
 
     return () => clearTimeout(timeoutId);
   }, [isLoadingMore, hasMoreMessages, onLoadMoreMessages]);
-
-  useEffect(() => {
-    const scrollArea = scrollAreaRef.current;
-    if (scrollArea) {
-      hasScrolledToBottomRef.current = false;
-      requestAnimationFrame(() => {
-        setTimeout(() => {
-          if (scrollArea) {
-            scrollArea.scrollTop = scrollArea.scrollHeight;
-            hasScrolledToBottomRef.current = true;
-          }
-        }, 100);
-      });
-    }
-  }, [chat.id]);
-
-  useEffect(() => {
-    const scrollArea = scrollAreaRef.current;
-    if (scrollArea && messages.length > 0 && !hasScrolledToBottomRef.current) {
-      requestAnimationFrame(() => {
-        setTimeout(() => {
-          if (scrollArea) {
-            scrollArea.scrollTop = scrollArea.scrollHeight;
-            hasScrolledToBottomRef.current = true;
-          }
-        }, 50);
-      });
-    }
-  }, [messages.length, chat.id]);
 
   const isCurrentUser = (senderId: string | number) =>
     user && String(senderId) === String(user.id);
@@ -702,15 +679,13 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                                   "group/story cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all duration-300"
                                 )}
                               >
-                                {/* Xử lý Thumbnail Video hoặc Ảnh */}
                                 {checkIsVideo(message.storyMediaUrl) ? (
                                   <video
                                     src={message.storyMediaUrl}
                                     className="w-full h-full object-cover opacity-90 transition-transform duration-700 group-hover/story:scale-105"
                                     muted
                                     playsInline
-                                    loop // Tùy chọn: loop để tạo hiệu ứng động
-                                    // Không autoplay để tránh nặng trang, chỉ hiện poster hoặc frame đầu
+                                    loop
                                   />
                                 ) : (
                                   <img
@@ -887,8 +862,8 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                                 >
                                   <Trash2 className="h-4 w-4 mr-2" />
                                   Xóa
-                                </DropdownMenuItem>
-                              )} */}
+                                </DropdownMenuItem> */}
+                              {/* )} */}
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </div>
@@ -1004,7 +979,6 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
               </div>
             </div>
 
-            {/* Hiển thị Video hoặc Ảnh trong chế độ xem Full */}
             {checkIsVideo(viewingStory) ? (
               <video
                 src={viewingStory}
@@ -1012,8 +986,6 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                 autoPlay
                 controls
                 playsInline
-                // Lưu ý: Nếu URL là file .m3u8 (HLS), video tag trên Chrome/Windows sẽ không chạy được
-                // Cần dùng thư viện như hls.js hoặc react-player để hỗ trợ tốt nhất
               />
             ) : (
               <img
