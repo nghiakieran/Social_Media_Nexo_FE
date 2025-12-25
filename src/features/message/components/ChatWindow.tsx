@@ -867,7 +867,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                                 <Copy className="h-4 w-4 mr-2" />
                                 Sao chép
                               </DropdownMenuItem>
-                              <DropdownMenuItem
+                              {/* <DropdownMenuItem
                                 onClick={() =>
                                   handleForwardMessage(
                                     String(message.id),
@@ -888,7 +888,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                                   <Trash2 className="h-4 w-4 mr-2" />
                                   Xóa
                                 </DropdownMenuItem>
-                              )}
+                              )} */}
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </div>
