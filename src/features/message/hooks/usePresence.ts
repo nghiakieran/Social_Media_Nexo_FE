@@ -135,5 +135,5 @@ export const formatLastSeen = (lastSeenTimestamp?: string): string => {
   if (diffHours < 24) return `Hoạt động ${diffHours} giờ trước`;
   if (diffDays === 1) return "Hoạt động hôm qua";
   if (diffDays < 7) return `Hoạt động ${diffDays} ngày trước`;
-  return "Hoạt động tuần trước";
+  return "";
 };
