@@ -309,21 +309,7 @@ export const SearchPage: React.FC = () => {
                 </div>
               </div>
             )}
-            Trending Hashtags
-            <TrendingSection
-              hashtags={trendingHashtags}
-              onHashtagClick={(hashtag) => {
-                navigate(
-                  `/explore?hashtag=${encodeURIComponent(
-                    hashtag.name.replace(/^#/, "")
-                  )}`
-                );
-              }}
-              onFollowHashtag={(hashtagId) =>
-                dispatch(followHashtag(hashtagId))
-              }
-              onViewAll={() => console.log("View all trending")}
-            />
+            {/* TrendingSection removed as requested */}
             {/* Suggested Searches */}
             {/* <div className="space-y-4">
               <h3 className="text-lg font-semibold flex items-center">
