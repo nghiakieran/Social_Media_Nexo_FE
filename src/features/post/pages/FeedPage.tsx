@@ -334,6 +334,7 @@ export const FeedPage = () => {
       <div className="space-y-6 p-4">
         {posts.map((post, index) => {
           const isLastItem = index === posts.length - 1;
+          if (!post.isActive) return null;
 
           return (
             <div key={post.id} ref={isLastItem ? lastElementRef : null}>
