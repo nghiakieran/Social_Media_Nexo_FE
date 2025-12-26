@@ -124,7 +124,7 @@ export const MediaSlider = ({
               <img
                 src={mediaItem.url}
                 alt={mediaItem.alt || "Post media"}
-                className="w-full h-full object-cover"
+                className="w-full h-full object-contain"
                 loading="lazy"
               />
             ) : (
