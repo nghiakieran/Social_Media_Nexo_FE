@@ -4,14 +4,17 @@ import {
   Filter,
   Eye,
   Trash2,
-  Image,
+  Image as ImageIcon,
   Video,
   FileText,
   ChevronLeft,
   ChevronRight,
   Layers,
   Clapperboard,
-  Loader2, // Thêm icon loading
+  Loader2,
+  Calendar,
+  AlertTriangle,
+  Hash,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -33,7 +36,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-// Import AlertDialog cho hộp thoại xác nhận xóa
 import {
   AlertDialog,
   AlertDialogAction,
@@ -46,7 +48,6 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/components/ui/use-toast";
 
-// Import API & Types
 import { AdminPostItemDTO } from "../types";
 import {
   deletePostById,
@@ -54,7 +55,6 @@ import {
   fetchAdminPostsInfo,
 } from "../api/postManagementAPI";
 
-// Hook Debounce
 function useDebounce<T>(value: T, delay: number): T {
   const [debouncedValue, setDebouncedValue] = useState<T>(value);
   useEffect(() => {
@@ -71,39 +71,44 @@ export default function Posts() {
   const [totalElements, setTotalElements] = useState(0);
 
   const [search, setSearch] = useState("");
+  const [hashtagFilter, setHashtagFilter] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
+  const [timeFilter, setTimeFilter] = useState("all");
+  const [sensitiveFilter, setSensitiveFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
 
   const [selectedPost, setSelectedPost] = useState<AdminPostItemDTO | null>(
-    null
+    null,
   );
   const [postInfo, setPostInfo] = useState<any>(null);
 
-  // State quản lý bài viết đang chờ xóa
   const [postToDelete, setPostToDelete] = useState<{
-    id: string;
+    id: number;
     type: string;
   } | null>(null);
 
   const { toast } = useToast();
   const debouncedSearch = useDebounce(search, 500);
+  const debouncedHashtag = useDebounce(hashtagFilter, 500);
 
-  // --- LOAD DATA ---
   const loadData = async () => {
     setLoading(true);
     try {
       const data = await fetchAdminPosts({
         search: debouncedSearch,
+        // hashtag: debouncedHashtag,
         pageNo: currentPage - 1,
         pageSize: 10,
         type: typeFilter,
+        // timeRange: timeFilter,
+        // sensitive: sensitiveFilter,
       });
 
       setPosts(data.content);
       setTotalPages(data.totalPages);
       setTotalElements(data.totalElements);
     } catch (error) {
-      console.error("Lỗi khi tải dữ liệu:", error);
+      console.error(error);
     } finally {
       setLoading(false);
     }
@@ -115,30 +120,32 @@ export default function Posts() {
     } else {
       loadData();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debouncedSearch, typeFilter]);
+  }, [
+    debouncedSearch,
+    debouncedHashtag,
+    typeFilter,
+    timeFilter,
+    sensitiveFilter,
+  ]);
 
   useEffect(() => {
     loadData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentPage]);
 
-  // --- LOAD STATS ---
   const loadAdminPostsData = async () => {
     try {
       const data = await fetchAdminPostsInfo();
       setPostInfo(data);
     } catch (error) {
-      console.error("Lỗi khi tải dữ liệu thống kê:", error);
+      console.error(error);
     }
   };
+
   useEffect(() => {
     loadAdminPostsData();
   }, []);
 
-  // --- DELETE HANDLER ---
   const confirmDelete = async () => {
-    // Lấy id và type từ state postToDelete
     if (!postToDelete) return;
 
     try {
@@ -147,24 +154,21 @@ export default function Posts() {
         title: "Thành công",
         description: "Đã xóa bài viết khỏi hệ thống",
       });
-      loadData(); // Reload lại bảng
+      loadData();
     } catch (error) {
       toast({
         variant: "destructive",
         title: "Lỗi",
         description: "Xóa thất bại, vui lòng thử lại.",
       });
-      console.error("Xóa thất bại:", error);
     } finally {
-      setPostToDelete(null); // Đóng dialog sau khi xử lý xong
+      setPostToDelete(null);
     }
   };
 
-  // --- HELPERS ---
   const getTypeIcon = (type: string) => {
-    const icons: any = { post: Image, reel: Video, story: FileText };
-    const Icon = icons[type] || FileText;
-    return Icon;
+    const icons: any = { post: ImageIcon, reel: Video, story: FileText };
+    return icons[type] || FileText;
   };
 
   const getTypeBadge = (type: string): "default" | "secondary" | "outline" => {
@@ -190,6 +194,36 @@ export default function Posts() {
     }
   };
 
+  const renderThumbnail = (post: any) => {
+    const TypeIcon = getTypeIcon(post.type);
+    const mediaUrl =
+      post.thumbnailUrl ||
+      (Array.isArray(post.mediaUrl) ? post.mediaUrl[0] : post.mediaUrl);
+
+    if (mediaUrl) {
+      return (
+        <div className="w-12 h-12 rounded-md overflow-hidden bg-muted relative border">
+          <img
+            src={mediaUrl}
+            alt="thumbnail"
+            className="w-full h-full object-cover"
+          />
+          {post.type === "reel" && (
+            <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+              <Video className="w-4 h-4 text-white" />
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    return (
+      <div className="w-12 h-12 rounded-md bg-muted flex items-center justify-center border">
+        <TypeIcon className="w-5 h-5 text-muted-foreground" />
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -197,11 +231,10 @@ export default function Posts() {
           Quản lý bài viết
         </h1>
         <p className="text-muted-foreground">
-          Quản lý posts, stories, reels và nội dung khác
+          Giám sát và kiểm duyệt toàn bộ nội dung trên nền tảng
         </p>
       </div>
 
-      {/* --- STATS CARDS --- */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card>
           <CardContent className="flex items-center justify-between p-6">
@@ -227,7 +260,7 @@ export default function Posts() {
               </p>
             </div>
             <div className="p-3 bg-blue-100 text-blue-600 rounded-full dark:bg-blue-900/20 dark:text-blue-400">
-              <Image className="w-5 h-5" />
+              <ImageIcon className="w-5 h-5" />
             </div>
           </CardContent>
         </Card>
@@ -248,140 +281,210 @@ export default function Posts() {
         </Card>
       </div>
 
-      {/* --- TABLE --- */}
       <Card>
-        <CardHeader>
-          <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
-            <CardTitle>Danh sách bài viết</CardTitle>
-            <div className="flex gap-2 w-full md:w-auto">
-              <div className="relative flex-1 md:w-64">
+        <CardHeader className="pb-3">
+          <CardTitle>Danh sách & Bộ lọc nâng cao</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col space-y-4 mb-6">
+            <div className="flex flex-col md:flex-row gap-3">
+              <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
-                  placeholder="Tìm kiếm..."
+                  placeholder="Tìm kiếm nội dung, tác giả..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   className="pl-9"
                 />
               </div>
+              <div className="relative flex-1 md:max-w-xs">
+                <Hash className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  placeholder="Lọc hashtag (VD: #nexo)"
+                  value={hashtagFilter}
+                  onChange={(e) => setHashtagFilter(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+            </div>
+
+            <div className="flex flex-col md:flex-row gap-3">
               <Select value={typeFilter} onValueChange={setTypeFilter}>
-                <SelectTrigger className="w-40">
+                <SelectTrigger className="w-full md:w-[180px]">
                   <Filter className="w-4 h-4 mr-2" />
-                  <SelectValue />
+                  <SelectValue placeholder="Loại nội dung" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Tất cả</SelectItem>
+                  <SelectItem value="all">Tất cả định dạng</SelectItem>
                   <SelectItem value="post">Posts</SelectItem>
                   <SelectItem value="reel">Reels</SelectItem>
                 </SelectContent>
               </Select>
+
+              <Select value={timeFilter} onValueChange={setTimeFilter}>
+                <SelectTrigger className="w-full md:w-[180px]">
+                  <Calendar className="w-4 h-4 mr-2" />
+                  <SelectValue placeholder="Thời gian" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Mọi lúc</SelectItem>
+                  <SelectItem value="today">Hôm nay</SelectItem>
+                  <SelectItem value="week">7 ngày qua</SelectItem>
+                  <SelectItem value="month">30 ngày qua</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <Select
+                value={sensitiveFilter}
+                onValueChange={setSensitiveFilter}
+              >
+                <SelectTrigger className="w-full md:w-[220px]">
+                  <AlertTriangle className="w-4 h-4 mr-2" />
+                  <SelectValue placeholder="Nội dung nhạy cảm" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tất cả bài viết</SelectItem>
+                  <SelectItem value="flagged">Có từ khóa nhạy cảm</SelectItem>
+                  <SelectItem value="safe">An toàn</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Tác giả</TableHead>
-                <TableHead>Loại</TableHead>
-                <TableHead>Nội dung</TableHead>
-                <TableHead>Tương tác</TableHead>
-                <TableHead>Ngày đăng</TableHead>
-                <TableHead>Trạng thái</TableHead>
-                <TableHead className="text-right">Hành động</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {loading ? (
+
+          <div className="rounded-md border">
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell colSpan={7} className="h-24 text-center">
-                    <div className="flex justify-center items-center gap-2">
-                      <Loader2 className="h-6 w-6 animate-spin text-primary" /> Đang tải dữ
-                      liệu...
-                    </div>
-                  </TableCell>
+                  <TableHead className="w-[80px]">ID</TableHead>
+                  <TableHead className="w-[70px]">Media</TableHead>
+                  <TableHead>Tác giả</TableHead>
+                  <TableHead>Loại</TableHead>
+                  <TableHead className="max-w-[200px]">Nội dung</TableHead>
+                  <TableHead>Tương tác</TableHead>
+                  <TableHead>Ngày đăng</TableHead>
+                  <TableHead>Trạng thái</TableHead>
+                  <TableHead className="text-right">Hành động</TableHead>
                 </TableRow>
-              ) : (
-                posts.map((post) => {
-                  const TypeIcon = getTypeIcon(post.type);
-                  return (
-                    <TableRow key={post.id}>
-                      <TableCell>
-                        <div className="flex items-center gap-3">
-                          <span className="font-medium">{post.authorName}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={getTypeBadge(post.type)}>
-                          <TypeIcon className="w-3 h-3 mr-1" />
-                          {post.type}
-                        </Badge>
-                      </TableCell>
-                      <TableCell
-                        className="max-w-xs truncate"
-                        title={post.caption}
+              </TableHeader>
+              <TableBody>
+                {loading ? (
+                  <TableRow>
+                    <TableCell colSpan={9} className="h-32 text-center">
+                      <div className="flex justify-center items-center gap-2 text-muted-foreground">
+                        <Loader2 className="h-6 w-6 animate-spin" /> Đang tải dữ
+                        liệu...
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : posts.length === 0 ? (
+                  <TableRow>
+                    <TableCell
+                      colSpan={9}
+                      className="h-32 text-center text-muted-foreground"
+                    >
+                      Không tìm thấy bài viết nào phù hợp.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  posts.map((post) => {
+                    const TypeIcon = getTypeIcon(post.type);
+                    return (
+                      <TableRow
+                        key={post.id}
+                        className="hover:bg-muted/50 transition-colors"
                       >
-                        {post.caption}
-                      </TableCell>
-                      <TableCell>
-                        <div className="text-sm">
-                          <div>❤️ {post.likeQuantity}</div>
-                          <div className="text-muted-foreground">
-                            💬 {post.commentQuantity}
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>{formatDate(post.createdAt)}</TableCell>
-                      <TableCell>
-                        {post.isActive ? (
+                        <TableCell className="font-mono text-xs text-muted-foreground">
+                          #{post.id}
+                        </TableCell>
+                        <TableCell>{renderThumbnail(post)}</TableCell>
+                        <TableCell>
+                          <span className="font-medium">{post.authorName}</span>
+                        </TableCell>
+                        <TableCell>
                           <Badge
-                            variant="outline"
-                            className="text-green-600 border-green-600"
+                            variant={getTypeBadge(post.type)}
+                            className="capitalize"
                           >
-                            Đang hoạt động
+                            <TypeIcon className="w-3 h-3 mr-1" />
+                            {post.type}
                           </Badge>
-                        ) : (
-                          <Badge variant="destructive">Đã khóa</Badge>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          {/* Nút Xem Chi Tiết */}
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => setSelectedPost(post)}
-                            title="Xem chi tiết"
-                          >
-                            <Eye className="w-4 h-4" />
-                          </Button>
+                        </TableCell>
+                        <TableCell className="max-w-[200px]">
+                          <p className="truncate text-sm" title={post.caption}>
+                            {post.caption || (
+                              <span className="text-muted-foreground italic">
+                                Không có nội dung
+                              </span>
+                            )}
+                          </p>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex gap-3 text-xs">
+                            <span className="flex items-center text-rose-500 font-medium">
+                              ❤️ {post.likeQuantity || 0}
+                            </span>
+                            <span className="flex items-center text-blue-500 font-medium">
+                              💬 {post.commentQuantity || 0}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {formatDate(post.createdAt)}
+                        </TableCell>
+                        <TableCell>
+                          {post.isActive ? (
+                            <Badge
+                              variant="outline"
+                              className="text-emerald-600 border-emerald-600 bg-emerald-50"
+                            >
+                              Công khai
+                            </Badge>
+                          ) : (
+                            <Badge variant="destructive">Đã ẩn</Badge>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-1">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => setSelectedPost(post)}
+                              title="Xem chi tiết"
+                            >
+                              <Eye className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                              onClick={() =>
+                                setPostToDelete({
+                                  id: post.id,
+                                  type: post.type,
+                                })
+                              }
+                              title="Xóa bài viết"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
+                )}
+              </TableBody>
+            </Table>
+          </div>
 
-                          {/* Nút Xóa Trực Tiếp */}
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                            onClick={() =>
-                              setPostToDelete({ id: post.id, type: post.type })
-                            }
-                            title="Xóa bài viết"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })
-              )}
-            </TableBody>
-          </Table>
-
-          {/* --- PAGINATION --- */}
-          <div className="flex items-center justify-end space-x-2 py-4">
-            <div className="flex-1 text-sm text-muted-foreground">
-              Trang {currentPage} / {totalPages || 1}
+          <div className="flex items-center justify-between mt-4">
+            <div className="text-sm text-muted-foreground">
+              Hiển thị tổng số {totalElements} bài viết
             </div>
-            <div className="space-x-2">
+            <div className="flex items-center space-x-2">
+              <div className="text-sm font-medium mr-4">
+                Trang {currentPage} / {totalPages || 1}
+              </div>
               <Button
                 variant="outline"
                 size="sm"
@@ -407,7 +510,6 @@ export default function Posts() {
         </CardContent>
       </Card>
 
-      {/* --- POST DETAIL DIALOG --- */}
       {selectedPost && (
         <PostDetailDialog
           open={!!selectedPost}
@@ -417,7 +519,6 @@ export default function Posts() {
         />
       )}
 
-      {/* --- DELETE CONFIRM DIALOG (ĐÃ FIX) --- */}
       <AlertDialog
         open={!!postToDelete}
         onOpenChange={(open) => !open && setPostToDelete(null)}
@@ -427,7 +528,7 @@ export default function Posts() {
             <AlertDialogTitle>Xóa bài viết?</AlertDialogTitle>
             <AlertDialogDescription>
               Hành động này không thể hoàn tác. Bạn có chắc chắn muốn xóa bài
-              viết này khỏi hệ thống?
+              viết này khỏi hệ thống Nexo?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

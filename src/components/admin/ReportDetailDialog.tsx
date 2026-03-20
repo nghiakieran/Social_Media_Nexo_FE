@@ -13,14 +13,24 @@ import {
   CheckCircle,
   XCircle,
   Flag,
-  User,
   FileText,
-  Trash2,
-  Lock,
+  BrainCircuit,
+  AlertTriangle,
+  ShieldCheck,
+  Calendar,
+  Info,
+  CheckCircle2,
+  AlertCircle,
+  Zap,
+  Checkmark,
+  Search,
+  Clock,
+  FileCheck,
 } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Progress } from "@/components/ui/progress";
 import {
   getCommentReportById,
   getPostReportById,
@@ -30,90 +40,73 @@ import {
   handelReelReportById,
 } from "@/features/admin/api/reportManagementAPI";
 import MediaSlider from "@/features/post/components/MediaSlider";
-
-interface ReportDetailDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  reportId: number;
-  reportType: string;
-}
+import { useToast } from "@/hooks/use-toast";
 
 export function ReportDetailDialog({
   open,
   onOpenChange,
   reportId,
   reportType,
-}: ReportDetailDialogProps) {
+  onStatusUpdate,
+}: any) {
   const [adminNote, setAdminNote] = useState("");
   const [processing, setProcessing] = useState(false);
-  const [report, setReport] = useState(null);
+  const [report, setReport] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+  const { toast } = useToast();
 
-  const getStatusBadge = (status: string) => {
-    const variants = {
-      pending: "secondary" as const,
-      in_review: "default" as const,
-      approved: "default" as const,
-      rejected: "destructive" as const,
-    };
-    return variants[status as keyof typeof variants] || "secondary";
-  };
-
+  // --- HÀM FETCH DỮ LIỆU ---
   const fetchReport = async () => {
     if (!reportId || !reportType) return;
-
     setLoading(true);
-    console.log("Fetching report:", reportId, reportType);
     try {
-      if (reportType === "post") {
-        const res = await getPostReportById(reportId);
-        setReport(res);
-        setAdminNote(res.note || "");
-      } else if (reportType === "reel") {
-        const res = await getReelReportById(reportId);
-        setReport(res);
-        setAdminNote(res.note || "");
-      } else {
-        const res = await getCommentReportById(reportId);
-        setReport(res);
-        setAdminNote(res.note || "");
-      }
+      let res;
+      if (reportType === "post") res = await getPostReportById(reportId);
+      else if (reportType === "reel") res = await getReelReportById(reportId);
+      else res = await getCommentReportById(reportId);
+
+      setReport(res);
+      setAdminNote(res.note || "");
+    } catch (error) {
+      console.error("Lỗi khi lấy chi tiết báo cáo:", error);
     } finally {
       setLoading(false);
     }
   };
+
   useEffect(() => {
-    fetchReport();
-  }, [reportId, reportType]);
+    if (open) fetchReport();
+  }, [reportId, reportType, open]);
 
-  const formatDate = (dateString: string) => {
-    try {
-      return new Date(dateString).toLocaleDateString("vi-VN", {
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-      });
-    } catch {
-      return dateString;
-    }
+  // --- HÀM XỬ LÝ CẬP NHẬT TRẠNG THÁI (FIXED) ---
+  const getStatusMessage = (status: string) => {
+    const messages: {
+      [key: string]: { icon: React.ReactNode; message: string };
+    } = {
+      APPROVED: {
+        icon: <CheckCircle2 className="w-5 h-5 text-emerald-600" />,
+        message: "Báo cáo đã được duyệt và nội dung sẽ được gỡ",
+      },
+      REJECTED: {
+        icon: <XCircle className="w-5 h-5 text-red-600" />,
+        message: "Báo cáo đã bị từ chối, nội dung được giữ lại",
+      },
+      IN_REVIEW: {
+        icon: <Search className="w-5 h-5 text-blue-600" />,
+        message: "Báo cáo đang chờ xem xét kỹ hơn",
+      },
+      PENDING: {
+        icon: <Clock className="w-5 h-5 text-amber-600" />,
+        message: "Báo cáo đã được đặt lại trạng thái chờ xử lý",
+      },
+    };
+    return (
+      messages[status] || {
+        icon: <FileCheck className="w-5 h-5 text-slate-600" />,
+        message: "Trạng thái báo cáo đã được cập nhật",
+      }
+    );
   };
-
-  const mediaItems = useMemo(() => {
-    if (!report?.mediaUrls || !Array.isArray(report.mediaUrls)) return [];
-
-    return report.mediaUrls.map((url, index) => {
-      const isVideo = url.endsWith(".mp4") || url.includes(".m3u8");
-
-      return {
-        id: `post-media-${report?.id ?? "loading"}-${index}`,
-        type: isVideo ? "video" : "image",
-        url,
-        alt: `Post media ${index + 1}`,
-      };
-    });
-  }, [report?.id, report?.mediaUrls]);
 
   const handleChangeStatus = async (newStatus: string) => {
     if (!report) return;
@@ -121,277 +114,315 @@ export function ReportDetailDialog({
 
     try {
       if (reportType === "post") {
-        await handelPostReportById(report.id, newStatus, adminNote);
+        await handelPostReportById(reportId, newStatus, adminNote);
       } else if (reportType === "reel") {
-        await handelReelReportById(report.id, newStatus, adminNote);
+        await handelReelReportById(reportId, newStatus, adminNote);
       } else if (reportType === "comment") {
-        await handelCommentReportById(report.id, newStatus, adminNote);
+        await handelCommentReportById(reportId, newStatus, adminNote);
       }
 
-      setReport({ ...report, reportStatus: newStatus });
+      setReport((prev: any) => ({ ...prev, reportStatus: newStatus }));
+
+      const statusMsg = getStatusMessage(newStatus);
+      toast({
+        title: (
+          <div className="flex items-center gap-2">
+            {statusMsg.icon}
+            <span>Cập nhật thành công</span>
+          </div>
+        ),
+        description: statusMsg.message,
+        className:
+          "border-l-4 border-emerald-500 bg-gradient-to-r from-emerald-50 to-teal-50 shadow-lg",
+      });
+
+      if (onStatusUpdate) {
+        onStatusUpdate();
+      }
+
+      setTimeout(() => {
+        onOpenChange(false);
+      }, 500);
     } catch (err) {
       console.error("Lỗi cập nhật trạng thái:", err);
+      toast({
+        title: (
+          <div className="flex items-center gap-2">
+            <AlertCircle className="w-5 h-5 text-red-600" />
+            <span>Lỗi xảy ra</span>
+          </div>
+        ),
+        description:
+          err instanceof Error
+            ? err.message
+            : "Không thể cập nhật trạng thái. Vui lòng thử lại!",
+        className:
+          "border-l-4 border-red-500 bg-gradient-to-r from-red-50 to-rose-50 shadow-lg",
+      });
     } finally {
       setProcessing(false);
     }
   };
 
-  if (loading || !report) {
+  const formatDate = (dateString: string) => {
+    if (!dateString) return "N/A";
+    return new Date(dateString).toLocaleString("vi-VN", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
+  const getAIStatus = (label: string) => {
+    if (label === "negative")
+      return {
+        color: "text-red-600",
+        bg: "bg-red-50",
+        icon: <AlertTriangle className="w-4 h-4" />,
+        text: "Vi phạm (Negative)",
+      };
+    if (label === "normal")
+      return {
+        color: "text-green-600",
+        bg: "bg-green-50",
+        icon: <ShieldCheck className="w-4 h-4" />,
+        text: "An toàn (Normal)",
+      };
+    return {
+      color: "text-gray-500",
+      bg: "bg-gray-50",
+      icon: <Info className="w-4 h-4" />,
+      text: "Chưa phân tích",
+    };
+  };
+
+  const aiInfo = getAIStatus(report?.predictAI);
+
+  if (loading) {
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Đang tải...</DialogTitle>
-          </DialogHeader>
-
-          <p className="text-center py-6">Đang tải dữ liệu báo cáo...</p>
+        <DialogContent className="max-w-md p-10 text-center">
+          <div className="flex flex-col items-center gap-4">
+            <div className="w-10 h-10 border-4 border-slate-900 border-t-transparent rounded-full animate-spin"></div>
+            <p className="font-medium text-slate-600">
+              Đang tải dữ liệu báo cáo...
+            </p>
+          </div>
         </DialogContent>
       </Dialog>
     );
   }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh]">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            Chi tiết báo cáo
-            <Badge
-              variant={getStatusBadge(report?.reportStatus?.toLowerCase())}
-            >
-              {report?.reportStatus}
+      <DialogContent className="max-w-5xl max-h-[95vh] p-0 overflow-hidden border-none shadow-2xl">
+        <DialogHeader className="p-6 bg-gradient-to-r from-slate-900 to-slate-800 text-white">
+          <div className="flex justify-between items-center">
+            <DialogTitle className="text-2xl font-bold flex items-center gap-2">
+              <Flag className="w-6 h-6 text-red-400" />
+              Chi tiết xử lý vi phạm
+            </DialogTitle>
+            <Badge className="text-sm px-4 py-1 bg-white/20 border-none text-white backdrop-blur-md italic">
+              Trạng thái: {report?.reportStatus}
             </Badge>
-          </DialogTitle>
+          </div>
         </DialogHeader>
 
-        <ScrollArea className="max-h-[calc(90vh-120px)]">
-          <div className="space-y-6 pr-4">
-            {/* Reporter */}
-            <div>
-              <h4 className="font-semibold mb-3">Người báo cáo</h4>
-              <div className="flex items-center gap-3 p-3 rounded-lg border">
-                <Avatar className="w-10 h-10">
-                  <AvatarImage src={report?.reporterAvatarUrl} />
-                  <AvatarFallback>
-                    {report?.reporterName?.[0] ?? "?"}
-                  </AvatarFallback>
-                </Avatar>
-
-                <div>
-                  <p className="font-medium">{report?.reporterName}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {formatDate(report?.createdAt)}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <Separator />
-
-            {/* Reported object */}
-            <div>
-              <h4 className="font-semibold mb-3">Đối tượng bị báo cáo</h4>
-
-              <div className="flex items-center gap-3 p-3 rounded-lg border">
-                <Avatar className="w-10 h-10">
-                  <AvatarImage src={report?.ownerPostAvatarUrl} />
-                  <AvatarFallback>{report?.ownerPostName[0]}</AvatarFallback>
-                </Avatar>
-                <div>
-                  <p className="font-medium">{report?.ownerPostName}</p>
-                </div>
-              </div>
-
-              {/* Reported Content */}
-              {report.reportedContent && (
-                <div className="p-3 rounded-lg bg-muted">
-                  <p className="text-sm font-medium mb-2">
-                    Nội dung bị báo cáo:
-                  </p>
-                  <p className="text-sm">{report.reportedContent}</p>
-                </div>
-              )}
-
-              {/* Reported Media */}
-              {report.reportedMediaUrl && (
-                <div className="rounded-lg overflow-hidden border">
-                  {report.reportedType === "reel" ? (
-                    <video
-                      src={report.reportedMediaUrl}
-                      controls
-                      className="w-full max-h-[300px] object-contain"
-                    >
-                      Trình duyệt không hỗ trợ video
-                    </video>
-                  ) : (
-                    <img
-                      src={report.reportedMediaUrl}
-                      alt="Reported content"
-                      className="w-full max-h-[300px] object-contain"
+        <div className="flex h-[calc(95vh-100px)]">
+          {/* CỘT TRÁI: NỘI DUNG VI PHẠM */}
+          <div className="flex-1 bg-slate-50 overflow-y-auto border-r">
+            <div className="p-6 space-y-6">
+              <section>
+                <Label className="text-xs uppercase tracking-wider text-slate-500 font-bold mb-3 block">
+                  Nội dung hiển thị
+                </Label>
+                {report?.mediaUrls?.length > 0 ? (
+                  <div className="rounded-xl overflow-hidden shadow-lg border-4 border-white">
+                    <MediaSlider
+                      media={report.mediaUrls.map((url: any, i: any) => ({
+                        id: i,
+                        type: url.includes(".mp4") ? "video" : "image",
+                        url,
+                      }))}
+                      className="w-full aspect-video"
                     />
-                  )}
-                </div>
-              )}
+                  </div>
+                ) : (
+                  <div className="bg-white p-8 rounded-xl border-2 border-dashed flex flex-col items-center justify-center text-slate-400">
+                    <FileText className="w-12 h-12 mb-2 opacity-20" />
+                    <p>Báo cáo dạng văn bản</p>
+                  </div>
+                )}
+                {(report?.caption || report?.content) && (
+                  <div className="mt-4 p-4 bg-white rounded-xl shadow-sm border border-slate-200">
+                    <p className="text-slate-700 leading-relaxed italic">
+                      "{report?.caption || report?.content}"
+                    </p>
+                  </div>
+                )}
+              </section>
 
-              {report?.caption && (
-                <div className="p-3 rounded-lg bg-muted mt-3">
-                  <p className="font-medium text-sm mb-2">Nội dung bài viết:</p>
-                  <p className="text-sm">{report?.caption}</p>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-white p-4 rounded-xl border shadow-sm">
+                  <Label className="text-xs text-slate-400 block mb-2">
+                    Người báo cáo
+                  </Label>
+                  <div className="flex items-center gap-3">
+                    <Avatar>
+                      <AvatarImage src={report?.reporterAvatarUrl} />
+                      <AvatarFallback>U</AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <p className="font-bold text-sm">
+                        {report?.reporterName}
+                      </p>
+                      <p className="text-[10px] flex items-center gap-1 text-slate-500">
+                        <Calendar className="w-3 h-3" />{" "}
+                        {formatDate(report?.createdAt)}
+                      </p>
+                    </div>
+                  </div>
                 </div>
-              )}
-
-              {report?.content && (
-                <div className="p-3 rounded-lg bg-muted mt-3">
-                  <p className="font-medium text-sm mb-2">
-                    Nội dung bình luận:
-                  </p>
-                  <p className="text-sm">{report?.content}</p>
+                <div className="bg-white p-4 rounded-xl border shadow-sm">
+                  <Label className="text-xs text-slate-400 block mb-2">
+                    Người bị báo cáo
+                  </Label>
+                  <div className="flex items-center gap-3">
+                    <Avatar>
+                      <AvatarImage src={report?.ownerPostAvatarUrl} />
+                      <AvatarFallback>O</AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <p className="font-bold text-sm text-red-600">
+                        {report?.ownerPostName || report?.ownerCommentName}
+                      </p>
+                      <Badge variant="outline" className="text-[10px]">
+                        ID: #{report?.id}
+                      </Badge>
+                    </div>
+                  </div>
                 </div>
-              )}
-            </div>
-
-            {mediaItems.length > 0 && (
-              <div className="rounded-lg overflow-hidden bg-black/5 border">
-                <MediaSlider
-                  media={mediaItems}
-                  className="w-full aspect-auto max-h-[500px]"
-                />
               </div>
-            )}
-            <Separator />
 
-            {/* Reason */}
-            <div>
-              <h4 className="font-semibold mb-3">
-                Lý do báo cáo: {report.reason}
-              </h4>
-              <h4 className="font-semibold mb-3">Chi tiết: </h4>
-              {report.detail && (
-                <div className="p-3 rounded-lg border">
-                  <p className="text-sm whitespace-pre-wrap">{report.detail}</p>
+              <div className="bg-amber-50 p-4 rounded-xl border border-amber-200">
+                <h4 className="text-amber-800 font-bold flex items-center gap-2 mb-1">
+                  <AlertTriangle className="w-4 h-4" /> Lý do: {report?.reason}
+                </h4>
+                <p className="text-sm text-amber-700">
+                  {report?.detail || "Không có mô tả chi tiết."}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* CỘT PHẢI: AI & ACTION */}
+          <div className="w-80 bg-white p-6 flex flex-col shadow-[-10px_0_15px_-3px_rgba(0,0,0,0.05)]">
+            <ScrollArea className="flex-1">
+              <div className="space-y-8">
+                {/* AI INSIGHT CARD */}
+                <div
+                  className={`p-5 rounded-2xl border-2 ${aiInfo.bg} ${aiInfo.color.replace("text", "border")}`}
+                >
+                  <div className="flex items-center gap-2 mb-4">
+                    <div
+                      className={`p-2 rounded-lg ${aiInfo.color.replace("text", "bg").replace("600", "100")}`}
+                    >
+                      <BrainCircuit className="w-5 h-5" />
+                    </div>
+                    <span className="font-black uppercase text-xs tracking-tighter">
+                      AI Moderation
+                    </span>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div>
+                      <div className="flex justify-between text-xs mb-1 font-bold">
+                        <span>Trạng thái</span>
+                        <span className={aiInfo.color}>{aiInfo.text}</span>
+                      </div>
+                    </div>
+
+                    {report?.confidence && (
+                      <div>
+                        <div className="flex justify-between text-[10px] mb-1 opacity-70">
+                          <span>Độ tin cậy</span>
+                          <span>{(report.confidence * 100).toFixed(2)}%</span>
+                        </div>
+                        <Progress
+                          value={report.confidence * 100}
+                          className={`h-2 ${report.predictAI === "negative" ? "bg-red-100" : "bg-green-100"}`}
+                        />
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <Label className="text-xs font-bold uppercase text-slate-500">
+                    Ghi chú điều hành
+                  </Label>
+                  <Textarea
+                    value={adminNote}
+                    onChange={(e) => setAdminNote(e.target.value)}
+                    placeholder="Nhập lý do xử lý..."
+                    className="min-h-[120px] bg-slate-50 border-slate-200 rounded-xl"
+                  />
+                </div>
+              </div>
+            </ScrollArea>
+
+            {/* ACTION BUTTONS */}
+            <div className="pt-6 space-y-2">
+              {report?.reportStatus === "PENDING" ||
+              report?.reportStatus === "IN_REVIEW" ? (
+                <>
+                  <Button
+                    className="w-full bg-slate-900 hover:bg-black text-white rounded-xl h-12 shadow-lg transition-all active:scale-95"
+                    onClick={() => handleChangeStatus("APPROVED")}
+                    disabled={processing}
+                  >
+                    {processing ? (
+                      "Đang xử lý..."
+                    ) : (
+                      <>
+                        <CheckCircle className="w-4 h-4 mr-2" /> Duyệt & Gỡ nội
+                        dung
+                      </>
+                    )}
+                  </Button>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button
+                      variant="outline"
+                      className="rounded-xl border-slate-200 hover:bg-red-50 hover:text-red-600 transition-colors"
+                      onClick={() => handleChangeStatus("REJECTED")}
+                      disabled={processing}
+                    >
+                      <XCircle className="w-4 h-4 mr-2" /> Từ chối
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="rounded-xl border-slate-200 text-blue-600 hover:bg-blue-50"
+                      onClick={() => handleChangeStatus("IN_REVIEW")}
+                      disabled={
+                        processing || report?.reportStatus === "IN_REVIEW"
+                      }
+                    >
+                      Xem xét
+                    </Button>
+                  </div>
+                </>
+              ) : (
+                <div className="p-4 bg-slate-100 rounded-xl text-center border border-dashed border-slate-300">
+                  <p className="text-xs font-bold text-slate-500 uppercase tracking-widest flex items-center justify-center gap-2">
+                    <ShieldCheck className="w-4 h-4" /> Đã hoàn tất xử lý
+                  </p>
                 </div>
               )}
             </div>
-
-            <Label className="mt-4">Ghi chú của admin</Label>
-            <Textarea
-              value={adminNote}
-              onChange={(e) => setAdminNote(e.target.value)}
-              placeholder="Nhập ghi chú xử lý..."
-              className="mt-2"
-            />
-            {/* Pending actions */}
-            {report?.reportStatus === "PENDING" && (
-              <>
-                <Separator />
-                <div className="grid grid-cols-4 gap-3">
-                  <Button
-                    variant="secondary"
-                    onClick={() => handleChangeStatus("IN_REVIEW")}
-                    disabled={processing}
-                  >
-                    <CheckCircle className="w-4 h-4" />
-                    Đang xem xét
-                  </Button>
-                  <Button
-                    variant="default"
-                    onClick={() => handleChangeStatus("APPROVED")}
-                    disabled={processing}
-                  >
-                    <CheckCircle className="w-4 h-4" />
-                    Duyệt báo cáo
-                  </Button>
-                  <Button
-                    variant="destructive"
-                    onClick={() => handleChangeStatus("REJECTED")}
-                    disabled={processing}
-                  >
-                    <XCircle className="w-4 h-4" />
-                    Từ chối
-                  </Button>
-                  <Button variant="outline" disabled={processing}>
-                    <Lock className="w-4 h-4 mr-2" />
-                    Khóa tài khoản
-                  </Button>
-                </div>
-              </>
-            )}
-
-            {report?.reportStatus === "IN_REVIEW" && (
-              <>
-                <Separator />
-
-                <div className="p-4 rounded-lg border border-primary/25 bg-primary/10">
-                  <p className="text-sm font-semibold text-foreground">
-                    Báo cáo đang được xử lý
-                  </p>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Báo cáo đang được cân nhắc để xử lý.
-                  </p>
-                </div>
-
-                <div className="grid grid-cols-3 gap-3">
-                  <Button
-                    variant="default"
-                    onClick={() => handleChangeStatus("APPROVED")}
-                    disabled={processing}
-                  >
-                    <CheckCircle className="w-4 h-4" />
-                    Duyệt báo cáo
-                  </Button>
-                  <Button
-                    variant="destructive"
-                    onClick={() => handleChangeStatus("REJECTED")}
-                    disabled={processing}
-                  >
-                    <XCircle className="w-4 h-4" />
-                    Từ chối
-                  </Button>
-                  <Button variant="outline" disabled={processing}>
-                    <Lock className="w-4 h-4 mr-2" />
-                    Khóa tài khoản
-                  </Button>
-                </div>
-              </>
-            )}
-
-            {report?.reportStatus === "APPROVED" && (
-              <>
-                <Separator />
-                <div className="p-4 rounded-lg bg-green-100 border border-green-300">
-                  <p className="text-sm font-semibold text-green-800">
-                    Báo cáo đã được duyệt
-                  </p>
-                  <p className="text-sm text-green-700 mt-1">
-                    Nội dung vi phạm đã được xử lý theo quy định.
-                  </p>
-                </div>
-
-                <div className="flex flex-wrap gap-3 mt-4 justify-end">
-                  {!report.isActive && (
-                    <Button variant="outline" disabled={processing}>
-                      <Lock className="w-4 h-4" />
-                      Mở khóa bài viết
-                    </Button>
-                  )}
-                </div>
-              </>
-            )}
-
-            {report?.reportStatus === "REJECTED" && (
-              <>
-                <Separator />
-                <div className="p-4 rounded-lg bg-success/10 border border-success/20">
-                  <p className="text-sm font-medium text-success">
-                    Báo cáo đã được xử lý
-                  </p>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Không còn hành động nào cần thực hiện
-                  </p>
-                </div>
-              </>
-            )}
           </div>
-        </ScrollArea>
+        </div>
       </DialogContent>
     </Dialog>
   );
