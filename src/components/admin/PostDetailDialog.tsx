@@ -12,13 +12,14 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Heart,
   MessageSquare,
-  Share2, // Giữ lại import theo ý bạn
-  Flag, // Giữ lại import theo ý bạn
+  Share2,
+  Flag,
   Trash2,
-  Image,
+  Image as ImageIcon,
   Video,
   FileText,
-  Loader2, // <--- THÊM ICON LOADER
+  Loader2,
+  AlertOctagon,
 } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { AdminPostItemDTO } from "@/features/admin/types";
@@ -27,6 +28,7 @@ import {
   fetchPostById,
 } from "@/features/admin/api/postManagementAPI";
 import MediaSlider from "@/features/post/components/MediaSlider";
+import { useToast } from "@/components/ui/use-toast";
 
 interface PostDetailDialogProps {
   open: boolean;
@@ -34,7 +36,6 @@ interface PostDetailDialogProps {
   post: AdminPostItemDTO;
   onDeleteSuccess: () => void;
 }
-import { useToast } from "@/components/ui/use-toast";
 
 export function PostDetailDialog({
   open,
@@ -47,10 +48,10 @@ export function PostDetailDialog({
   const [isLoading, setIsLoading] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const { toast } = useToast();
+
   useEffect(() => {
     const fetchPostDetails = async () => {
       if (!post?.id) return;
-
       setIsLoading(true);
       setPostDetails(null);
 
@@ -58,7 +59,7 @@ export function PostDetailDialog({
         const data = await fetchPostById(post.id, post.type);
         setPostDetails(data);
       } catch (error) {
-        console.error("Lỗi khi tải chi tiết bài viết:", error);
+        console.error(error);
       } finally {
         setIsLoading(false);
       }
@@ -66,12 +67,13 @@ export function PostDetailDialog({
 
     if (open) {
       fetchPostDetails();
+      setShowDeleteConfirm(false);
     }
   }, [open, post.id, post.type]);
 
   const getTypeIcon = (type: string) => {
     const icons = {
-      post: Image,
+      post: ImageIcon,
       reel: Video,
       story: FileText,
     };
@@ -115,11 +117,12 @@ export function PostDetailDialog({
       onOpenChange(false);
       onDeleteSuccess();
     } catch (error) {
-      console.error("Xóa thất bại:", error);
+      console.error(error);
     } finally {
       setIsDeleting(false);
     }
   };
+
   const mediaItems = useMemo(() => {
     if (!postDetails?.mediaUrl) return [];
 
@@ -140,7 +143,6 @@ export function PostDetailDialog({
 
     return imageUrls.map((url, index) => {
       const isVideo = url.includes(".m3u8") || url.endsWith(".mp4");
-
       return {
         id: `post-media-${post.id}-${index}`,
         type: isVideo ? "video" : "image",
@@ -152,74 +154,105 @@ export function PostDetailDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh]">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            Chi tiết bài viết
-            <Badge variant={getTypeBadge(post.type)}>
-              {getTypeIcon(post.type)}
-              <span className="ml-1 capitalize">{post.type}</span>
-            </Badge>
+      <DialogContent className="max-w-3xl max-h-[90vh] p-0 overflow-hidden">
+        <DialogHeader className="p-6 border-b bg-muted/30">
+          <DialogTitle className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              Chi tiết bài viết
+              <Badge variant={getTypeBadge(post.type)} className="shadow-sm">
+                {getTypeIcon(post.type)}
+                <span className="ml-1 capitalize">{post.type}</span>
+              </Badge>
+              <Badge
+                variant="outline"
+                className="font-mono text-xs text-muted-foreground"
+              >
+                ID: {post.id}
+              </Badge>
+            </div>
           </DialogTitle>
         </DialogHeader>
 
-        {/* --- LOGIC CHECK LOADING & NULL --- */}
         {isLoading ? (
           <div className="flex flex-col items-center justify-center h-64 space-y-4">
             <Loader2 className="w-8 h-8 animate-spin text-primary" />
-            <p className="text-muted-foreground">Đang tải dữ liệu...</p>
+            <p className="text-muted-foreground font-medium">
+              Đang tải dữ liệu bài viết...
+            </p>
           </div>
         ) : !postDetails ? (
-          <div className="flex items-center justify-center h-64">
-            <p className="text-muted-foreground">
-              Không tìm thấy thông tin bài viết
+          <div className="flex flex-col items-center justify-center h-64 space-y-3">
+            <AlertOctagon className="w-10 h-10 text-muted-foreground/50" />
+            <p className="text-muted-foreground font-medium">
+              Không tìm thấy thông tin bài viết hoặc đã bị xóa
             </p>
           </div>
         ) : (
-          <ScrollArea className="max-h-[calc(90vh-120px)]">
-            <div className="space-y-6 pr-4">
-              {/* Author Info */}
+          <ScrollArea className="max-h-[calc(90vh-85px)]">
+            <div className="p-6 space-y-6">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <Avatar className="w-12 h-12">
+                <div className="flex items-center gap-4">
+                  <Avatar className="w-14 h-14 border shadow-sm">
                     <AvatarImage src={postDetails?.avatarUrl} />
-                    <AvatarFallback>
+                    <AvatarFallback className="bg-primary/10 text-primary font-bold text-lg">
                       {postDetails?.userName?.charAt(0)}
                     </AvatarFallback>
                   </Avatar>
                   <div>
-                    <p className="font-semibold">{postDetails?.userName}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {formatDate(postDetails?.createdAt)}
+                    <p className="font-bold text-lg leading-tight">
+                      {postDetails?.userName}
                     </p>
-                    {postDetails?.location && (
-                      <p className="text-xs text-muted-foreground">
-                        📍 {postDetails.location}
-                      </p>
-                    )}
+                    <p className="text-sm text-muted-foreground mt-1 flex items-center gap-2">
+                      {formatDate(postDetails?.createdAt)}
+                      {postDetails?.location && (
+                        <>
+                          <span className="w-1 h-1 rounded-full bg-muted-foreground"></span>
+                          📍 {postDetails.location}
+                        </>
+                      )}
+                    </p>
                   </div>
                 </div>
 
-                {/* PHẦN BẠN COMMENT: REPORTS */}
-                {/* {post.reports > 0 && (
-                  <Badge variant="destructive">
-                    <Flag className="w-3 h-3 mr-1" />
-                    {post.reports} báo cáo
+                {postDetails.reports > 0 && (
+                  <Badge
+                    variant="destructive"
+                    className="px-3 py-1 text-sm shadow-sm"
+                  >
+                    <Flag className="w-4 h-4 mr-2" />
+                    {postDetails.reports} báo cáo vi phạm
                   </Badge>
-                )} */}
+                )}
               </div>
 
               <Separator />
-              {/* Content */}
-              <div>
-                <h4 className="font-semibold mb-2">Nội dung</h4>
-                <p className="text-sm leading-relaxed whitespace-pre-wrap">
-                  {postDetails?.caption}
+
+              <div className="bg-muted/20 p-4 rounded-xl border border-muted/50">
+                <p className="text-base leading-relaxed whitespace-pre-wrap">
+                  {postDetails?.caption || (
+                    <span className="italic text-muted-foreground">
+                      Không có nội dung văn bản.
+                    </span>
+                  )}
                 </p>
+
+                {hashtags.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mt-4">
+                    {hashtags.map((tag: string, index: number) => (
+                      <Badge
+                        key={index}
+                        variant="secondary"
+                        className="cursor-pointer hover:bg-primary hover:text-primary-foreground transition-colors"
+                      >
+                        {tag}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
               </div>
-              {/* Media */}
+
               {mediaItems.length > 0 && (
-                <div className="rounded-lg overflow-hidden bg-black/5 border">
+                <div className="rounded-xl overflow-hidden bg-black/5 border shadow-inner">
                   <MediaSlider
                     media={mediaItems}
                     className="w-full aspect-auto max-h-[500px]"
@@ -227,67 +260,48 @@ export function PostDetailDialog({
                 </div>
               )}
 
-              {/* PHẦN BẠN COMMENT: HASHTAGS */}
-              {hashtags.length > 0 && (
-                <div>
-                  <h4 className="font-semibold mb-2">Hashtags</h4>
-                  <div className="flex flex-wrap gap-2">
-                    {hashtags.map((tag: string, index: number) => (
-                      <Badge
-                        key={index}
-                        variant="secondary"
-                        className="cursor-pointer hover:bg-secondary/80"
-                      >
-                        {tag}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-              )}
-
               <Separator />
 
-              {/* Stats */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="flex items-center gap-2 p-3 rounded-lg bg-muted">
-                  <Heart className="w-5 h-5 text-destructive" />
-                  <div>
-                    <p className="text-sm text-muted-foreground">Lượt thích</p>
-                    <p className="text-xl font-bold">
-                      {postDetails?.quantityLike || 0}
-                    </p>
-                  </div>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="flex flex-col items-center justify-center p-4 rounded-xl bg-rose-50 border border-rose-100 dark:bg-rose-950/20 dark:border-rose-900/50">
+                  <Heart className="w-6 h-6 text-rose-500 mb-2" />
+                  <p className="text-2xl font-bold text-rose-600 dark:text-rose-400">
+                    {postDetails?.quantityLike || 0}
+                  </p>
+                  <p className="text-xs font-medium text-rose-500 uppercase tracking-wider mt-1">
+                    Lượt thích
+                  </p>
                 </div>
-                <div className="flex items-center gap-2 p-3 rounded-lg bg-muted">
-                  <MessageSquare className="w-5 h-5 text-primary" />
-                  <div>
-                    <p className="text-sm text-muted-foreground">Bình luận</p>
-                    <p className="text-xl font-bold">
-                      {postDetails?.quantityComment || 0}
-                    </p>
-                  </div>
+                <div className="flex flex-col items-center justify-center p-4 rounded-xl bg-blue-50 border border-blue-100 dark:bg-blue-950/20 dark:border-blue-900/50">
+                  <MessageSquare className="w-6 h-6 text-blue-500 mb-2" />
+                  <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                    {postDetails?.quantityComment || 0}
+                  </p>
+                  <p className="text-xs font-medium text-blue-500 uppercase tracking-wider mt-1">
+                    Bình luận
+                  </p>
                 </div>
-                {/* PHẦN BẠN COMMENT: SHARE */}
-                {/* <div className="flex items-center gap-2 p-3 rounded-lg bg-muted">
-                  <Share2 className="w-5 h-5 text-accent" />
-                  <div>
-                    <p className="text-sm text-muted-foreground">Chia sẻ</p>
-                    <p className="text-xl font-bold">{post.shares}</p>
-                  </div>
-                </div> */}
+                <div className="flex flex-col items-center justify-center p-4 rounded-xl bg-emerald-50 border border-emerald-100 dark:bg-emerald-950/20 dark:border-emerald-900/50">
+                  <Share2 className="w-6 h-6 text-emerald-500 mb-2" />
+                  <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
+                    {postDetails?.quantityShare || 0}
+                  </p>
+                  <p className="text-xs font-medium text-emerald-500 uppercase tracking-wider mt-1">
+                    Chia sẻ
+                  </p>
+                </div>
               </div>
 
-              <Separator />
-
-              {/* Actions */}
-              <div className="flex gap-2">
-                {/* PHẦN BẠN COMMENT: REPORT ACTION */}
-                {/* {post.reports > 0 && (
-                  <Button variant="outline" className="flex-1">
+              <div className="pt-4 flex gap-3">
+                {postDetails.reports > 0 && (
+                  <Button
+                    variant="outline"
+                    className="flex-1 bg-amber-50 text-amber-600 border-amber-200 hover:bg-amber-100 hover:text-amber-700"
+                  >
                     <Flag className="w-4 h-4 mr-2" />
-                    Xem báo cáo ({post.reports})
+                    Xem chi tiết báo cáo
                   </Button>
-                )} */}
+                )}
 
                 {!showDeleteConfirm ? (
                   <Button
@@ -296,23 +310,27 @@ export function PostDetailDialog({
                     onClick={() => setShowDeleteConfirm(true)}
                   >
                     <Trash2 className="w-4 h-4 mr-2" />
-                    Xóa bài viết
+                    Xóa bài viết vi phạm
                   </Button>
                 ) : (
                   <div className="flex-1 flex gap-2">
                     <Button
                       variant="destructive"
-                      className="flex-1"
+                      className="flex-1 shadow-md"
                       disabled={isDeleting}
                       onClick={handleDelete}
                     >
-                      Xác nhận xóa
+                      {isDeleting ? (
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      ) : null}
+                      Xác nhận xóa ngay
                     </Button>
                     <Button
                       variant="outline"
                       onClick={() => setShowDeleteConfirm(false)}
+                      disabled={isDeleting}
                     >
-                      Hủy
+                      Đóng
                     </Button>
                   </div>
                 )}
