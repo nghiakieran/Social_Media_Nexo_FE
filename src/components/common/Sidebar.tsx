@@ -3,6 +3,7 @@ import { useState, useRef } from "react";
 import { useAppDispatch, useAppSelector } from "@/store";
 import { logoutAsync } from "@/features/auth/authSlice";
 import { Theme, useTheme } from "@/contexts/ThemeContext";
+import { useWebSocket } from "@/hooks/useWebSocket";
 import {
   Home,
   Search,
@@ -22,6 +23,8 @@ import {
   Shield,
   ChevronLeft,
   Video,
+  Wifi,
+  WifiOff,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Logo } from "./Logo";
@@ -55,7 +58,13 @@ const mlFeatures = [
 export const Sidebar = () => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
-  const user = useAppSelector((state) => state.auth.user);
+
+  const { user, token } = useAppSelector((state) => state.auth);
+  const unreadNotificationCount = useAppSelector(
+    (state) => state.notification.unreadCount,
+  );
+  const { isConnected } = useWebSocket(token || "", user?.username || "");
+
   const { setTheme } = useTheme();
   const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
   const [isMobileMoreMenuOpen, setIsMobileMoreMenuOpen] = useState(false);
@@ -90,9 +99,8 @@ export const Sidebar = () => {
       <nav className="flex-1 p-4">
         <ul className="space-y-2">
           {navigation.map((item) => {
-            // For profile link, use current user's username
             const href = item.dynamic && user ? `/${user.username}` : item.href;
-
+            const isNotificationItem = item.name === "Thông báo";
             return (
               <li key={item.name}>
                 <NavLink
@@ -104,11 +112,21 @@ export const Sidebar = () => {
                       "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200",
                       isActive
                         ? "bg-primary text-primary-foreground shadow-glow"
-                        : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                        : "text-muted-foreground hover:bg-secondary hover:text-foreground",
                     )
                   }
                 >
-                  <item.icon className="h-5 w-5" />
+                  <div className="relative">
+                    <item.icon className="h-5 w-5" />
+
+                    {isNotificationItem && unreadNotificationCount > 0 && (
+                      <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] text-white border border-background">
+                        {unreadNotificationCount > 9
+                          ? "9+"
+                          : unreadNotificationCount}
+                      </span>
+                    )}
+                  </div>
                   {item.name}
                 </NavLink>
               </li>
@@ -305,6 +323,13 @@ export const Sidebar = () => {
             <Logo size="md" />
           </button>
           <div className="flex items-center gap-4">
+            <div title={isConnected ? "Đã kết nối" : "Mất kết nối"}>
+              {isConnected ? (
+                <div className="h-2 w-2 rounded-full bg-green-500"></div>
+              ) : (
+                <div className="h-2 w-2 rounded-full bg-red-500"></div>
+              )}
+            </div>
             <button
               onClick={() => setShowCreateDialog(true)}
               className="p-2 rounded-lg transition-all duration-200 text-muted-foreground hover:text-primary"
@@ -316,11 +341,20 @@ export const Sidebar = () => {
               className={({ isActive }) =>
                 cn(
                   "p-2 rounded-lg transition-all duration-200",
-                  isActive ? "text-primary" : "text-muted-foreground"
+                  isActive ? "text-primary" : "text-muted-foreground",
                 )
               }
             >
-              <Heart className="h-6 w-6" />
+              <div className="relative">
+                <Heart className="h-6 w-6" />
+                {unreadNotificationCount > 0 && (
+                  <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] text-white border-2 border-background">
+                    {unreadNotificationCount > 9
+                      ? "9+"
+                      : unreadNotificationCount}
+                  </span>
+                )}
+              </div>
             </NavLink>
 
             {/* Mobile Menu Button */}
@@ -371,7 +405,6 @@ export const Sidebar = () => {
       <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-sm border-t border-border">
         <div className="flex items-center justify-around py-2 px-2">
           {mobileNavItems.map((item) => {
-            // For profile link, use current user's username
             const href = item.dynamic && user ? `/${user.username}` : item.href;
 
             return (
@@ -381,7 +414,7 @@ export const Sidebar = () => {
                 className={({ isActive }) =>
                   cn(
                     "flex flex-col items-center gap-0.5 p-1.5 rounded-lg transition-all duration-200",
-                    isActive ? "text-primary" : "text-muted-foreground"
+                    isActive ? "text-primary" : "text-muted-foreground",
                   )
                 }
               >
@@ -412,12 +445,12 @@ export const Sidebar = () => {
         <PopoverTrigger asChild>
           <Button className="hidden" aria-hidden="true" />
         </PopoverTrigger>
-        <PopoverContent 
-          className="w-48 p-0" 
+        <PopoverContent
+          className="w-48 p-0"
           align="end"
-          style={{ 
-            position: 'fixed',
-            transform: "translate(167px, 56px)"
+          style={{
+            position: "fixed",
+            transform: "translate(167px, 56px)",
           }}
         >
           {/* Header with back button */}
