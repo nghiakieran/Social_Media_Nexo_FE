@@ -5,8 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { searchUsers } from "@/features/explore/api/exploreApi";
-import type { SearchUserData } from "@/features/explore/types";
 import {
   Heart,
   MessageCircle,
@@ -54,13 +52,6 @@ export const CommentSection = ({ postId, className }: CommentSectionProps) => {
     left?: number;
     right?: number;
   } | null>(null);
-  const [mentionQuery, setMentionQuery] = useState("");
-  const [mentionCandidates, setMentionCandidates] = useState<SearchUserData[]>(
-    [],
-  );
-  const [showMentionMenu, setShowMentionMenu] = useState(false);
-  const [mentionedUsers, setMentionedUsers] = useState<SearchUserData[]>([]);
-  const mentionDebounceTimer = useRef<NodeJS.Timeout | null>(null);
   const [showActionMenu, setShowActionMenu] = useState(false);
   const [actionMenuPosition, setActionMenuPosition] = useState<{
     top: number;
@@ -88,14 +79,8 @@ export const CommentSection = ({ postId, className }: CommentSectionProps) => {
       getPostCommentsThunk({
         postId,
         params: { pageNo: 0, pageSize: 10 },
-      }),
+      })
     );
-
-    return () => {
-      if (mentionDebounceTimer.current) {
-        clearTimeout(mentionDebounceTimer.current);
-      }
-    };
   }, [dispatch, postId]);
 
   const handleLoadMore = () => {
@@ -104,7 +89,7 @@ export const CommentSection = ({ postId, className }: CommentSectionProps) => {
         getPostCommentsThunk({
           postId,
           params: { pageNo: currentPage + 1, pageSize: 10 },
-        }),
+        })
       );
     }
   };
@@ -115,120 +100,14 @@ export const CommentSection = ({ postId, className }: CommentSectionProps) => {
       getPostCommentsThunk({
         postId,
         params: { pageNo: 0, pageSize: 10 },
-      }),
+      })
     );
-  };
-
-  const extractMentionQuery = (text: string, cursor: number) => {
-    const beforeCursor = text.slice(0, cursor);
-    const lastAt = beforeCursor.lastIndexOf("@");
-    if (lastAt === -1) return null;
-    if (lastAt > 0 && !/\s/.test(beforeCursor[lastAt - 1])) return null;
-
-    const mentionText = beforeCursor.slice(lastAt + 1);
-    // only allow if still typing mention token (no spaces)
-    if (mentionText.includes(" ") || mentionText.includes("\n")) return null;
-
-    return mentionText;
-  };
-
-  const fetchMentionCandidates = async (query: string) => {
-    if (!query.trim()) {
-      setMentionCandidates([]);
-      setShowMentionMenu(false);
-      return;
-    }
-
-    try {
-      const data = await searchUsers({
-        query: query.trim(),
-        limit: 5,
-        offset: 0,
-      });
-      setMentionCandidates(data.users || []);
-      setShowMentionMenu(data.users.length > 0);
-    } catch (error) {
-      setMentionCandidates([]);
-      setShowMentionMenu(false);
-    }
-  };
-
-  const handleNewCommentChange = (
-    newValue: string,
-    cursorPosition: number | null = null,
-  ) => {
-    setNewComment(newValue);
-
-    if (textareaRef.current) {
-      textareaRef.current.style.height = "auto";
-      textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
-    }
-
-    const cursor =
-      cursorPosition ?? textareaRef.current?.selectionStart ?? newValue.length;
-    const mentionText = extractMentionQuery(newValue, cursor);
-
-    if (mentionDebounceTimer.current) {
-      clearTimeout(mentionDebounceTimer.current);
-    }
-
-    if (mentionText !== null && mentionText.length >= 1) {
-      setMentionQuery(mentionText);
-      mentionDebounceTimer.current = setTimeout(() => {
-        fetchMentionCandidates(mentionText);
-      }, 300);
-    } else {
-      setMentionQuery("");
-      setMentionCandidates([]);
-      setShowMentionMenu(false);
-    }
-  };
-
-  const handleSelectMention = (user: SearchUserData) => {
-    if (!textareaRef.current) return;
-
-    const cursor = textareaRef.current.selectionStart;
-    const value = newComment;
-    const beforeCursor = value.slice(0, cursor);
-    const lastAt = beforeCursor.lastIndexOf("@");
-    if (lastAt === -1) return;
-
-    const afterCursor = value.slice(cursor);
-    const mentionText = `@${user.username} `;
-    const nextValue = `${value.slice(0, lastAt)}${mentionText}${afterCursor}`;
-
-    setNewComment(nextValue);
-    setMentionedUsers((prev) => {
-      const found = prev.some((item) => item.id === user.id);
-      if (found) return prev;
-      return [...prev, user];
-    });
-    setMentionQuery("");
-    setMentionCandidates([]);
-    setShowMentionMenu(false);
-
-    setTimeout(() => {
-      const pos = lastAt + mentionText.length;
-      textareaRef.current?.focus();
-      textareaRef.current?.setSelectionRange(pos, pos);
-    }, 0);
-  };
-
-  const handleRemoveMention = (id: number) => {
-    setMentionedUsers((prev) => prev.filter((user) => user.id !== id));
-  };
-
-  const clearMentionState = () => {
-    setMentionQuery("");
-    setMentionCandidates([]);
-    setShowMentionMenu(false);
-    setMentionedUsers([]);
   };
 
   const handleLikeComment = async (
     commentId: string,
     isReply = false,
-    parentId?: string,
+    parentId?: string
   ) => {
     try {
       await dispatch(likeCommentThunk(parseInt(commentId))).unwrap();
@@ -253,13 +132,12 @@ export const CommentSection = ({ postId, className }: CommentSectionProps) => {
           reelId: 0,
           parentId: replyingTo ? parseInt(replyingTo) : 0,
           content: newComment.trim(),
-          listMentionUserId: mentionedUsers.map((user) => user.id),
-        }),
+          listMentionUserId: [],
+        })
       ).unwrap();
 
       setNewComment("");
       setReplyingTo(null);
-      clearMentionState();
       handleRefresh(); // Refresh to show new comment
     } catch (error) {
       toast({
@@ -298,13 +176,12 @@ export const CommentSection = ({ postId, className }: CommentSectionProps) => {
             ? parseInt(commentToUpdate.parentId)
             : 0,
           content: editingContent.trim(),
-          listMentionUserId: mentionedUsers.map((user) => user.id),
-        }),
+          listMentionUserId: [],
+        })
       ).unwrap();
 
       setEditingComment(null);
       setEditingContent("");
-      clearMentionState();
       handleRefresh();
     } catch (error) {
       toast({
@@ -342,7 +219,7 @@ export const CommentSection = ({ postId, className }: CommentSectionProps) => {
 
   const handleOpenEmojiPicker = (
     commentId: string | null,
-    event: React.MouseEvent,
+    event: React.MouseEvent
   ) => {
     event.preventDefault();
     event.stopPropagation();
@@ -459,7 +336,7 @@ export const CommentSection = ({ postId, className }: CommentSectionProps) => {
 
   const handleOpenLikesDialog = (
     targetId: string,
-    targetType: "post" | "comment" | "reply",
+    targetType: "post" | "comment" | "reply"
   ) => {
     setShowLikesDialog({ targetId, targetType });
   };
@@ -475,7 +352,7 @@ export const CommentSection = ({ postId, className }: CommentSectionProps) => {
   const renderComment = (
     comment: Comment,
     isReply = false,
-    parentId?: string,
+    parentId?: string
   ) => {
     const isEditing = editingComment === comment.id;
 
@@ -536,7 +413,7 @@ export const CommentSection = ({ postId, className }: CommentSectionProps) => {
                       onClick={() =>
                         handleOpenLikesDialog(
                           comment.id,
-                          isReply ? "reply" : "comment",
+                          isReply ? "reply" : "comment"
                         )
                       }
                       className="text-xs text-muted-foreground hover:underline"
@@ -553,13 +430,13 @@ export const CommentSection = ({ postId, className }: CommentSectionProps) => {
                       "flex items-center gap-1 text-xs transition-colors",
                       comment.isLiked
                         ? "text-red-500"
-                        : "text-muted-foreground hover:text-red-500",
+                        : "text-muted-foreground hover:text-red-500"
                     )}
                   >
                     <Heart
                       className={cn(
                         "w-3 h-3",
-                        comment.isLiked && "fill-current",
+                        comment.isLiked && "fill-current"
                       )}
                     />
                     Thích
@@ -602,12 +479,7 @@ export const CommentSection = ({ postId, className }: CommentSectionProps) => {
                   ref={textareaRef}
                   placeholder={`Trả lời ${comment.userName}...`}
                   value={newComment}
-                  onChange={(e) =>
-                    handleNewCommentChange(
-                      e.target.value,
-                      e.target.selectionStart,
-                    )
-                  }
+                  onChange={(e) => setNewComment(e.target.value)}
                   className="resize-none min-h-[60px] max-h-[120px] rounded-2xl"
                 />
                 <div className="flex items-center justify-between">
@@ -660,7 +532,7 @@ export const CommentSection = ({ postId, className }: CommentSectionProps) => {
               <>
                 <div className="mt-2 ml-12 border-l-2 border-border/50 pl-4 space-y-3">
                   {comment.replies.map((reply) =>
-                    renderComment(reply, true, comment.id),
+                    renderComment(reply, true, comment.id)
                   )}
                 </div>
                 <button
@@ -683,7 +555,7 @@ export const CommentSection = ({ postId, className }: CommentSectionProps) => {
       <Card
         className={cn(
           "border-0 shadow-xl bg-card/80 backdrop-blur-sm",
-          className,
+          className
         )}
       >
         <CardContent className="p-6">
@@ -703,7 +575,7 @@ export const CommentSection = ({ postId, className }: CommentSectionProps) => {
     <Card
       className={cn(
         "border-0 shadow-xl bg-card/80 backdrop-blur-sm",
-        className,
+        className
       )}
     >
       <CardContent className="p-6">
@@ -735,80 +607,16 @@ export const CommentSection = ({ postId, className }: CommentSectionProps) => {
                 <AvatarFallback>{user?.username?.[0] || "U"}</AvatarFallback>
               </Avatar>
 
-              <div className="flex-1 space-y-3 relative">
+              <div className="flex-1 space-y-3">
                 <Textarea
                   ref={textareaRef}
                   placeholder={
                     replyingTo ? "Viết trả lời..." : "Viết bình luận..."
                   }
                   value={newComment}
-                  onChange={(e) =>
-                    handleNewCommentChange(
-                      e.target.value,
-                      e.target.selectionStart,
-                    )
-                  }
+                  onChange={(e) => setNewComment(e.target.value)}
                   className="resize-none min-h-[80px] max-h-[120px] rounded-2xl border-border/50 focus:border-primary/50 scrollbar-thin scrollbar-thumb-muted-foreground/30 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/50"
                 />
-
-                {mentionedUsers.length > 0 && (
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    {mentionedUsers.map((user) => (
-                      <div
-                        key={user.id}
-                        className="inline-flex items-center gap-2 rounded-full bg-blue-50 dark:bg-blue-900/20 px-3 py-1 text-sm border border-blue-200 dark:border-blue-800"
-                      >
-                        <Avatar className="w-4 h-4 flex-shrink-0">
-                          <AvatarImage src={user.avatar} alt={user.username} />
-                          <AvatarFallback className="text-xs">
-                            {user.username.charAt(0).toUpperCase()}
-                          </AvatarFallback>
-                        </Avatar>
-                        <span className="text-blue-700 dark:text-blue-300 font-medium">
-                          @{user.username}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveMention(user.id)}
-                          className="text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-200 ml-1"
-                        >
-                          ×
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {showMentionMenu && mentionCandidates.length > 0 && (
-                  <div className="absolute z-50 bottom-full mb-1 w-full max-h-44 overflow-auto rounded-md border border-border bg-background shadow-lg">
-                    {mentionCandidates.map((candidate) => (
-                      <button
-                        key={candidate.id}
-                        type="button"
-                        className="w-full px-3 py-2 text-left hover:bg-muted flex items-center gap-3"
-                        onClick={() => handleSelectMention(candidate)}
-                      >
-                        <Avatar className="w-6 h-6 flex-shrink-0">
-                          <AvatarImage
-                            src={candidate.avatar}
-                            alt={candidate.username}
-                          />
-                          <AvatarFallback className="text-xs">
-                            {candidate.username.charAt(0).toUpperCase()}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1 min-w-0">
-                          <div className="font-medium truncate">
-                            @{candidate.username}
-                          </div>
-                          <div className="text-xs text-muted-foreground truncate">
-                            {candidate.fullName}
-                          </div>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                )}
 
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -944,10 +752,10 @@ export const CommentSection = ({ postId, className }: CommentSectionProps) => {
           showLikesDialog?.targetType === "comment"
             ? "comment"
             : showLikesDialog?.targetType === "reply"
-              ? "comment"
-              : showLikesDialog?.targetType === "post"
-                ? "post"
-                : undefined
+            ? "comment"
+            : showLikesDialog?.targetType === "post"
+            ? "post"
+            : undefined
         }
         targetId={
           showLikesDialog &&

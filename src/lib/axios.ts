@@ -1,10 +1,5 @@
-import axios, {
-  AxiosError,
-  AxiosHeaders,
-  AxiosRequestConfig,
-  InternalAxiosRequestConfig,
-} from "axios";
-import type { TokenPayload, TokenResponse } from "@/features/auth/types";
+import axios, { AxiosError, AxiosHeaders, AxiosRequestConfig, InternalAxiosRequestConfig } from 'axios';
+import type { TokenPayload, TokenResponse } from '@/features/auth/types';
 import {
   ACCESS_TOKEN_STORAGE_KEY,
   AUTH_LOGIN_ENDPOINT,
@@ -12,14 +7,14 @@ import {
   AUTH_REFRESH_ENDPOINT,
   BEARER_TOKEN_PREFIX,
   REFRESH_TOKEN_STORAGE_KEY,
-} from "@/utils/constants";
+} from '@/utils/constants';
 
 // Create axios instance with base configuration
 export const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || "http://localhost:8080/api",
-  timeout: 10000,
+  timeout: 30000,
   headers: {
-    "Content-Type": "application/json",
+    'Content-Type': 'application/json',
   },
 });
 
@@ -30,9 +25,7 @@ export const setOnUnauthorizedNavigate = (handler: (path: string) => void) => {
 };
 
 const navigateToLogin = (reason?: string) => {
-  const path = reason
-    ? `${AUTH_LOGIN_ENDPOINT}?reason=${reason}`
-    : AUTH_LOGIN_ENDPOINT;
+  const path = reason ? `${AUTH_LOGIN_ENDPOINT}?reason=${reason}` : AUTH_LOGIN_ENDPOINT;
   if (onUnauthorizedNavigate) {
     onUnauthorizedNavigate(path);
   } else {
@@ -41,17 +34,13 @@ const navigateToLogin = (reason?: string) => {
 };
 
 // Simple token storage helpers
-const getAccessToken = (): string | null =>
-  localStorage.getItem(ACCESS_TOKEN_STORAGE_KEY);
+const getAccessToken = (): string | null => localStorage.getItem(ACCESS_TOKEN_STORAGE_KEY);
 
-const setTokens = (
-  accessToken?: string | null,
-  refreshToken?: string | null
-) => {
-  if (typeof accessToken !== "undefined" && accessToken !== null) {
+const setTokens = (accessToken?: string | null, refreshToken?: string | null) => {
+  if (typeof accessToken !== 'undefined' && accessToken !== null) {
     localStorage.setItem(ACCESS_TOKEN_STORAGE_KEY, accessToken);
   }
-  if (typeof refreshToken !== "undefined" && refreshToken !== null) {
+  if (typeof refreshToken !== 'undefined' && refreshToken !== null) {
     localStorage.setItem(REFRESH_TOKEN_STORAGE_KEY, refreshToken);
   }
 };
@@ -65,11 +54,9 @@ const clearTokens = () => {
 function setAuthHeader(config: AxiosRequestConfig, token: string) {
   if (!config.headers) config.headers = new AxiosHeaders();
   if (config.headers instanceof AxiosHeaders) {
-    config.headers.set("Authorization", `${BEARER_TOKEN_PREFIX} ${token}`);
+    config.headers.set('Authorization', `${BEARER_TOKEN_PREFIX} ${token}`);
   } else {
-    (
-      config.headers as Record<string, string>
-    ).Authorization = `${BEARER_TOKEN_PREFIX} ${token}`;
+    (config.headers as Record<string, string>).Authorization = `${BEARER_TOKEN_PREFIX} ${token}`;
   }
 }
 
@@ -98,16 +85,14 @@ export const performLogout = async (options?: { redirect?: boolean }) => {
   try {
     // Abort refresh + clear tokens and default headers immediately (fail-safe)
     abortAuthRefresh();
-    const baseURL = api.defaults.baseURL || "";
+    const baseURL = api.defaults.baseURL || '';
     const refreshToken = localStorage.getItem(REFRESH_TOKEN_STORAGE_KEY);
     clearTokens();
     if (api.defaults.headers) {
       if (api.defaults.headers instanceof AxiosHeaders) {
-        api.defaults.headers.delete("Authorization");
+        api.defaults.headers.delete('Authorization');
       } else {
-        const defaultsHeaders = api.defaults.headers as unknown as {
-          common?: Record<string, string>;
-        };
+        const defaultsHeaders = api.defaults.headers as unknown as { common?: Record<string, string> };
         if (defaultsHeaders.common) delete defaultsHeaders.common.Authorization;
       }
     }
@@ -147,9 +132,7 @@ api.interceptors.response.use(
     return response;
   },
   async (error: AxiosError) => {
-    const originalRequest = error.config as AxiosRequestConfig & {
-      _retry?: boolean;
-    };
+    const originalRequest = error.config as AxiosRequestConfig & { _retry?: boolean };
 
     const status = error.response?.status;
     const isAuthLogin = originalRequest?.url?.includes(AUTH_LOGIN_ENDPOINT);
@@ -164,9 +147,7 @@ api.interceptors.response.use(
           return new Promise((resolve) => {
             requestQueue.push((token) => {
               if (token && originalRequest.headers) {
-                (
-                  originalRequest.headers as Record<string, string>
-                ).Authorization = `${BEARER_TOKEN_PREFIX} ${token}`;
+                (originalRequest.headers as Record<string, string>).Authorization = `${BEARER_TOKEN_PREFIX} ${token}`;
               }
               resolve(api(originalRequest));
             });
@@ -177,11 +158,11 @@ api.interceptors.response.use(
 
         try {
           // Call refresh token endpoint using a bare axios instance to avoid interceptors recursion
-          const baseURL = api.defaults.baseURL || "";
+          const baseURL = api.defaults.baseURL || '';
           const refreshToken = localStorage.getItem(REFRESH_TOKEN_STORAGE_KEY);
           if (!refreshToken) {
             clearTokens();
-            navigateToLogin("session_expired");
+            navigateToLogin('session_expired');
             return Promise.reject(error);
           }
           // Prepare abort controller for this refresh call
@@ -194,9 +175,7 @@ api.interceptors.response.use(
             {},
             {
               signal: refreshAbortController.signal,
-              headers: {
-                Authorization: `${BEARER_TOKEN_PREFIX} ${refreshToken}`,
-              },
+              headers: { Authorization: `${BEARER_TOKEN_PREFIX} ${refreshToken}` },
             }
           );
 
@@ -215,14 +194,9 @@ api.interceptors.response.use(
             // Also update defaults so new requests get the fresh token immediately
             if (api.defaults.headers) {
               if (api.defaults.headers instanceof AxiosHeaders) {
-                api.defaults.headers.set(
-                  "Authorization",
-                  `${BEARER_TOKEN_PREFIX} ${newAccessToken}`
-                );
+                api.defaults.headers.set('Authorization', `${BEARER_TOKEN_PREFIX} ${newAccessToken}`);
               } else {
-                const defaultsHeaders = api.defaults.headers as unknown as {
-                  common?: Record<string, string>;
-                };
+                const defaultsHeaders = api.defaults.headers as unknown as { common?: Record<string, string> };
                 defaultsHeaders.common = defaultsHeaders.common || {};
                 defaultsHeaders.common.Authorization = `${BEARER_TOKEN_PREFIX} ${newAccessToken}`;
               }
@@ -233,13 +207,13 @@ api.interceptors.response.use(
         } catch (refreshError: unknown) {
           const err = refreshError as AxiosError & { code?: string };
           // If refresh was explicitly canceled (e.g., user logged out), do not navigate
-          if (err?.code === "ERR_CANCELED") {
+          if (err?.code === 'ERR_CANCELED') {
             isRefreshing = false;
             return Promise.reject(err);
           }
           processQueue(null);
           clearTokens();
-          navigateToLogin("session_expired");
+          navigateToLogin('session_expired');
           return Promise.reject(err);
         } finally {
           isRefreshing = false;

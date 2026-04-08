@@ -109,26 +109,11 @@ export const InstagramChatHeader: React.FC<InstagramChatHeaderProps> = ({
     [chat?.participants, currentUserId]
   );
 
-  // Chỉ hiển thị presence khi:
-  // 1. Đã load xong onlineStatus (isLoadingOnlineStatus = false)
-  // 2. currentUserOnlineStatus !== false (nếu false thì KHÔNG hiển thị)
-  // 3. otherUser?.onlineStatus !== false
-  // Nếu currentUserOnlineStatus === false, thì KHÔNG hiển thị presence (ẩn thời gian hoạt động)
   const shouldShowPresence = useMemo(() => {
     const result =
       !isLoadingOnlineStatus &&
       currentUserOnlineStatus !== false &&
       otherUser?.onlineStatus !== false;
-
-    // Debug log - luôn hiển thị để debug
-    console.log("[InstagramChatHeader] shouldShowPresence:", result, {
-      isLoadingOnlineStatus,
-      currentUserOnlineStatus,
-      otherUserOnlineStatus: otherUser?.onlineStatus,
-      lastSeen,
-      chatId: chat?.id,
-    });
-
     return result;
   }, [
     isLoadingOnlineStatus,
@@ -339,7 +324,15 @@ export const InstagramChatHeader: React.FC<InstagramChatHeaderProps> = ({
         </div>
 
         <div className="flex-1 min-w-0">
-          <h3 className="font-semibold text-sm md:text-base truncate">
+          <h3
+            className="font-semibold text-sm md:text-base truncate cursor-pointer hover:underline"
+            onClick={() => {
+              if (chat.username) navigate(`/${chat.username}`);
+            }}
+            tabIndex={0}
+            role="button"
+            aria-label={`Xem trang cá nhân của ${chat.fullname ?? ""}`}
+          >
             {chat.fullname ?? ""}
           </h3>
           {chat.blockedByMe ? (
@@ -381,14 +374,22 @@ export const InstagramChatHeader: React.FC<InstagramChatHeaderProps> = ({
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-8 w-8 md:h-9 md:w-9">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 md:h-9 md:w-9"
+            >
               <MoreVertical className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-48">
-            <DropdownMenuItem>Xem trang cá nhân</DropdownMenuItem>
-            <DropdownMenuItem>Tìm kiếm trong cuộc trò chuyện</DropdownMenuItem>
-            <DropdownMenuItem>Tắt thông báo</DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => {
+                if (chat.username) navigate(`/${chat.username}`);
+              }}
+            >
+              Xem trang cá nhân
+            </DropdownMenuItem>
             <DropdownMenuItem onClick={handleOpenNicknameDialog}>
               Biệt danh
             </DropdownMenuItem>
@@ -398,9 +399,6 @@ export const InstagramChatHeader: React.FC<InstagramChatHeaderProps> = ({
               onClick={handleOpenBlockDialog}
             >
               {chat.blockedByMe ? "Bỏ chặn" : "Chặn"}
-            </DropdownMenuItem>
-            <DropdownMenuItem className="text-destructive">
-              Báo cáo
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

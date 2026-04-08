@@ -10,16 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import {
-  CheckCircle,
-  XCircle,
-  User,
-  Clock,
-  CheckCircle2,
-  AlertCircle,
-  Search,
-  Lock,
-} from "lucide-react";
+import { CheckCircle, XCircle, User, Clock } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -84,39 +75,6 @@ export function UserReportDetailDialog({
     }
   };
 
-  const getStatusMessage = (status: string) => {
-    const messages: {
-      [key: string]: { icon: React.ReactNode; message: string };
-    } = {
-      APPROVED: {
-        icon: <CheckCircle2 className="w-5 h-5 text-emerald-600" />,
-        message: "Người dùng đã bị cấm, hành động đã được thực hiện",
-      },
-      REJECTED: {
-        icon: <XCircle className="w-5 h-5 text-red-600" />,
-        message: "Báo cáo bị từ chối, người dùng không có lỗi",
-      },
-      IN_REVIEW: {
-        icon: <Search className="w-5 h-5 text-blue-600" />,
-        message: "Báo cáo đang được xem xét kỹ hơn",
-      },
-      PENDING: {
-        icon: <Clock className="w-5 h-5 text-amber-600" />,
-        message: "Báo cáo chờ xử lý",
-      },
-      CLOSED: {
-        icon: <Lock className="w-5 h-5 text-slate-600" />,
-        message: "Báo cáo đã được đóng",
-      },
-    };
-    return (
-      messages[status] || {
-        icon: <CheckCircle className="w-5 h-5 text-slate-600" />,
-        message: "Trạng thái báo cáo đã được cập nhật",
-      }
-    );
-  };
-
   const handleChangeStatus = async (newStatus: string) => {
     if (!report) return;
     setProcessing(true);
@@ -132,23 +90,15 @@ export function UserReportDetailDialog({
             | "APPROVED"
             | "REJECTED"
             | "CLOSED",
-        }),
+        })
       ).unwrap();
 
       // Update local status immediately for better UX
       setCurrentStatus(newStatus as typeof report.status);
 
-      const statusMsg = getStatusMessage(newStatus);
       toast({
-        title: (
-          <div className="flex items-center gap-2">
-            {statusMsg.icon}
-            <span>Cập nhật thành công</span>
-          </div>
-        ),
-        description: statusMsg.message,
-        className:
-          "border-l-4 border-emerald-500 bg-gradient-to-r from-emerald-50 to-teal-50 shadow-lg",
+        title: "Thành công",
+        description: "Trạng thái báo cáo đã được cập nhật",
       });
 
       if (onStatusUpdate) {
@@ -157,18 +107,12 @@ export function UserReportDetailDialog({
     } catch (err) {
       console.error("Lỗi cập nhật trạng thái:", err);
       toast({
-        title: (
-          <div className="flex items-center gap-2">
-            <AlertCircle className="w-5 h-5 text-red-600" />
-            <span>Lỗi xảy ra</span>
-          </div>
-        ),
+        variant: "destructive",
+        title: "Lỗi",
         description:
           err instanceof Error
             ? err.message
             : "Không thể cập nhật trạng thái. Vui lòng thử lại.",
-        className:
-          "border-l-4 border-red-500 bg-gradient-to-r from-red-50 to-rose-50 shadow-lg",
       });
     } finally {
       setProcessing(false);

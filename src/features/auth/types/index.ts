@@ -102,7 +102,6 @@ export interface User {
   isPrivate: boolean;
   followers: number;
   following: number;
-  token?: string; 
 }
 
 export interface UserProfileResponse {

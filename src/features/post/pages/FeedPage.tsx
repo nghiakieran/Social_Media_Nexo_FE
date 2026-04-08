@@ -40,7 +40,7 @@ export const FeedPage = () => {
   const dispatch = useAppDispatch();
   const { user } = useAppSelector((state) => state.auth);
   const { posts, isLoading, error, hasMore, currentPage } = useAppSelector(
-    (state) => state.post,
+    (state) => state.post
   );
   const {
     userStories,
@@ -63,11 +63,11 @@ export const FeedPage = () => {
       dispatch(getFeedThunk({ userId: user.id, page: 0, limit: 10 }));
       // Load current user's stories
       dispatch(
-        getUserStoriesThunk({ userId: user.id, pageNo: 0, pageSize: 10 }),
+        getUserStoriesThunk({ userId: user.id, pageNo: 0, pageSize: 10 })
       );
       // Load friends' stories
       dispatch(
-        getFriendStoriesThunk({ userId: user.id, pageNo: 0, pageSize: 10 }),
+        getFriendStoriesThunk({ userId: user.id, pageNo: 0, pageSize: 10 })
       );
     }
   }, [dispatch, user]);
@@ -76,14 +76,6 @@ export const FeedPage = () => {
   const handleLoadMore = () => {
     if (user && !isLoading && hasMore) {
       const nextPage = currentPage + 1;
-      console.log(
-        "Loading more posts, currentPage:",
-        currentPage,
-        "nextPage:",
-        nextPage,
-        "hasMore:",
-        hasMore,
-      );
       dispatch(getFeedThunk({ userId: user.id, page: nextPage, limit: 10 }));
     }
   };
@@ -98,7 +90,7 @@ export const FeedPage = () => {
           userId: user.id,
           pageNo: nextPage,
           pageSize: 10,
-        }),
+        })
       );
     }
   };
@@ -217,7 +209,7 @@ export const FeedPage = () => {
           parentId: 0,
           content,
           listMentionUserId: [],
-        }),
+        })
       ).unwrap();
       // Refresh comments if needed - CommentDialog will reload automatically
     } catch (error) {
@@ -244,7 +236,7 @@ export const FeedPage = () => {
   const handleReplyComment = async (
     commentId: string,
     content: string,
-    postId?: string,
+    postId?: string
   ) => {
     if (!user || !postId) return;
 
@@ -258,7 +250,7 @@ export const FeedPage = () => {
           parentId: parseInt(commentId),
           content,
           listMentionUserId: [],
-        }),
+        })
       ).unwrap();
       // Refresh comments if needed
     } catch (error) {
@@ -342,6 +334,7 @@ export const FeedPage = () => {
       <div className="space-y-6 p-4">
         {posts.map((post, index) => {
           const isLastItem = index === posts.length - 1;
+          if (!post.isActive) return null;
 
           return (
             <div key={post.id} ref={isLastItem ? lastElementRef : null}>
