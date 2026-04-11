@@ -36,15 +36,15 @@ export const HashtagChip: React.FC<HashtagChipProps> = ({
   const getCategoryColor = (category: string): string => {
     switch (category) {
       case 'trending':
-        return 'bg-gradient-instagram text-white';
+        return "bg-primary text-primary-foreground";
       case 'entertainment':
-        return 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200';
+        return 'bg-accent/40 text-accent-foreground dark:bg-accent/25 dark:text-accent-foreground';
       case 'sports':
         return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
       case 'news':
         return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200';
       case 'fashion':
-        return 'bg-pink-100 text-pink-800 dark:bg-pink-900 dark:text-pink-200';
+        return 'bg-primary/15 text-primary dark:bg-primary/25 dark:text-primary';
       case 'food':
         return 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200';
       default:
@@ -126,7 +126,7 @@ export const HashtagChip: React.FC<HashtagChipProps> = ({
       <div className="bg-background border border-border rounded-xl p-4 hover:shadow-md transition-shadow">
         <div className="flex items-start justify-between mb-2">
           <div className="flex items-center space-x-2">
-            <div className="w-10 h-10 rounded-lg bg-gradient-instagram flex items-center justify-center">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-primary-foreground">
               <Hash className="h-5 w-5 text-white" />
             </div>
             <div>

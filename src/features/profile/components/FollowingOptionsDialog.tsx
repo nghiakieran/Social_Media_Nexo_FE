@@ -106,7 +106,7 @@ export const FollowingOptionsDialog = ({
             {profile.isCloseFriend ? (
               <Button
                 variant="ghost"
-                className="w-full justify-between px-4 py-4 text-left hover:bg-muted hover:text-inherit"
+                className="w-full justify-between px-4 py-4 text-left hover:bg-primary/10 hover:text-foreground"
                 onClick={handleRemoveFromCloseFriends}
               >
                 <div className="flex items-center gap-3">
@@ -120,7 +120,7 @@ export const FollowingOptionsDialog = ({
             ) : (
               <Button
                 variant="ghost"
-                className="w-full justify-between px-4 py-4 text-left hover:bg-muted hover:text-inherit"
+                className="w-full justify-between px-4 py-4 text-left hover:bg-primary/10 hover:text-foreground"
                 onClick={handleAddToCloseFriends}
               >
                 <div className="flex items-center gap-3">
@@ -136,7 +136,7 @@ export const FollowingOptionsDialog = ({
             {/* Cấm đăng */}
             <Button
               variant="ghost"
-              className="w-full justify-between px-4 py-4 text-left hover:bg-muted hover:text-inherit"
+              className="w-full justify-between px-4 py-4 text-left hover:bg-primary/10 hover:text-foreground"
               onClick={handleBlockUser}
             >
               <div className="flex items-center gap-3">
@@ -149,7 +149,7 @@ export const FollowingOptionsDialog = ({
             {/* Bỏ theo dõi */}
             <Button
               variant="ghost"
-              className="w-full justify-start px-4 py-4 text-left hover:bg-muted text-red-600 hover:text-red-700"
+              className="w-full justify-start px-4 py-4 text-left text-destructive hover:bg-destructive/10 hover:text-destructive"
               onClick={() => setShowUnfollowConfirm(true)}
             >
               <div className="flex items-center gap-3">

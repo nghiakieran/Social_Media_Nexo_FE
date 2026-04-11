@@ -143,7 +143,7 @@ export const ReelCreatePage = () => {
           <Button
             onClick={handleSubmit}
             disabled={!videoFile || isUploading}
-            className="bg-gradient-instagram hover:opacity-90"
+            variant="default"
             size="sm"
           >
             {isUploading ? 'Đang đăng...' : 'Đăng'}
@@ -223,7 +223,7 @@ export const ReelCreatePage = () => {
                 </p>
                 <Button
                   onClick={() => fileInputRef.current?.click()}
-                  className="bg-gradient-instagram hover:opacity-90"
+                  variant="default"
                 >
                   Chọn từ thư viện
                 </Button>

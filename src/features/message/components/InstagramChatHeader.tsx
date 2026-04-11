@@ -40,6 +40,8 @@ interface InstagramChatHeaderProps {
   onNicknameUpdated?: () => void;
   onBlockStatusChanged?: () => void;
   showBackButton?: boolean;
+  /** Chỉ hiện nút quay lại trên mobile (ẩn từ md trở lên) — dùng khi inbox và chat nằm cạnh nhau trên desktop */
+  mobileOnlyBack?: boolean;
   className?: string;
   isOnline?: boolean;
   lastSeen?: string;
@@ -53,6 +55,7 @@ export const InstagramChatHeader: React.FC<InstagramChatHeaderProps> = ({
   onNicknameUpdated,
   onBlockStatusChanged,
   showBackButton = false,
+  mobileOnlyBack = false,
   className,
   isOnline = false,
   lastSeen,
@@ -269,14 +272,19 @@ export const InstagramChatHeader: React.FC<InstagramChatHeaderProps> = ({
     return (
       <div
         className={cn(
-          "flex items-center justify-between p-4 border-b border-border bg-background",
+          "flex items-center justify-between border-b border-primary/10 bg-background/95 p-4 backdrop-blur-sm",
           className
         )}
       >
         <div className="flex items-center space-x-3">
           {showBackButton && (
-            <Button variant="ghost" size="icon" onClick={onBack}>
-              <ArrowLeft className="h-4 w-4" />
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onBack}
+              className={cn(mobileOnlyBack && "md:hidden")}
+            >
+              <ArrowLeft className="h-4 w-4 text-primary" />
             </Button>
           )}
           <h1 className="text-xl font-semibold">Tin nhắn</h1>
@@ -291,19 +299,22 @@ export const InstagramChatHeader: React.FC<InstagramChatHeaderProps> = ({
   return (
     <div
       className={cn(
-        "flex items-center justify-between p-2 md:p-3 border-b border-border bg-background",
+        "flex items-center justify-between border-b border-primary/10 bg-background/95 p-2 backdrop-blur-sm md:p-3",
         className
       )}
     >
-      <div className="flex items-center space-x-2 md:space-x-3 flex-1 min-w-0">
+      <div className="flex min-w-0 flex-1 items-center space-x-2 md:space-x-3">
         {showBackButton && (
           <Button
             variant="ghost"
             size="icon"
             onClick={onBack}
-            className="shrink-0 h-8 w-8 md:h-10 md:w-10"
+            className={cn(
+              "h-8 w-8 shrink-0 md:h-10 md:w-10",
+              mobileOnlyBack && "md:hidden"
+            )}
           >
-            <ArrowLeft className="h-4 w-4" />
+            <ArrowLeft className="h-4 w-4 text-primary" />
           </Button>
         )}
 
@@ -357,7 +368,7 @@ export const InstagramChatHeader: React.FC<InstagramChatHeaderProps> = ({
         <Button
           variant="ghost"
           size="icon"
-          className="h-8 w-8 md:h-9 md:w-9"
+          className="h-8 w-8 hover:bg-primary/10 hover:text-primary md:h-9 md:w-9"
           onClick={() => onCall?.("voice")}
         >
           <Phone className="h-4 w-4" />
@@ -366,7 +377,7 @@ export const InstagramChatHeader: React.FC<InstagramChatHeaderProps> = ({
         <Button
           variant="ghost"
           size="icon"
-          className="h-8 w-8 md:h-9 md:w-9"
+          className="h-8 w-8 hover:bg-primary/10 hover:text-primary md:h-9 md:w-9"
           onClick={() => onCall?.("video")}
         >
           <Video className="h-4 w-4" />
@@ -377,7 +388,7 @@ export const InstagramChatHeader: React.FC<InstagramChatHeaderProps> = ({
             <Button
               variant="ghost"
               size="icon"
-              className="h-8 w-8 md:h-9 md:w-9"
+              className="h-8 w-8 hover:bg-primary/10 hover:text-primary md:h-9 md:w-9"
             >
               <MoreVertical className="h-4 w-4" />
             </Button>

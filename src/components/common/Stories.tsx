@@ -150,7 +150,7 @@ export function Stories({
             {/* Story Ring Container */}
             <div className="relative">
               {/* Outer Ring with Gradient */}
-              <div className="w-20 h-20 rounded-full p-0.5 transition-all duration-200 bg-gradient-to-tr from-purple-400 via-pink-500 to-orange-400 group-hover:scale-105">
+              <div className="w-20 h-20 rounded-full p-0.5 transition-all duration-200 bg-gradient-story group-hover:scale-105">
                 {/* Inner Ring - White Border */}
                 <div className="w-full h-full rounded-full bg-background p-0.5">
                   {/* Profile Picture or Placeholder */}
@@ -165,14 +165,14 @@ export function Stories({
                         enableProgressiveLoading
                       />
                     ) : (
-                      <div className="w-full h-full bg-gradient-to-br from-purple-400 to-pink-400" />
+                      <div className="w-full h-full bg-gradient-to-br from-primary/40 to-primary/70" />
                     )}
                   </div>
                 </div>
               </div>
 
               {/* Plus Icon */}
-              <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-blue-500 rounded-full border-2 border-background flex items-center justify-center group-hover:bg-blue-600 transition-colors">
+              <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full border-2 border-background flex items-center justify-center bg-primary transition-colors group-hover:bg-primary/90">
                 <Plus className="w-4 h-4 text-white" />
               </div>
             </div>
@@ -203,8 +203,8 @@ export function Stories({
                   "w-20 h-20 rounded-full p-0.5 transition-all duration-200",
                   story.hasNewStory && !story.isViewed
                     ? (story.isCloseFriend && !story.isOwnStory)
-                      ? "bg-gradient-to-tr from-green-400 via-blue-500 to-purple-500" // Special gradient for close friends (not own story)
-                      : "bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-500" // Bright gradient for unviewed
+                      ? "bg-gradient-to-tr from-success via-primary to-teal-400"
+                      : "bg-gradient-story"
                     : story.isViewed
                     ? "bg-gray-400" // Gray for viewed stories
                     : "bg-muted", // Default muted color
@@ -235,14 +235,14 @@ export function Stories({
                 <div className={cn(
                   "absolute -top-1 -right-1 w-4 h-4 rounded-full border-2 border-background animate-pulse",
                   (story.isCloseFriend && !story.isOwnStory)
-                    ? "bg-gradient-to-r from-green-400 to-blue-500" // Special gradient for close friends (not own story)
-                    : "bg-gradient-to-r from-yellow-400 to-pink-500" // Default gradient
+                    ? "bg-gradient-to-r from-success to-primary"
+                    : "bg-gradient-to-r from-primary to-secondary"
                 )} />
               )}
 
               {/* Close Friend Indicator */}
               {story.isCloseFriend && !story.isOwnStory && (
-                <div className="absolute -bottom-1 -left-1 w-5 h-5 bg-gradient-to-r from-green-400 to-blue-500 rounded-full border-2 border-background flex items-center justify-center">
+                <div className="absolute -bottom-1 -left-1 w-5 h-5 rounded-full border-2 border-background flex items-center justify-center bg-gradient-to-r from-success to-primary">
                   <span className="text-white text-xs font-bold">♥</span>
                 </div>
               )}

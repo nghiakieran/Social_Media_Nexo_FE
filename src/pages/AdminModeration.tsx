@@ -81,8 +81,8 @@ export default function AdminModeration() {
       {/* Header */}
       <div className="mb-8">
         <div className="flex items-center gap-3 mb-4">
-          <div className="w-12 h-12 rounded-full bg-gradient-instagram flex items-center justify-center">
-            <Shield className="w-6 h-6 text-white" />
+          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-md">
+            <Shield className="h-6 w-6" />
           </div>
           <div>
             <h1 className="text-3xl font-bold">Kiểm duyệt nội dung</h1>
@@ -220,7 +220,7 @@ export default function AdminModeration() {
                           <span className="text-sm">Confidence:</span>
                           <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
                             <div 
-                              className="h-full bg-gradient-instagram"
+                              className="h-full bg-primary"
                               style={{ width: `${report.aiScore * 100}%` }}
                             />
                           </div>

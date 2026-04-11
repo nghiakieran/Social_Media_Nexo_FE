@@ -22,7 +22,6 @@ import {
   MessageSquare,
   Archive,
   ChevronDown,
-  ChevronRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -86,16 +85,24 @@ export const InstagramInboxHeader: React.FC<InstagramInboxHeaderProps> = ({
   };
 
   return (
-    <div className={cn("p-2 md:p-4 border-b border-border bg-background", className)}>
-      {}
-      <div className="flex items-center justify-between mb-2 md:mb-4">
-        <div className="flex items-center space-x-1 md:space-x-2">
-          <h1 className="text-lg md:text-xl font-semibold">
+    <div
+      className={cn(
+        "border-b border-primary/10 bg-background/95 px-3 py-2 backdrop-blur-sm md:p-4",
+        className
+      )}
+    >
+      <div className="mb-3 flex items-center justify-between md:mb-4">
+        <div className="flex min-w-0 flex-1 items-center space-x-1 md:space-x-2">
+          <h1 className="truncate text-lg font-semibold text-foreground md:text-xl">
             {activeView === "requests" ? "Yêu cầu nhắn tin" : "Tin nhắn"}
           </h1>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-6 w-6">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6 hover:bg-primary/10 hover:text-primary"
+              >
                 <ChevronDown className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
@@ -112,26 +119,35 @@ export const InstagramInboxHeader: React.FC<InstagramInboxHeaderProps> = ({
           </DropdownMenu>
         </div>
 
-        <div className="flex items-center space-x-1 md:space-x-2">
+        <div className="flex shrink-0 items-center gap-0.5 md:gap-1">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onNewMessage}
+            className="h-8 w-8 hover:bg-primary/10 hover:text-primary md:h-9 md:w-9"
+            aria-label="Tin nhắn mới"
+          >
+            <Edit3 className="h-4 w-4" />
+          </Button>
           <Button
             variant="ghost"
             size="icon"
             onClick={() => setSettingsOpen(true)}
-            className="h-8 w-8 md:h-9 md:w-9"
+            className="h-8 w-8 hover:bg-primary/10 hover:text-primary md:h-9 md:w-9"
+            aria-label="Cài đặt"
           >
             <Settings className="h-4 w-4" />
           </Button>
         </div>
       </div>
 
-      {}
-      <div className="relative">
-        <Search className="absolute left-2 md:left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+      <div className="relative w-full min-w-0">
+        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input
           placeholder="Tìm kiếm cuộc trò chuyện..."
           value={searchQuery}
           onChange={(e) => onSearchChange(e.target.value)}
-          className="pl-8 md:pl-10 bg-muted border-0 rounded-xl h-8 md:h-9 text-sm md:text-base"
+          className="h-10 w-full min-w-0 rounded-xl border-0 bg-muted pl-10 pr-3 text-sm focus-visible:ring-2 focus-visible:ring-primary/30 md:h-9 md:text-base"
         />
       </div>
 

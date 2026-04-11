@@ -54,8 +54,9 @@ export const ChatList: React.FC<ChatListProps> = ({
           <div
             key={chat.id}
             className={cn(
-              "flex items-center p-3 rounded-xl cursor-pointer transition-all duration-200 hover:bg-muted/50 group",
-              activeChat === String(chat.id) && "bg-muted"
+              "group flex cursor-pointer items-center rounded-xl p-3 transition-all duration-200 hover:bg-primary/10 dark:hover:bg-primary/15",
+              activeChat === String(chat.id) &&
+                "bg-primary/10 ring-1 ring-primary/20 dark:bg-primary/15"
             )}
             onClick={() => onChatSelect(String(chat.id))}
           >
@@ -150,8 +151,7 @@ export const ChatList: React.FC<ChatListProps> = ({
                 </div>
                 {chat.unreadCount > 0 && (
                   <Badge
-                    variant="destructive"
-                    className="min-w-[18px] h-[18px] text-xs flex items-center justify-center ml-2"
+                    className="ml-2 flex h-[18px] min-w-[18px] items-center justify-center border-0 bg-primary text-[10px] text-primary-foreground"
                   >
                     {chat.unreadCount > 99 ? "99+" : chat.unreadCount}
                   </Badge>

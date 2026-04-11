@@ -1250,7 +1250,7 @@ export const CommentDialog = ({
                 <button
                   type="button"
                   onClick={() => setReplyingTo(null)}
-                  className="text-xs text-blue-500 hover:text-blue-700"
+                  className="text-xs text-primary hover:text-primary/90"
                 >
                   Cancel
                 </button>
@@ -1776,7 +1776,7 @@ export const CommentDialog = ({
                   <button
                     type="button"
                     onClick={() => setReplyingTo(null)}
-                    className="text-xs text-blue-500 hover:text-blue-700"
+                    className="text-xs text-primary hover:text-primary/90"
                   >
                     Hủy
                   </button>
@@ -1801,7 +1801,7 @@ export const CommentDialog = ({
                     type="submit"
                     size="sm"
                     disabled={!replyContent.trim()}
-                    className="px-4 text-blue-500 hover:text-blue-700 disabled:text-gray-400"
+                    className="px-4 text-primary hover:text-primary/90 disabled:text-gray-400"
                     variant="ghost"
                   >
                     Gửi
@@ -1829,7 +1829,7 @@ export const CommentDialog = ({
                   type="submit"
                   size="sm"
                   disabled={!newComment.trim()}
-                  className="px-4 text-blue-500 hover:text-blue-700 disabled:text-gray-400"
+                  className="px-4 text-primary hover:text-primary/90 disabled:text-gray-400"
                   variant="ghost"
                 >
                   Gửi

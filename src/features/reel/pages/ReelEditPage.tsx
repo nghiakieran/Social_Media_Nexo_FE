@@ -185,7 +185,7 @@ const ReelEditPage = () => {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-b-2 border-primary" />
           <p className="text-lg font-medium mb-2">Đang tạo reel... Vui lòng chờ</p>
           <p className="text-sm text-gray-600 dark:text-gray-400">
             Vui lòng không tắt trang này
@@ -272,7 +272,7 @@ const ReelEditPage = () => {
                 <div
                   className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
                     dragActive
-                      ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
+                      ? "border-primary bg-primary/10 dark:bg-primary/20"
                       : "border-gray-300 dark:border-gray-600"
                   }`}
                   onDragEnter={handleDrag}

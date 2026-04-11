@@ -401,7 +401,7 @@ export const EditPostDialog = ({
                   variant="ghost"
                   size="sm"
                   onClick={() => setShowTagFriends(!showTagFriends)}
-                  className="gap-2 hover:bg-accent/10 hover:text-accent"
+                  className="gap-2 hover:bg-primary/10 hover:text-primary dark:hover:bg-primary/20"
                   disabled={isSubmitting}
                 >
                   <Users className="w-5 h-5" />
@@ -426,7 +426,7 @@ export const EditPostDialog = ({
                       media.length === initialMediaUrl.length &&
                       taggedFriendIds.length === 0)
                   }
-                  className="px-6 bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90"
+                  className="px-6"
                 >
                   {isSubmitting ? (
                     <div className="flex items-center gap-2">

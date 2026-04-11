@@ -155,7 +155,7 @@ export const CreateContentDialog = ({
               "text-left group"
             )}
           >
-            <div className="w-14 h-14 rounded-full bg-gradient-to-br from-purple-500 via-pink-500 to-orange-500 flex items-center justify-center shadow-md group-hover:shadow-lg transition-shadow">
+            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-gradient-story shadow-md transition-shadow group-hover:shadow-lg">
               <ImageIcon className="w-7 h-7 text-white" />
             </div>
             <div className="flex-1">
@@ -175,7 +175,7 @@ export const CreateContentDialog = ({
               "text-left group"
             )}
           >
-            <div className="w-14 h-14 rounded-full bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 flex items-center justify-center shadow-md group-hover:shadow-lg transition-shadow">
+            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-primary via-cyan-500 to-teal-600 shadow-md transition-shadow group-hover:shadow-lg">
               <Film className="w-7 h-7 text-white" />
             </div>
             <div className="flex-1">

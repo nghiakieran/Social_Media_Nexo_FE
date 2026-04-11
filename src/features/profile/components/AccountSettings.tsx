@@ -347,7 +347,7 @@ export const AccountSettings = () => {
                       type="button"
                       variant="ghost"
                       size="icon"
-                      className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                      className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-primary/10"
                       onClick={() =>
                         setShowCurrentPassword(!showCurrentPassword)
                       }
@@ -375,7 +375,7 @@ export const AccountSettings = () => {
                       type="button"
                       variant="ghost"
                       size="icon"
-                      className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                      className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-primary/10"
                       onClick={() => setShowNewPassword(!showNewPassword)}
                       tabIndex={-1}
                     >
@@ -403,7 +403,7 @@ export const AccountSettings = () => {
                       type="button"
                       variant="ghost"
                       size="icon"
-                      className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                      className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-primary/10"
                       onClick={() =>
                         setShowConfirmPassword(!showConfirmPassword)
                       }
@@ -424,6 +424,7 @@ export const AccountSettings = () => {
                   onClick={() => setShowPasswordDialog(false)}
                   disabled={isChangingPassword}
                   tabIndex={-1}
+                  className="font-medium text-foreground"
                 >
                   Hủy
                 </Button>

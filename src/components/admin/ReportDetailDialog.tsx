@@ -320,11 +320,11 @@ export function ReportDetailDialog({
               <>
                 <Separator />
 
-                <div className="p-4 rounded-lg bg-blue-50 border border-blue-300">
-                  <p className="text-sm font-semibold text-blue-800">
+                <div className="p-4 rounded-lg border border-primary/25 bg-primary/10">
+                  <p className="text-sm font-semibold text-foreground">
                     Báo cáo đang được xử lý
                   </p>
-                  <p className="text-sm text-blue-700 mt-1">
+                  <p className="text-sm text-muted-foreground mt-1">
                     Báo cáo đang được cân nhắc để xử lý.
                   </p>
                 </div>

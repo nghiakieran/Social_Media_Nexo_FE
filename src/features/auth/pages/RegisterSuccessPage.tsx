@@ -84,14 +84,14 @@ export const RegisterSuccessPage = () => {
         </CardHeader>
 
         <CardContent className="space-y-4">
-          <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+          <div className="rounded-lg border border-primary/25 bg-primary/5 p-4">
             <div className="flex gap-3">
-              <Mail className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+              <Mail className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
               <div className="text-sm">
-                <p className="font-medium text-blue-900 dark:text-blue-100 mb-1">
+                <p className="mb-1 font-medium text-foreground">
                   Kiểm tra email của bạn
                 </p>
-                <p className="text-blue-700 dark:text-blue-300">
+                <p className="text-muted-foreground">
                   Chúng tôi đã gửi một email xác thực đến địa chỉ email của bạn.
                   Vui lòng nhấp vào liên kết trong email để kích hoạt tài khoản.
                 </p>
@@ -118,17 +118,17 @@ export const RegisterSuccessPage = () => {
           >
             {isResending ? (
               <>
-                <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                <RefreshCw className="mr-2 h-4 w-4 animate-spin text-primary" />
                 Đang gửi...
               </>
             ) : cooldownRemaining !== null ? (
               <>
-                <RefreshCw className="w-4 h-4 mr-2" />
+                <RefreshCw className="mr-2 h-4 w-4 text-primary" />
                 Gửi lại sau {cooldownRemaining}s
               </>
             ) : (
               <>
-                <RefreshCw className="w-4 h-4 mr-2" />
+                <RefreshCw className="mr-2 h-4 w-4 text-primary" />
                 Gửi lại email xác thực
               </>
             )}
@@ -137,7 +137,7 @@ export const RegisterSuccessPage = () => {
           <Button
             onClick={handleGoToLogin}
             variant="default"
-            className="w-full"
+            className="h-11 w-full rounded-full font-semibold shadow-md hover:shadow-lg"
           >
             Đã xác thực? Đăng nhập ngay
           </Button>

@@ -93,8 +93,9 @@ export const OAuthCompleteProfileForm = () => {
   return (
     <div className="w-full max-w-sm mx-auto">
       <div className="text-center mb-8">
-        <h1 className="text-3xl font-bold bg-gradient-instagram bg-clip-text text-transparent mb-2">
-          Nexo
+        <h1 className="mb-2 text-2xl font-bold tracking-tight sm:text-3xl">
+          <span className="text-foreground">Nexo</span>{" "}
+          <span className="text-primary">Social</span>
         </h1>
         <p className="text-muted-foreground">Hoàn thành hồ sơ của bạn</p>
       </div>
@@ -160,8 +161,8 @@ export const OAuthCompleteProfileForm = () => {
         {/* Submit Button */}
         <Button
           type="submit"
-          variant="instagram"
-          className="w-full h-11"
+          variant="default"
+          className="h-11 w-full rounded-full font-semibold shadow-md hover:shadow-lg"
           disabled={isLoading}
         >
           {isLoading ? "Đang hoàn thành..." : "Hoàn thành"}

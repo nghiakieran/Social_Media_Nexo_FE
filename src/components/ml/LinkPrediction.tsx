@@ -35,8 +35,8 @@ export const LinkPrediction = ({ suggestions, onFollow, className }: LinkPredict
   return (
     <div className={className}>
       <div className="flex items-center gap-2 mb-4">
-        <div className="w-8 h-8 rounded-full bg-gradient-instagram flex items-center justify-center">
-          <TrendingUp className="w-4 h-4 text-white" />
+        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm">
+          <TrendingUp className="h-4 w-4" />
         </div>
         <h3 className="text-lg font-semibold">Gợi ý kết bạn bởi AI</h3>
       </div>
@@ -48,16 +48,16 @@ export const LinkPrediction = ({ suggestions, onFollow, className }: LinkPredict
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   {/* Avatar */}
-                  <div className="w-12 h-12 rounded-full bg-gradient-story p-0.5">
-                    <div className="w-full h-full rounded-full bg-background flex items-center justify-center">
+                  <div className="h-12 w-12 rounded-full bg-gradient-to-br from-primary to-secondary p-0.5">
+                    <div className="flex h-full w-full items-center justify-center rounded-full bg-background">
                       {user.avatar ? (
                         <img 
                           src={user.avatar} 
                           alt={user.name}
-                          className="w-10 h-10 rounded-full object-cover"
+                          className="h-10 w-10 rounded-full object-cover"
                         />
                       ) : (
-                        <div className="w-10 h-10 rounded-full bg-gradient-instagram"></div>
+                        <div className="h-10 w-10 rounded-full bg-primary" />
                       )}
                     </div>
                   </div>
@@ -108,7 +108,7 @@ export const LinkPrediction = ({ suggestions, onFollow, className }: LinkPredict
                 </div>
                 <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
                   <div 
-                    className="h-full bg-gradient-instagram transition-all duration-500"
+                    className="h-full rounded-full bg-primary transition-all duration-500"
                     style={{ width: `${user.linkScore * 100}%` }}
                   />
                 </div>

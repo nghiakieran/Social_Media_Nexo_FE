@@ -147,7 +147,7 @@ export default function Dashboard() {
           change={dashboardDataCard?.percentUser || 0}
           icon={Users}
           trend={dashboardDataCard?.percentUser >= 0 ? "up" : "down"}
-          gradient="bg-gradient-to-br from-instagram-purple to-instagram-pink"
+          gradient="bg-gradient-to-br from-primary to-secondary"
         />
         <StatsCard
           title="Bài viết"
@@ -155,7 +155,7 @@ export default function Dashboard() {
           change={dashboardDataCard?.percentPost || 0}
           icon={FileText}
           trend={dashboardDataCard?.percentPost >= 0 ? "up" : "down"}
-          gradient="bg-gradient-to-br from-instagram-pink to-instagram-orange"
+          gradient="bg-gradient-to-br from-secondary to-accent"
         />
         <StatsCard
           title="Tương tác"
@@ -163,7 +163,7 @@ export default function Dashboard() {
           change={dashboardDataCard?.percentInteract || 0}
           icon={Heart}
           trend={dashboardDataCard?.percentInteract >= 0 ? "up" : "down"}
-          gradient="bg-gradient-to-br from-instagram-orange to-instagram-yellow"
+          gradient="bg-gradient-to-br from-accent to-primary"
         />
         <StatsCard
           title="Báo cáo"
@@ -194,9 +194,9 @@ export default function Dashboard() {
                 <Line
                   type="monotone"
                   dataKey="users"
-                  stroke="hsl(var(--instagram-purple))"
+                  stroke="hsl(var(--primary))"
                   strokeWidth={2}
-                  dot={{ fill: "hsl(var(--instagram-purple))" }}
+                  dot={{ fill: "hsl(var(--primary))" }}
                 />
               </LineChart>
             </ResponsiveContainer>
@@ -219,7 +219,7 @@ export default function Dashboard() {
                 <Tooltip />
                 <Bar
                   dataKey="posts"
-                  fill="hsl(var(--instagram-pink))"
+                  fill="hsl(var(--secondary))"
                   radius={[8, 8, 0, 0]}
                 />
               </BarChart>
@@ -244,9 +244,9 @@ export default function Dashboard() {
                 <Line
                   type="monotone"
                   dataKey="interactions"
-                  stroke="hsl(var(--instagram-orange))"
+                  stroke="hsl(var(--accent))"
                   strokeWidth={2}
-                  dot={{ fill: "hsl(var(--instagram-orange))" }}
+                  dot={{ fill: "hsl(var(--accent))" }}
                 />
               </LineChart>
             </ResponsiveContainer>
@@ -290,7 +290,7 @@ export default function Dashboard() {
           <div className="space-y-4">
             {topHashtags.map((hashtag, index) => (
               <div key={hashtag.id} className="flex items-center gap-4">
-                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white font-bold text-sm">
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-primary to-secondary font-bold text-primary-foreground text-sm shadow-sm">
                   {index + 1}
                 </div>
                 <div className="flex-1">

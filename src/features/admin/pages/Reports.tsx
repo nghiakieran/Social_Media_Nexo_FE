@@ -15,6 +15,7 @@ import {
   FilmIcon,
   Clock,
   MessageCircle, // Add Clock Icon for IN_REVIEW
+  Loader2,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -392,7 +393,10 @@ export default function Reports() {
               </CardHeader>
               <CardContent>
                 {loading ? (
-                  <div className="text-center py-10">Đang tải dữ liệu...</div>
+                  <div className="flex flex-col items-center justify-center gap-3 py-10 text-muted-foreground">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                    <p className="text-sm">Đang tải dữ liệu...</p>
+                  </div>
                 ) : (
                   <>
                     <ReportTable

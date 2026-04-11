@@ -1,7 +1,16 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
-import { Eye, EyeOff, Mail, Lock, User, AtSign } from "lucide-react";
+import {
+  Eye,
+  EyeOff,
+  Mail,
+  Lock,
+  User,
+  AtSign,
+  ArrowRight,
+  ArrowLeft,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,23 +21,34 @@ import { registerAsync } from "../authSlice";
 import { mockAuthDelay } from "../__mocks__/users";
 import type { RegisterFormData } from "../types";
 import { AUTH_LOGIN_ENDPOINT } from "@/utils/constants";
+import { cn } from "@/lib/utils";
+
+const fieldClass =
+  "h-11 rounded-full border border-input/80 bg-background/80 pl-10 pr-3 text-sm shadow-[inset_0_1px_0_rgba(0,0,0,0.03)] transition-all placeholder:text-muted-foreground/70 focus-visible:border-primary/50 focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:ring-offset-0 sm:h-12 sm:pl-11 sm:pr-4";
 
 export const RegisterForm = () => {
+  const [step, setStep] = useState<1 | 2>(1);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
-  const { isLoading, error } = useAppSelector((state) => state.auth);
+  const { isLoading } = useAppSelector((state) => state.auth);
 
   const {
     register,
     handleSubmit,
     watch,
+    trigger,
     formState: { errors },
   } = useForm<RegisterFormData>();
 
   const password = watch("password");
+
+  const goToStep2 = async () => {
+    const ok = await trigger(["fullname", "username", "email"]);
+    if (ok) setStep(2);
+  };
 
   const onSubmit = async (data: RegisterFormData) => {
     try {
@@ -41,11 +61,9 @@ export const RegisterForm = () => {
         })
       ).unwrap();
 
-      // Chuyển hướng đến trang thông báo đăng ký thành công với userId
       if (result.userId) {
         navigate(`/auth/register-success?userId=${result.userId}`);
       } else {
-        // Fallback nếu không có userId
         toast({
           title: "Đăng ký thành công!",
           description: "Vui lòng kiểm tra email để xác thực tài khoản.",
@@ -69,209 +87,321 @@ export const RegisterForm = () => {
     });
   };
 
+  const labelClass =
+    "text-[10px] font-semibold uppercase tracking-wide text-muted-foreground sm:text-xs";
+
+  const iconLeft = "left-3.5 sm:left-4";
+
   return (
-    <div className="w-full max-w-sm mx-auto">
-      <div className="text-center mb-8">
-        <h1 className="text-3xl font-bold bg-gradient-instagram bg-clip-text text-transparent mb-2">
-          Nexo
-        </h1>
-        <p className="text-muted-foreground">Tạo tài khoản mới</p>
-      </div>
-
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-        {/* Full Name */}
-        <div className="space-y-2">
-          <Label htmlFor="fullname">Họ tên</Label>
-          <div className="relative">
-            <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              id="fullname"
-              placeholder="Nguyen Van A"
-              className="pl-10"
-              {...register("fullname", {
-                required: "Họ tên là bắt buộc",
-                minLength: {
-                  value: 2,
-                  message: "Họ tên phải có ít nhất 2 ký tự",
-                },
-              })}
-            />
-          </div>
-          {errors.fullname && (
-            <p className="text-sm text-destructive">
-              {errors.fullname.message}
-            </p>
+    <div className="mx-auto w-full max-w-md">
+      <div
+        className="mb-3 flex gap-1.5 sm:mb-4"
+        aria-label="Tiến trình đăng ký"
+      >
+        <span
+          className={cn(
+            "h-1 flex-1 rounded-full transition-colors",
+            step >= 1 ? "bg-primary" : "bg-muted"
           )}
-        </div>
-
-        {/* Username */}
-        <div className="space-y-2">
-          <Label htmlFor="username">Tên người dùng</Label>
-          <div className="relative">
-            <AtSign className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              id="username"
-              placeholder="username"
-              className="pl-10"
-              {...register("username", {
-                required: "Tên người dùng là bắt buộc",
-                minLength: {
-                  value: 3,
-                  message: "Tên người dùng phải có ít nhất 3 ký tự",
-                },
-                pattern: {
-                  value: /^[a-zA-Z0-9_]+$/,
-                  message: "Tên người dùng chỉ được chứa chữ, số và gạch dưới",
-                },
-              })}
-            />
-          </div>
-          {errors.username && (
-            <p className="text-sm text-destructive">
-              {errors.username.message}
-            </p>
+        />
+        <span
+          className={cn(
+            "h-1 flex-1 rounded-full transition-colors",
+            step >= 2 ? "bg-primary" : "bg-muted"
           )}
-        </div>
-
-        {/* Email */}
-        <div className="space-y-2">
-          <Label htmlFor="email">Email</Label>
-          <div className="relative">
-            <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              id="email"
-              type="email"
-              placeholder="your@email.com"
-              className="pl-10"
-              {...register("email", {
-                required: "Email là bắt buộc",
-                pattern: {
-                  value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                  message: "Email không hợp lệ",
-                },
-              })}
-            />
-          </div>
-          {errors.email && (
-            <p className="text-sm text-destructive">{errors.email.message}</p>
-          )}
-        </div>
-
-        {/* Password */}
-        <div className="space-y-2">
-          <Label htmlFor="password">Mật khẩu</Label>
-          <div className="relative">
-            <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              id="password"
-              type={showPassword ? "text" : "password"}
-              placeholder="••••••••"
-              className="pl-10 pr-10"
-              {...register("password", {
-                required: "Mật khẩu là bắt buộc",
-                minLength: {
-                  value: 8,
-                  message: "Mật khẩu phải có ít nhất 8 ký tự",
-                },
-                pattern: {
-                  value: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
-                  message:
-                    "Mật khẩu phải chứa ít nhất 1 chữ hoa, 1 chữ thường và 1 số",
-                },
-              })}
-            />
-            <button
-              type="button"
-              onClick={() => setShowPassword(!showPassword)}
-              tabIndex={-1}
-              aria-hidden="true"
-              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-            >
-              {showPassword ? (
-                <EyeOff className="h-4 w-4" />
-              ) : (
-                <Eye className="h-4 w-4" />
-              )}
-            </button>
-          </div>
-          {errors.password && (
-            <p className="text-sm text-destructive">
-              {errors.password.message}
-            </p>
-          )}
-        </div>
-
-        {/* Confirm Password */}
-        <div className="space-y-2">
-          <Label htmlFor="confirmPassword">Xác nhận mật khẩu</Label>
-          <div className="relative">
-            <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              id="confirmPassword"
-              type={showConfirmPassword ? "text" : "password"}
-              placeholder="••••••••"
-              className="pl-10 pr-10"
-              {...register("confirmPassword", {
-                required: "Vui lòng xác nhận mật khẩu",
-                validate: (value) =>
-                  value === password || "Mật khẩu xác nhận không khớp",
-              })}
-            />
-            <button
-              type="button"
-              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-              tabIndex={-1}
-              aria-hidden="true"
-              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-            >
-              {showConfirmPassword ? (
-                <EyeOff className="h-4 w-4" />
-              ) : (
-                <Eye className="h-4 w-4" />
-              )}
-            </button>
-          </div>
-          {errors.confirmPassword && (
-            <p className="text-sm text-destructive">
-              {errors.confirmPassword.message}
-            </p>
-          )}
-        </div>
-
-        {/* Submit Button */}
-        <Button
-          type="submit"
-          variant="instagram"
-          className="w-full h-11"
-          disabled={isLoading}
-        >
-          {isLoading ? "Đang tạo tài khoản..." : "Đăng ký"}
-        </Button>
-      </form>
-
-      {/* Divider */}
-      <div className="flex items-center gap-4 my-6">
-        <div className="flex-1 h-px bg-border"></div>
-        <span className="text-sm text-muted-foreground">hoặc</span>
-        <div className="flex-1 h-px bg-border"></div>
-      </div>
-
-      {/* OAuth Buttons */}
-      <div className="space-y-3">
-        <OAuthButton
-          provider="google"
-          onAuth={handleOAuth}
-          disabled={isLoading}
         />
       </div>
 
-      {/* Login Link */}
-      <div className="text-center mt-6 pt-6 border-t border-border">
-        <p className="text-sm text-muted-foreground">
+      <div className="mb-3 space-y-1 sm:mb-4">
+        <h1 className="text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
+          Tạo tài khoản
+        </h1>
+        <p className="text-xs leading-relaxed text-muted-foreground sm:text-sm">
+          {step === 1
+            ? "Nhập họ tên, tên người dùng và email để bắt đầu."
+            : "Đặt mật khẩu an toàn cho tài khoản của bạn."}
+        </p>
+      </div>
+
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (step === 1) {
+            void goToStep2();
+            return;
+          }
+          void handleSubmit(onSubmit)(e);
+        }}
+        className="space-y-3 sm:space-y-4"
+      >
+        <div className={cn("space-y-3", step !== 1 && "hidden")}>
+          <div className="space-y-1.5">
+            <Label htmlFor="fullname" className={labelClass}>
+              Họ tên
+            </Label>
+            <div className="relative">
+              <User
+                className={cn(
+                  "pointer-events-none absolute top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground",
+                  iconLeft
+                )}
+              />
+              <Input
+                id="fullname"
+                placeholder="Nguyễn Văn A"
+                className={cn(fieldClass, "pl-10 sm:pl-11")}
+                autoComplete="name"
+                {...register("fullname", {
+                  required: "Họ tên là bắt buộc",
+                  minLength: {
+                    value: 2,
+                    message: "Họ tên phải có ít nhất 2 ký tự",
+                  },
+                })}
+              />
+            </div>
+            {errors.fullname && (
+              <p className="text-xs text-destructive sm:text-sm">
+                {errors.fullname.message}
+              </p>
+            )}
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="username" className={labelClass}>
+              Tên người dùng
+            </Label>
+            <div className="relative">
+              <AtSign
+                className={cn(
+                  "pointer-events-none absolute top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground",
+                  iconLeft
+                )}
+              />
+              <Input
+                id="username"
+                placeholder="username"
+                className={cn(fieldClass, "pl-10 sm:pl-11")}
+                autoComplete="username"
+                {...register("username", {
+                  required: "Tên người dùng là bắt buộc",
+                  minLength: {
+                    value: 3,
+                    message: "Tên người dùng phải có ít nhất 3 ký tự",
+                  },
+                  pattern: {
+                    value: /^[a-zA-Z0-9_]+$/,
+                    message:
+                      "Tên người dùng chỉ được chứa chữ, số và gạch dưới",
+                  },
+                })}
+              />
+            </div>
+            {errors.username && (
+              <p className="text-xs text-destructive sm:text-sm">
+                {errors.username.message}
+              </p>
+            )}
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="email" className={labelClass}>
+              Email
+            </Label>
+            <div className="relative">
+              <Mail
+                className={cn(
+                  "pointer-events-none absolute top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground",
+                  iconLeft
+                )}
+              />
+              <Input
+                id="email"
+                type="email"
+                placeholder="ten@nexo.com"
+                className={cn(fieldClass, "pl-10 sm:pl-11")}
+                autoComplete="email"
+                {...register("email", {
+                  required: "Email là bắt buộc",
+                  pattern: {
+                    value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                    message: "Email không hợp lệ",
+                  },
+                })}
+              />
+            </div>
+            {errors.email && (
+              <p className="text-xs text-destructive sm:text-sm">
+                {errors.email.message}
+              </p>
+            )}
+          </div>
+
+          <Button
+            type="button"
+            variant="default"
+            className="group mt-1 h-11 w-full rounded-full text-sm font-semibold shadow-md hover:shadow-lg sm:h-12 sm:text-base"
+            onClick={goToStep2}
+          >
+            Tiếp tục
+            <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+          </Button>
+        </div>
+
+        <div className={cn("space-y-3", step !== 2 && "hidden")}>
+          <Button
+            type="button"
+            variant="outline"
+            className="-ml-2 mb-1 h-9 gap-1 rounded-full border-primary/40 px-3 text-xs font-medium text-primary hover:bg-primary/10 hover:text-primary sm:text-sm"
+            onClick={() => setStep(1)}
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Quay lại
+          </Button>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="password" className={labelClass}>
+              Mật khẩu
+            </Label>
+            <div className="relative">
+              <Lock
+                className={cn(
+                  "pointer-events-none absolute top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground",
+                  iconLeft
+                )}
+              />
+              <Input
+                id="password"
+                type={showPassword ? "text" : "password"}
+                placeholder="••••••••"
+                className={cn(fieldClass, "pl-10 pr-11 sm:pl-11 sm:pr-12")}
+                autoComplete="new-password"
+                {...register("password", {
+                  required: "Mật khẩu là bắt buộc",
+                  minLength: {
+                    value: 8,
+                    message: "Mật khẩu phải có ít nhất 8 ký tự",
+                  },
+                  pattern: {
+                    value: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
+                    message:
+                      "Mật khẩu phải chứa ít nhất 1 chữ hoa, 1 chữ thường và 1 số",
+                  },
+                })}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-full p-1.5 text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground sm:right-3"
+                aria-label={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
+              >
+                {showPassword ? (
+                  <EyeOff className="h-4 w-4" />
+                ) : (
+                  <Eye className="h-4 w-4" />
+                )}
+              </button>
+            </div>
+            {errors.password && (
+              <p className="text-xs text-destructive sm:text-sm">
+                {errors.password.message}
+              </p>
+            )}
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="confirmPassword" className={labelClass}>
+              Xác nhận mật khẩu
+            </Label>
+            <div className="relative">
+              <Lock
+                className={cn(
+                  "pointer-events-none absolute top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground",
+                  iconLeft
+                )}
+              />
+              <Input
+                id="confirmPassword"
+                type={showConfirmPassword ? "text" : "password"}
+                placeholder="••••••••"
+                className={cn(fieldClass, "pl-10 pr-11 sm:pl-11 sm:pr-12")}
+                autoComplete="new-password"
+                {...register("confirmPassword", {
+                  required: "Vui lòng xác nhận mật khẩu",
+                  validate: (value) =>
+                    value === password || "Mật khẩu xác nhận không khớp",
+                })}
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-full p-1.5 text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground sm:right-3"
+                aria-label={
+                  showConfirmPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"
+                }
+              >
+                {showConfirmPassword ? (
+                  <EyeOff className="h-4 w-4" />
+                ) : (
+                  <Eye className="h-4 w-4" />
+                )}
+              </button>
+            </div>
+            {errors.confirmPassword && (
+              <p className="text-xs text-destructive sm:text-sm">
+                {errors.confirmPassword.message}
+              </p>
+            )}
+          </div>
+
+          <Button
+            type="submit"
+            variant="default"
+            className="group mt-1 h-11 w-full rounded-full text-sm font-semibold shadow-md hover:shadow-lg sm:h-12 sm:text-base"
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              "Đang tạo tài khoản..."
+            ) : (
+              <>
+                Đăng ký
+                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+              </>
+            )}
+          </Button>
+        </div>
+      </form>
+
+      {step === 2 && (
+        <>
+          <div className="my-5 flex items-center gap-3 sm:my-6">
+            <div className="h-px flex-1 bg-gradient-to-r from-transparent via-border to-transparent" />
+            <span className="whitespace-nowrap text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground/90">
+              Hoặc tiếp tục với
+            </span>
+            <div className="h-px flex-1 bg-gradient-to-r from-transparent via-border to-transparent" />
+          </div>
+
+          <OAuthButton
+            provider="google"
+            onAuth={handleOAuth}
+            disabled={isLoading}
+            className="h-11 rounded-full text-sm shadow-sm sm:h-12"
+          />
+        </>
+      )}
+
+      <div
+        className={cn(
+          "border-t border-border/60 pt-4 text-center sm:pt-5",
+          step === 1 ? "mt-5 sm:mt-6" : "mt-5 sm:mt-6"
+        )}
+      >
+        <p className="text-xs text-muted-foreground sm:text-sm">
           Đã có tài khoản?{" "}
           <Link
             to={AUTH_LOGIN_ENDPOINT}
-            className="text-primary hover:underline font-medium"
+            className="font-semibold text-primary transition-colors hover:text-primary/90 hover:underline"
           >
             Đăng nhập ngay
           </Link>

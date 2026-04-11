@@ -370,7 +370,7 @@ export const ChatPage: React.FC = () => {
 
   if (!currentChat) {
     return (
-      <div className="h-screen flex items-center justify-center">
+      <div className="flex h-[100dvh] max-h-[100dvh] items-center justify-center px-4">
         <div className="text-center">
           <h2 className="text-xl font-semibold mb-2">
             Không tìm thấy cuộc trò chuyện
@@ -382,7 +382,7 @@ export const ChatPage: React.FC = () => {
   }
 
   return (
-    <div className="h-screen flex flex-col bg-background">
+    <div className="flex h-full min-h-0 w-full flex-col overflow-hidden bg-background">
       <InstagramChatHeader
         chat={currentChat}
         onBack={handleGoBack}
@@ -412,6 +412,7 @@ export const ChatPage: React.FC = () => {
         />
 
         <MessageComposer
+          className="shrink-0 border-primary/10 bg-background/95 backdrop-blur-sm"
           onSendMessage={handleSendMessage}
           onTyping={handleTyping}
           replyingTo={replyingTo}

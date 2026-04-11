@@ -148,7 +148,7 @@ export const ProfileHeader = ({
                   className={`rounded-full p-[2.5px] md:p-[3px] w-20 h-20 md:w-44 md:h-44 ${
                     isStoryViewed
                       ? "bg-gray-400"
-                      : "bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-600"
+                      : "bg-gradient-story"
                   }`}
                 >
                   {/* White/Background Border (creates gap between gradient and avatar) */}
@@ -219,7 +219,7 @@ export const ProfileHeader = ({
                   variant="outline"
                   size="sm"
                   onClick={onEdit}
-                  className="gap-1 bg-gray-200 dark:bg-secondary hover:bg-gray-300 dark:hover:bg-secondary/80 text-xs md:text-sm transition-colors"
+                  className="gap-1 border-border bg-muted text-xs transition-colors hover:border-primary/25 hover:bg-primary/10 hover:text-primary dark:bg-muted/60 md:text-sm"
                 >
                   <Edit3 className="w-4 h-4" />
                   <span className="hidden sm:inline">
@@ -231,7 +231,7 @@ export const ProfileHeader = ({
                   variant="outline"
                   size="sm"
                   onClick={() => navigate("/archive/stories")}
-                  className="bg-gray-200 dark:bg-secondary hover:bg-gray-300 dark:hover:bg-secondary/80 transition-colors"
+                  className="border-border bg-muted transition-colors hover:border-primary/25 hover:bg-primary/10 hover:text-primary dark:bg-muted/60"
                   title="Xem kho lưu trữ"
                 >
                   <Archive className="w-4 h-4" />
@@ -240,7 +240,7 @@ export const ProfileHeader = ({
                   variant="outline"
                   size="sm"
                   onClick={() => navigate("/account/settings")}
-                  className="bg-gray-200 dark:bg-secondary hover:bg-gray-300 dark:hover:bg-secondary/80 transition-colors"
+                  className="border-border bg-muted transition-colors hover:border-primary/25 hover:bg-primary/10 hover:text-primary dark:bg-muted/60"
                   title="Cài đặt"
                 >
                   <Settings className="w-4 h-4" />
@@ -271,7 +271,7 @@ export const ProfileHeader = ({
                   </Button>
                 ) : (
                   <Button
-                    variant="instagram"
+                    variant="default"
                     size="sm"
                     onClick={onFollow}
                     className="gap-1"

@@ -192,7 +192,7 @@ export const CallDialog: React.FC<CallDialogProps> = ({
           <div className="mt-6">
             <div className={cn(
               'inline-flex items-center px-3 py-1 rounded-full text-sm',
-              type === 'video' ? 'bg-primary/10 text-primary' : 'bg-secondary'
+              type === 'video' ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'
             )}>
               {type === 'video' ? (
                 <Video className="h-4 w-4 mr-2" />

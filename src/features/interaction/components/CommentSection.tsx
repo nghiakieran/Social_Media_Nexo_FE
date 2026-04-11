@@ -562,7 +562,7 @@ export const CommentSection = ({ postId, className }: CommentSectionProps) => {
           <div className="text-center space-y-4">
             <p className="text-destructive">{error}</p>
             <Button onClick={handleRefresh} variant="outline">
-              <RefreshCw className="h-4 w-4 mr-2" />
+              <RefreshCw className="mr-2 h-4 w-4 text-primary" />
               Thử lại
             </Button>
           </div>
@@ -593,7 +593,7 @@ export const CommentSection = ({ postId, className }: CommentSectionProps) => {
                 disabled={isLoading}
               >
                 <RefreshCw
-                  className={cn("h-4 w-4", isLoading && "animate-spin")}
+                  className={cn("h-4 w-4 text-primary", isLoading && "animate-spin")}
                 />
               </Button>
             </div>
@@ -663,7 +663,7 @@ export const CommentSection = ({ postId, className }: CommentSectionProps) => {
           <div className="space-y-6">
             {isLoading && comments.length === 0 ? (
               <div className="text-center py-8">
-                <MessageCircle className="w-12 h-12 text-muted-foreground mx-auto mb-4 animate-pulse" />
+                <MessageCircle className="mx-auto mb-4 h-12 w-12 animate-pulse text-primary/70" />
                 <p className="text-muted-foreground">Đang tải bình luận...</p>
               </div>
             ) : comments.length === 0 ? (
@@ -693,7 +693,7 @@ export const CommentSection = ({ postId, className }: CommentSectionProps) => {
               >
                 {isLoading ? (
                   <>
-                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                    <RefreshCw className="mr-2 h-4 w-4 animate-spin text-primary" />
                     Đang tải...
                   </>
                 ) : (

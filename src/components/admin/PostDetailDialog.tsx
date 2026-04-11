@@ -236,7 +236,7 @@ export function PostDetailDialog({
                       <Badge
                         key={index}
                         variant="secondary"
-                        className="cursor-pointer hover:bg-secondary/80"
+                        className="cursor-pointer hover:bg-primary/15 dark:hover:bg-primary/25"
                       >
                         {tag}
                       </Badge>

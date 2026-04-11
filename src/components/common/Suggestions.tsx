@@ -58,21 +58,21 @@ const AllSuggestionsModal = ({
                       <Avatar
                         className={`h-12 w-12 transition-all duration-300 ${
                           hoveredUser === user.id.toString()
-                            ? "ring-2 ring-gradient-instagram scale-110"
+                            ? "ring-2 ring-primary scale-110"
                             : ""
                         }`}
                       >
                         <AvatarImage src={getAvatarUrl(user.avatar)} />
-                        <AvatarFallback className="bg-gradient-to-br from-muted to-secondary text-foreground font-semibold">
+                        <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/40 text-primary font-semibold">
                           {getAvatarInitials(user.username)}
                         </AvatarFallback>
                       </Avatar>
                       {hoveredUser === user.id.toString() && (
-                        <div className="absolute -top-1 -right-1 w-3 h-3 bg-gradient-story rounded-full border-2 border-background animate-pulse" />
+                        <div className="absolute -top-1 -right-1 h-3 w-3 animate-pulse rounded-full border-2 border-background bg-primary" />
                       )}
                     </div>
                     <div className="flex-1">
-                      <p className="font-bold text-sm text-foreground group-hover:bg-gradient-instagram group-hover:bg-clip-text group-hover:text-transparent transition-all duration-300">
+                      <p className="font-bold text-sm text-foreground group-hover:text-primary transition-all duration-300">
                         {user.username}
                       </p>
                       <p className="text-muted-foreground text-xs">
@@ -85,8 +85,8 @@ const AllSuggestionsModal = ({
                     size="sm"
                     className={`font-bold text-sm px-4 py-2 rounded-lg transition-all duration-300 ${
                       hoveredUser === user.id.toString()
-                        ? "bg-gradient-instagram text-white hover:opacity-90 scale-110 shadow-glow"
-                        : "text-blue-500 hover:text-blue-600 hover:bg-blue-50"
+                        ? "bg-primary text-primary-foreground hover:bg-primary/90 scale-110 shadow-md"
+                        : "text-primary hover:bg-primary/10 hover:text-primary dark:hover:bg-primary/20"
                     }`}
                     onClick={async (e) => {
                       e.stopPropagation();
@@ -161,13 +161,13 @@ export const Suggestions = () => {
             onClick={() => user?.username && navigate(`/${user.username}`)}
           >
             <div className="relative">
-              <Avatar className="h-14 w-14 ring-2 ring-gradient-instagram">
+              <Avatar className="h-14 w-14 ring-2 ring-primary">
                 <AvatarImage src={getAvatarUrl(user?.avatar)} />
-                <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white font-semibold">
+                <AvatarFallback className="bg-primary font-semibold text-primary-foreground">
                   {getAvatarInitials(user?.username)}
                 </AvatarFallback>
               </Avatar>
-              <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-gradient-story rounded-full border-2 border-background"></div>
+              <div className="absolute -bottom-1 -right-1 h-4 w-4 rounded-full border-2 border-background bg-primary" />
             </div>
             <div className="flex-1">
               <p className="font-bold text-sm text-foreground hover:underline">
@@ -181,7 +181,7 @@ export const Suggestions = () => {
           <Button
             variant="ghost"
             size="sm"
-            className="text-blue-500 hover:text-blue-600 font-bold hover:bg-blue-50 transition-all duration-200 hover:scale-105"
+            className="font-bold text-primary transition-all duration-200 hover:scale-105 hover:bg-primary/10 hover:text-primary dark:hover:bg-primary/20"
             onClick={handleSwitchAccount}
           >
             Chuyển
@@ -227,21 +227,21 @@ export const Suggestions = () => {
                       <Avatar
                         className={`h-11 w-11 transition-all duration-300 ${
                           hoveredUser === user.id.toString()
-                            ? "ring-2 ring-gradient-instagram scale-110"
+                            ? "ring-2 ring-primary scale-110"
                             : ""
                         }`}
                       >
                         <AvatarImage src={getAvatarUrl(user.avatar)} />
-                        <AvatarFallback className="bg-gradient-to-br from-muted to-secondary text-foreground font-semibold">
+                        <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/40 text-primary font-semibold">
                           {getAvatarInitials(user.username)}
                         </AvatarFallback>
                       </Avatar>
                       {hoveredUser === user.id.toString() && (
-                        <div className="absolute -top-1 -right-1 w-3 h-3 bg-gradient-story rounded-full border-2 border-background animate-pulse" />
+                        <div className="absolute -top-1 -right-1 h-3 w-3 animate-pulse rounded-full border-2 border-background bg-primary" />
                       )}
                     </div>
                     <div className="flex-1">
-                      <p className="font-bold text-sm text-foreground group-hover:bg-gradient-instagram group-hover:bg-clip-text group-hover:text-transparent transition-all duration-300">
+                      <p className="font-bold text-sm text-foreground group-hover:text-primary transition-all duration-300">
                         {user.username}
                       </p>
                       <p className="text-muted-foreground text-xs">
@@ -254,8 +254,8 @@ export const Suggestions = () => {
                     size="sm"
                     className={`font-bold text-sm px-4 py-2 rounded-lg transition-all duration-300 ${
                       hoveredUser === user.id.toString()
-                        ? "bg-gradient-instagram text-white hover:opacity-90 scale-110 shadow-glow"
-                        : "text-blue-500 hover:text-blue-600 hover:bg-blue-50"
+                        ? "bg-primary text-primary-foreground hover:bg-primary/90 scale-110 shadow-md"
+                        : "text-primary hover:bg-primary/10 hover:text-primary dark:hover:bg-primary/20"
                     }`}
                     onClick={async (e) => {
                       e.stopPropagation();

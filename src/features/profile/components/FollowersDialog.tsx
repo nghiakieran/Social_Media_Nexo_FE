@@ -422,7 +422,7 @@ export const FollowersDialog = ({
               {filteredUsers.length === 0 ? (
                 <div className="h-full flex items-center justify-center text-muted-foreground">
                   {listLoading ? (
-                    <Loader2 className="w-6 h-6 animate-spin" />
+                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
                   ) : searchValue ? (
                     "Không tìm thấy kết quả"
                   ) : (
@@ -437,7 +437,7 @@ export const FollowersDialog = ({
                     <div
                       key={user.userId}
                       ref={isLastItem ? lastElementRef : null}
-                      className="flex items-center justify-between px-2 py-2 hover:bg-muted/40 rounded-lg transition-colors"
+                      className="flex items-center justify-between rounded-lg px-2 py-2 transition-colors hover:bg-primary/10 dark:hover:bg-primary/15"
                     >
                       <div
                         className="flex items-center gap-3 flex-1 min-w-0 cursor-pointer"
@@ -494,7 +494,7 @@ export const FollowersDialog = ({
                             </Button>
                           ) : (
                             <Button
-                              variant="instagram"
+                              variant="default"
                               size="sm"
                               onClick={() => handleFollow(user.userId)}
                               className="text-xs gap-1"
@@ -531,7 +531,7 @@ export const FollowersDialog = ({
                         ) : (
                           // Show "Theo dõi" for not following
                           <Button
-                            variant="instagram"
+                            variant="default"
                             size="sm"
                             onClick={() => handleFollow(user.userId)}
                             className="text-xs gap-1"
@@ -549,7 +549,7 @@ export const FollowersDialog = ({
               {/* Loading indicator */}
               {listLoading && filteredUsers.length > 0 && (
                 <div className="flex items-center justify-center py-4">
-                  <Loader2 className="w-5 h-5 animate-spin" />
+                  <Loader2 className="h-5 w-5 animate-spin text-primary" />
                   <span className="ml-2 text-sm text-muted-foreground">
                     Đang tải...
                   </span>

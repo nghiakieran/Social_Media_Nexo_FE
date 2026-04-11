@@ -268,7 +268,7 @@ export const PostComposer = ({
                 variant="ghost"
                 size="sm"
                 onClick={() => setShowTagFriends(!showTagFriends)}
-                className="gap-2 hover:bg-accent/10 hover:text-accent transition-colors"
+                className="gap-2 transition-colors hover:bg-primary/10 hover:text-primary dark:hover:bg-primary/20"
               >
                 <Users className="w-5 h-5" />
                 <span className="hidden sm:inline">Gắn thẻ</span>
@@ -278,7 +278,7 @@ export const PostComposer = ({
             <Button
               onClick={handleSubmit}
               disabled={isLoading || (!content.trim() && media.length === 0)}
-              className="px-8 py-2 bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="rounded-xl px-8 py-2 font-semibold shadow-lg transition-all duration-200 hover:shadow-xl disabled:cursor-not-allowed disabled:opacity-50"
               size="lg"
             >
               {isLoading ? (

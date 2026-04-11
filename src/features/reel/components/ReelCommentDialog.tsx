@@ -988,7 +988,7 @@ const ReelCommentDialog = () => {
                 <button
                   type="button"
                   onClick={() => setReplyingTo(null)}
-                  className="text-xs text-blue-500 hover:text-blue-700"
+                  className="text-xs text-primary hover:text-primary/90"
                 >
                   Hủy
                 </button>
@@ -1448,7 +1448,7 @@ const ReelCommentDialog = () => {
                   <button
                     type="button"
                     onClick={() => setReplyingTo(null)}
-                    className="text-xs text-blue-500 hover:text-blue-700"
+                    className="text-xs text-primary hover:text-primary/90"
                   >
                     Hủy
                   </button>
@@ -1474,7 +1474,7 @@ const ReelCommentDialog = () => {
                     size="sm"
                     disabled={!replyContent.trim()}
                     variant="ghost"
-                    className="px-4 text-blue-500 hover:text-blue-700 disabled:text-gray-400"
+                    className="px-4 text-primary hover:text-primary/90 disabled:text-gray-400"
                   >
                     Gửi
                   </Button>
@@ -1503,7 +1503,7 @@ const ReelCommentDialog = () => {
                   size="sm"
                   disabled={!commentText.trim() || isCreating}
                   variant="ghost"
-                  className="px-4 text-blue-500 hover:text-blue-700 disabled:text-gray-400"
+                  className="px-4 text-primary hover:text-primary/90 disabled:text-gray-400"
                 >
                   Gửi
                 </Button>

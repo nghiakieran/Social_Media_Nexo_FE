@@ -77,8 +77,8 @@ export function AdminSidebar() {
       <SidebarContent className="flex flex-col h-full">
         <div className="px-4 py-6">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-instagram-purple via-instagram-pink to-instagram-orange flex items-center justify-center">
-              <LayoutDashboard className="w-5 h-5 text-white" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-secondary shadow-md">
+              <LayoutDashboard className="h-5 w-5 text-primary-foreground" />
             </div>
             {state !== "collapsed" && (
               <div>
@@ -124,7 +124,7 @@ export function AdminSidebar() {
           <div className="p-4 border-t border-border space-y-3 mt-auto">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-secondary/50 transition-all duration-200 group">
+                <button className="w-full flex items-center gap-3 p-3 rounded-xl transition-all duration-200 hover:bg-primary/10 dark:hover:bg-primary/20 group">
                   <img
                     src={`https://ui-avatars.com/api/?name=${user.username}&background=random`}
                     className="w-10 h-10 rounded-full border-2 border-primary/20"

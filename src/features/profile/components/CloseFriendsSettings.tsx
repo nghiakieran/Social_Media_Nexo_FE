@@ -177,7 +177,7 @@ export const CloseFriendsSettings = () => {
         <div className="space-y-2">
           {isLoading && following.length === 0 ? (
             <div className="flex items-center justify-center py-8">
-              <Loader2 className="w-6 h-6 animate-spin" />
+              <Loader2 className="h-6 w-6 animate-spin text-primary" />
               <span className="ml-2">Đang tải...</span>
             </div>
           ) : following.length === 0 ? (
@@ -201,7 +201,7 @@ export const CloseFriendsSettings = () => {
                 <div
                   key={user.userId}
                   ref={isLastItem ? lastElementRef : null}
-                  className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-secondary/50 transition-colors"
+                  className="flex items-center justify-between rounded-lg border border-border p-3 transition-colors hover:bg-primary/10 dark:hover:bg-primary/20"
                 >
                   <div className="flex items-center gap-3">
                     <Avatar className="w-10 h-10">
@@ -233,7 +233,7 @@ export const CloseFriendsSettings = () => {
                     className="gap-2"
                   >
                     {isToggling ? (
-                      <Loader2 className="w-3 h-3 animate-spin" />
+                      <Loader2 className="h-3 w-3 animate-spin text-primary" />
                     ) : isFriend ? (
                       <UserMinus className="w-3 h-3" />
                     ) : (
@@ -249,7 +249,7 @@ export const CloseFriendsSettings = () => {
           {/* Loading indicator for infinite scroll */}
           {isLoading && following.length > 0 && (
             <div className="flex items-center justify-center py-4">
-              <Loader2 className="w-5 h-5 animate-spin" />
+              <Loader2 className="h-5 w-5 animate-spin text-primary" />
               <span className="ml-2 text-sm text-muted-foreground">
                 Đang tải...
               </span>

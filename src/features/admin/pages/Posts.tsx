@@ -241,7 +241,7 @@ export default function Posts() {
                 {postInfo?.quantityReel || 0}
               </p>
             </div>
-            <div className="p-3 bg-pink-100 text-pink-600 rounded-full dark:bg-pink-900/20 dark:text-pink-400">
+            <div className="rounded-full bg-primary/15 p-3 text-primary dark:bg-primary/25">
               <Clapperboard className="w-5 h-5" />
             </div>
           </CardContent>
@@ -295,7 +295,7 @@ export default function Posts() {
                 <TableRow>
                   <TableCell colSpan={7} className="h-24 text-center">
                     <div className="flex justify-center items-center gap-2">
-                      <Loader2 className="h-6 w-6 animate-spin" /> Đang tải dữ
+                      <Loader2 className="h-6 w-6 animate-spin text-primary" /> Đang tải dữ
                       liệu...
                     </div>
                   </TableCell>

@@ -104,7 +104,7 @@ export const Sidebar = () => {
                       "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200",
                       isActive
                         ? "bg-primary text-primary-foreground shadow-glow"
-                        : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                        : "text-muted-foreground hover:bg-primary/10 hover:text-primary dark:hover:bg-primary/20"
                     )
                   }
                 >
@@ -130,8 +130,8 @@ export const Sidebar = () => {
                     cn(
                       "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200",
                       isActive
-                        ? "bg-gradient-instagram text-white shadow-glow"
-                        : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                        ? "bg-primary text-primary-foreground shadow-glow"
+                        : "text-muted-foreground hover:bg-primary/10 hover:text-primary dark:hover:bg-primary/20"
                     )
                   }
                 >
@@ -149,7 +149,7 @@ export const Sidebar = () => {
           <PopoverTrigger asChild>
             <Button
               variant="ghost"
-              className="w-full justify-start gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground transition-all duration-200"
+              className="w-full justify-start gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground transition-all duration-200 hover:bg-primary/10 hover:text-primary dark:hover:bg-primary/20"
             >
               <MoreHorizontal className="h-5 w-5" />
               Xem thêm

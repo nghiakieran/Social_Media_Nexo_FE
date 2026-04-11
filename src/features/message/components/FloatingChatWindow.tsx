@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { X, Minus, Phone, Video, ArrowLeft } from "lucide-react";
@@ -51,6 +51,15 @@ export const FloatingChatWindow: React.FC<FloatingChatWindowProps> = ({
   const dispatch = useAppDispatch();
   const { user } = useAppSelector((state) => state.auth);
   const { typingUsers } = useAppSelector((state) => state.message);
+
+  const [isNarrowViewport, setIsNarrowViewport] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 639px)");
+    const apply = () => setIsNarrowViewport(mq.matches);
+    apply();
+    mq.addEventListener("change", apply);
+    return () => mq.removeEventListener("change", apply);
+  }, []);
 
   // WebSocket connection for this floating chat
   const ws = useWebSocket({
@@ -254,13 +263,16 @@ export const FloatingChatWindow: React.FC<FloatingChatWindowProps> = ({
     return (
       <div
         className={cn(
-          "fixed bottom-0 w-[340px] bg-background border border-border rounded-t-lg shadow-lg transition-all duration-200 z-40",
+          "fixed bottom-0 z-40 rounded-t-lg border border-primary/15 bg-background/95 shadow-lg backdrop-blur-sm transition-all duration-200",
+          isNarrowViewport
+            ? "left-3 right-3 w-auto"
+            : "w-[340px]",
           className
         )}
-        style={{ right: `${rightOffset}px` }}
+        style={!isNarrowViewport ? { right: `${rightOffset}px` } : undefined}
       >
         <div
-          className="flex items-center justify-between p-3 border-b border-border cursor-pointer hover:bg-muted/50"
+          className="flex cursor-pointer items-center justify-between border-b border-primary/10 p-3 hover:bg-primary/5"
           onClick={onRestore}
         >
           <div className="flex items-center space-x-2">
@@ -279,7 +291,7 @@ export const FloatingChatWindow: React.FC<FloatingChatWindowProps> = ({
               {chat.fullname}
             </span>
             {chat.unreadCount > 0 && (
-              <div className="bg-destructive text-destructive-foreground rounded-full h-5 w-5 flex items-center justify-center text-xs shrink-0">
+              <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary text-[10px] text-primary-foreground">
                 {chat.unreadCount > 9 ? "9+" : chat.unreadCount}
               </div>
             )}
@@ -303,19 +315,22 @@ export const FloatingChatWindow: React.FC<FloatingChatWindowProps> = ({
   return (
     <div
       className={cn(
-        "fixed bottom-0 w-[340px] h-[500px] bg-background border border-border rounded-t-lg shadow-lg flex flex-col transition-all duration-200 z-40",
+        "fixed bottom-0 z-40 flex flex-col rounded-t-lg border border-primary/15 bg-background/95 shadow-xl backdrop-blur-sm transition-all duration-200",
+        isNarrowViewport
+          ? "left-3 right-3 h-[min(500px,78dvh)] w-auto"
+          : "h-[500px] w-[340px]",
         className
       )}
-      style={{ right: `${rightOffset}px` }}
+      style={!isNarrowViewport ? { right: `${rightOffset}px` } : undefined}
     >
       {/* Header */}
-      <div className="flex items-center justify-between p-3 border-b border-border shrink-0">
+      <div className="flex shrink-0 items-center justify-between border-b border-primary/10 p-3">
         <div className="flex items-center space-x-2 flex-1 min-w-0">
           {onBack && (
             <Button
               variant="ghost"
               size="icon"
-              className="h-7 w-7 shrink-0"
+              className="h-7 w-7 shrink-0 hover:bg-primary/10 hover:text-primary"
               onClick={onBack}
             >
               <ArrowLeft className="h-4 w-4" />
@@ -342,17 +357,25 @@ export const FloatingChatWindow: React.FC<FloatingChatWindowProps> = ({
           </div>
         </div>
 
-        <div className="flex items-center space-x-1 shrink-0">
-          <Button variant="ghost" size="icon" className="h-7 w-7">
+        <div className="flex shrink-0 items-center space-x-0.5">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 hover:bg-primary/10 hover:text-primary"
+          >
             <Phone className="h-3.5 w-3.5" />
           </Button>
-          <Button variant="ghost" size="icon" className="h-7 w-7">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 hover:bg-primary/10 hover:text-primary"
+          >
             <Video className="h-3.5 w-3.5" />
           </Button>
           <Button
             variant="ghost"
             size="icon"
-            className="h-7 w-7"
+            className="h-7 w-7 hover:bg-primary/10 hover:text-primary"
             onClick={onMinimize}
           >
             <Minus className="h-3.5 w-3.5" />
@@ -360,7 +383,7 @@ export const FloatingChatWindow: React.FC<FloatingChatWindowProps> = ({
           <Button
             variant="ghost"
             size="icon"
-            className="h-7 w-7"
+            className="h-7 w-7 hover:bg-primary/10 hover:text-primary"
             onClick={onClose}
           >
             <X className="h-3.5 w-3.5" />
@@ -385,8 +408,9 @@ export const FloatingChatWindow: React.FC<FloatingChatWindowProps> = ({
       </div>
 
       {/* Message Composer */}
-      <div className="shrink-0 border-t border-border">
+      <div className="shrink-0 border-t border-primary/10 bg-background/95 pb-[env(safe-area-inset-bottom,0px)]">
         <MessageComposer
+          className="border-0"
           onSendMessage={handleSendMessage}
           onTyping={handleTyping}
           placeholder="Aa"

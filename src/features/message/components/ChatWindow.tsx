@@ -723,7 +723,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
 
                                 <div className="absolute top-3 left-3 px-2 py-0.5 rounded-full bg-black/40 backdrop-blur-md border border-white/10">
                                   <span className="text-[9px] font-bold text-white uppercase tracking-wider flex items-center gap-1">
-                                    <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+                                    <div className="h-1.5 w-1.5 rounded-full bg-primary" />
                                     Story
                                   </span>
                                 </div>
@@ -792,10 +792,10 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
 
                         <div
                           className={cn(
-                            "absolute top-1/2 -translate-y-1/2 opacity-0 group-hover/msg:opacity-100 transition-all duration-200 z-10 flex items-center gap-1 px-2 py-1 bg-background/95 backdrop-blur-sm rounded-full shadow-sm border border-border/50",
+                            "absolute z-10 flex items-center gap-1 rounded-full border border-border/50 bg-background/95 px-2 py-1 opacity-0 shadow-sm backdrop-blur-sm transition-all duration-200 group-hover/msg:opacity-100 max-sm:bottom-full max-sm:left-1/2 max-sm:top-auto max-sm:mb-1 max-sm:-translate-x-1/2 sm:top-1/2 sm:-translate-y-1/2",
                             isOwn
-                              ? "-left-12 md:-left-20"
-                              : "-right-12 md:-right-20"
+                              ? "sm:-left-12 md:-left-20"
+                              : "sm:-right-12 md:-right-20"
                           )}
                         >
                           <div className="flex items-center">

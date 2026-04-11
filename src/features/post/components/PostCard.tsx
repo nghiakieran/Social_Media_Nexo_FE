@@ -901,7 +901,7 @@ export const PostCard = ({
               disabled={!inlineComment.trim()}
               className={`text-sm font-semibold ${
                 inlineComment.trim()
-                  ? "text-blue-500 hover:text-blue-600"
+                  ? "text-primary hover:text-primary/90"
                   : "text-gray-400 cursor-default"
               }`}
             >

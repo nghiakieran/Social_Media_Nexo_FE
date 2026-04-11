@@ -117,7 +117,7 @@ export const StoryActions = memo(
                       e.stopPropagation();
                       onSendReply();
                     }}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-white bg-blue-500 hover:bg-blue-600 transition-colors rounded-full p-1 flex items-center justify-center w-8 h-8"
+                    className="absolute right-3 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-primary p-1 text-primary-foreground transition-colors hover:bg-primary/90"
                     disabled={!replyText.trim()}
                     tabIndex={0}
                   >
