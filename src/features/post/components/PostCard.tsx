@@ -34,6 +34,7 @@ import { useToast } from "@/hooks/use-toast";
 import { LikesDialog } from "./LikesDialog";
 import { ActionMenu } from "@/components/common/ActionMenu";
 import { useBookmark } from "@/features/saved/hooks/useBookmark";
+import { useLazyBookmarkCheck } from "@/features/saved/hooks/useLazyBookmarkCheck";
 import { useNavigate } from "react-router-dom";
 import { navigateToPost, navigateToProfile } from "@/utils/navigation";
 import { formatTimeAgoShort } from "@/utils/timeFormat";
@@ -132,7 +133,7 @@ interface PostCardProps {
   onReplyComment?: (
     commentId: string,
     content: string,
-    postId?: string
+    postId?: string,
   ) => void;
   isOwnPost?: boolean; // Để biết có phải post của mình không
   isInProfilePage?: boolean; // Để biết có đang ở profile page không
@@ -187,6 +188,9 @@ export const PostCard = ({
   // Use bookmark hook
   const { isBookmarked, toggleBookmark } = useBookmark();
 
+  // Lazy check bookmark status when post comes into view
+  const lazyCheckRef = useLazyBookmarkCheck([post.id]);
+
   // Check if post is in viewport
   const { hasBeenInView } = useInView(cardRef, {
     threshold: 0.1,
@@ -211,14 +215,14 @@ export const PostCard = ({
           getPostCommentsThunk({
             postId: parseInt(post.id),
             params: { pageNo: 0, pageSize: 1 },
-          })
+          }),
         ).unwrap();
 
         // Transform and store in local state (only root comments)
         if (result && result.commentResponseList) {
           const rootComments = result.commentResponseList
             .filter(
-              (c: { parentId?: number }) => !c.parentId || c.parentId === 0
+              (c: { parentId?: number }) => !c.parentId || c.parentId === 0,
             )
             .slice(0, 2)
             .reverse();
@@ -255,7 +259,7 @@ export const PostCard = ({
           getPostLikeDetailThunk({
             postId: parseInt(post.id),
             params: { pageNo: 0, pageSize: 1 },
-          })
+          }),
         ).unwrap();
 
         const total = data.totalElements ?? 0;
@@ -323,7 +327,7 @@ export const PostCard = ({
         getPostLikeDetailThunk({
           postId: parseInt(post.id),
           params: { pageNo: 0, pageSize: 1 },
-        })
+        }),
       ).unwrap();
 
       const total = data.totalElements ?? 0;
@@ -354,14 +358,14 @@ export const PostCard = ({
             getPostCommentsThunk({
               postId: parseInt(post.id),
               params: { pageNo: 0, pageSize: 1 },
-            })
+            }),
           ).unwrap();
 
           if (result && result.commentResponseList) {
             // API returns newest first, reverse để comment mới nhất hiển thị ở dưới cùng
             const rootComments = result.commentResponseList
               .filter(
-                (c: { parentId?: number }) => !c.parentId || c.parentId === 0
+                (c: { parentId?: number }) => !c.parentId || c.parentId === 0,
               )
               .slice(0, 2)
               .reverse();
@@ -437,7 +441,7 @@ export const PostCard = ({
           parentId: 0,
           content,
           listMentionUserId: [],
-        })
+        }),
       ).unwrap();
 
       // Refresh comments after adding - API returns newest first
@@ -446,13 +450,13 @@ export const PostCard = ({
           getPostCommentsThunk({
             postId: parseInt(post.id),
             params: { pageNo: 0, pageSize: 1 },
-          })
+          }),
         ).unwrap();
 
         if (result && result.commentResponseList) {
           const rootComments = result.commentResponseList
             .filter(
-              (c: { parentId?: number }) => !c.parentId || c.parentId === 0
+              (c: { parentId?: number }) => !c.parentId || c.parentId === 0,
             )
             .slice(0, 2)
             .reverse();
@@ -559,19 +563,22 @@ export const PostCard = ({
 
   const nextMedia = () => {
     setCurrentMediaIndex((prev) =>
-      prev < post.media.length - 1 ? prev + 1 : 0
+      prev < post.media.length - 1 ? prev + 1 : 0,
     );
   };
 
   const prevMedia = () => {
     setCurrentMediaIndex((prev) =>
-      prev > 0 ? prev - 1 : post.media.length - 1
+      prev > 0 ? prev - 1 : post.media.length - 1,
     );
   };
 
   return (
     <Card
-      ref={cardRef}
+      ref={(el) => {
+        cardRef.current = el;
+        lazyCheckRef(el);
+      }}
       className="w-full max-w-md mx-auto bg-background border-border"
     >
       <CardContent className="p-0">
@@ -644,7 +651,7 @@ export const PostCard = ({
                   </span>
                 ) : (
                   word + " "
-                )
+                ),
               )}
             </p>
 
@@ -792,7 +799,16 @@ export const PostCard = ({
                   ? "text-foreground"
                   : "text-foreground hover:opacity-80 active:opacity-60"
               }`}
-              onClick={() => toggleBookmark(post.id)}
+              onClick={async () => {
+                const success = await toggleBookmark(post.id);
+                if (!success) {
+                  toast({
+                    variant: "destructive",
+                    title: "Lỗi",
+                    description: "Không thể lưu bài viết. Vui lòng thử lại.",
+                  });
+                }
+              }}
               aria-label="Lưu bài viết"
               type="button"
             >

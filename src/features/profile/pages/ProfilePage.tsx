@@ -58,10 +58,10 @@ import {
 import { transformUserStoriesToStory } from "@/features/story/types";
 import { upsertProfileStory } from "@/features/story/storySlice";
 import { PrivateAccountMessage } from "../components/PrivateAccountMessage";
-import { SavedCollectionsContent } from "@/features/saved/components/SavedCollectionsContent";
+import { SavedAllPostsContent } from "@/features/saved/components/SavedAllPostsContent";
 import { HiddenPostsContent } from "../components/HiddenPostsContent";
 import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
-import { reportUser, toggleCloseFriend } from "../api/profileApi";
+import { getSavedPostsThunk } from "@/features/saved/savedSlice";
 
 export const ProfilePage = () => {
   const { username } = useParams<{ username: string }>();
@@ -105,7 +105,7 @@ export const ProfilePage = () => {
   // Get Redux stories to sync like state
   const reduxUserStories = useAppSelector((state) => state.story.userStories);
   const reduxFriendStories = useAppSelector(
-    (state) => state.story.friendStories
+    (state) => state.story.friendStories,
   );
 
   // Collections (Highlights) state
@@ -150,7 +150,7 @@ export const ProfilePage = () => {
       if (userStoriesData && userStoriesData.length > 0) {
         const story = transformUserStoriesToStory(
           userStoriesData[0],
-          currentUser?.id // Pass currentUserId to determine isOwnStory
+          currentUser?.id, // Pass currentUserId to determine isOwnStory
         );
         setProfileUserStory(story);
 
@@ -188,7 +188,7 @@ export const ProfilePage = () => {
     const matchingReduxStory = allReduxStories.find(
       (s) =>
         s.id === currentProfile.id.toString() ||
-        s.username === currentProfile.username
+        s.username === currentProfile.username,
     );
 
     if (matchingReduxStory) {
@@ -244,7 +244,7 @@ export const ProfilePage = () => {
         const response = await getCollections(
           parseInt(currentProfile.id),
           0,
-          10
+          10,
         );
         setCollections(response.data.content);
       } catch (error) {
@@ -263,6 +263,13 @@ export const ProfilePage = () => {
     currentProfile?.isFollowing,
     isCurrentUser,
   ]);
+
+  // Load saved posts when saved tab is active
+  useEffect(() => {
+    if (activeTab === "saved" && isCurrentUser) {
+      dispatch(getSavedPostsThunk({ page: 0, size: 20 }));
+    }
+  }, [activeTab, isCurrentUser, dispatch]);
 
   useEffect(() => {
     if (username) {
@@ -299,10 +306,10 @@ export const ProfilePage = () => {
       // Fetch followers and following only if we have access
       if (canAccessProfile && username) {
         dispatch(
-          fetchFollowersByUsernameAsync({ username, pageNo: 0, pageSize: 10 })
+          fetchFollowersByUsernameAsync({ username, pageNo: 0, pageSize: 10 }),
         );
         dispatch(
-          fetchFollowingByUsernameAsync({ username, pageNo: 0, pageSize: 10 })
+          fetchFollowingByUsernameAsync({ username, pageNo: 0, pageSize: 10 }),
         );
       }
     }
@@ -398,17 +405,14 @@ export const ProfilePage = () => {
     if (!currentProfile) return;
 
     try {
-      const { conversationApi } = await import(
-        "@/features/message/services/messageApi"
-      );
-      const { upsertConversation } = await import(
-        "@/features/message/messageSlice"
-      );
+      const { conversationApi } =
+        await import("@/features/message/services/messageApi");
+      const { upsertConversation } =
+        await import("@/features/message/messageSlice");
 
       const recipientId = parseInt(currentProfile.id, 10);
-      const response = await conversationApi.getOrCreateConversation(
-        recipientId
-      );
+      const response =
+        await conversationApi.getOrCreateConversation(recipientId);
 
       if (response?.data) {
         dispatch(upsertConversation(response.data));
@@ -483,7 +487,7 @@ export const ProfilePage = () => {
     if (currentProfile) {
       try {
         const resultAction = await dispatch(
-          unfollowUserAsync(currentProfile.username)
+          unfollowUserAsync(currentProfile.username),
         );
         if (unfollowUserAsync.fulfilled.match(resultAction)) {
           // Refresh profile to update hasRequestedFollow
@@ -594,7 +598,7 @@ export const ProfilePage = () => {
         const response = await getCollections(
           parseInt(currentProfile.id),
           0,
-          10
+          10,
         );
         setCollections(response.data.content);
       } catch (error) {
@@ -685,7 +689,7 @@ export const ProfilePage = () => {
         const response = await getCollections(
           parseInt(currentProfile.id),
           0,
-          10
+          10,
         );
         setCollections(response.data.content);
       } catch (error) {
@@ -710,7 +714,7 @@ export const ProfilePage = () => {
         const response = await getCollections(
           parseInt(currentProfile.id),
           0,
-          10
+          10,
         );
         setCollections(response.data.content);
       }
@@ -753,7 +757,9 @@ export const ProfilePage = () => {
           />
         );
       case "saved":
-        return isCurrentUser ? <SavedCollectionsContent /> : null;
+        return isCurrentUser ? (
+          <SavedAllPostsContent onBack={() => {}} />
+        ) : null;
       case "hidden":
         return isCurrentUser ? <HiddenPostsContent /> : null;
       default: {

@@ -356,7 +356,7 @@ export default function Posts() {
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-[80px]">ID</TableHead>
-                  <TableHead className="w-[70px]">Media</TableHead>
+                  {/* <TableHead className="w-[70px]">Media</TableHead> */}
                   <TableHead>Tác giả</TableHead>
                   <TableHead>Loại</TableHead>
                   <TableHead className="max-w-[200px]">Nội dung</TableHead>
@@ -396,7 +396,7 @@ export default function Posts() {
                         <TableCell className="font-mono text-xs text-muted-foreground">
                           #{post.id}
                         </TableCell>
-                        <TableCell>{renderThumbnail(post)}</TableCell>
+                        {/* <TableCell>{renderThumbnail(post)}</TableCell> */}
                         <TableCell>
                           <span className="font-medium">{post.authorName}</span>
                         </TableCell>

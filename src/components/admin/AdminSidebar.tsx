@@ -89,14 +89,14 @@ export function AdminSidebar() {
           : "w-64 transition-all duration-300"
       }
     >
-      <SidebarContent className="flex flex-col h-full bg-background border-r">
+      <SidebarContent className="flex flex-col h-full bg-background/50 backdrop-blur-sm border-r border-border/50">
         {/* Lô-gô & Tiêu đề */}
-        <div className="px-4 py-6">
+        <div className="px-4 py-6 border-b border-border/50">
           <div
             className={`flex items-center gap-3 ${isCollapsed ? "justify-center" : ""}`}
           >
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center shadow-md flex-shrink-0">
-              <LayoutDashboard className="w-5 h-5 text-white" />
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary via-primary/80 to-primary flex items-center justify-center shadow-glow flex-shrink-0">
+              <LayoutDashboard className="w-5 h-5 text-primary-foreground" />
             </div>
             {!isCollapsed && (
               <div className="overflow-hidden">
@@ -112,14 +112,14 @@ export function AdminSidebar() {
         </div>
 
         {/* Menu Điều Hướng */}
-        <SidebarGroup className="flex-1">
+        <SidebarGroup className="flex-1 px-2">
           {!isCollapsed && (
-            <SidebarGroupLabel className="px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-              Quản lý
+            <SidebarGroupLabel className="px-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+              Menu quản lý
             </SidebarGroupLabel>
           )}
           <SidebarGroupContent>
-            <SidebarMenu className="px-2 space-y-1">
+            <SidebarMenu className="space-y-1">
               {menuItems.map((item) => {
                 const active = isActive(item.url, item.end);
                 return (
@@ -128,21 +128,21 @@ export function AdminSidebar() {
                       <NavLink
                         to={item.url}
                         end={item.end}
-                        className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 group ${
+                        className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 relative group ${isCollapsed ? "justify-center" : ""} ${
                           active
-                            ? "bg-primary/10 text-primary font-medium"
-                            : "text-muted-foreground hover:bg-secondary hover:text-foreground"
-                        } ${isCollapsed ? "justify-center" : ""}`}
+                            ? "bg-primary/15 text-primary font-semibold shadow-sm"
+                            : "text-muted-foreground hover:bg-muted/50"
+                        }`}
                       >
+                        {/* Left border indicator khi active */}
+                        {active && (
+                          <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-primary rounded-r-full" />
+                        )}
                         <item.icon
-                          className={`w-5 h-5 flex-shrink-0 transition-colors ${active ? "text-primary" : "group-hover:text-foreground"}`}
+                          className={`w-5 h-5 flex-shrink-0 transition-colors ${active ? "text-primary" : "text-muted-foreground group-hover:text-foreground"}`}
                         />
                         {!isCollapsed && (
                           <span className="flex-1 truncate">{item.title}</span>
-                        )}
-                        {/* Hiệu ứng thanh line nhỏ bên trái khi active (tùy chọn) */}
-                        {active && !isCollapsed && (
-                          <div className="w-1 h-4 bg-primary rounded-full absolute left-0" />
                         )}
                       </NavLink>
                     </SidebarMenuButton>
@@ -155,11 +155,11 @@ export function AdminSidebar() {
 
         {/* User Profile (Bottom) */}
         {user && (
-          <div className="p-3 mt-auto border-t">
+          <div className="p-4 mt-auto border-t border-border/50">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button
-                  className={`w-full flex items-center gap-3 p-2 rounded-xl hover:bg-secondary transition-all duration-200 group ${
+                  className={`w-full flex items-center gap-3 p-2.5 rounded-lg hover:bg-muted transition-all duration-200 group ${
                     isCollapsed ? "justify-center" : ""
                   }`}
                 >
@@ -191,28 +191,30 @@ export function AdminSidebar() {
                 align="end"
                 side="right"
                 sideOffset={isCollapsed ? 10 : 0}
-                className="w-56 rounded-xl shadow-lg"
+                className="w-56 rounded-lg shadow-lg border border-border"
               >
-                <div className="px-2 py-1.5 mb-1 border-b">
-                  <p className="text-sm font-medium">{user.username}</p>
-                  <p className="text-xs text-muted-foreground truncate">
+                <div className="px-3 py-3 border-b border-border/50">
+                  <p className="text-sm font-semibold text-foreground">
+                    {user.username}
+                  </p>
+                  <p className="text-xs text-muted-foreground truncate mt-0.5">
                     {user.email}
                   </p>
                 </div>
                 <DropdownMenuItem
                   onClick={() => setShowChangePassword(true)}
-                  className="cursor-pointer"
+                  className="cursor-pointer rounded-md mx-1 my-1"
                 >
-                  <KeyRound className="w-4 h-4 mr-2 text-muted-foreground" />
-                  Đổi mật khẩu
+                  <KeyRound className="w-4 h-4 mr-2 text-primary" />
+                  <span>Đổi mật khẩu</span>
                 </DropdownMenuItem>
-                <DropdownMenuSeparator />
+                <DropdownMenuSeparator className="my-1" />
                 <DropdownMenuItem
                   onClick={handleLogout}
-                  className="text-destructive focus:bg-destructive/10 focus:text-destructive cursor-pointer"
+                  className="text-destructive focus:bg-destructive/10 focus:text-destructive cursor-pointer rounded-md mx-1 my-1"
                 >
                   <LogOut className="w-4 h-4 mr-2" />
-                  Đăng xuất
+                  <span>Đăng xuất</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
