@@ -80,6 +80,7 @@ export const FollowersDialog = ({
   const [userToUnfollow, setUserToUnfollow] = useState<
     FollowerUser | FollowingUser | null
   >(null);
+  const lastRequestedPageRef = useRef<number>(-1);
   const { toast } = useToast();
   const { isFollowersLoading, isFollowingLoading } = useAppSelector(
     (state) => state.profile
@@ -95,6 +96,7 @@ export const FollowersDialog = ({
   useEffect(() => {
     if (!isOpen) {
       initialLoadRef.current = false;
+      lastRequestedPageRef.current = -1;
       clearSearch();
     }
   }, [isOpen, clearSearch]);
@@ -113,6 +115,7 @@ export const FollowersDialog = ({
     if (!username || !isOpen) return;
 
     if (debouncedValue !== "") {
+      lastRequestedPageRef.current = 0;
       const params = {
         username,
         pageNo: 0,
@@ -163,6 +166,9 @@ export const FollowersDialog = ({
 
     const nextPage = currentPageNum + 1;
 
+    if (nextPage <= lastRequestedPageRef.current) return;
+    lastRequestedPageRef.current = nextPage;
+
     const params = {
       username,
       pageNo: nextPage,
@@ -194,11 +200,11 @@ export const FollowersDialog = ({
 
   const filteredUsers = Array.isArray(localUsers)
     ? localUsers.filter((user) => {
-        if (title === "Đang theo dõi" && isCurrentUser && !user.isFollowing) {
-          return false;
-        }
-        return true;
-      })
+      if (title === "Đang theo dõi" && isCurrentUser && !user.isFollowing) {
+        return false;
+      }
+      return true;
+    })
     : [];
 
   // Navigate to user profile
@@ -461,8 +467,8 @@ export const FollowersDialog = ({
                               (user.closeFriend
                                 ? "Bạn thân"
                                 : title === "Đang theo dõi"
-                                ? "Đang theo dõi"
-                                : "Người theo dõi")}
+                                  ? "Đang theo dõi"
+                                  : "Người theo dõi")}
                           </div>
                         </div>
                       </div>
@@ -470,7 +476,7 @@ export const FollowersDialog = ({
                       <div className="flex items-center gap-2">
                         {/* Không hiển thị nút nếu là chính mình */}
                         {currentUser &&
-                        user.userId === currentUser.id ? null : title ===
+                          user.userId === currentUser.id ? null : title ===
                             "Người theo dõi" && isCurrentUser ? (
                           <Button
                             variant="outline"
@@ -504,42 +510,42 @@ export const FollowersDialog = ({
                             </Button>
                           )
                         ) : // Following dialog
-                        user.isFollowing ? (
-                          // Show "Đang theo dõi" for confirmed follows
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleFollow(user.userId)}
-                            className="text-xs gap-1"
-                          >
-                            <UserMinus className="w-3 h-3" />
-                            Đang theo dõi
-                          </Button>
-                        ) : user.hasRequestedFollow ? (
-                          // Show "Hủy yêu cầu" for pending requests
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() =>
-                              handleCancelFollowRequest(user.userId)
-                            }
-                            className="text-xs gap-1"
-                          >
-                            <UserCheck className="w-3 h-3" />
-                            Hủy yêu cầu
-                          </Button>
-                        ) : (
-                          // Show "Theo dõi" for not following
-                          <Button
-                            variant="default"
-                            size="sm"
-                            onClick={() => handleFollow(user.userId)}
-                            className="text-xs gap-1"
-                          >
-                            <UserPlus className="w-3 h-3" />
-                            Theo dõi
-                          </Button>
-                        )}
+                          user.isFollowing ? (
+                            // Show "Đang theo dõi" for confirmed follows
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleFollow(user.userId)}
+                              className="text-xs gap-1"
+                            >
+                              <UserMinus className="w-3 h-3" />
+                              Đang theo dõi
+                            </Button>
+                          ) : user.hasRequestedFollow ? (
+                            // Show "Hủy yêu cầu" for pending requests
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() =>
+                                handleCancelFollowRequest(user.userId)
+                              }
+                              className="text-xs gap-1"
+                            >
+                              <UserCheck className="w-3 h-3" />
+                              Hủy yêu cầu
+                            </Button>
+                          ) : (
+                            // Show "Theo dõi" for not following
+                            <Button
+                              variant="default"
+                              size="sm"
+                              onClick={() => handleFollow(user.userId)}
+                              className="text-xs gap-1"
+                            >
+                              <UserPlus className="w-3 h-3" />
+                              Theo dõi
+                            </Button>
+                          )}
                       </div>
                     </div>
                   );
