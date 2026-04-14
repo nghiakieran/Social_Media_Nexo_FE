@@ -203,6 +203,7 @@ export default function Users() {
         `/users/assign-role/${selectedUser.username}?role=${selectedRole}`,
       );
       toast({
+        variant: "success",
         title: "Thành công",
         description: "Quyền đã được gán thành công",
       });
@@ -253,7 +254,7 @@ export default function Users() {
         description: `Đã ${user.isVerified ? "thu hồi" : "cấp"} tick xanh cho ${user.username}`,
       });
       fetchUsers();
-    } catch (error) {}
+    } catch (error) { }
   };
 
   const handleDeleteAvatar = async (user: UIUser) => {
@@ -263,7 +264,7 @@ export default function Users() {
         description: `Đã xóa avatar của ${user.username}`,
       });
       fetchUsers();
-    } catch (error) {}
+    } catch (error) { }
   };
 
   const fetchSummaryStats = useCallback(async () => {
@@ -311,18 +312,25 @@ export default function Users() {
       MODERATOR: "bg-indigo-500 hover:bg-indigo-600 border-none shadow-sm",
       USER: "bg-slate-500 hover:bg-slate-600 border-none shadow-sm",
     } as const;
-    return variants[role as keyof typeof variants] || "bg-slate-500";
+    switch (role) {
+      case "ADMIN":
+        return "bg-rose-500 hover:bg-rose-600 border-none shadow-sm text-white";
+      case "MODERATOR":
+        return "bg-indigo-500 hover:bg-indigo-600 border-none shadow-sm text-white";
+      default:
+        return "bg-slate-500 hover:bg-slate-600 border-none shadow-sm text-white";
+    }
   };
 
   const getStatusBadge = (status: string) => {
-    const variants = {
-      active: "bg-emerald-100 text-emerald-700 border-emerald-200",
-      locked: "bg-rose-100 text-rose-700 border-rose-200",
-      pending: "bg-amber-100 text-amber-700 border-amber-200",
-    } as const;
-    return (
-      variants[status as keyof typeof variants] || "bg-slate-100 text-slate-700"
-    );
+    switch (status) {
+      case "active":
+        return "bg-emerald-500 hover:bg-emerald-600 border-none shadow-sm text-white";
+      case "locked":
+        return "bg-rose-500 hover:bg-rose-600 border-none shadow-sm text-white";
+      default:
+        return "bg-amber-500 hover:bg-amber-600 border-none shadow-sm text-white";
+    }
   };
 
   const getStatusText = (status: string) => {
@@ -564,17 +572,12 @@ export default function Users() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Badge
-                          className={`${getRoleBadge(user.role)} text-white font-bold text-[10px] py-0.5 px-2 rounded-lg uppercase tracking-tighter`}
-                        >
+                        <Badge className={getRoleBadge(user.role)}>
                           {user.role}
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <Badge
-                          variant="outline"
-                          className={`${getStatusBadge(user.status)} font-bold text-[10px] border py-0.5 px-2 rounded-lg`}
-                        >
+                        <Badge className={getStatusBadge(user.status)}>
                           {getStatusText(user.status)}
                         </Badge>
                       </TableCell>

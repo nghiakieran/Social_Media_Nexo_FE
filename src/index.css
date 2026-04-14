@@ -316,3 +316,18 @@
     }
   }
 }
+
+@layer utilities {
+  @keyframes progress {
+    from {
+      width: 100%;
+    }
+    to {
+      width: 0%;
+    }
+  }
+
+  .animate-progress {
+    animation: progress 5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  }
+}

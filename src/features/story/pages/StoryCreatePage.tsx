@@ -214,6 +214,7 @@ export const StoryCreatePage = () => {
     URL.revokeObjectURL(url);
 
     toast({
+      variant: "success",
       title: "Đã tải xuống",
       description: "File đã được tải về máy",
     });
@@ -371,6 +372,7 @@ export const StoryCreatePage = () => {
       // If there are overlays, compose them into the image
       if (!isVideo && (textOverlays.length > 0 || stickers.length > 0)) {
         toast({
+          variant: "info",
           title: "Đang xử lý...",
           description: "Đang tạo story của bạn",
         });
@@ -398,6 +400,7 @@ export const StoryCreatePage = () => {
       ).unwrap();
 
       toast({
+        variant: "success",
         title: "Đã chia sẻ tin",
         description: "Tin của bạn đã được đăng thành công",
       });

@@ -65,6 +65,7 @@ export const RegisterForm = () => {
         navigate(`/auth/register-success?userId=${result.userId}`);
       } else {
         toast({
+          variant: "success",
           title: "Đăng ký thành công!",
           description: "Vui lòng kiểm tra email để xác thực tài khoản.",
         });

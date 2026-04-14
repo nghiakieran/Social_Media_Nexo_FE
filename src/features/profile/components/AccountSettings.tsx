@@ -57,6 +57,7 @@ export const AccountSettings = () => {
   const handleSettingChange = (key: string, value: boolean) => {
     setSettings((prev) => ({ ...prev, [key]: value }));
     toast({
+      variant: "success",
       title: "Đã cập nhật cài đặt",
       description: "Thay đổi của bạn đã được lưu.",
     });
@@ -101,6 +102,7 @@ export const AccountSettings = () => {
       });
 
       toast({
+        variant: "success",
         title: "Thành công",
         description: "Mật khẩu của bạn đã được cập nhật thành công.",
       });
@@ -125,6 +127,7 @@ export const AccountSettings = () => {
 
   const handleDeactivateAccount = () => {
     toast({
+      variant: "success",
       title: "Tài khoản đã được vô hiệu hóa",
       description: "Tài khoản của bạn sẽ bị ẩn cho đến khi bạn đăng nhập lại.",
     });
@@ -133,6 +136,7 @@ export const AccountSettings = () => {
 
   const handleDownloadData = () => {
     toast({
+      variant: "info",
       title: "Đang chuẩn bị dữ liệu",
       description:
         "Chúng tôi sẽ gửi email cho bạn khi dữ liệu sẵn sàng để tải xuống.",

@@ -1,5 +1,4 @@
 import { ErrorBoundary } from "@/components/common/ErrorBoundary";
-import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthLayout } from "@/layouts/AuthLayout";
@@ -171,7 +170,6 @@ const App = () => (
         <QueryClientProvider client={queryClient}>
           <TooltipProvider>
             <Toaster />
-            <Sonner />
             <BrowserRouter>
               <NavigationBinder />
               <HydrateOnStart />

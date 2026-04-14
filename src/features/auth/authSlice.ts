@@ -9,7 +9,7 @@ import type {
 } from "./types";
 import { AUTH_FORGOT_PASSWORD_ENDPOINT } from "@/utils/constants";
 import { performLogout } from "@/lib/axios";
-import { toast } from "sonner";
+import { toast } from "@/hooks/use-toast";
 import api from "@/lib/axios";
 import {
   AUTH_LOGIN_ENDPOINT,
@@ -430,7 +430,10 @@ export const logoutAsync = createAsyncThunk(
     // Fail-safe: clear client state first
     dispatch(logout());
     await performLogout({ redirect: true });
-    toast.success("Bạn đã đăng xuất thành công");
+    toast({
+      variant: "success",
+      description: "Bạn đã đăng xuất thành công",
+    });
   },
 );
 

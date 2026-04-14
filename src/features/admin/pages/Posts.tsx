@@ -151,6 +151,7 @@ export default function Posts() {
     try {
       await deletePostById(postToDelete.id, postToDelete.type);
       toast({
+        variant: "success",
         title: "Thành công",
         description: "Đã xóa bài viết khỏi hệ thống",
       });

@@ -55,6 +55,12 @@ import {
   deleteCollection,
   getUserStories,
 } from "@/features/story/api/storyApi";
+import {
+  reportUser,
+  toggleCloseFriend,
+} from "../api/profileApi";
+import ReelCommentDrawer from "@/features/reel/components/ReelCommentDrawer";
+import ReelCommentDialog from "@/features/reel/components/ReelCommentDialog";
 import { transformUserStoriesToStory } from "@/features/story/types";
 import { upsertProfileStory } from "@/features/story/storySlice";
 import { PrivateAccountMessage } from "../components/PrivateAccountMessage";
@@ -377,6 +383,7 @@ export const ProfilePage = () => {
       if (currentProfile.isFollowing) {
         dispatch(unfollowUserAsync(currentProfile.username));
         toast({
+          variant: "success",
           title: "Đã bỏ theo dõi",
           description: `Bạn đã bỏ theo dõi ${currentProfile.name}`,
         });
@@ -386,6 +393,7 @@ export const ProfilePage = () => {
           // Send follow request for private account
           dispatch(followUserAsync(currentProfile.username));
           toast({
+            variant: "success",
             title: "Đã gửi yêu cầu theo dõi",
             description: `Đã gửi yêu cầu theo dõi ${currentProfile.name}`,
           });
@@ -393,6 +401,7 @@ export const ProfilePage = () => {
           // Direct follow for public account
           dispatch(followUserAsync(currentProfile.username));
           toast({
+            variant: "success",
             title: "Đã theo dõi",
             description: `Bạn đã theo dõi ${currentProfile.name}`,
           });
@@ -467,12 +476,12 @@ export const ProfilePage = () => {
 
       const isNowCloseFriend = !currentProfile.isCloseFriend;
       toast({
+        variant: "success",
         title: isNowCloseFriend
           ? "Đã thêm vào danh sách bạn thân"
           : "Đã xóa khỏi danh sách bạn thân",
-        description: `${currentProfile.name} ${
-          isNowCloseFriend ? "đã được thêm vào" : "đã được xóa khỏi"
-        } danh sách bạn thân`,
+        description: `${currentProfile.name} ${isNowCloseFriend ? "đã được thêm vào" : "đã được xóa khỏi"
+          } danh sách bạn thân`,
       });
     } catch (error) {
       toast({
@@ -497,6 +506,7 @@ export const ProfilePage = () => {
             dispatch(fetchUserProfileByUsernameAsync(username));
           }
           toast({
+            variant: "success",
             title: "Đã hủy yêu cầu",
             description: `Đã hủy yêu cầu theo dõi ${currentProfile.name}`,
           });
@@ -547,6 +557,7 @@ export const ProfilePage = () => {
       }
 
       toast({
+        variant: "success",
         title: "Đã cập nhật ảnh đại diện",
         description: "Ảnh đại diện đã được thay đổi thành công",
       });
@@ -573,6 +584,7 @@ export const ProfilePage = () => {
       }
 
       toast({
+        variant: "success",
         title: "Đã gỡ ảnh đại diện",
         description: "Ảnh đại diện đã được gỡ bỏ thành công",
       });
@@ -609,6 +621,7 @@ export const ProfilePage = () => {
     dispatch(setShowCreateHighlightDialog(false));
 
     toast({
+      variant: "success",
       title: "Đã tạo tin nổi bật!",
       description: "Tin nổi bật đã được tạo thành công",
     });
@@ -720,6 +733,7 @@ export const ProfilePage = () => {
       }
 
       toast({
+        variant: "success",
         title: "Đã xóa!",
         description: "Tin nổi bật đã được xóa thành công",
       });
@@ -758,7 +772,7 @@ export const ProfilePage = () => {
         );
       case "saved":
         return isCurrentUser ? (
-          <SavedAllPostsContent onBack={() => {}} />
+          <SavedAllPostsContent onBack={() => { }} />
         ) : null;
       case "hidden":
         return isCurrentUser ? <HiddenPostsContent /> : null;
@@ -842,20 +856,20 @@ export const ProfilePage = () => {
       {(isCurrentUser ||
         !currentProfile.isPrivate ||
         currentProfile.isFollowing) && (
-        <StoryHighlights
-          highlights={collections.map((col) => ({
-            id: col.id.toString(),
-            title: col.collectionName,
-            cover: col.mediaUrl,
-            postIds: [], // Not needed anymore as we fetch from API
-          }))}
-          onAdd={isCurrentUser ? handleOpenCreateHighlight : undefined}
-          onOpen={handleOpenHighlight}
-          onEdit={isCurrentUser ? handleEditHighlight : undefined}
-          onDelete={isCurrentUser ? handleDeleteHighlight : undefined}
-          canManage={isCurrentUser}
-        />
-      )}
+          <StoryHighlights
+            highlights={collections.map((col) => ({
+              id: col.id.toString(),
+              title: col.collectionName,
+              cover: col.mediaUrl,
+              postIds: [], // Not needed anymore as we fetch from API
+            }))}
+            onAdd={isCurrentUser ? handleOpenCreateHighlight : undefined}
+            onOpen={handleOpenHighlight}
+            onEdit={isCurrentUser ? handleEditHighlight : undefined}
+            onDelete={isCurrentUser ? handleDeleteHighlight : undefined}
+            canManage={isCurrentUser}
+          />
+        )}
 
       <ProfileTabs
         activeTab={activeTab}
@@ -874,9 +888,8 @@ export const ProfilePage = () => {
           } else {
             newSearchParams.set("tab", tab);
           }
-          const newUrl = `${window.location.pathname}${
-            newSearchParams.toString() ? `?${newSearchParams.toString()}` : ""
-          }`;
+          const newUrl = `${window.location.pathname}${newSearchParams.toString() ? `?${newSearchParams.toString()}` : ""
+            }`;
           navigate(newUrl, { replace: true });
         }}
         isCurrentUser={isCurrentUser}
@@ -983,6 +996,10 @@ export const ProfilePage = () => {
           initialStoryIndex={viewerData.index}
         />
       )}
+
+      {/* Global Reel Components */}
+      <ReelCommentDrawer />
+      <ReelCommentDialog />
     </div>
   );
 };

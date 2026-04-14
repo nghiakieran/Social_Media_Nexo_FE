@@ -140,6 +140,7 @@ export const FeedPage = () => {
       .unwrap()
       .then(() => {
         toast({
+          variant: "success",
           title: "Cập nhật thành công!",
           description: "Bài viết đã được cập nhật.",
         });
@@ -165,6 +166,7 @@ export const FeedPage = () => {
         .unwrap()
         .then(() => {
           toast({
+            variant: "success",
             title: "Xóa bài viết thành công!",
             description: "Bài viết đã được xóa khỏi trang cá nhân của bạn.",
           });
@@ -190,6 +192,7 @@ export const FeedPage = () => {
     console.log("Sharing post:", { postId, userIds, message });
 
     toast({
+      variant: "success",
       title: "Chia sẻ thành công!",
       description: `Đã gửi bài viết đến ${userIds.length} người`,
       duration: 2000,

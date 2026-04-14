@@ -69,6 +69,7 @@ export const CreatePostPage = () => {
       ).unwrap();
 
       toast({
+        variant: "success",
         title: "Đăng bài thành công!",
         description: "Bài viết của bạn đã được đăng.",
       });

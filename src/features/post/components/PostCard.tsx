@@ -525,6 +525,7 @@ export const PostCard = ({
           await dispatch(togglePostActiveThunk(parseInt(post.id))).unwrap();
           const isNowHidden = !post.isActive;
           toast({
+            variant: "success",
             title: isNowHidden ? "Đã ẩn bài viết" : "Đã hiển thị bài viết",
             description: isNowHidden
               ? "Bài viết sẽ không hiển thị trên trang cá nhân của bạn."

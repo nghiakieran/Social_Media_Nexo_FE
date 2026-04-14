@@ -41,6 +41,7 @@ export const LoginForm = () => {
       await dispatch(loginAsync(data)).unwrap();
 
       toast({
+        variant: "success",
         title: "Đăng nhập thành công!",
         description: "Chào mừng trở lại!",
       });

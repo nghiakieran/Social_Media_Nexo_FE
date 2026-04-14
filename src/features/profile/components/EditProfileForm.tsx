@@ -67,6 +67,7 @@ export const EditProfileForm = ({ onSave, onCancel }: EditProfileFormProps) => {
       
       onSave(result);
       toast({
+        variant: 'success',
         title: 'Đã cập nhật hồ sơ',
         description: 'Thông tin hồ sơ của bạn đã được lưu thành công.',
       });

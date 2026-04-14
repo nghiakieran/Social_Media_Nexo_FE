@@ -313,7 +313,10 @@ export const StoryViewer = memo(
           storyId: parseInt(currentContent.id),
         };
         await api.post("/messages", body);
-        toast({ description: "Đã gửi tin nhắn!" });
+        toast({
+          variant: "success",
+          description: "Đã gửi tin nhắn!",
+        });
         setReplyText("");
       } catch (err) {
         toast({
@@ -375,7 +378,7 @@ export const StoryViewer = memo(
             storyId: parseInt(currentContent.id),
           };
           await api.post("/messages", body);
-          toast({ description: "Đã gửi tin nhắn!" });
+          toast({ variant: "success", description: "Đã gửi tin nhắn!" });
           setReplyText("");
         } catch (err) {
           toast({
@@ -759,6 +762,7 @@ export const StoryViewer = memo(
                       );
 
                       toast({
+                        variant: "success",
                         title: "Đã xóa tin",
                         description: "Tin của bạn đã được xóa thành công",
                       });
@@ -818,6 +822,7 @@ export const StoryViewer = memo(
                         );
 
                         toast({
+                          variant: "success",
                           title: "Đã lưu vào kho lưu trữ",
                           description: "Tin đã được chuyển vào kho lưu trữ",
                         });

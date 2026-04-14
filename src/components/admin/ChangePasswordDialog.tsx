@@ -10,7 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { toast } from "sonner";
+import { useToast } from "@/hooks/use-toast";
 import { Eye, EyeOff, Lock } from "lucide-react";
 import { DialogOverlay } from "@radix-ui/react-dialog";
 
@@ -23,6 +23,7 @@ export function ChangePasswordDialog({
   open,
   onOpenChange,
 }: ChangePasswordDialogProps) {
+  const { toast } = useToast();
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -34,17 +35,26 @@ export function ChangePasswordDialog({
     e.preventDefault();
 
     if (newPassword !== confirmPassword) {
-      toast.error("Mật khẩu xác nhận không khớp!");
+      toast({
+        variant: "destructive",
+        description: "Mật khẩu xác nhận không khớp!",
+      });
       return;
     }
 
     if (newPassword.length < 8) {
-      toast.error("Mật khẩu mới phải có ít nhất 8 ký tự!");
+      toast({
+        variant: "destructive",
+        description: "Mật khẩu mới phải có ít nhất 8 ký tự!",
+      });
       return;
     }
 
     // Mock success
-    toast.success("Đổi mật khẩu thành công!");
+    toast({
+      variant: "success",
+      description: "Đổi mật khẩu thành công!",
+    });
     setCurrentPassword("");
     setNewPassword("");
     setConfirmPassword("");

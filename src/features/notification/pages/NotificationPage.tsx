@@ -73,6 +73,7 @@ const NotificationPage: React.FC = () => {
   const handleMarkAllAsRead = () => {
     dispatch(readAllNotificationsThunk());
     toast({
+      variant: "success",
       title: "Đã đánh dấu",
       description: "Tất cả thông báo đã được đánh dấu là đã đọc",
     });

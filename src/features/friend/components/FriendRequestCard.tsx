@@ -25,6 +25,8 @@ export const FriendRequestCard = ({
   const handleAccept = () => {
     onAccept?.(request.id);
     toast({
+      variant: "success",
+      title: "Lời mời kết bạn",
       description: `Đã chấp nhận lời mời kết bạn từ ${request.user.name}`,
     });
   };
@@ -32,7 +34,9 @@ export const FriendRequestCard = ({
   const handleDecline = () => {
     onDecline?.(request.id);
     toast({
-      description: 'Đã từ chối lời mời kết bạn',
+      variant: "success",
+      title: "Lời mời kết bạn",
+      description: "Đã từ chối lời mời kết bạn",
     });
   };
 
