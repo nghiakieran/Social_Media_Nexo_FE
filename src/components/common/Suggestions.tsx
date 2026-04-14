@@ -53,14 +53,13 @@ const AllSuggestionsModal = ({
                     onClose();
                   }}
                 >
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
                     <div className="relative">
                       <Avatar
-                        className={`h-12 w-12 transition-all duration-300 ${
-                          hoveredUser === user.id.toString()
-                            ? "ring-2 ring-primary scale-110"
-                            : ""
-                        }`}
+                        className={`h-12 w-12 transition-all duration-300 ${hoveredUser === user.id.toString()
+                          ? "ring-2 ring-primary scale-110"
+                          : ""
+                          }`}
                       >
                         <AvatarImage src={getAvatarUrl(user.avatar)} />
                         <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/40 text-primary font-semibold">
@@ -71,11 +70,11 @@ const AllSuggestionsModal = ({
                         <div className="absolute -top-1 -right-1 h-3 w-3 animate-pulse rounded-full border-2 border-background bg-primary" />
                       )}
                     </div>
-                    <div className="flex-1">
-                      <p className="font-bold text-sm text-foreground group-hover:text-primary transition-all duration-300">
+                    <div className="flex-1 min-w-0">
+                      <p className="font-bold text-sm text-foreground group-hover:text-primary transition-all duration-300 truncate">
                         {user.username}
                       </p>
-                      <p className="text-muted-foreground text-xs">
+                      <p className="text-muted-foreground text-xs truncate">
                         {user.fullName}
                       </p>
                     </div>
@@ -83,11 +82,10 @@ const AllSuggestionsModal = ({
                   <Button
                     variant="ghost"
                     size="sm"
-                    className={`font-bold text-sm px-4 py-2 rounded-lg transition-all duration-300 ${
-                      hoveredUser === user.id.toString()
-                        ? "bg-primary text-primary-foreground hover:bg-primary/90 scale-110 shadow-md"
-                        : "text-primary hover:bg-primary/10 hover:text-primary dark:hover:bg-primary/20"
-                    }`}
+                    className={`font-bold text-sm px-4 py-2 rounded-lg transition-all duration-300 ${hoveredUser === user.id.toString()
+                      ? "bg-primary text-white hover:bg-primary/90 hover:text-white scale-110 shadow-md"
+                      : "text-primary hover:bg-primary/10 hover:text-white dark:hover:bg-primary/20"
+                      }`}
                     onClick={async (e) => {
                       e.stopPropagation();
                       try {
@@ -157,7 +155,7 @@ export const Suggestions = () => {
         {/* Current User Profile */}
         <div className="flex items-center justify-between p-3 rounded-xl bg-gradient-to-r from-muted/50 to-background border border-border/50 shadow-glow">
           <div
-            className="flex items-center gap-3 cursor-pointer flex-1 hover:opacity-80 transition-opacity"
+            className="flex items-center gap-3 cursor-pointer flex-1 min-w-0 hover:opacity-80 transition-opacity"
             onClick={() => user?.username && navigate(`/${user.username}`)}
           >
             <div className="relative">
@@ -169,11 +167,11 @@ export const Suggestions = () => {
               </Avatar>
               <div className="absolute -bottom-1 -right-1 h-4 w-4 rounded-full border-2 border-background bg-primary" />
             </div>
-            <div className="flex-1">
-              <p className="font-bold text-sm text-foreground hover:underline">
+            <div className="flex-1 min-w-0">
+              <p className="font-bold text-sm text-foreground hover:underline truncate">
                 {user?.username || "username"}
               </p>
-              <p className="text-muted-foreground text-sm">
+              <p className="text-muted-foreground text-sm truncate">
                 {user?.fullName || "Full Name"}
               </p>
             </div>
@@ -222,14 +220,13 @@ export const Suggestions = () => {
                   onMouseLeave={() => setHoveredUser(null)}
                   onClick={() => handleUserClick(user)}
                 >
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
                     <div className="relative">
                       <Avatar
-                        className={`h-11 w-11 transition-all duration-300 ${
-                          hoveredUser === user.id.toString()
-                            ? "ring-2 ring-primary scale-110"
-                            : ""
-                        }`}
+                        className={`h-11 w-11 transition-all duration-300 ${hoveredUser === user.id.toString()
+                          ? "ring-2 ring-primary scale-110"
+                          : ""
+                          }`}
                       >
                         <AvatarImage src={getAvatarUrl(user.avatar)} />
                         <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/40 text-primary font-semibold">
@@ -240,11 +237,11 @@ export const Suggestions = () => {
                         <div className="absolute -top-1 -right-1 h-3 w-3 animate-pulse rounded-full border-2 border-background bg-primary" />
                       )}
                     </div>
-                    <div className="flex-1">
-                      <p className="font-bold text-sm text-foreground group-hover:text-primary transition-all duration-300">
+                    <div className="flex-1 min-w-0">
+                      <p className="font-bold text-sm text-foreground group-hover:text-primary transition-all duration-300 truncate">
                         {user.username}
                       </p>
-                      <p className="text-muted-foreground text-xs">
+                      <p className="text-muted-foreground text-xs truncate">
                         {user.fullName}
                       </p>
                     </div>
@@ -252,11 +249,10 @@ export const Suggestions = () => {
                   <Button
                     variant="ghost"
                     size="sm"
-                    className={`font-bold text-sm px-4 py-2 rounded-lg transition-all duration-300 ${
-                      hoveredUser === user.id.toString()
-                        ? "bg-primary text-primary-foreground hover:bg-primary/90 scale-110 shadow-md"
-                        : "text-primary hover:bg-primary/10 hover:text-primary dark:hover:bg-primary/20"
-                    }`}
+                    className={`font-bold text-sm px-4 py-2 rounded-lg transition-all duration-300 ${hoveredUser === user.id.toString()
+                      ? "bg-primary text-white hover:bg-primary/90 hover:text-white scale-110 shadow-md"
+                      : "text-primary hover:bg-primary/10 hover:text-white dark:hover:bg-primary/20"
+                      }`}
                     onClick={async (e) => {
                       e.stopPropagation();
                       try {
