@@ -206,11 +206,15 @@ export const CommentDialog = ({
   const [reportingCommentId, setReportingCommentId] = useState<string | null>(
     null,
   );
+  const isPostLikeInteracting = useRef(false);
+  const interactingCommentIds = useRef<Set<string>>(new Set());
 
   // Sync post like state when prop changes - ensure it's always in sync with API data per user
   useEffect(() => {
-    setIsPostLikedLocal(isPostLiked);
-    setPostLikesCount(post.likesCount || 0);
+    if (!isPostLikeInteracting.current) {
+      setIsPostLikedLocal(isPostLiked);
+      setPostLikesCount(post.likesCount || 0);
+    }
   }, [post.id, isPostLiked, post.likesCount]);
 
   // Fetch comments when dialog opens
@@ -478,15 +482,18 @@ export const CommentDialog = ({
     const incomingCounts: Record<string, number> = {};
     const walk = (items: Comment[]) => {
       for (const c of items) {
-        incomingLiked[c.id] = c.isLiked;
-        incomingCounts[c.id] = c.likesCount;
+        // Skip syncing if we are currently interacting with this specific comment
+        if (!interactingCommentIds.current.has(c.id)) {
+          incomingLiked[c.id] = c.isLiked;
+          incomingCounts[c.id] = c.likesCount;
+        }
         if (c.replies && c.replies.length) walk(c.replies);
       }
     };
     walk(displayComments);
     // Always use API data as source of truth - reset state, don't merge
-    setLikedById(incomingLiked);
-    setLikesCountById(incomingCounts);
+    setLikedById((prev) => ({ ...prev, ...incomingLiked }));
+    setLikesCountById((prev) => ({ ...prev, ...incomingCounts }));
   }, [displayComments]);
 
   const getIsLiked = (id: string, fallback?: boolean) => {
@@ -511,20 +518,25 @@ export const CommentDialog = ({
     newIsLiked: boolean,
     newCount: number,
   ) => {
+    interactingCommentIds.current.add(commentId);
     setLikedById((prev) => ({ ...prev, [commentId]: newIsLiked }));
     setLikesCountById((prev) => ({ ...prev, [commentId]: newCount }));
+
+    setTimeout(() => {
+      interactingCommentIds.current.delete(commentId);
+    }, 1000);
   };
 
   const handlePostLikeChange = async (
     newIsLiked: boolean,
     newCount: number,
   ) => {
+    isPostLikeInteracting.current = true;
     setIsPostLikedLocal(newIsLiked);
-    // Đơn giản: tăng/giảm 1 khi like/unlike
-    setPostLikesCount(newIsLiked ? postLikesCount + 1 : postLikesCount - 1);
+    setPostLikesCount(newCount);
     onLikePost(post.id);
 
-    // Gọi API để đồng bộ lại danh sách likes
+    // Call API to sync back likes list (preview name)
     try {
       const data = await dispatch(
         getPostLikeDetailThunk({
@@ -535,14 +547,18 @@ export const CommentDialog = ({
       const total = data.totalElements ?? 0;
       setPostLikesCount(total);
 
-      // Luôn lấy user đầu tiên trong danh sách (người like mới nhất)
       if (data.content && data.content.length > 0) {
         setLatestLikeName(data.content[0].userName);
       } else {
         setLatestLikeName(null);
       }
     } catch (_) {
-      // Giữ nguyên state hiện tại nếu API lỗi
+      // Keep optimistic UI if API fails
+    } finally {
+      // Keep protection for a bit longer to wait for Redux to flush
+      setTimeout(() => {
+        isPostLikeInteracting.current = false;
+      }, 1000);
     }
   };
 
@@ -1232,7 +1248,7 @@ export const CommentDialog = ({
                             newCount,
                           )
                         }
-                        className="p-0 text-gray-400 hover:text-red-500"
+                        className="text-gray-400 hover:text-red-500 transition-colors"
                       />
                     </div>
                   </div>
@@ -1328,7 +1344,7 @@ export const CommentDialog = ({
                                         newCount,
                                       )
                                     }
-                                    className="p-0 text-gray-400 hover:text-red-500"
+                                    className="text-gray-400 hover:text-red-500 transition-colors"
                                   />
                                 </div>
                               </div>
@@ -1894,7 +1910,8 @@ export const CommentDialog = ({
                             newCount,
                           )
                         }
-                        className="h-auto p-0 text-gray-400 hover:text-red-500"
+                        className="text-gray-400 hover:text-red-500 transition-colors"
+                        size="sm"
                       />
                     </div>
                   </li>
@@ -1922,7 +1939,8 @@ export const CommentDialog = ({
                 likesCount={postLikesCount}
                 showCount
                 onLikeChange={handlePostLikeChange}
-                className="h-auto p-0"
+                className="hover:bg-transparent -ml-2 text-gray-700 dark:text-gray-200"
+                size="md"
               />
               <button className="text-gray-500 hover:text-gray-700 transition-colors">
                 <MessageCircle className="w-6 h-6" />

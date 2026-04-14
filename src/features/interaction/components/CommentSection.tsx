@@ -31,6 +31,7 @@ import {
 import type { Comment } from "../types";
 import { cn } from "@/lib/utils";
 import { LikesDialog } from "@/features/post/components/LikesDialog";
+import { LikeButton } from "./LikeButton";
 
 interface CommentSectionProps {
   postId: number;
@@ -545,25 +546,17 @@ export const CommentSection = ({ postId, className }: CommentSectionProps) => {
                     </button>
                   )}
 
-                  <button
-                    onClick={() =>
-                      handleLikeComment(comment.id, isReply, parentId)
-                    }
-                    className={cn(
-                      "flex items-center gap-1 text-xs transition-colors",
-                      comment.isLiked
-                        ? "text-red-500"
-                        : "text-muted-foreground hover:text-red-500",
-                    )}
+                  <LikeButton
+                    targetId={parseInt(comment.id)}
+                    targetType="comment"
+                    isLiked={comment.isLiked}
+                    likesCount={comment.likesCount}
+                    size="sm"
+                    showCount={false}
+                    className="p-0 h-auto w-auto hover:bg-transparent"
                   >
-                    <Heart
-                      className={cn(
-                        "w-3 h-3",
-                        comment.isLiked && "fill-current",
-                      )}
-                    />
-                    Thích
-                  </button>
+                    <span className="text-xs ml-1">Thích</span>
+                  </LikeButton>
 
                   {!isReply && (
                     <button
@@ -912,20 +905,20 @@ export const CommentSection = ({ postId, className }: CommentSectionProps) => {
         position={actionMenuPosition}
         items={[
           ...(currentCommentForAction &&
-          user &&
-          findCommentById(currentCommentForAction)?.userId ===
+            user &&
+            findCommentById(currentCommentForAction)?.userId ===
             user.id.toString()
             ? [
-                {
-                  label: "Chỉnh sửa",
-                  action: () => handleCommentAction("edit"),
-                },
-                {
-                  label: "Xóa",
-                  action: () => handleCommentAction("delete"),
-                  isDestructive: true,
-                },
-              ]
+              {
+                label: "Chỉnh sửa",
+                action: () => handleCommentAction("edit"),
+              },
+              {
+                label: "Xóa",
+                action: () => handleCommentAction("delete"),
+                isDestructive: true,
+              },
+            ]
             : []),
           {
             label: "Báo cáo",
@@ -951,9 +944,9 @@ export const CommentSection = ({ postId, className }: CommentSectionProps) => {
         }
         targetId={
           showLikesDialog &&
-          (showLikesDialog.targetType === "comment" ||
-            showLikesDialog.targetType === "reply" ||
-            showLikesDialog.targetType === "post")
+            (showLikesDialog.targetType === "comment" ||
+              showLikesDialog.targetType === "reply" ||
+              showLikesDialog.targetType === "post")
             ? parseInt(showLikesDialog.targetId)
             : undefined
         }

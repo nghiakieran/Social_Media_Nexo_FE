@@ -588,12 +588,12 @@ export const PostDetailPage = () => {
                       targetType="post"
                       isLiked={interactions.isLiked}
                       likesCount={post.stats.likes}
-                      size="sm"
+                      size="md"
                       showCount={false}
                       onLikeChange={handleLikeChange}
-                      className="flex items-center gap-2 px-3 py-2 rounded-full transition-colors"
+                      className="px-4 py-2 rounded-full hover:bg-muted/80 transition-colors"
                     >
-                      <span className="hidden sm:inline">Thích</span>
+                      <span className="text-sm font-medium">Thích</span>
                     </LikeButton>
 
                     <Button
@@ -632,7 +632,7 @@ export const PostDetailPage = () => {
                           "w-5 h-5",
                           (isBookmarked(post.id) ||
                             interactions.isBookmarked) &&
-                            "fill-current"
+                          "fill-current"
                         )}
                       />
                       <span className="hidden sm:inline">Lưu</span>
@@ -684,12 +684,12 @@ export const PostDetailPage = () => {
           showLikesDialog?.targetType === "post"
             ? "post"
             : showLikesDialog?.targetType === "comment"
-            ? "comment"
-            : undefined
+              ? "comment"
+              : undefined
         }
         targetId={
           showLikesDialog?.targetType === "post" ||
-          showLikesDialog?.targetType === "comment"
+            showLikesDialog?.targetType === "comment"
             ? parseInt(showLikesDialog.targetId)
             : undefined
         }
