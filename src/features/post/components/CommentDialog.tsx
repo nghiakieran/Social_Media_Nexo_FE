@@ -413,29 +413,29 @@ export const CommentDialog = ({
         </div>
         <div className="flex-1">
           <div className="flex items-center gap-2 mb-1">
-            <span className="font-semibold text-xs">{reply.userName}</span>
+            <span className="font-semibold text-sm">{reply.userName}</span>
           </div>
-          <p className="text-xs leading-relaxed mb-2">
+          <p className="text-sm leading-relaxed mb-2">
             {parseMentions(reply.content, (username) => {
               handleProfileClick(username);
             })}
           </p>
           <div className="flex items-center gap-4">
-            <span className="text-[11px] text-gray-500">
+            <span className="text-xs text-gray-500">
               {formatTimeAgo(reply.createdAt)}
             </span>
             {getLikesCount(reply.id, reply.likesCount) > 0 && (
               <button
                 type="button"
                 onClick={() => openLikesDialog(reply.id, "reply")}
-                className="text-[11px] text-gray-500 hover:underline"
+                className="text-xs text-gray-500 hover:underline"
               >
                 {getLikesCount(reply.id, reply.likesCount)} lượt thích
               </button>
             )}
             <button
               onClick={() => setReplyingTo(reply.id)}
-              className="text-[11px] text-gray-500 hover:text-gray-600 transition-colors"
+              className="text-xs text-gray-500 hover:text-gray-600 transition-colors"
               type="button"
             >
               Trả lời
@@ -1238,7 +1238,7 @@ export const CommentDialog = ({
                   </div>
                   {/* Replies for mobile with toggle */}
                   {(comment.replies && comment.replies.length > 0) ||
-                  comment.hasMoreReplies ? (
+                    comment.hasMoreReplies ? (
                     <div className="mt-2 ml-11">
                       {!expandedReplies[comment.id] ? (
                         <button
@@ -1267,11 +1267,11 @@ export const CommentDialog = ({
                                 </Avatar>
                                 <div className="flex-1">
                                   <div className="flex items-center gap-2 mb-1">
-                                    <span className="font-semibold text-xs">
+                                    <span className="font-semibold text-sm">
                                       {reply.userName}
                                     </span>
                                   </div>
-                                  <p className="text-xs leading-relaxed mb-2">
+                                  <p className="text-sm leading-relaxed mb-2">
                                     {parseMentions(
                                       reply.content,
                                       (username) => {
@@ -1280,28 +1280,28 @@ export const CommentDialog = ({
                                     )}
                                   </p>
                                   <div className="flex items-center gap-4">
-                                    <span className="text-[11px] text-gray-500">
+                                    <span className="text-xs text-gray-500">
                                       {formatTimeAgo(reply.createdAt)}
                                     </span>
                                     {getLikesCount(reply.id, reply.likesCount) >
                                       0 && (
-                                      <button
-                                        type="button"
-                                        onClick={() =>
-                                          openLikesDialog(reply.id, "reply")
-                                        }
-                                        className="text-[11px] text-gray-500 hover:underline"
-                                      >
-                                        {getLikesCount(
-                                          reply.id,
-                                          reply.likesCount,
-                                        )}{" "}
-                                        lượt thích
-                                      </button>
-                                    )}
+                                        <button
+                                          type="button"
+                                          onClick={() =>
+                                            openLikesDialog(reply.id, "reply")
+                                          }
+                                          className="text-xs text-gray-500 hover:underline"
+                                        >
+                                          {getLikesCount(
+                                            reply.id,
+                                            reply.likesCount,
+                                          )}{" "}
+                                          lượt thích
+                                        </button>
+                                      )}
                                     <button
                                       onClick={() => setReplyingTo(reply.id)}
-                                      className="text-[11px] text-gray-500 hover:text-gray-600 transition-colors"
+                                      className="text-xs text-gray-500 hover:text-gray-600 transition-colors"
                                     >
                                       Trả lời
                                     </button>
@@ -1512,7 +1512,7 @@ export const CommentDialog = ({
           }
           targetId={
             showLikesDialog?.targetType === "post" ||
-            showLikesDialog?.targetType === "comment"
+              showLikesDialog?.targetType === "comment"
               ? parseInt(showLikesDialog.targetId)
               : undefined
           }
@@ -1812,20 +1812,20 @@ export const CommentDialog = ({
                                   {comment.emojiReactions.filter(
                                     (r) => r.count > 0,
                                   ).length > 3 && (
-                                    <span className="text-xs text-gray-500">
-                                      +
-                                      {comment.emojiReactions.filter(
-                                        (r) => r.count > 0,
-                                      ).length - 3}
-                                    </span>
-                                  )}
+                                      <span className="text-xs text-gray-500">
+                                        +
+                                        {comment.emojiReactions.filter(
+                                          (r) => r.count > 0,
+                                        ).length - 3}
+                                      </span>
+                                    )}
                                 </div>
                               )}
                           </div>
                         )}
                       {/* Replies toggle and list */}
                       {(comment.replies && comment.replies.length > 0) ||
-                      comment.hasMoreReplies ? (
+                        comment.hasMoreReplies ? (
                         <div className="mt-2">
                           {!expandedReplies[comment.id] ? (
                             <button
@@ -1948,7 +1948,7 @@ export const CommentDialog = ({
                   className={cn(
                     "w-6 h-6",
                     isBookmarked(post.id) &&
-                      "fill-current text-gray-800 dark:text-gray-100",
+                    "fill-current text-gray-800 dark:text-gray-100",
                   )}
                 />
               </button>
@@ -2165,92 +2165,92 @@ export const CommentDialog = ({
             currentCommentForAction === "post"
               ? actionMenuItems && actionMenuItems.length > 0
                 ? actionMenuItems.map((item) =>
-                    item.label === "Xóa"
-                      ? { ...item, action: handleDeletePostClick }
-                      : item,
-                  )
+                  item.label === "Xóa"
+                    ? { ...item, action: handleDeletePostClick }
+                    : item,
+                )
                 : [
-                    {
-                      label: "Xóa",
-                      action: handleDeletePostClick,
-                      isDestructive: true,
-                    },
-                    {
-                      label: "Báo cáo",
-                      action: () => handleCommentAction("report"),
-                      isDestructive: true,
-                    },
-                    {
-                      label: "Đi đến bài viết",
-                      action: () => handleCommentAction("goToPost"),
-                    },
-                    {
-                      label: "Chia sẻ lên...",
-                      action: () => handleCommentAction("share"),
-                    },
-                    {
-                      label: "Sao chép liên kết",
-                      action: () => handleCommentAction("copyLink"),
-                    },
-                    {
-                      label: "Nhúng",
-                      action: () => handleCommentAction("embed"),
-                    },
-                    {
-                      label: "Giới thiệu về tài khoản này",
-                      action: () => handleCommentAction("aboutAccount"),
-                    },
-                    { label: "Hủy", action: handleCloseActionMenu },
-                  ]
-              : (() => {
-                  // Get comment or reply for action menu
-                  // First try to find in displayComments (root comments)
-                  let comment = displayComments.find(
-                    (c) => c.id === currentCommentForAction,
-                  );
-
-                  // If not found, try to find in replies (nested replies)
-                  if (!comment) {
-                    for (const rootComment of displayComments) {
-                      if (rootComment.replies) {
-                        const reply = rootComment.replies.find(
-                          (r) => r.id === currentCommentForAction,
-                        );
-                        if (reply) {
-                          comment = reply;
-                          break;
-                        }
-                      }
-                    }
-                  }
-
-                  if (!comment) {
-                    return [{ label: "Hủy", action: handleCloseActionMenu }];
-                  }
-
-                  const isCommentOwner = comment.userId === user?.id.toString();
-                  const isPostOwner = post.userId === user?.id.toString();
-                  const canDelete = isCommentOwner || isPostOwner;
-
-                  const items: ActionMenuItem[] = [];
-
-                  if (canDelete) {
-                    items.push({
-                      label: "Xóa",
-                      action: () => handleCommentAction("delete"),
-                      isDestructive: true,
-                    });
-                  }
-
-                  items.push({
+                  {
+                    label: "Xóa",
+                    action: handleDeletePostClick,
+                    isDestructive: true,
+                  },
+                  {
                     label: "Báo cáo",
                     action: () => handleCommentAction("report"),
                     isDestructive: true,
-                  });
-                  items.push({ label: "Hủy", action: handleCloseActionMenu });
+                  },
+                  {
+                    label: "Đi đến bài viết",
+                    action: () => handleCommentAction("goToPost"),
+                  },
+                  {
+                    label: "Chia sẻ lên...",
+                    action: () => handleCommentAction("share"),
+                  },
+                  {
+                    label: "Sao chép liên kết",
+                    action: () => handleCommentAction("copyLink"),
+                  },
+                  {
+                    label: "Nhúng",
+                    action: () => handleCommentAction("embed"),
+                  },
+                  {
+                    label: "Giới thiệu về tài khoản này",
+                    action: () => handleCommentAction("aboutAccount"),
+                  },
+                  { label: "Hủy", action: handleCloseActionMenu },
+                ]
+              : (() => {
+                // Get comment or reply for action menu
+                // First try to find in displayComments (root comments)
+                let comment = displayComments.find(
+                  (c) => c.id === currentCommentForAction,
+                );
 
-                  return items;
-                })()
+                // If not found, try to find in replies (nested replies)
+                if (!comment) {
+                  for (const rootComment of displayComments) {
+                    if (rootComment.replies) {
+                      const reply = rootComment.replies.find(
+                        (r) => r.id === currentCommentForAction,
+                      );
+                      if (reply) {
+                        comment = reply;
+                        break;
+                      }
+                    }
+                  }
+                }
+
+                if (!comment) {
+                  return [{ label: "Hủy", action: handleCloseActionMenu }];
+                }
+
+                const isCommentOwner = comment.userId === user?.id.toString();
+                const isPostOwner = post.userId === user?.id.toString();
+                const canDelete = isCommentOwner || isPostOwner;
+
+                const items: ActionMenuItem[] = [];
+
+                if (canDelete) {
+                  items.push({
+                    label: "Xóa",
+                    action: () => handleCommentAction("delete"),
+                    isDestructive: true,
+                  });
+                }
+
+                items.push({
+                  label: "Báo cáo",
+                  action: () => handleCommentAction("report"),
+                  isDestructive: true,
+                });
+                items.push({ label: "Hủy", action: handleCloseActionMenu });
+
+                return items;
+              })()
           }
         />
       )}
@@ -2267,7 +2267,7 @@ export const CommentDialog = ({
         }
         targetId={
           showLikesDialog?.targetType === "post" ||
-          showLikesDialog?.targetType === "comment"
+            showLikesDialog?.targetType === "comment"
             ? parseInt(showLikesDialog.targetId)
             : undefined
         }
