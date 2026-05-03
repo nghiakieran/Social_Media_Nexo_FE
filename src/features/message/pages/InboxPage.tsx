@@ -16,9 +16,8 @@ import { MessageRequestActions } from "../components/MessageRequestActions";
 import { InstagramInboxHeader } from "../components/InstagramInboxHeader";
 import { InstagramChatHeader } from "../components/InstagramChatHeader";
 import { CreateGroupDialog } from "../components/CreateGroupDialog";
-import { CallDialog } from "../components/CallDialog";
 import { QuickActionsBar } from "../components/QuickActionsBar";
-import { useCallWebRTC } from "../hooks/useCallWebRTC";
+import { useCallContext } from "../contexts/CallContext";
 import { Button } from "@/components/ui/button";
 import {
   setConversations,
@@ -51,6 +50,7 @@ import {
   TypingNotificationDTO,
   ReactionUpdateDTO,
 } from "../types";
+
 import { MessageSquarePlus } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -469,33 +469,7 @@ export const InboxPage: React.FC = () => {
     }
   };
 
-  // ─── Call / WebRTC ────────────────────────────────────────────────────────
-  const [callDialogOpen, setCallDialogOpen] = useState(false);
-
-  const {
-    callState,
-    activeCall,
-    incomingCall,
-    isMuted,
-    isVideoOff,
-    duration,
-    localVideoRef,
-    remoteVideoRef,
-    startCall,
-    answerCall,
-    rejectCall,
-    hangUp,
-    toggleMute,
-    toggleVideo,
-  } = useCallWebRTC();
-
-  useEffect(() => {
-    if (callState !== "idle") {
-      setCallDialogOpen(true);
-    } else {
-      setCallDialogOpen(false);
-    }
-  }, [callState]);
+  const { startCall } = useCallContext();
 
   const otherParticipant = useMemo(
     () => currentChat?.participants.find((p) => p.id !== user?.id),
@@ -805,27 +779,6 @@ export const InboxPage: React.FC = () => {
           </div>
         )}
       </div>
-
-      <CallDialog
-        open={callDialogOpen}
-        onOpenChange={(open) => {
-          if (!open && callState === "connected") hangUp();
-          setCallDialogOpen(open);
-        }}
-        callState={callState}
-        activeCall={activeCall}
-        incomingCall={incomingCall}
-        isMuted={isMuted}
-        isVideoOff={isVideoOff}
-        duration={duration}
-        localVideoRef={localVideoRef}
-        remoteVideoRef={remoteVideoRef}
-        onAccept={answerCall}
-        onDecline={rejectCall}
-        onHangUp={hangUp}
-        onToggleMute={toggleMute}
-        onToggleVideo={toggleVideo}
-      />
 
       <CreateGroupDialog
         open={createGroupDialogOpen}

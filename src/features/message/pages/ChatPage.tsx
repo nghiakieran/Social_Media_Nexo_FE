@@ -3,11 +3,10 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "@/store";
 import { useWebSocket } from "../hooks/useWebSocket";
 import { useBatchPresence } from "../hooks/usePresence";
-import { useCallWebRTC } from "../hooks/useCallWebRTC";
 import { ChatWindow } from "../components/ChatWindow";
 import { MessageComposer } from "../components/MessageComposer";
 import { InstagramChatHeader } from "../components/InstagramChatHeader";
-import { CallDialog } from "../components/CallDialog";
+import { useCallContext } from "../contexts/CallContext";
 import { Button } from "@/components/ui/button";
 import {
   setActiveConversation,
@@ -371,42 +370,7 @@ export const ChatPage: React.FC = () => {
 
   const handleGoBack = () => navigate("/messages");
 
-  // ─── Call / WebRTC ──────────────────────────────────────────────────────────
-  const [callDialogOpen, setCallDialogOpen] = useState(false);
-
-  const {
-    callState,
-    activeCall,
-    incomingCall,
-    isMuted,
-    isVideoOff,
-    duration,
-    localVideoRef,
-    remoteVideoRef,
-    startCall,
-    answerCall,
-    rejectCall,
-    hangUp,
-    toggleMute,
-    toggleVideo,
-    resubscribeCallEvents,
-  } = useCallWebRTC();
-
-  // Open dialog when there is an incoming call or an outgoing call starts
-  useEffect(() => {
-    if (callState !== "idle") {
-      setCallDialogOpen(true);
-    } else {
-      setCallDialogOpen(false);
-    }
-  }, [callState]);
-
-  // Re-subscribe call events whenever WebSocket reconnects
-  useEffect(() => {
-    if (ws.isConnected()) {
-      resubscribeCallEvents();
-    }
-  }, [ws, resubscribeCallEvents]);
+  const { startCall } = useCallContext();
 
   const otherParticipant = useMemo(
     () => currentChat?.participants.find((p) => p.id !== user?.id),
@@ -480,26 +444,6 @@ export const ChatPage: React.FC = () => {
         />
       </div>
 
-      <CallDialog
-        open={callDialogOpen}
-        onOpenChange={(open) => {
-          if (!open && callState === "connected") hangUp();
-          setCallDialogOpen(open);
-        }}
-        callState={callState}
-        activeCall={activeCall}
-        incomingCall={incomingCall}
-        isMuted={isMuted}
-        isVideoOff={isVideoOff}
-        duration={duration}
-        localVideoRef={localVideoRef}
-        remoteVideoRef={remoteVideoRef}
-        onAccept={answerCall}
-        onDecline={rejectCall}
-        onHangUp={hangUp}
-        onToggleMute={toggleMute}
-        onToggleVideo={toggleVideo}
-      />
     </div>
   );
 };
