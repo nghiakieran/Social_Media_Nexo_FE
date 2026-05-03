@@ -349,19 +349,26 @@ export function useCallWebRTC({ onCallEnded }: UseCallWebRTCOptions = {}) {
     [cleanup, onCallEnded]
   );
 
-  // ─── Subscribe on mount ────────────────────────────────────────────────────
+  // ─── Subscribe on mount (or as soon as WS connects) ───────────────────────
 
   useEffect(() => {
-    if (!ws.isConnected()) return;
+    const subscribe = () => {
+      ws.subscribeToCallEvents(
+        handleIncomingCall,
+        handleCallResponse,
+        handleCallSignal,
+        handleCallEnded
+      );
+    };
 
-    ws.subscribeToCallEvents(
-      handleIncomingCall,
-      handleCallResponse,
-      handleCallSignal,
-      handleCallEnded
-    );
+    if (ws.isConnected()) {
+      subscribe();
+    } else {
+      ws.addConnectedListener(subscribe);
+    }
 
     return () => {
+      ws.removeConnectedListener(subscribe);
       ws.unsubscribeFromCallEvents();
     };
   }, [ws, handleIncomingCall, handleCallResponse, handleCallSignal, handleCallEnded]);

@@ -42,6 +42,7 @@ export class WebSocketService {
   private onConnectedCallback?: () => void;
   private onDisconnectedCallback?: () => void;
   private onErrorCallback?: (error: unknown) => void;
+  private connectedListeners: Set<() => void> = new Set();
 
   constructor(
     private baseUrl: string = import.meta.env.VITE_WS_URL ||
@@ -80,6 +81,7 @@ export class WebSocketService {
       onConnect: () => {
         this.reconnectAttempts = 0;
         this.onConnectedCallback?.();
+        this.connectedListeners.forEach((cb) => cb());
       },
 
       onDisconnect: () => {
@@ -98,7 +100,15 @@ export class WebSocketService {
     this.client.activate();
   }
 
-  
+  addConnectedListener(cb: () => void) {
+    this.connectedListeners.add(cb);
+  }
+
+  removeConnectedListener(cb: () => void) {
+    this.connectedListeners.delete(cb);
+  }
+
+
   disconnect() {
     if (this.client?.active) {
       this.subscriptions.forEach((sub) => sub.unsubscribe());

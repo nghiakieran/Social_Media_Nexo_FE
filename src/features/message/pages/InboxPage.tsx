@@ -16,7 +16,9 @@ import { MessageRequestActions } from "../components/MessageRequestActions";
 import { InstagramInboxHeader } from "../components/InstagramInboxHeader";
 import { InstagramChatHeader } from "../components/InstagramChatHeader";
 import { CreateGroupDialog } from "../components/CreateGroupDialog";
+import { CallDialog } from "../components/CallDialog";
 import { QuickActionsBar } from "../components/QuickActionsBar";
+import { useCallWebRTC } from "../hooks/useCallWebRTC";
 import { Button } from "@/components/ui/button";
 import {
   setConversations,
@@ -43,6 +45,7 @@ import {
   EMessageType,
   EReactionType,
   EConversationStatus,
+  ECallType,
   PresenceStatusDTO,
   ReadAllDTO,
   TypingNotificationDTO,
@@ -466,7 +469,51 @@ export const InboxPage: React.FC = () => {
     }
   };
 
-  const handleCallAction = (type: "voice" | "video") => {};
+  // ─── Call / WebRTC ────────────────────────────────────────────────────────
+  const [callDialogOpen, setCallDialogOpen] = useState(false);
+
+  const {
+    callState,
+    activeCall,
+    incomingCall,
+    isMuted,
+    isVideoOff,
+    duration,
+    localVideoRef,
+    remoteVideoRef,
+    startCall,
+    answerCall,
+    rejectCall,
+    hangUp,
+    toggleMute,
+    toggleVideo,
+  } = useCallWebRTC();
+
+  useEffect(() => {
+    if (callState !== "idle") {
+      setCallDialogOpen(true);
+    } else {
+      setCallDialogOpen(false);
+    }
+  }, [callState]);
+
+  const otherParticipant = useMemo(
+    () => currentChat?.participants.find((p) => p.id !== user?.id),
+    [currentChat, user?.id]
+  );
+
+  const handleCallAction = useCallback(
+    (type: "voice" | "video") => {
+      if (!currentChat || !otherParticipant) return;
+      const callType = type === "video" ? ECallType.VIDEO_CALL : ECallType.AUDIO_CALL;
+      startCall(currentChat.id, callType, {
+        id: otherParticipant.id,
+        name: otherParticipant.fullName,
+        avatarUrl: otherParticipant.avatarUrl,
+      });
+    },
+    [currentChat, otherParticipant, startCall]
+  );
 
   const handleCreateGroup = async (
     groupName: string,
@@ -758,6 +805,27 @@ export const InboxPage: React.FC = () => {
           </div>
         )}
       </div>
+
+      <CallDialog
+        open={callDialogOpen}
+        onOpenChange={(open) => {
+          if (!open && callState === "connected") hangUp();
+          setCallDialogOpen(open);
+        }}
+        callState={callState}
+        activeCall={activeCall}
+        incomingCall={incomingCall}
+        isMuted={isMuted}
+        isVideoOff={isVideoOff}
+        duration={duration}
+        localVideoRef={localVideoRef}
+        remoteVideoRef={remoteVideoRef}
+        onAccept={answerCall}
+        onDecline={rejectCall}
+        onHangUp={hangUp}
+        onToggleMute={toggleMute}
+        onToggleVideo={toggleVideo}
+      />
 
       <CreateGroupDialog
         open={createGroupDialogOpen}
