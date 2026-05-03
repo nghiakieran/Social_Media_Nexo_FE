@@ -15,7 +15,9 @@ import { MessageComposer } from "../components/MessageComposer";
 import { MessageRequestActions } from "../components/MessageRequestActions";
 import { InstagramInboxHeader } from "../components/InstagramInboxHeader";
 import { InstagramChatHeader } from "../components/InstagramChatHeader";
+import { CreateGroupDialog } from "../components/CreateGroupDialog";
 import { QuickActionsBar } from "../components/QuickActionsBar";
+import { useCallContext } from "../contexts/CallContext";
 import { Button } from "@/components/ui/button";
 import {
   setConversations,
@@ -42,11 +44,13 @@ import {
   EMessageType,
   EReactionType,
   EConversationStatus,
+  ECallType,
   PresenceStatusDTO,
   ReadAllDTO,
   TypingNotificationDTO,
   ReactionUpdateDTO,
 } from "../types";
+
 import { MessageSquarePlus } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -71,6 +75,7 @@ export const InboxPage: React.FC = () => {
   );
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [createGroupDialogOpen, setCreateGroupDialogOpen] = useState(false);
   const [presenceUpdates, setPresenceUpdates] = useState<
     Record<number, { isOnline: boolean; lastSeen?: string }>
   >({});
@@ -257,7 +262,7 @@ export const InboxPage: React.FC = () => {
   }, [refetchPresence]);
 
   const filteredChats = conversations.filter((conv) => {
-    if (!conv.lastMessage && conv.id !== targetConversationId) {
+    if (!conv.lastMessage && conv.id !== targetConversationId && !conv.isGroup) {
       return false;
     }
 
@@ -284,7 +289,10 @@ export const InboxPage: React.FC = () => {
       }
     }
 
-    return conv.fullname.toLowerCase().includes(searchQuery.toLowerCase());
+    const displayName = conv.isGroup
+      ? (conv.groupName ?? conv.fullname)
+      : conv.fullname;
+    return displayName.toLowerCase().includes(searchQuery.toLowerCase());
   });
 
   const currentMessages = activeConversationId
@@ -461,7 +469,40 @@ export const InboxPage: React.FC = () => {
     }
   };
 
-  const handleCallAction = (type: "voice" | "video") => {};
+  const { startCall } = useCallContext();
+
+  const otherParticipant = useMemo(
+    () => currentChat?.participants.find((p) => p.id !== user?.id),
+    [currentChat, user?.id]
+  );
+
+  const handleCallAction = useCallback(
+    (type: "voice" | "video") => {
+      if (!currentChat || !otherParticipant) return;
+      const callType = type === "video" ? ECallType.VIDEO_CALL : ECallType.AUDIO_CALL;
+      startCall(currentChat.id, callType, {
+        id: otherParticipant.id,
+        name: otherParticipant.fullName,
+        avatarUrl: otherParticipant.avatarUrl,
+      });
+    },
+    [currentChat, otherParticipant, startCall]
+  );
+
+  const handleCreateGroup = async (
+    groupName: string,
+    memberIds: number[]
+  ) => {
+    const { conversationApi } = await import("../services/messageApi");
+    const response = await conversationApi.createGroup({
+      groupName,
+      memberUserIds: memberIds,
+    });
+    if (response?.data) {
+      dispatch(upsertConversation(response.data));
+      dispatch(setActiveConversation(response.data.id));
+    }
+  };
 
   const handleAcceptRequest = async (conversationId: number) => {
     try {
@@ -550,6 +591,7 @@ export const InboxPage: React.FC = () => {
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
           onNewMessage={handleNewMessage}
+          onCreateGroup={() => setCreateGroupDialogOpen(true)}
           activeView={activeView}
           onViewChange={handleViewChange}
         />
@@ -634,6 +676,8 @@ export const InboxPage: React.FC = () => {
               onCall={handleCallAction}
               onNicknameUpdated={handleRefreshConversations}
               onBlockStatusChanged={handleRefreshConversations}
+              onGroupUpdated={handleRefreshConversations}
+              onGroupLeft={() => dispatch(setActiveConversation(null))}
               showBackButton={!!activeConversationId}
               mobileOnlyBack
               onBack={() => dispatch(setActiveConversation(null))}
@@ -735,6 +779,14 @@ export const InboxPage: React.FC = () => {
           </div>
         )}
       </div>
+
+      <CreateGroupDialog
+        open={createGroupDialogOpen}
+        onOpenChange={setCreateGroupDialogOpen}
+        conversations={conversations}
+        currentUserId={user?.id}
+        onCreate={handleCreateGroup}
+      />
     </div>
   );
 };

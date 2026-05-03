@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useCallback, useRef } from "react";
+import React, { useEffect, useMemo, useCallback, useRef, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "@/store";
 import { useWebSocket } from "../hooks/useWebSocket";
@@ -6,6 +6,7 @@ import { useBatchPresence } from "../hooks/usePresence";
 import { ChatWindow } from "../components/ChatWindow";
 import { MessageComposer } from "../components/MessageComposer";
 import { InstagramChatHeader } from "../components/InstagramChatHeader";
+import { useCallContext } from "../contexts/CallContext";
 import { Button } from "@/components/ui/button";
 import {
   setActiveConversation,
@@ -29,6 +30,7 @@ import {
   ReadAllDTO,
   TypingNotificationDTO,
   ReactionUpdateDTO,
+  ECallType,
 } from "../types";
 
 export const ChatPage: React.FC = () => {
@@ -368,6 +370,27 @@ export const ChatPage: React.FC = () => {
 
   const handleGoBack = () => navigate("/messages");
 
+  const { startCall } = useCallContext();
+
+  const otherParticipant = useMemo(
+    () => currentChat?.participants.find((p) => p.id !== user?.id),
+    [currentChat, user?.id]
+  );
+
+  const handleStartCall = useCallback(
+    (type: "voice" | "video") => {
+      if (!currentChat || !otherParticipant) return;
+      const callType =
+        type === "video" ? ECallType.VIDEO_CALL : ECallType.AUDIO_CALL;
+      startCall(currentChat.id, callType, {
+        id: otherParticipant.id,
+        name: otherParticipant.fullName,
+        avatarUrl: otherParticipant.avatarUrl,
+      });
+    },
+    [currentChat, otherParticipant, startCall]
+  );
+
   if (!currentChat) {
     return (
       <div className="flex h-[100dvh] max-h-[100dvh] items-center justify-center px-4">
@@ -386,6 +409,7 @@ export const ChatPage: React.FC = () => {
       <InstagramChatHeader
         chat={currentChat}
         onBack={handleGoBack}
+        onCall={handleStartCall}
         showBackButton={true}
         isOnline={otherUserId ? presenceMap[otherUserId] || false : false}
         lastSeen={otherUserId ? lastSeenMap[otherUserId] : undefined}
@@ -417,9 +441,9 @@ export const ChatPage: React.FC = () => {
           onTyping={handleTyping}
           replyingTo={replyingTo}
           onCancelReply={() => dispatch(clearReplyingTo())}
-          currentUserId={user?.id}
         />
       </div>
+
     </div>
   );
 };

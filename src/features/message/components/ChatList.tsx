@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 import type { ConversationResponseDTO } from "../types";
 import { format, isToday, isYesterday, isThisYear } from "date-fns";
 import { vi } from "date-fns/locale";
-import { MessageCircle, Check, CheckCheck } from "lucide-react";
+import { MessageCircle, Check, CheckCheck, Users } from "lucide-react";
 
 interface ChatListProps {
   chats: ConversationResponseDTO[];
@@ -47,7 +47,10 @@ export const ChatList: React.FC<ChatListProps> = ({
   return (
     <div className={cn("space-y-1", className)}>
       {chats.map((chat) => {
-        const otherUser = chat.participants.find((p) => p.id !== currentUserId);
+        const isGroup = chat.isGroup ?? false;
+        const otherUser = isGroup
+          ? null
+          : chat.participants.find((p) => p.id !== currentUserId);
         const isOnline = otherUser ? presenceMap[otherUser.id] || false : false;
 
         return (
@@ -60,30 +63,50 @@ export const ChatList: React.FC<ChatListProps> = ({
             )}
             onClick={() => onChatSelect(String(chat.id))}
           >
-            <InstagramStoryRing
-              src={chat.avatarUrl}
-              alt={chat.fullname}
-              size="md"
-              hasStory={true}
-              hasUnread={chat.unreadCount > 0}
-              className="shrink-0"
-            >
-              <OnlineIndicator
-                isOnline={isOnline}
+            {isGroup ? (
+              <div className="relative shrink-0 h-10 w-10 md:h-11 md:w-11">
+                {chat.groupAvatarUrl ? (
+                  <Avatar className="h-full w-full">
+                    <AvatarImage src={chat.groupAvatarUrl} alt={chat.groupName} />
+                    <AvatarFallback className="bg-primary/10 text-primary">
+                      <Users className="h-5 w-5" />
+                    </AvatarFallback>
+                  </Avatar>
+                ) : (
+                  <div className="h-full w-full rounded-full bg-primary/10 flex items-center justify-center">
+                    <Users className="h-5 w-5 text-primary" />
+                  </div>
+                )}
+                {chat.unreadCount > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-primary border-2 border-background" />
+                )}
+              </div>
+            ) : (
+              <InstagramStoryRing
+                src={chat.avatarUrl}
+                alt={chat.fullname}
                 size="md"
-                className="absolute -bottom-0.5 -right-0.5"
-              />
-            </InstagramStoryRing>
+                hasStory={true}
+                hasUnread={chat.unreadCount > 0}
+                className="shrink-0"
+              >
+                <OnlineIndicator
+                  isOnline={isOnline}
+                  size="md"
+                  className="absolute -bottom-0.5 -right-0.5"
+                />
+              </InstagramStoryRing>
+            )}
 
             <div className="flex-1 ml-3 min-w-0">
-              <div className="flex items-center justify-between mb-1">
+              <div className="flex items-center justify-between mb-0.5">
                 <h3
                   className={cn(
                     "font-medium text-sm truncate",
                     chat.unreadCount > 0 && "font-semibold"
                   )}
                 >
-                  {chat.fullname}
+                  {isGroup ? (chat.groupName ?? chat.fullname) : chat.fullname}
                 </h3>
                 <div className="flex items-center space-x-1">
                   {chat.lastMessage && (

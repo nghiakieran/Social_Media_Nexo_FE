@@ -25,6 +25,7 @@ import {
   ACCESS_TOKEN_STORAGE_KEY,
 } from "@/utils/constants";
 import { WebSocketProvider } from "./utils/WebSocketProvider";
+import { GlobalCallHandler } from "./features/message/components/GlobalCallHandler";
 import { hasAdminRole } from "@/lib/utils";
 
 // Pages
@@ -159,7 +160,12 @@ const UserGuard = ({ children }: { children: JSX.Element }) => {
 
 const AuthenticatedAppWrapper = ({ children }: { children: JSX.Element }) => {
   const { isAuthenticated } = useAppSelector((state) => state.auth);
-  if (isAuthenticated) return <WebSocketProvider>{children}</WebSocketProvider>;
+  if (isAuthenticated)
+    return (
+      <WebSocketProvider>
+        <GlobalCallHandler>{children}</GlobalCallHandler>
+      </WebSocketProvider>
+    );
   return children;
 };
 

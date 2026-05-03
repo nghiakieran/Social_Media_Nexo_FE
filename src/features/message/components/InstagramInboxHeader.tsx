@@ -22,6 +22,7 @@ import {
   MessageSquare,
   Archive,
   ChevronDown,
+  Users,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -29,6 +30,7 @@ interface InstagramInboxHeaderProps {
   searchQuery: string;
   onSearchChange: (query: string) => void;
   onNewMessage: () => void;
+  onCreateGroup?: () => void;
   className?: string;
   activeView?: "primary" | "requests";
   onViewChange?: (view: "primary" | "requests") => void;
@@ -38,6 +40,7 @@ export const InstagramInboxHeader: React.FC<InstagramInboxHeaderProps> = ({
   searchQuery,
   onSearchChange,
   onNewMessage,
+  onCreateGroup,
   className,
   activeView = "primary",
   onViewChange,
@@ -120,6 +123,18 @@ export const InstagramInboxHeader: React.FC<InstagramInboxHeaderProps> = ({
         </div>
 
         <div className="flex shrink-0 items-center gap-0.5 md:gap-1">
+          {onCreateGroup && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onCreateGroup}
+              className="h-8 w-8 hover:bg-primary/10 hover:text-primary md:h-9 md:w-9"
+              aria-label="Tạo nhóm chat"
+              title="Tạo nhóm"
+            >
+              <Users className="h-4 w-4" />
+            </Button>
+          )}
           <Button
             variant="ghost"
             size="icon"
