@@ -18,6 +18,7 @@ import {
   Play,
   X,
   Video as VideoIcon,
+  Mic,
 } from "lucide-react";
 import { TypingIndicator } from "./TypingIndicator";
 import { ReactionMessage } from "./ReactionMessage";
@@ -764,6 +765,41 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                             ))}
                           </div>
                         )}
+
+                        {message.messageType === "AUDIO" &&
+                          message.mediaList.length > 0 && (
+                            <div
+                              className={cn(
+                                "flex flex-col gap-1",
+                                isOwn ? "items-end" : "items-start"
+                              )}
+                            >
+                              {message.mediaList.map((media, idx) => (
+                                <div
+                                  key={media.id || idx}
+                                  className={cn(
+                                    "flex items-center gap-2 px-3 py-2 rounded-2xl shadow-sm",
+                                    isOwn
+                                      ? "bg-primary text-primary-foreground"
+                                      : "bg-muted text-foreground"
+                                  )}
+                                >
+                                  <Mic className="h-4 w-4 shrink-0 opacity-80" />
+                                  <audio
+                                    controls
+                                    src={media.mediaUrl}
+                                    className="h-8 max-w-[220px] md:max-w-[280px]"
+                                  />
+                                  <span className="text-xs opacity-70 shrink-0">
+                                    {new Date(message.createdAt).toLocaleTimeString("vi-VN", {
+                                      hour: "2-digit",
+                                      minute: "2-digit",
+                                    })}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
 
                         {message.content?.trim() && (
                           <div

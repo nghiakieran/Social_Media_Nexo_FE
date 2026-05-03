@@ -13,6 +13,14 @@ import type {
   ReactionUpdateDTO,
   ReactMessageRequest,
   EReactionType,
+  CallNotificationDTO,
+  CallResponseDTO,
+  CallSignalDTO,
+  CallEndedDTO,
+  CallInitiateRequest,
+  CallResponseRequest,
+  CallSignalRequest,
+  CallEndRequest,
 } from "../types";
 import { ACCESS_TOKEN_STORAGE_KEY } from "@/utils/constants";
 
@@ -320,6 +328,85 @@ export class WebSocketService {
         messageId,
         reactionType,
       }),
+    });
+  }
+
+  // ─── Call signaling ────────────────────────────────────────────────────────
+
+  subscribeToCallEvents(
+    onIncomingCall: (notification: CallNotificationDTO) => void,
+    onCallResponse: (response: CallResponseDTO) => void,
+    onCallSignal: (signal: CallSignalDTO) => void,
+    onCallEnded: (ended: CallEndedDTO) => void
+  ) {
+    if (!this.client?.connected) return;
+
+    const incomingSub = this.client.subscribe(
+      "/user/queue/call/incoming",
+      (msg: IMessage) => onIncomingCall(JSON.parse(msg.body))
+    );
+    this.subscriptions.set("call:incoming", incomingSub);
+
+    const responseSub = this.client.subscribe(
+      "/user/queue/call/response",
+      (msg: IMessage) => onCallResponse(JSON.parse(msg.body))
+    );
+    this.subscriptions.set("call:response", responseSub);
+
+    const signalSub = this.client.subscribe(
+      "/user/queue/call/signal",
+      (msg: IMessage) => onCallSignal(JSON.parse(msg.body))
+    );
+    this.subscriptions.set("call:signal", signalSub);
+
+    const endedSub = this.client.subscribe(
+      "/user/queue/call/ended",
+      (msg: IMessage) => onCallEnded(JSON.parse(msg.body))
+    );
+    this.subscriptions.set("call:ended", endedSub);
+  }
+
+  unsubscribeFromCallEvents() {
+    ["call:incoming", "call:response", "call:signal", "call:ended"].forEach(
+      (key) => {
+        const sub = this.subscriptions.get(key);
+        if (sub) {
+          sub.unsubscribe();
+          this.subscriptions.delete(key);
+        }
+      }
+    );
+  }
+
+  initiateCall(request: CallInitiateRequest) {
+    if (!this.client?.connected) throw new Error("WebSocket not connected");
+    this.client.publish({
+      destination: "/app/call.initiate",
+      body: JSON.stringify(request),
+    });
+  }
+
+  respondToCall(request: CallResponseRequest) {
+    if (!this.client?.connected) throw new Error("WebSocket not connected");
+    this.client.publish({
+      destination: "/app/call.response",
+      body: JSON.stringify(request),
+    });
+  }
+
+  sendCallSignal(request: CallSignalRequest) {
+    if (!this.client?.connected) throw new Error("WebSocket not connected");
+    this.client.publish({
+      destination: "/app/call.signal",
+      body: JSON.stringify(request),
+    });
+  }
+
+  endCall(request: CallEndRequest) {
+    if (!this.client?.connected) throw new Error("WebSocket not connected");
+    this.client.publish({
+      destination: "/app/call.end",
+      body: JSON.stringify(request),
     });
   }
 }
