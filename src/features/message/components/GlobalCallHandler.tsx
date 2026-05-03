@@ -6,6 +6,11 @@ import { CallContextProvider } from "../contexts/CallContext";
 export const GlobalCallHandler: React.FC<{ children?: React.ReactNode }> = ({ children }) => {
   const [callDialogOpen, setCallDialogOpen] = useState(false);
 
+  useEffect(() => {
+    console.log("[GlobalCallHandler] mounted");
+    return () => console.log("[GlobalCallHandler] unmounted");
+  }, []);
+
   const {
     callState,
     activeCall,

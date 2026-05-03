@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from "react";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import {
@@ -94,6 +94,9 @@ export const CallDialog: React.FC<CallDialogProps> = ({
             : "sm:max-w-md bg-gradient-to-b from-background to-muted"
         )}
       >
+        <DialogTitle className="sr-only">
+          {isIncoming ? `Cuộc gọi đến từ ${contactName}` : `Đang gọi ${contactName}`}
+        </DialogTitle>
         {/* Video streams */}
         {withVideo && (
           <div className="relative w-full aspect-video bg-black">

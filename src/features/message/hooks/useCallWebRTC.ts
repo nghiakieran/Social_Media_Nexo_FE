@@ -153,6 +153,7 @@ export function useCallWebRTC({ onCallEnded }: UseCallWebRTCOptions = {}) {
       callType: ECallType,
       remoteUser: { id: number; name: string; avatarUrl: string }
     ) => {
+      console.log("[Call] startCall called, state=", callStateRef.current);
       if (callStateRef.current !== "idle") return;
 
       const isVideo = callType === "VIDEO_CALL";
@@ -382,6 +383,8 @@ export function useCallWebRTC({ onCallEnded }: UseCallWebRTCOptions = {}) {
   // ─── Subscribe once on mount, never re-subscribe ────────────────────────────
 
   useEffect(() => {
+    console.log("[Call] useCallWebRTC mounted, ws.isConnected()=", ws.isConnected());
+
     const subscribe = () => {
       ws.subscribeToCallEvents(
         handleIncomingCall,
@@ -395,10 +398,12 @@ export function useCallWebRTC({ onCallEnded }: UseCallWebRTCOptions = {}) {
     if (ws.isConnected()) {
       subscribe();
     } else {
+      console.log("[Call] WS not connected yet, waiting...");
       ws.addConnectedListener(subscribe);
     }
 
     return () => {
+      console.log("[Call] useCallWebRTC unmounted");
       ws.removeConnectedListener(subscribe);
       ws.unsubscribeFromCallEvents();
     };
