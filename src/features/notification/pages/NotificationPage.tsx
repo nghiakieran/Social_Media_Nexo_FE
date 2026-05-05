@@ -14,11 +14,10 @@ import {
   groupItemsByCreatedDate,
 } from "@/utils/timeFormat";
 import { Check, UserPlus } from "lucide-react";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef } from "react";
 import { NotificationItem } from "../components/NotificationItem";
 import TabSwitcher from "../components/TabSwitcher";
 import {
-  appendNotifications,
   getNotificationsThunk,
   markAllAsRead,
   markAsRead,
@@ -29,19 +28,18 @@ import {
 const NotificationPage: React.FC = () => {
   const dispatch = useAppDispatch();
   const { toast } = useToast();
-  const { notifications, activeTab, unreadCount, loading } = useAppSelector(
-    (state) => state.notification
-  );
+  const { notifications, activeTab, unreadCount, loading, notificationsHasMore } =
+    useAppSelector((state) => state.notification);
   const { followRequests, showFollowRequestsDialog, isLoading } =
     useAppSelector((state) => state.profile);
   const currentUser = useAppSelector((state) => state.auth.user);
 
-  const [page, setPage] = useState(0);
   const limit = 20;
+  const lastRequestedPageRef = useRef(0);
 
-  // Load notifications page 1 on mount
+  // Load notifications page 0 on mount
   useEffect(() => {
-    setPage(0);
+    lastRequestedPageRef.current = 0;
     dispatch(getNotificationsThunk({ page: 0, limit }));
     if (currentUser?.isPrivate) {
       dispatch(fetchFollowRequestsAsync({}));
@@ -101,23 +99,20 @@ const NotificationPage: React.FC = () => {
     dispatch(rejectFollowRequestAsync(username));
   };
 
-  // Infinite scroll
+  // Infinite scroll (scroll runs on Radix ScrollArea Viewport; see scroll-area.tsx)
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
     const target = e.currentTarget;
-    if (
-      target.scrollHeight - target.scrollTop - target.clientHeight < 100 &&
-      !loading
-    ) {
-      const nextPage = page + 1;
-      setPage(nextPage);
+    const nearBottom =
+      target.scrollHeight - target.scrollTop - target.clientHeight < 120;
+    if (!nearBottom || loading || !notificationsHasMore) return;
 
-      dispatch(getNotificationsThunk({ page: nextPage, limit }))
-        .unwrap()
-        .then((res) => {
-          dispatch(appendNotifications(res.content));
-        })
-        .catch((err) => console.error(err));
-    }
+    const nextPage = lastRequestedPageRef.current + 1;
+    lastRequestedPageRef.current = nextPage;
+    void dispatch(getNotificationsThunk({ page: nextPage, limit }))
+      .unwrap()
+      .catch(() => {
+        lastRequestedPageRef.current = nextPage - 1;
+      });
   };
 
   return (

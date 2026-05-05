@@ -19,6 +19,7 @@ interface NotificationState {
   unreadCount: number;
   loading: boolean;
   error: string | null;
+  notificationsHasMore: boolean;
 }
 
 const initialState: NotificationState = {
@@ -27,6 +28,7 @@ const initialState: NotificationState = {
   unreadCount: 0,
   loading: false,
   error: null,
+  notificationsHasMore: true,
 };
 
 // Thunks
@@ -138,7 +140,13 @@ const notificationSlice = createSlice({
       })
       .addCase(getNotificationsThunk.fulfilled, (state, action) => {
         state.loading = false;
-        state.notifications = action.payload.content;
+        const page = action.meta.arg.page ?? 0;
+        if (page === 0) {
+          state.notifications = action.payload.content;
+        } else {
+          state.notifications.push(...action.payload.content);
+        }
+        state.notificationsHasMore = !action.payload.last;
       })
       .addCase(getNotificationsThunk.rejected, (state, action) => {
         state.loading = false;
