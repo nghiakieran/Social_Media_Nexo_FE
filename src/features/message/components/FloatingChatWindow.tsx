@@ -6,6 +6,7 @@ import { OnlineIndicator } from "./OnlineIndicator";
 import { MessageComposer } from "./MessageComposer";
 import { ChatWindow } from "./ChatWindow";
 import { cn } from "@/lib/utils";
+import { playIncomingChatAlertIfNeeded } from "@/utils/inAppAlertSounds";
 import type { ConversationUI, MessageDTO } from "../types";
 import { useWebSocket } from "../hooks/useWebSocket";
 import { useAppSelector, useAppDispatch } from "@/store";
@@ -20,10 +21,12 @@ import {
 import {
   EMessageType,
   EReactionType,
-  ReactionUpdateDTO,
+  ECallType,
   TypingNotificationDTO,
+  ReactionWebSocketPayload,
   ReactionUpdateLegacyDTO,
 } from "../types";
+import { useCallContext } from "../contexts/CallContext";
 
 interface FloatingChatWindowProps {
   chat: ConversationUI;
@@ -51,6 +54,7 @@ export const FloatingChatWindow: React.FC<FloatingChatWindowProps> = ({
   const dispatch = useAppDispatch();
   const { user } = useAppSelector((state) => state.auth);
   const { typingUsers } = useAppSelector((state) => state.message);
+  const { startCall } = useCallContext();
 
   const [isNarrowViewport, setIsNarrowViewport] = useState(false);
   useEffect(() => {
@@ -72,6 +76,9 @@ export const FloatingChatWindow: React.FC<FloatingChatWindowProps> = ({
         } else {
           dispatch(addMessage(message));
         }
+        const sid = message.sender?.id;
+        if (sid != null)
+          playIncomingChatAlertIfNeeded(message.id, sid, user?.id);
       }
     },
     onTyping: (typing: TypingNotificationDTO) => {
@@ -79,7 +86,7 @@ export const FloatingChatWindow: React.FC<FloatingChatWindowProps> = ({
         dispatch(handleTypingNotification(typing));
       }
     },
-    onReactionUpdate: (update: ReactionUpdateDTO) => {
+    onReactionUpdate: (update: ReactionWebSocketPayload) => {
       if ("reactions" in update && Array.isArray(update.reactions)) {
         dispatch(
           updateMessageReactionsFromAggregated({
@@ -143,6 +150,21 @@ export const FloatingChatWindow: React.FC<FloatingChatWindowProps> = ({
     const typingInChat = typingUsers[chat.id] || [];
     return typingInChat.some((t) => t.userId !== user.id);
   }, [chat.id, typingUsers, user]);
+
+  const handleOutgoingCall = (kind: "voice" | "video") => {
+    if (!user?.id || chat.isGroup) return;
+    const other = chat.participants?.find((p) => p.id !== user.id);
+    if (!other) return;
+    void startCall(
+      chat.id,
+      kind === "video" ? ECallType.VIDEO_CALL : ECallType.AUDIO_CALL,
+      {
+        id: other.id,
+        name: other.fullName || other.username || chat.fullname || "",
+        avatarUrl: other.avatarUrl || chat.avatarUrl || "",
+      },
+    );
+  };
 
   const handleSendMessage = (
     content: string,
@@ -358,20 +380,30 @@ export const FloatingChatWindow: React.FC<FloatingChatWindowProps> = ({
         </div>
 
         <div className="flex shrink-0 items-center space-x-0.5">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7 hover:bg-primary/10 hover:text-primary"
-          >
-            <Phone className="h-3.5 w-3.5" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7 hover:bg-primary/10 hover:text-primary"
-          >
-            <Video className="h-3.5 w-3.5" />
-          </Button>
+          {!chat.isGroup && (
+            <>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 hover:bg-primary/10 hover:text-primary"
+                onClick={() => handleOutgoingCall("voice")}
+                title="Gọi thoại"
+                aria-label="Gọi thoại"
+              >
+                <Phone className="h-3.5 w-3.5" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 hover:bg-primary/10 hover:text-primary"
+                onClick={() => handleOutgoingCall("video")}
+                title="Gọi video"
+                aria-label="Gọi video"
+              >
+                <Video className="h-3.5 w-3.5" />
+              </Button>
+            </>
+          )}
           <Button
             variant="ghost"
             size="icon"

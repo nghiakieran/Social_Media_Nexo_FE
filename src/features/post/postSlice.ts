@@ -326,7 +326,8 @@ const postSlice = createSlice({
       })
       .addCase(getFeedThunk.fulfilled, (state, action) => {
         state.isLoading = false;
-        const { content, totalPages, pageNo } = action.payload;
+        const requestedPage = action.meta.arg.page ?? 0;
+        const { content, totalPages, last: payloadLast } = action.payload;
         const transformedPosts = content.map(transformPostData);
 
         // Remove duplicates from the response itself
@@ -334,18 +335,37 @@ const postSlice = createSlice({
           new Map(transformedPosts.map((post) => [post.id, post])).values(),
         );
 
-        if (pageNo === 0) {
+        let newPosts: typeof uniquePosts = [];
+        if (requestedPage === 0) {
           state.posts = uniquePosts;
         } else {
-          // Filter out duplicates when appending
           const existingIds = new Set(state.posts.map((p) => p.id));
-          const newPosts = uniquePosts.filter((p) => !existingIds.has(p.id));
+          newPosts = uniquePosts.filter((p) => !existingIds.has(p.id));
           state.posts.push(...newPosts);
         }
 
-        state.currentPage = pageNo;
+        state.currentPage = requestedPage;
         state.totalPages = totalPages;
-        state.hasMore = pageNo < totalPages - 1 && uniquePosts.length > 0;
+
+        const backendSaysMore =
+          typeof payloadLast === "boolean"
+            ? !payloadLast
+            : totalPages > 0
+              ? requestedPage < totalPages - 1
+              : uniquePosts.length > 0;
+
+        const duplicateAppendPage =
+          requestedPage > 0 &&
+          uniquePosts.length > 0 &&
+          newPosts.length === 0;
+        const emptyFollowUpPage =
+          requestedPage > 0 && uniquePosts.length === 0;
+
+        state.hasMore =
+          backendSaysMore &&
+          !duplicateAppendPage &&
+          !emptyFollowUpPage &&
+          (requestedPage === 0 ? uniquePosts.length > 0 : true);
       })
       .addCase(getFeedThunk.rejected, (state, action) => {
         state.isLoading = false;

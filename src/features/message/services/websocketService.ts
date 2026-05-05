@@ -10,7 +10,7 @@ import type {
   ReadAllDTO,
   WebSocketErrorResponse,
   PresenceStatusDTO,
-  ReactionUpdateDTO,
+  ReactionWebSocketPayload,
   ReactMessageRequest,
   EReactionType,
   CallNotificationDTO,
@@ -28,7 +28,7 @@ type MessageCallback = (message: MessageDTO) => void;
 type TypingCallback = (notification: TypingNotificationDTO) => void;
 type ReadReceiptCallback = (receipt: ReadReceiptDTO) => void;
 type ReadAllCallback = (receipt: ReadAllDTO) => void;
-type ReactionUpdateCallback = (update: ReactionUpdateDTO) => void;
+type ReactionUpdateCallback = (update: ReactionWebSocketPayload) => void;
 type ErrorCallback = (error: WebSocketErrorResponse) => void;
 type PresenceCallback = (presence: PresenceStatusDTO) => void;
 
@@ -176,7 +176,7 @@ export class WebSocketService {
       const reactionSub = this.client.subscribe(
         `${baseTopic}/reactions`,
         (message: IMessage) => {
-          const data: ReactionUpdateDTO = JSON.parse(message.body);
+          const data: ReactionWebSocketPayload = JSON.parse(message.body);
           onReactionUpdate(data);
         }
       );

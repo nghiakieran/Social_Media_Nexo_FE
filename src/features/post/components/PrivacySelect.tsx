@@ -62,7 +62,7 @@ export const PrivacySelect = ({
       >
         <SelectValue>
           {selectedOption && (
-            <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-muted/50 hover:bg-muted transition-colors">
+            <div className="flex items-center gap-2 rounded-full bg-primary/5 px-3 py-1 transition-colors hover:bg-primary/10">
               <selectedOption.icon
                 className={`w-4 h-4 ${getIconColor(selectedOption.value)}`}
               />
@@ -78,7 +78,7 @@ export const PrivacySelect = ({
           <SelectItem
             key={option.value}
             value={option.value}
-            className="p-3 rounded-xl [&>span>span]:hidden hover:cursor-pointer focus:bg-accent/85"
+            className="rounded-xl p-3 hover:cursor-pointer hover:bg-primary/10 focus:bg-primary/10 data-[highlighted]:bg-primary/10 [&>span>span]:hidden"
           >
             <div className="flex items-center gap-3 w-full">
               <div

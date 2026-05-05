@@ -423,6 +423,8 @@ export const EditPostDialog = ({
                     isSubmitting ||
                     !content.trim() ||
                     (content === initialContent &&
+                      visibility ===
+                        (initialVisibility.toLowerCase() as "public" | "private") &&
                       media.length === initialMediaUrl.length &&
                       taggedFriendIds.length === 0)
                   }

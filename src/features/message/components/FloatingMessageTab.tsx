@@ -12,10 +12,15 @@ import {
   Settings,
   Users,
   Search,
+  Phone,
+  Video,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { openFloatingConversation, fetchConversations } from "../messageSlice";
 import { Input } from "@/components/ui/input";
+import { useCallContext } from "../contexts/CallContext";
+import { useToast } from "@/hooks/use-toast";
+import { ECallType, type ConversationUI } from "../types";
 
 interface FloatingMessageTabProps {
   className?: string;
@@ -30,7 +35,8 @@ export const FloatingMessageTab: React.FC<FloatingMessageTabProps> = ({
   const [searchQuery, setSearchQuery] = useState("");
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
-
+  const { toast } = useToast();
+  const { startCall } = useCallContext();
   useEffect(() => {
     setIsOpen(defaultOpen);
   }, [defaultOpen]);
@@ -42,6 +48,7 @@ export const FloatingMessageTab: React.FC<FloatingMessageTabProps> = ({
   }, [isOpen, dispatch]);
 
   const { conversations } = useAppSelector((state) => state.message);
+  const { user } = useAppSelector((state) => state.auth);
   const totalUnread = conversations.reduce(
     (sum, conv) => sum + conv.unreadCount,
     0
@@ -62,6 +69,43 @@ export const FloatingMessageTab: React.FC<FloatingMessageTabProps> = ({
   const handleNewMessage = () => {
     setIsOpen(false);
     navigate("/messages");
+  };
+
+  const resolveFirstDirectConversation = (): ConversationUI | null => {
+    const pool = searchQuery.trim() ? filteredChats : conversations;
+    const direct = pool.find((c) => !c.isGroup);
+    return direct ?? null;
+  };
+
+  const handleCallFromList = (kind: "voice" | "video") => {
+    if (!user?.id) return;
+    const conv = resolveFirstDirectConversation();
+    if (!conv) {
+      toast({
+        variant: "destructive",
+        title: "Chưa có cuộc chat cá nhân",
+        description: "Chọn một tin nhắn riêng trong danh sách hoặc vào Tin nhắn.",
+      });
+      return;
+    }
+    const other = conv.participants?.find((p) => p.id !== user.id);
+    if (!other) {
+      toast({
+        variant: "destructive",
+        title: "Không thể gọi",
+        description: "Không tìm thấy người nhận trong cuộc trò chuyện.",
+      });
+      return;
+    }
+    void startCall(
+      conv.id,
+      kind === "video" ? ECallType.VIDEO_CALL : ECallType.AUDIO_CALL,
+      {
+        id: other.id,
+        name: other.fullName || other.username || conv.fullname || "",
+        avatarUrl: other.avatarUrl || conv.avatarUrl || "",
+      },
+    );
   };
 
   if (!isOpen) {
@@ -119,6 +163,26 @@ export const FloatingMessageTab: React.FC<FloatingMessageTabProps> = ({
         </div>
 
         <div className="flex items-center space-x-0.5">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 hover:bg-primary/10 hover:text-primary"
+            onClick={() => handleCallFromList("voice")}
+            title="Gọi thoại"
+            aria-label="Gọi thoại (cuộc chat cá nhân đầu trong danh sách)"
+          >
+            <Phone className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 hover:bg-primary/10 hover:text-primary"
+            onClick={() => handleCallFromList("video")}
+            title="Gọi video"
+            aria-label="Gọi video (cuộc chat cá nhân đầu trong danh sách)"
+          >
+            <Video className="h-4 w-4" />
+          </Button>
           <Button
             variant="ghost"
             size="icon"

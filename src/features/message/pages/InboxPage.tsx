@@ -19,6 +19,7 @@ import { CreateGroupDialog } from "../components/CreateGroupDialog";
 import { QuickActionsBar } from "../components/QuickActionsBar";
 import { useCallContext } from "../contexts/CallContext";
 import { Button } from "@/components/ui/button";
+import { playIncomingChatAlertIfNeeded } from "@/utils/inAppAlertSounds";
 import {
   setConversations,
   upsertConversation,
@@ -48,7 +49,8 @@ import {
   PresenceStatusDTO,
   ReadAllDTO,
   TypingNotificationDTO,
-  ReactionUpdateDTO,
+  ReactionWebSocketPayload,
+  ReactionUpdateLegacyDTO,
 } from "../types";
 
 import { MessageSquarePlus } from "lucide-react";
@@ -113,6 +115,9 @@ export const InboxPage: React.FC = () => {
       } else {
         dispatch(addMessage(message));
       }
+      const sid = message.sender?.id;
+      if (sid != null)
+        playIncomingChatAlertIfNeeded(message.id, sid, user?.id);
     },
     onTyping: (typing: TypingNotificationDTO) => {
       dispatch(handleTypingNotification(typing));
@@ -120,7 +125,7 @@ export const InboxPage: React.FC = () => {
     onReadAll: (readAllEvent: ReadAllDTO) => {
       dispatch(handleReadAll({ ...readAllEvent, currentUserId: user.id }));
     },
-    onReactionUpdate: (update: ReactionUpdateDTO) => {
+    onReactionUpdate: (update: ReactionWebSocketPayload) => {
       if ("reactions" in update && Array.isArray(update.reactions)) {
         const conversationId = Object.keys(messages).find((convId) =>
           messages[Number(convId)]?.some((msg) => msg.id === update.messageId)
@@ -136,21 +141,21 @@ export const InboxPage: React.FC = () => {
           );
         }
       } else if ("action" in update && "reaction" in update) {
-        // Legacy format: single reaction with action
-        if (update.action === "ADD") {
+        const legacy = update as ReactionUpdateLegacyDTO;
+        if (legacy.action === "ADD") {
           dispatch(
             addReaction({
-              messageId: update.messageId,
-              conversationId: update.conversationId,
-              reaction: update.reaction,
+              messageId: legacy.messageId,
+              conversationId: legacy.conversationId,
+              reaction: legacy.reaction,
             })
           );
-        } else if (update.action === "REMOVE") {
+        } else if (legacy.action === "REMOVE") {
           dispatch(
             removeReaction({
-              messageId: update.messageId,
-              conversationId: update.conversationId,
-              userId: update.reaction.userId,
+              messageId: legacy.messageId,
+              conversationId: legacy.conversationId,
+              userId: legacy.reaction.userId,
             })
           );
         }

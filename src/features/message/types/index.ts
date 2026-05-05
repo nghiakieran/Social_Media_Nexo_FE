@@ -148,6 +148,11 @@ export interface ReactionUpdateLegacyDTO {
   action: "ADD" | "REMOVE";
 }
 
+/** Payload STOMP topic reactions  */
+export type ReactionWebSocketPayload =
+  | ReactionUpdateDTO
+  | ReactionUpdateLegacyDTO;
+
 export interface TypingNotificationDTO {
   conversationId: number;
   userId?: number;

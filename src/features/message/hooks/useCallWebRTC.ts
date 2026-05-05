@@ -259,6 +259,46 @@ export function useCallWebRTC({ onCallEnded }: UseCallWebRTCOptions = {}) {
     }, 1500);
   }, [ws, cleanup]);
 
+  const dismissCall = useCallback(() => {
+    const s = callStateRef.current;
+
+    if (s === "idle") return;
+
+    if (s === "connected") {
+      hangUp();
+      return;
+    }
+
+    if (s === "ended") {
+      cleanup();
+      setCallState("idle");
+      callStateRef.current = "idle";
+      setActiveCall(null);
+      activeCallRef.current = null;
+      return;
+    }
+
+    if (incomingCallRef.current) {
+      const inc = incomingCallRef.current;
+      ws.respondToCall({ callId: inc.callId, accepted: false });
+      setIncomingCall(null);
+      incomingCallRef.current = null;
+      setCallState("idle");
+      callStateRef.current = "idle";
+      return;
+    }
+
+    const callId = activeCallRef.current?.callId;
+    if (callId) {
+      ws.endCall({ callId });
+    }
+    cleanup();
+    setActiveCall(null);
+    activeCallRef.current = null;
+    setCallState("idle");
+    callStateRef.current = "idle";
+  }, [hangUp, ws, cleanup]);
+
   // ─── Toggle mute / video ─────────────────────────────────────────────────────
 
   const toggleMute = useCallback(() => {
@@ -423,6 +463,7 @@ export function useCallWebRTC({ onCallEnded }: UseCallWebRTCOptions = {}) {
     answerCall,
     rejectCall,
     hangUp,
+    dismissCall,
     toggleMute,
     toggleVideo,
     resubscribeCallEvents: () => {

@@ -12,7 +12,7 @@ import type {
   WebSocketErrorResponse,
   SendMessageRequest,
   PresenceStatusDTO,
-  ReactionUpdateDTO,
+  ReactionWebSocketPayload,
 } from "../types";
 
 interface UseWebSocketOptions {
@@ -20,7 +20,7 @@ interface UseWebSocketOptions {
   onTyping?: (notification: TypingNotificationDTO) => void;
   onReadReceipt?: (receipt: ReadReceiptDTO) => void;
   onReadAll?: (receipt: ReadAllDTO) => void;
-  onReactionUpdate?: (update: ReactionUpdateDTO) => void;
+  onReactionUpdate?: (update: ReactionWebSocketPayload) => void;
   onError?: (error: WebSocketErrorResponse) => void;
   onPresence?: (presence: PresenceStatusDTO) => void;
   autoConnect?: boolean;

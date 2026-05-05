@@ -40,7 +40,7 @@ interface ProfileState {
   followRequests: FollowRequestUser[];
   closeFriends: CloseFriendUser[];
   blockedUsers: BlockedUser[];
-  activeTab: "posts" | "reels" | "saved" | "hidden";
+  activeTab: "posts" | "reels" | "saved";
   isLoading: boolean;
   isFollowersLoading: boolean;
   isFollowingLoading: boolean;
@@ -481,7 +481,7 @@ const profileSlice = createSlice({
     },
     setActiveTab: (
       state,
-      action: PayloadAction<"posts" | "reels" | "saved" | "hidden">
+      action: PayloadAction<"posts" | "reels" | "saved">
     ) => {
       state.activeTab = action.payload;
     },

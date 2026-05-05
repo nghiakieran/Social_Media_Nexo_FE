@@ -6,7 +6,6 @@ import {
   MoreHorizontal,
   Smile,
   ArrowLeft,
-  Bookmark,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -33,7 +32,6 @@ import { cn } from "@/lib/utils";
 import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
-import { useBookmark } from "@/features/saved/hooks/useBookmark";
 import { getAvatarUrl, getAvatarInitials } from "@/utils/avatar";
 import { parseMentions } from "@/utils/mentions";
 import { navigateToProfile } from "@/utils/navigation";
@@ -74,8 +72,6 @@ const ReelCommentDialog = () => {
     currentPage: commentsCurrentPage,
     isCreating,
   } = useAppSelector((s) => s.interaction.comments);
-
-  const { isBookmarked, toggleBookmark } = useBookmark();
 
   const dialogRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -461,7 +457,9 @@ const ReelCommentDialog = () => {
       } else {
         setLatestLikeName(null);
       }
-    } catch (_) {}
+    } catch (error) {
+      console.error("Failed to refresh reel like preview:", error);
+    }
   };
 
   const getTotalRepliesCount = (commentId: string): number => {
@@ -1357,8 +1355,7 @@ const ReelCommentDialog = () => {
                 targetType="reel"
                 isLiked={isReelLikedLocal}
                 likesCount={reelLikesCount}
-                size="default"
-                variant="ghost"
+                size="md"
                 showCount={false}
                 onLikeChange={handleReelLikeChange}
                 className="h-auto p-0"
@@ -1373,23 +1370,6 @@ const ReelCommentDialog = () => {
                 <Send className="w-6 h-6" />
               </button>
               <div className="flex-1" />
-              <button
-                className="text-gray-500 hover:text-gray-700 transition-colors"
-                type="button"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  toggleBookmark(currentReel.id);
-                }}
-              >
-                <Bookmark
-                  className={cn(
-                    "w-6 h-6",
-                    isBookmarked(currentReel.id) &&
-                      "fill-current text-gray-800 dark:text-gray-100"
-                  )}
-                />
-              </button>
             </div>
 
             {reelLikesCount > 0 && (

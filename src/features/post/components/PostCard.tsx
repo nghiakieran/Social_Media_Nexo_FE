@@ -963,17 +963,6 @@ export const PostCard = ({
         onClose={handleCloseActionMenu}
         position={actionMenuPosition}
         items={[
-          // Show "Hide/Show Post" only for own posts in profile page
-          ...(isOwnPost && isInProfilePage
-            ? [
-                {
-                  label: post.isActive
-                    ? "🙈 Ẩn bài viết khỏi trang cá nhân"
-                    : "👁️ Hiển thị bài viết",
-                  action: () => handlePostAction("toggleHidePost"),
-                },
-              ]
-            : []),
           {
             label: "Báo cáo",
             action: () => handlePostAction("report"),

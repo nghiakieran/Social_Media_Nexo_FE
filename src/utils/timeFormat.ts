@@ -87,3 +87,61 @@ export const formatArchiveDate = (dateString: string) => {
     showYear: year !== currentYear,
   };
 };
+
+export interface DateGroupedItems<T> {
+  dateKey: string;
+  items: T[];
+}
+
+export const groupItemsByCreatedDate = <T extends { createdAt: string }>(
+  items: T[]
+): DateGroupedItems<T>[] => {
+  const groups: DateGroupedItems<T>[] = [];
+  const byDate = new Map<string, T[]>();
+
+  items.forEach((item) => {
+    const date = new Date(item.createdAt);
+    if (Number.isNaN(date.getTime())) return;
+    const dateKey = date.toISOString().slice(0, 10);
+    if (!byDate.has(dateKey)) {
+      byDate.set(dateKey, []);
+    }
+    byDate.get(dateKey)!.push(item);
+  });
+
+  byDate.forEach((dateItems, dateKey) => {
+    groups.push({ dateKey, items: dateItems });
+  });
+
+  return groups.sort((a, b) => (a.dateKey < b.dateKey ? 1 : -1));
+};
+
+export const formatDateSectionLabel = (dateKey: string): string => {
+  const date = new Date(`${dateKey}T00:00:00`);
+  const today = new Date();
+  const startOfToday = new Date(
+    today.getFullYear(),
+    today.getMonth(),
+    today.getDate()
+  );
+  const startOfDate = new Date(
+    date.getFullYear(),
+    date.getMonth(),
+    date.getDate()
+  );
+  const diffDays = Math.floor(
+    (startOfToday.getTime() - startOfDate.getTime()) / (1000 * 60 * 60 * 24)
+  );
+
+  if (diffDays === 0) return "Hôm nay";
+  if (diffDays === 1) return "Hôm qua";
+  if (diffDays > 1 && diffDays < 7) {
+    return date.toLocaleDateString("vi-VN", { weekday: "long" });
+  }
+
+  return date.toLocaleDateString("vi-VN", {
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  });
+};

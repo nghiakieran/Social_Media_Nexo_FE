@@ -9,9 +9,12 @@ import {
 } from "@/features/profile/profileSlice";
 import { useToast } from "@/hooks/use-toast";
 import { useAppDispatch, useAppSelector } from "@/store";
+import {
+  formatDateSectionLabel,
+  groupItemsByCreatedDate,
+} from "@/utils/timeFormat";
 import { Check, UserPlus } from "lucide-react";
 import React, { useEffect, useMemo, useState } from "react";
-import { mockNotifications } from "../__mocks__/notifications";
 import { NotificationItem } from "../components/NotificationItem";
 import TabSwitcher from "../components/TabSwitcher";
 import {
@@ -21,7 +24,6 @@ import {
   markAsRead,
   readAllNotificationsThunk,
   setActiveTab,
-  setNotifications,
 } from "../notificationSlice";
 
 const NotificationPage: React.FC = () => {
@@ -65,6 +67,10 @@ const NotificationPage: React.FC = () => {
         return safeNotifications;
     }
   }, [notifications, activeTab]);
+
+  const groupedNotifications = useMemo(() => {
+    return groupItemsByCreatedDate(filteredNotifications);
+  }, [filteredNotifications]);
 
   const handleMarkAsRead = (id: string) => {
     dispatch(markAsRead(Number(id)));
@@ -173,21 +179,32 @@ const NotificationPage: React.FC = () => {
         className="h-[calc(100vh-140px)]"
         onScroll={handleScroll} // gắn scroll event
       >
-        <div className="divide-y divide-border">
-          {filteredNotifications.length > 0 ? (
-            filteredNotifications.map((notification, index) => (
-              <div
-                key={notification.id}
-                className="animate-fade-in"
-                style={{
-                  animationDelay: `${index * 0.05}s`,
-                  animationFillMode: "both",
-                }}
-              >
-                <NotificationItem
-                  notification={notification}
-                  onMarkAsRead={handleMarkAsRead}
-                />
+        <div className="px-2 pb-4 pt-2">
+          {groupedNotifications.length > 0 ? (
+            groupedNotifications.map((group, groupIndex) => (
+              <div key={group.dateKey} className="mb-5 last:mb-0">
+                <div className="px-2 pb-2 pt-1">
+                  <h3 className="text-sm font-semibold text-foreground/90">
+                    {formatDateSectionLabel(group.dateKey)}
+                  </h3>
+                </div>
+                <div className="space-y-2">
+                  {group.items.map((notification, itemIndex) => (
+                    <div
+                      key={notification.id}
+                      className="animate-fade-in"
+                      style={{
+                        animationDelay: `${(groupIndex + itemIndex) * 0.03}s`,
+                        animationFillMode: "both",
+                      }}
+                    >
+                      <NotificationItem
+                        notification={notification}
+                        onMarkAsRead={handleMarkAsRead}
+                      />
+                    </div>
+                  ))}
+                </div>
               </div>
             ))
           ) : (

@@ -11,10 +11,12 @@ import {
   fetchMessages,
 } from "@/features/message/messageSlice";
 import { Suggestions } from "@/components/common/Suggestions";
+import { getUnreadNotificationCountThunk } from "@/features/notification/notificationSlice";
 
 export const MainLayout = () => {
   const location = useLocation();
   const dispatch = useAppDispatch();
+  const user = useAppSelector((state) => state.auth.user);
   const isHome = location.pathname === "/";
   const isMessagesPage = location.pathname.includes("/messages");
   const {
@@ -25,6 +27,11 @@ export const MainLayout = () => {
   } = useAppSelector((state) => state.message);
 
   const [showMessageTab, setShowMessageTab] = React.useState(false);
+
+  React.useEffect(() => {
+    if (!user?.id) return;
+    dispatch(getUnreadNotificationCountThunk());
+  }, [dispatch, user?.id]);
 
   // Load messages when floating chat opens
   React.useEffect(() => {

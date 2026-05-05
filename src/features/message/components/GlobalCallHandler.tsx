@@ -24,6 +24,7 @@ export const GlobalCallHandler: React.FC<{ children?: React.ReactNode }> = ({ ch
     answerCall,
     rejectCall,
     hangUp,
+    dismissCall,
     toggleMute,
     toggleVideo,
   } = useCallWebRTC();
@@ -38,7 +39,7 @@ export const GlobalCallHandler: React.FC<{ children?: React.ReactNode }> = ({ ch
       <CallDialog
         open={callDialogOpen}
         onOpenChange={(open) => {
-          if (!open && callState === "connected") hangUp();
+          if (!open) dismissCall();
           setCallDialogOpen(open);
         }}
         callState={callState}

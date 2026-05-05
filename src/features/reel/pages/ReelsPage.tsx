@@ -168,6 +168,31 @@ const ReelsPage = () => {
 
   const currentReelData = reels[currentReelIndex];
 
+  if (isLoading && reels.length === 0) {
+    return (
+      <div
+        className="flex w-full items-center justify-center"
+        style={{ height: isMobile ? "calc(100dvh - 65px)" : "100dvh" }}
+      >
+        <div className="flex flex-col items-center gap-3">
+          <div className="h-9 w-9 animate-spin rounded-full border-2 border-primary/30 border-t-primary" />
+          <p className="text-sm text-muted-foreground">Đang tải reels...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isLoading && reels.length === 0) {
+    return (
+      <div
+        className="flex w-full items-center justify-center"
+        style={{ height: isMobile ? "calc(100dvh - 65px)" : "100dvh" }}
+      >
+        <p className="text-sm text-muted-foreground">Chưa có reel nào để hiển thị.</p>
+      </div>
+    );
+  }
+
   // Convert Reel to Post format for ShareDialog
   const reelAsPost = currentReelData
     ? {
@@ -214,7 +239,7 @@ const ReelsPage = () => {
           >
             <ReelViewer
               reel={reel}
-              isActive={index === currentReelIndex}
+              isActive={index === currentReelIndex && !isCommentsDrawerOpen}
               onShare={handleShare}
               isDetail={false}
               showEditButton={false}

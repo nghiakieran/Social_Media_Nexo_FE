@@ -5,7 +5,13 @@ import {
   NotificationDTO,
   ReadNotificationGroupRequest,
 } from "./types";
-import { getNotifications, readAllNotifications, readNotification, readNotificationGroup } from './api/notificationApi';
+import {
+  getNotifications,
+  getUnreadNotificationCount,
+  readAllNotifications,
+  readNotification,
+  readNotificationGroup,
+} from './api/notificationApi';
 
 interface NotificationState {
   notifications: NotificationDTO[];
@@ -76,6 +82,19 @@ export const readNotificationGroupThunk = createAsyncThunk<
   }
 });
 
+export const getUnreadNotificationCountThunk = createAsyncThunk<
+  number,
+  void,
+  { rejectValue: string }
+>('notification/getUnreadNotificationCount', async (_, { rejectWithValue }) => {
+  try {
+    const response = await getUnreadNotificationCount();
+    return response;
+  } catch (error: unknown) {
+    return rejectWithValue(error instanceof Error ? error.message : 'Có lỗi xảy ra khi tải số thông báo chưa đọc');
+  }
+});
+
 // Slice
 const notificationSlice = createSlice({
   name: 'notification',
@@ -120,7 +139,6 @@ const notificationSlice = createSlice({
       .addCase(getNotificationsThunk.fulfilled, (state, action) => {
         state.loading = false;
         state.notifications = action.payload.content;
-        state.unreadCount = action.payload.content.filter((n) => !n.isRead).length;
       })
       .addCase(getNotificationsThunk.rejected, (state, action) => {
         state.loading = false;
@@ -149,6 +167,10 @@ const notificationSlice = createSlice({
           .filter((n) => n.notificationType === notificationType && n.targetUrl === targetUrl)
           .forEach((n) => (n.isRead = true));
         state.unreadCount = state.notifications.filter((n) => !n.isRead).length;
+      })
+
+      .addCase(getUnreadNotificationCountThunk.fulfilled, (state, action) => {
+        state.unreadCount = action.payload;
       });
   },
 });

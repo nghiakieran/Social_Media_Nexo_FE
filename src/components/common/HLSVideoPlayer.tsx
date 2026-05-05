@@ -236,6 +236,19 @@ export const HLSVideoPlayer = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [src, autoPlay]); // videoRef intentionally excluded to prevent infinite loop
 
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    if (autoPlay) {
+      video.play().catch(() => {
+        // Ignore autoplay restrictions
+      });
+    } else if (!video.paused) {
+      video.pause();
+    }
+  }, [autoPlay, videoRef]);
+
   const handleLoadedData = () => {
     setIsLoading(false);
     onLoadedData?.();

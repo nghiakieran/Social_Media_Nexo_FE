@@ -53,11 +53,13 @@ export const useBookmark = () => {
 
         if (currentlyBookmarked) {
           toast({
+            variant: "success",
             title: "Thành công",
             description: "Đã xóa bài viết khỏi danh sách lưu",
           });
         } else {
           toast({
+            variant: "success",
             title: "Thành công",
             description: "Đã lưu bài viết",
           });

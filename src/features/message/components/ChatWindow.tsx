@@ -574,6 +574,21 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                 !prevMessageDate ||
                 messageDate.toDateString() !== prevMessageDate.toDateString();
               const isHighlighted = highlightedMessageId === message.id;
+              const repliedMessage =
+                message.replyToMessage ??
+                (message.replyToMessageId
+                  ? messages.find((m) => m.id === message.replyToMessageId)
+                  : undefined);
+
+              const reactionsLength = message.reactions?.length ?? 0;
+              const apiCount = reactionsCount[message.id];
+              const displayCount =
+                message.reactions !== undefined && message.reactions !== null
+                  ? reactionsLength
+                  : apiCount !== undefined
+                    ? apiCount
+                    : 0;
+              const hasReactions = displayCount > 0;
 
               const renderTime = (className?: string) => (
                 <span
@@ -646,9 +661,9 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                         isOwn ? "items-end" : "items-start"
                       )}
                     >
-                      {message.replyToMessage && (
+                      {repliedMessage && (
                         <div
-                          onClick={() => handleScrollToMessage(message.replyToMessage.id)}
+                          onClick={() => handleScrollToMessage(repliedMessage.id)}
                           className={cn(
                             "mb-1 px-3 py-2 rounded-lg border-l-[3px] text-xs max-w-full w-fit cursor-pointer hover:opacity-80 transition-opacity",
                             isOwn
@@ -658,25 +673,30 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                         >
                           <div className="font-semibold text-[11px] mb-0.5 opacity-90 flex items-center gap-1">
                             <Reply className="w-3 h-3" />
-                            Trả lời {message.replyToMessage.sender.fullName}
+                            Trả lời {repliedMessage.sender.fullName}
                           </div>
                           <div className="break-words line-clamp-2 overflow-hidden italic opacity-80">
-                            {message.replyToMessage.messageType === "IMAGE" ? (
+                            {repliedMessage.messageType === "IMAGE" ? (
                               <span className="flex items-center gap-1">
                                 📷 Hình ảnh
                               </span>
-                            ) : message.replyToMessage.messageType === "STORY" ? (
+                            ) : repliedMessage.messageType === "STORY" ? (
                               <span className="flex items-center gap-1">
                                 🎥 Story
                               </span>
                             ) : (
-                              message.replyToMessage.content
+                              repliedMessage.content
                             )}
                           </div>
                         </div>
                       )}
 
-                      <div className="relative group/msg flex flex-col gap-1.5">
+                      <div
+                        className={cn(
+                          "relative group/msg flex flex-col gap-1.5",
+                          hasReactions && "pb-2.5"
+                        )}
+                      >
                         {message.messageType === "STORY" &&
                           message.storyMediaUrl && (
                             <div
@@ -876,6 +896,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                               align={isOwn ? "end" : "start"}
                             >
                               <DropdownMenuItem
+                                className="hover:bg-primary/10 focus:bg-primary/10 data-[highlighted]:bg-primary/10"
                                 onClick={() => {
                                   if (onReplyToMessage) {
                                     onReplyToMessage(message);
@@ -886,6 +907,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                                 Trả lời
                               </DropdownMenuItem>
                               <DropdownMenuItem
+                                className="hover:bg-primary/10 focus:bg-primary/10 data-[highlighted]:bg-primary/10"
                                 onClick={() =>
                                   handleCopyMessage(message.content)
                                 }
@@ -897,66 +919,53 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                           </DropdownMenu>
                         </div>
 
-                        {(() => {
-                          const reactionsLength =
-                            message.reactions?.length ?? 0;
-                          const apiCount = reactionsCount[message.id];
-                          const displayCount =
-                            message.reactions !== undefined &&
-                            message.reactions !== null
-                              ? reactionsLength
-                              : apiCount !== undefined
-                              ? apiCount
-                              : 0;
-                          const hasReactions = displayCount > 0;
-
-                          return hasReactions ? (
-                            <button
-                              className={cn(
-                                "absolute -bottom-2 translate-y-full flex flex-row items-center gap-0.5 border rounded-full px-2 py-1 bg-background shadow-sm hover:scale-105 transition-transform cursor-pointer z-20",
-                                isOwn ? "right-0" : "left-0"
-                              )}
-                              onClick={() =>
-                                handleOpenReactionsDialog(String(message.id))
+                        {hasReactions ? (
+                          <button
+                            type="button"
+                            className={cn(
+                              "absolute bottom-0 z-20 flex translate-y-1/2 flex-row items-center gap-0.5 rounded-full border border-border/60 bg-background/95 px-1.5 py-0.5 text-xs shadow-md backdrop-blur-sm transition-transform hover:scale-[1.02]",
+                              isOwn ? "right-1.5" : "left-1.5"
+                            )}
+                            onClick={() =>
+                              handleOpenReactionsDialog(String(message.id))
+                            }
+                            onMouseEnter={() => {
+                              if (reactionsCount[message.id] === undefined) {
+                                fetchReactionsCount(message.id);
                               }
-                              onMouseEnter={() => {
-                                if (reactionsCount[message.id] === undefined) {
-                                  fetchReactionsCount(message.id);
-                                }
-                              }}
-                            >
-                              {Object.keys(
-                                message.reactions.reduce((acc, r) => {
-                                  acc[r.reactionType] = true;
-                                  return acc;
-                                }, {} as { [reactionType: string]: boolean })
-                              ).map((reactionType) => {
-                                const emoji =
-                                  reactionType === "LIKE"
-                                    ? "👍"
-                                    : reactionType === "LOVE"
+                            }}
+                          >
+                            {Object.keys(
+                              (message.reactions ?? []).reduce((acc, r) => {
+                                acc[r.reactionType] = true;
+                                return acc;
+                              }, {} as { [reactionType: string]: boolean })
+                            ).map((reactionType) => {
+                              const emoji =
+                                reactionType === "LIKE"
+                                  ? "👍"
+                                  : reactionType === "LOVE"
                                     ? "❤️"
                                     : reactionType === "HAHA"
-                                    ? "😂"
-                                    : reactionType === "WOW"
-                                    ? "😮"
-                                    : reactionType === "SAD"
-                                    ? "😢"
-                                    : reactionType === "ANGRY"
-                                    ? "😡"
-                                    : "🔥";
-                                return (
-                                  <span key={reactionType} className="text-sm">
-                                    {emoji}
-                                  </span>
-                                );
-                              })}
-                              <span className="text-xs text-muted-foreground ml-1">
-                                {displayCount}
-                              </span>
-                            </button>
-                          ) : null;
-                        })()}
+                                      ? "😂"
+                                      : reactionType === "WOW"
+                                        ? "😮"
+                                        : reactionType === "SAD"
+                                          ? "😢"
+                                          : reactionType === "ANGRY"
+                                            ? "😡"
+                                            : "🔥";
+                              return (
+                                <span key={reactionType} className="text-sm">
+                                  {emoji}
+                                </span>
+                              );
+                            })}
+                            <span className="text-muted-foreground ml-0.5 text-[11px] tabular-nums">
+                              {displayCount}
+                            </span>
+                          </button>
+                        ) : null}
                       </div>
                     </div>
                   </div>

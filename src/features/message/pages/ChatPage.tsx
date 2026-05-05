@@ -8,6 +8,7 @@ import { MessageComposer } from "../components/MessageComposer";
 import { InstagramChatHeader } from "../components/InstagramChatHeader";
 import { useCallContext } from "../contexts/CallContext";
 import { Button } from "@/components/ui/button";
+import { playIncomingChatAlertIfNeeded } from "@/utils/inAppAlertSounds";
 import {
   setActiveConversation,
   addMessage,
@@ -29,8 +30,9 @@ import {
   EReactionType,
   ReadAllDTO,
   TypingNotificationDTO,
-  ReactionUpdateDTO,
   ECallType,
+  ReactionWebSocketPayload,
+  ReactionUpdateLegacyDTO,
 } from "../types";
 
 export const ChatPage: React.FC = () => {
@@ -78,6 +80,9 @@ export const ChatPage: React.FC = () => {
       } else {
         dispatch(addMessage(message));
       }
+      const sid = message.sender?.id;
+      if (sid != null)
+        playIncomingChatAlertIfNeeded(message.id, sid, user?.id);
     },
     onTyping: (typing: TypingNotificationDTO) => {
       dispatch(handleTypingNotification(typing));
@@ -85,7 +90,7 @@ export const ChatPage: React.FC = () => {
     onReadAll: (readAllEvent: ReadAllDTO) => {
       dispatch(handleReadAll({ ...readAllEvent, currentUserId: user.id }));
     },
-    onReactionUpdate: (update: ReactionUpdateDTO) => {
+    onReactionUpdate: (update: ReactionWebSocketPayload) => {
       // Check if it's the new aggregated format (has reactions array)
       if ("reactions" in update && Array.isArray(update.reactions)) {
         // New format: aggregated reactions from backend
@@ -113,20 +118,21 @@ export const ChatPage: React.FC = () => {
           );
         }
       } else if ("action" in update && "reaction" in update) {
-        if (update.action === "ADD") {
+        const legacy = update as ReactionUpdateLegacyDTO;
+        if (legacy.action === "ADD") {
           dispatch(
             addReaction({
-              messageId: update.messageId,
-              conversationId: update.conversationId,
-              reaction: update.reaction,
+              messageId: legacy.messageId,
+              conversationId: legacy.conversationId,
+              reaction: legacy.reaction,
             })
           );
-        } else if (update.action === "REMOVE") {
+        } else if (legacy.action === "REMOVE") {
           dispatch(
             removeReaction({
-              messageId: update.messageId,
-              conversationId: update.conversationId,
-              userId: update.reaction.userId,
+              messageId: legacy.messageId,
+              conversationId: legacy.conversationId,
+              userId: legacy.reaction.userId,
             })
           );
         }
