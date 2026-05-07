@@ -357,9 +357,23 @@ export const InboxPage: React.FC = () => {
   }, [dispatch]);
 
   useEffect(() => {
+    if (!ws.isConnected || conversations.length === 0) return;
+    conversations.forEach((conv) => {
+      ws.subscribeToMessageOnly(conv.id, (message: MessageDTO) => {
+        if (user?.id) {
+          dispatch(addMessageWithUnreadUpdate({ message, currentUserId: user.id }));
+        } else {
+          dispatch(addMessage(message));
+        }
+        const sid = message.sender?.id;
+        if (sid != null) playIncomingChatAlertIfNeeded(message.id, sid, user?.id);
+      });
+    });
+  }, [ws.isConnected, conversations.length]);
+
+  useEffect(() => {
     if (activeConversationId && ws) {
       ws.subscribeToConversation(Number(activeConversationId));
-
       ws.markConversationAsRead(Number(activeConversationId));
     }
   }, [activeConversationId, ws]);

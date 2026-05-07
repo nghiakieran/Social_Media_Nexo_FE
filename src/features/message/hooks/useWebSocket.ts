@@ -180,6 +180,15 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
     }
   }, []);
 
+  const subscribeToMessageOnly = useCallback(
+    (conversationId: number, onMessage: (msg: MessageDTO) => void) => {
+      if (wsRef.current?.isConnected()) {
+        wsRef.current.subscribeToMessageOnly(conversationId, onMessage);
+      }
+    },
+    []
+  );
+
   // Send reaction via WebSocket
   const sendReaction = useCallback(
     (messageId: number, reactionType: EReactionType) => {
@@ -225,6 +234,7 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
     disconnect,
     subscribeToConversation,
     unsubscribeFromConversation,
+    subscribeToMessageOnly,
     subscribeToPresence,
     unsubscribeFromPresence,
     subscribeToErrors,

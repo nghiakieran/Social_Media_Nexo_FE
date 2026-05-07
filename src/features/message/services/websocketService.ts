@@ -139,6 +139,12 @@ export class WebSocketService {
 
     const baseTopic = `/topic/conversation/${conversationId}`;
 
+    const existingMessageSub = this.subscriptions.get(`${baseTopic}:message`);
+    if (existingMessageSub) {
+      existingMessageSub.unsubscribe();
+      this.subscriptions.delete(`${baseTopic}:message`);
+    }
+
     const messageSub = this.client.subscribe(baseTopic, (message: IMessage) => {
       const data: MessageDTO = JSON.parse(message.body);
       onMessage(data);
@@ -185,6 +191,17 @@ export class WebSocketService {
   }
 
   
+  subscribeToMessageOnly(conversationId: number, onMessage: MessageCallback) {
+    if (!this.client?.connected) return;
+    const key = `/topic/conversation/${conversationId}:message`;
+    if (this.subscriptions.has(key)) return;
+    const sub = this.client.subscribe(`/topic/conversation/${conversationId}`, (frame: IMessage) => {
+      const data: MessageDTO = JSON.parse(frame.body);
+      onMessage(data);
+    });
+    this.subscriptions.set(key, sub);
+  }
+
   unsubscribeFromConversation(conversationId: number) {
     const baseTopic = `/topic/conversation/${conversationId}`;
 
