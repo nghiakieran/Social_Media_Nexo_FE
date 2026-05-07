@@ -364,7 +364,8 @@ export class WebSocketService {
     onIncomingCall: (notification: CallNotificationDTO) => void,
     onCallResponse: (response: CallResponseDTO) => void,
     onCallSignal: (signal: CallSignalDTO) => void,
-    onCallEnded: (ended: CallEndedDTO) => void
+    onCallEnded: (ended: CallEndedDTO) => void,
+    onCallInitiated?: (notification: CallNotificationDTO) => void
   ) {
     if (!this.client?.connected) return;
 
@@ -391,10 +392,16 @@ export class WebSocketService {
       (msg: IMessage) => onCallEnded(JSON.parse(msg.body))
     );
     this.subscriptions.set("call:ended", endedSub);
+
+    const initiatedSub = this.client.subscribe(
+      "/user/queue/call/initiated",
+      (msg: IMessage) => onCallInitiated?.(JSON.parse(msg.body))
+    );
+    this.subscriptions.set("call:initiated", initiatedSub);
   }
 
   unsubscribeFromCallEvents() {
-    ["call:incoming", "call:response", "call:signal", "call:ended"].forEach(
+    ["call:incoming", "call:response", "call:signal", "call:ended", "call:initiated"].forEach(
       (key) => {
         const sub = this.subscriptions.get(key);
         if (sub) {

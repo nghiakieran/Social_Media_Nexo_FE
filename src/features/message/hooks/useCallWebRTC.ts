@@ -322,6 +322,16 @@ export function useCallWebRTC({ onCallEnded }: UseCallWebRTCOptions = {}) {
 
   // ─── WebSocket event handlers (stable refs — never recreated) ────────────────
 
+  const handleCallInitiated = useCallback((notification: CallNotificationDTO) => {
+    console.log("[Call] initiated confirmed, callId=", notification.callId);
+    const call = activeCallRef.current;
+    if (call && call.callId === 0) {
+      const updated = { ...call, callId: notification.callId };
+      setActiveCall(updated);
+      activeCallRef.current = updated;
+    }
+  }, []); 
+
   const handleIncomingCall = useCallback((notification: CallNotificationDTO) => {
     console.log("[Call] incoming:", notification);
     if (callStateRef.current === "idle") {
@@ -435,7 +445,8 @@ export function useCallWebRTC({ onCallEnded }: UseCallWebRTCOptions = {}) {
         handleIncomingCall,
         handleCallResponse,
         handleCallSignal,
-        handleCallEnded
+        handleCallEnded,
+        handleCallInitiated
       );
       console.log("[Call] subscribed to call events");
     };
@@ -476,7 +487,8 @@ export function useCallWebRTC({ onCallEnded }: UseCallWebRTCOptions = {}) {
         handleIncomingCall,
         handleCallResponse,
         handleCallSignal,
-        handleCallEnded
+        handleCallEnded,
+        handleCallInitiated
       );
     },
   };
