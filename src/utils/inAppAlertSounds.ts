@@ -57,6 +57,26 @@ export function playMessageAlertSound(): void {
   playTone(523, 85, 0.13);
 }
 
+let ringtoneInterval: ReturnType<typeof setInterval> | null = null;
+
+function playRingPattern(): void {
+  playTone(880, 400, 0.2);
+  setTimeout(() => playTone(660, 400, 0.2), 450);
+}
+
+export function startRingtone(): void {
+  if (ringtoneInterval) return;
+  playRingPattern();
+  ringtoneInterval = setInterval(playRingPattern, 1800);
+}
+
+export function stopRingtone(): void {
+  if (ringtoneInterval) {
+    clearInterval(ringtoneInterval);
+    ringtoneInterval = null;
+  }
+}
+
 const recentChatSoundByMessageId = new Map<number, number>();
 const CHAT_SOUND_DEDUP_MS = 1200;
 

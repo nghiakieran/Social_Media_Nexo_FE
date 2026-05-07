@@ -5,6 +5,7 @@ export enum EMessageType {
   AUDIO = "AUDIO",
   FILE = "FILE",
   STORY = "STORY",
+  CALL = "CALL",
 }
 
 export enum EReactionType {

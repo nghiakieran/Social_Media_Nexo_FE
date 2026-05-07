@@ -15,6 +15,7 @@ import {
   addMessageWithUnreadUpdate,
   setMessages,
   handleReadAll,
+  handleReadReceipt,
   handleTypingNotification,
   clearOldTypingIndicators,
   updateMessagesPagination,
@@ -29,6 +30,7 @@ import {
   EMessageType,
   EReactionType,
   ReadAllDTO,
+  ReadReceiptDTO,
   TypingNotificationDTO,
   ECallType,
   ReactionWebSocketPayload,
@@ -86,6 +88,9 @@ export const ChatPage: React.FC = () => {
     },
     onTyping: (typing: TypingNotificationDTO) => {
       dispatch(handleTypingNotification(typing));
+    },
+    onReadReceipt: (receipt: ReadReceiptDTO) => {
+      dispatch(handleReadReceipt(receipt));
     },
     onReadAll: (readAllEvent: ReadAllDTO) => {
       dispatch(handleReadAll({ ...readAllEvent, currentUserId: user.id }));

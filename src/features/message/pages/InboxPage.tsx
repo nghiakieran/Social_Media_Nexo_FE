@@ -5,6 +5,7 @@ import React, {
   useCallback,
   useRef,
 } from "react";
+import { useDebouncedSearch } from "@/hooks/use-debounce-search";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useWebSocket } from "../hooks/useWebSocket";
 import { useBatchPresence } from "../hooks/usePresence";
@@ -70,7 +71,7 @@ export const InboxPage: React.FC = () => {
   } = useAppSelector((state) => state.message);
   const { user } = useAppSelector((state) => state.auth);
 
-  const [searchQuery, setSearchQuery] = useState("");
+  const { searchValue: searchQuery, debouncedValue: debouncedSearch, setSearchValue: setSearchQuery } = useDebouncedSearch("", 400);
   const [activeFilter, setActiveFilter] = useState("all");
   const [activeView, setActiveView] = useState<"primary" | "requests">(
     "primary"
@@ -222,16 +223,17 @@ export const InboxPage: React.FC = () => {
       setIsLoading(true);
       try {
         const { conversationApi } = await import("../services/messageApi");
+        const searchParam = debouncedSearch.trim() || undefined;
         let response;
 
         if (activeView === "requests") {
-          response = await conversationApi.getConversationRequests({});
+          response = await conversationApi.getConversationRequests({ search: searchParam });
         } else if (activeFilter === "unread") {
-          response = await conversationApi.getUnreadConversations({});
+          response = await conversationApi.getUnreadConversations({ search: searchParam });
         } else if (activeFilter === "archived") {
-          response = await conversationApi.getArchivedConversations({});
+          response = await conversationApi.getArchivedConversations({ search: searchParam });
         } else {
-          response = await conversationApi.getConversations({});
+          response = await conversationApi.getConversations({ search: searchParam });
         }
 
         if (response?.data?.content) {
@@ -245,7 +247,7 @@ export const InboxPage: React.FC = () => {
     };
 
     fetchConversations();
-  }, [dispatch, activeFilter, activeView]);
+  }, [dispatch, activeFilter, activeView, debouncedSearch]);
 
   useEffect(() => {
     if (targetConversationId && conversations.length > 0) {
@@ -294,10 +296,7 @@ export const InboxPage: React.FC = () => {
       }
     }
 
-    const displayName = conv.isGroup
-      ? (conv.groupName ?? conv.fullname)
-      : conv.fullname;
-    return displayName.toLowerCase().includes(searchQuery.toLowerCase());
+    return true;
   });
 
   const currentMessages = activeConversationId
@@ -531,16 +530,17 @@ export const InboxPage: React.FC = () => {
   const handleRefreshConversations = async () => {
     try {
       const { conversationApi } = await import("../services/messageApi");
+      const searchParam = debouncedSearch.trim() || undefined;
       let response;
 
       if (activeView === "requests") {
-        response = await conversationApi.getConversationRequests({});
+        response = await conversationApi.getConversationRequests({ search: searchParam });
       } else if (activeFilter === "unread") {
-        response = await conversationApi.getUnreadConversations({});
+        response = await conversationApi.getUnreadConversations({ search: searchParam });
       } else if (activeFilter === "archived") {
-        response = await conversationApi.getArchivedConversations({});
+        response = await conversationApi.getArchivedConversations({ search: searchParam });
       } else {
-        response = await conversationApi.getConversations({});
+        response = await conversationApi.getConversations({ search: searchParam });
       }
 
       if (response?.data?.content) {

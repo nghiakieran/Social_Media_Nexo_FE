@@ -19,6 +19,9 @@ import {
   X,
   Video as VideoIcon,
   Mic,
+  Phone,
+  PhoneMissed,
+  PhoneOff,
 } from "lucide-react";
 import { TypingIndicator } from "./TypingIndicator";
 import { ReactionMessage } from "./ReactionMessage";
@@ -456,6 +459,11 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
         };
   };
 
+  const parseCallMessage = (content: string) => {
+    const [type, status, duration] = content.split("|");
+    return { type, status, duration };
+  };
+
   const handleCopyMessage = (content: string) =>
     navigator.clipboard.writeText(content);
 
@@ -821,7 +829,48 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                             </div>
                           )}
 
-                        {message.content?.trim() && (
+                        {message.messageType === "CALL" && message.content && (() => {
+                          const { type, status, duration } = parseCallMessage(message.content);
+                          const isMissed = status === "MISSED" || status === "REJECTED";
+                          const isVideo = type.toLowerCase().includes("video");
+                          return (
+                            <div className={cn(
+                              "flex items-center gap-3 px-4 py-3 rounded-2xl shadow-sm w-fit",
+                              isOwn ? "ml-auto" : "mr-auto",
+                              isMissed
+                                ? "bg-destructive/10 text-destructive"
+                                : isOwn
+                                  ? "bg-primary text-primary-foreground"
+                                  : "bg-muted text-foreground"
+                            )}>
+                              <div className={cn(
+                                "flex items-center justify-center w-9 h-9 rounded-full shrink-0",
+                                isMissed ? "bg-destructive/20" : isOwn ? "bg-primary-foreground/20" : "bg-primary/15"
+                              )}>
+                                {isMissed
+                                  ? <PhoneMissed className="w-4 h-4" />
+                                  : isVideo
+                                    ? <VideoIcon className="w-4 h-4" />
+                                    : <Phone className="w-4 h-4" />}
+                              </div>
+                              <div className="flex flex-col min-w-0">
+                                <span className="text-sm font-medium leading-tight">
+                                  {isMissed
+                                    ? (isVideo ? "Video call nhỡ" : "Cuộc gọi nhỡ")
+                                    : (isVideo ? "Video call" : "Cuộc gọi thoại")}
+                                </span>
+                                <span className="text-xs opacity-70 mt-0.5">
+                                  {isMissed
+                                    ? (isOwn ? "Không có người nghe" : "Bạn đã bỏ lỡ")
+                                    : duration && duration !== "0" ? duration : ""}
+                                </span>
+                              </div>
+                              {renderTime("opacity-60 ml-1 self-end")}
+                            </div>
+                          );
+                        })()}
+
+                        {message.messageType !== "CALL" && message.content?.trim() && (
                           <div
                             className={cn(
                               "px-4 py-2 rounded-2xl relative break-words text-sm shadow-sm w-fit",

@@ -1,5 +1,6 @@
 import { useRef, useState, useCallback, useEffect } from "react";
 import { getWebSocketService } from "../services/websocketService";
+import { startRingtone, stopRingtone } from "@/utils/inAppAlertSounds";
 import type {
   CallNotificationDTO,
   CallSignalDTO,
@@ -191,6 +192,7 @@ export function useCallWebRTC({ onCallEnded }: UseCallWebRTCOptions = {}) {
     const incoming = incomingCallRef.current;
     if (!incoming) return;
 
+    stopRingtone();
     const isVideo = incoming.callType === "VIDEO_CALL";
     try {
       await getUserMedia(isVideo);
@@ -234,6 +236,7 @@ export function useCallWebRTC({ onCallEnded }: UseCallWebRTCOptions = {}) {
   const rejectCall = useCallback(() => {
     const incoming = incomingCallRef.current;
     if (!incoming) return;
+    stopRingtone();
     ws.respondToCall({ callId: incoming.callId, accepted: false });
     setIncomingCall(null);
     incomingCallRef.current = null;
@@ -326,6 +329,7 @@ export function useCallWebRTC({ onCallEnded }: UseCallWebRTCOptions = {}) {
       incomingCallRef.current = notification;
       setCallState("ringing");
       callStateRef.current = "ringing";
+      startRingtone();
     }
   }, []); // no deps — reads callStateRef
 
@@ -406,6 +410,7 @@ export function useCallWebRTC({ onCallEnded }: UseCallWebRTCOptions = {}) {
 
   const handleCallEnded = useCallback((ended: CallEndedDTO) => {
     console.log("[Call] ended:", ended);
+    stopRingtone();
     onCallEndedRef.current?.(ended.finalStatus, ended.durationSeconds);
     cleanup();
     setCallState("ended");
