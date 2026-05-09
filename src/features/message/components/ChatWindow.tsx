@@ -34,6 +34,7 @@ import type {
   ReactionDetailDTO,
 } from "../types";
 import { useAppSelector } from "@/store";
+import { formatChatSeparator } from "@/utils/timeFormat";
 
 interface ChatWindowProps {
   chat: ConversationResponseDTO;
@@ -633,14 +634,9 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                   data-sender-id={message.sender.id}
                 >
                   {showDateSeparator && (
-                    <div className="text-center my-4">
-                      <span className="text-xs text-muted-foreground bg-muted/50 px-3 py-1 rounded-full border">
-                        {messageDate.toLocaleDateString("vi-VN", {
-                          weekday: "short",
-                          day: "2-digit",
-                          month: "2-digit",
-                          year: "numeric",
-                        })}
+                    <div className="text-center my-6 sticky top-0 z-20 pointer-events-none">
+                      <span className="text-[11px] font-semibold text-muted-foreground bg-background/80 backdrop-blur-md px-4 py-1.5 rounded-full border border-border/50 shadow-sm inline-block">
+                        {formatChatSeparator(message.createdAt)}
                       </span>
                     </div>
                   )}

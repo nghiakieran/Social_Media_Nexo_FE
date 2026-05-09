@@ -145,3 +145,38 @@ export const formatDateSectionLabel = (dateKey: string): string => {
     year: "numeric",
   });
 };
+
+/**
+ * Formatted string (e.g., "21:18 Hôm nay", "10:30 Thứ Hai, 05/05")
+ */
+export const formatChatSeparator = (dateInput: Date | string): string => {
+  const date = typeof dateInput === "string" ? new Date(dateInput) : dateInput;
+  const now = new Date();
+  
+  const timeStr = date.toLocaleTimeString("vi-VN", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const startOfDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const diffDays = Math.floor(
+    (startOfToday.getTime() - startOfDate.getTime()) / (1000 * 60 * 60 * 24)
+  );
+
+  if (diffDays === 0) return `${timeStr} Hôm nay`;
+  if (diffDays === 1) return `${timeStr} Hôm qua`;
+  if (diffDays < 7) {
+    const weekday = date.toLocaleDateString("vi-VN", { weekday: "long" });
+    const dayMonth = date.toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit" });
+    return `${timeStr} ${weekday}, ${dayMonth}`;
+  }
+
+  const fullDate = date.toLocaleDateString("vi-VN", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
+  return `${timeStr} ${fullDate}`;
+};
