@@ -9,6 +9,8 @@ import {
   Bookmark,
   ArrowLeft,
   ImageOff,
+  Globe,
+  Lock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -78,6 +80,7 @@ interface Post {
   createdAt: string;
   updatedAt?: string;
   isActive?: boolean;
+  visibility?: "PUBLIC" | "PRIVATE" | "public" | "private";
   emojiReactions?: Array<{
     emoji: string;
     count: number;
@@ -186,6 +189,15 @@ export const CommentDialog = ({
     {},
   );
   const [isPostLikedLocal, setIsPostLikedLocal] = useState(isPostLiked);
+  const normalizedVisibility = (post.visibility ?? "").trim().toUpperCase();
+  const hasValidVisibility =
+    normalizedVisibility === "PUBLIC" || normalizedVisibility === "PRIVATE";
+  const isPrivatePost = normalizedVisibility === "PRIVATE";
+  const privacyLabel = isPrivatePost ? "Chỉ mình tôi" : "Công khai";
+  const PrivacyIcon = isPrivatePost ? Lock : Globe;
+  const privacyClassName = isPrivatePost
+    ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300"
+    : "bg-primary/10 text-primary";
   const [postLikesCount, setPostLikesCount] = useState(post.likesCount || 0);
   const [latestLikeName, setLatestLikeName] = useState<string | null>(null);
   const [hasFetchedLikePreview, setHasFetchedLikePreview] = useState(false);
@@ -1130,6 +1142,18 @@ export const CommentDialog = ({
                 >
                   {post.userName}
                 </span>
+                {post.visibility && (
+                  <span
+                    className={cn(
+                      "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium",
+                      privacyClassName
+                    )}
+                    title={`Quyền riêng tư: ${privacyLabel}`}
+                  >
+                    <PrivacyIcon className="h-3 w-3" />
+                    {privacyLabel}
+                  </span>
+                )}
               </div>
               <p className="text-sm leading-relaxed">{post.caption}</p>
             </div>
@@ -1605,6 +1629,18 @@ export const CommentDialog = ({
               >
                 {post.userName}
               </h3>
+              {hasValidVisibility && (
+                <span
+                  className={cn(
+                    "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium",
+                    privacyClassName
+                  )}
+                  title={`Quyền riêng tư: ${privacyLabel}`}
+                >
+                  <PrivacyIcon className="h-3 w-3" />
+                  {privacyLabel}
+                </span>
+              )}
             </div>
             <div className="flex items-center gap-2">
               <button

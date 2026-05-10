@@ -111,6 +111,7 @@ export function PostDetailDialog({
     try {
       await deletePostById(post.id, post.type);
       toast({
+        variant: "success",
         title: "Thành công",
         description: "Đã xóa bài viết khỏi hệ thống",
       });

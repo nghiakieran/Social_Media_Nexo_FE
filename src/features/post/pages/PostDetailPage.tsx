@@ -168,7 +168,11 @@ export const PostDetailPage = () => {
       case "delete":
         try {
           await dispatch(deletePostThunk(parseInt(post.id))).unwrap();
-          toast({ title: "Đã xóa", description: "Bài viết đã được xóa." });
+          toast({
+            variant: "success",
+            title: "Đã xóa",
+            description: "Bài viết đã được xóa.",
+          });
           navigate(-1);
         } catch (error) {
           toast({
@@ -186,6 +190,7 @@ export const PostDetailPage = () => {
           await dispatch(togglePostActiveThunk(parseInt(post.id))).unwrap();
           const isNowHidden = !post.isActive;
           toast({
+            variant: "success",
             title: isNowHidden ? "Đã ẩn bài viết" : "Đã hiển thị bài viết",
             description: isNowHidden
               ? "Bài viết sẽ không hiển thị trên trang cá nhân của bạn."
@@ -205,12 +210,14 @@ export const PostDetailPage = () => {
         break;
       case "hideLikes":
         toast({
+          variant: "success",
           title: "Đã ẩn",
           description: "Số lượt thích đã được ẩn với những người khác.",
         });
         break;
       case "disableComments":
         toast({
+          variant: "success",
           title: "Đã tắt",
           description: "Tính năng bình luận đã được tắt.",
         });
@@ -231,6 +238,7 @@ export const PostDetailPage = () => {
       .unwrap()
       .then(() => {
         toast({
+          variant: "success",
           title: "Cập nhật thành công!",
           description: "Bài viết đã được cập nhật.",
         });
@@ -256,6 +264,7 @@ export const PostDetailPage = () => {
     message: string
   ) => {
     toast({
+      variant: "success",
       title: "Đã chia sẻ",
       description: `Bài viết đã được chia sẻ với ${userIds.length} người dùng.`,
     });
@@ -706,7 +715,6 @@ export const PostDetailPage = () => {
         onClose={handleCloseActionMenu}
         onAction={handleActionMenuAction}
         isOwnPost={post.userId === user?.id.toString()}
-        isPostHidden={!post.isActive}
       />
 
       {/* Edit Post Dialog */}
@@ -758,6 +766,7 @@ export const PostDetailPage = () => {
           try {
             await dispatch(deletePostThunk(parseInt(pid))).unwrap();
             toast({
+              variant: "success",
               title: "Đã xóa",
               description: "Bài viết đã được xóa.",
             });

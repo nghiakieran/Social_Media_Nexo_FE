@@ -65,7 +65,6 @@ import { transformUserStoriesToStory } from "@/features/story/types";
 import { upsertProfileStory } from "@/features/story/storySlice";
 import { PrivateAccountMessage } from "../components/PrivateAccountMessage";
 import { SavedAllPostsContent } from "@/features/saved/components/SavedAllPostsContent";
-import { HiddenPostsContent } from "../components/HiddenPostsContent";
 import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
 import { getSavedPostsThunk } from "@/features/saved/savedSlice";
 
@@ -774,8 +773,6 @@ export const ProfilePage = () => {
         return isCurrentUser ? (
           <SavedAllPostsContent onBack={() => { }} />
         ) : null;
-      case "hidden":
-        return isCurrentUser ? <HiddenPostsContent /> : null;
       default: {
         // Filter to only show active posts in the posts tab
         const activePosts = apiPosts.filter((post) => post.isActive);

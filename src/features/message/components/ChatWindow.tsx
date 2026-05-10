@@ -18,6 +18,10 @@ import {
   Play,
   X,
   Video as VideoIcon,
+  Mic,
+  Phone,
+  PhoneMissed,
+  PhoneOff,
 } from "lucide-react";
 import { TypingIndicator } from "./TypingIndicator";
 import { ReactionMessage } from "./ReactionMessage";
@@ -30,6 +34,7 @@ import type {
   ReactionDetailDTO,
 } from "../types";
 import { useAppSelector } from "@/store";
+import { formatChatSeparator } from "@/utils/timeFormat";
 
 interface ChatWindowProps {
   chat: ConversationResponseDTO;
@@ -455,6 +460,11 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
         };
   };
 
+  const parseCallMessage = (content: string) => {
+    const [type, status, duration] = content.split("|");
+    return { type, status, duration };
+  };
+
   const handleCopyMessage = (content: string) =>
     navigator.clipboard.writeText(content);
 
@@ -573,6 +583,21 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                 !prevMessageDate ||
                 messageDate.toDateString() !== prevMessageDate.toDateString();
               const isHighlighted = highlightedMessageId === message.id;
+              const repliedMessage =
+                message.replyToMessage ??
+                (message.replyToMessageId
+                  ? messages.find((m) => m.id === message.replyToMessageId)
+                  : undefined);
+
+              const reactionsLength = message.reactions?.length ?? 0;
+              const apiCount = reactionsCount[message.id];
+              const displayCount =
+                message.reactions !== undefined && message.reactions !== null
+                  ? reactionsLength
+                  : apiCount !== undefined
+                    ? apiCount
+                    : 0;
+              const hasReactions = displayCount > 0;
 
               const renderTime = (className?: string) => (
                 <span
@@ -609,14 +634,9 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                   data-sender-id={message.sender.id}
                 >
                   {showDateSeparator && (
-                    <div className="text-center my-4">
-                      <span className="text-xs text-muted-foreground bg-muted/50 px-3 py-1 rounded-full border">
-                        {messageDate.toLocaleDateString("vi-VN", {
-                          weekday: "short",
-                          day: "2-digit",
-                          month: "2-digit",
-                          year: "numeric",
-                        })}
+                    <div className="text-center my-6 sticky top-0 z-20 pointer-events-none">
+                      <span className="text-[11px] font-semibold text-muted-foreground bg-background/80 backdrop-blur-md px-4 py-1.5 rounded-full border border-border/50 shadow-sm inline-block">
+                        {formatChatSeparator(message.createdAt)}
                       </span>
                     </div>
                   )}
@@ -645,9 +665,9 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                         isOwn ? "items-end" : "items-start"
                       )}
                     >
-                      {message.replyToMessage && (
+                      {repliedMessage && (
                         <div
-                          onClick={() => handleScrollToMessage(message.replyToMessage.id)}
+                          onClick={() => handleScrollToMessage(repliedMessage.id)}
                           className={cn(
                             "mb-1 px-3 py-2 rounded-lg border-l-[3px] text-xs max-w-full w-fit cursor-pointer hover:opacity-80 transition-opacity",
                             isOwn
@@ -657,25 +677,30 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                         >
                           <div className="font-semibold text-[11px] mb-0.5 opacity-90 flex items-center gap-1">
                             <Reply className="w-3 h-3" />
-                            Trả lời {message.replyToMessage.sender.fullName}
+                            Trả lời {repliedMessage.sender.fullName}
                           </div>
                           <div className="break-words line-clamp-2 overflow-hidden italic opacity-80">
-                            {message.replyToMessage.messageType === "IMAGE" ? (
+                            {repliedMessage.messageType === "IMAGE" ? (
                               <span className="flex items-center gap-1">
                                 📷 Hình ảnh
                               </span>
-                            ) : message.replyToMessage.messageType === "STORY" ? (
+                            ) : repliedMessage.messageType === "STORY" ? (
                               <span className="flex items-center gap-1">
                                 🎥 Story
                               </span>
                             ) : (
-                              message.replyToMessage.content
+                              repliedMessage.content
                             )}
                           </div>
                         </div>
                       )}
 
-                      <div className="relative group/msg flex flex-col gap-1.5">
+                      <div
+                        className={cn(
+                          "relative group/msg flex flex-col gap-1.5",
+                          hasReactions && "pb-2.5"
+                        )}
+                      >
                         {message.messageType === "STORY" &&
                           message.storyMediaUrl && (
                             <div
@@ -765,7 +790,83 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                           </div>
                         )}
 
-                        {message.content?.trim() && (
+                        {message.messageType === "AUDIO" &&
+                          message.mediaList.length > 0 && (
+                            <div
+                              className={cn(
+                                "flex flex-col gap-1",
+                                isOwn ? "items-end" : "items-start"
+                              )}
+                            >
+                              {message.mediaList.map((media, idx) => (
+                                <div
+                                  key={media.id || idx}
+                                  className={cn(
+                                    "flex items-center gap-2 px-3 py-2 rounded-2xl shadow-sm",
+                                    isOwn
+                                      ? "bg-primary text-primary-foreground"
+                                      : "bg-muted text-foreground"
+                                  )}
+                                >
+                                  <Mic className="h-4 w-4 shrink-0 opacity-80" />
+                                  <audio
+                                    controls
+                                    src={media.mediaUrl}
+                                    className="h-8 max-w-[220px] md:max-w-[280px]"
+                                  />
+                                  <span className="text-xs opacity-70 shrink-0">
+                                    {new Date(message.createdAt).toLocaleTimeString("vi-VN", {
+                                      hour: "2-digit",
+                                      minute: "2-digit",
+                                    })}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
+                        {message.messageType === "CALL" && message.content && (() => {
+                          const { type, status, duration } = parseCallMessage(message.content);
+                          const isMissed = status === "MISSED" || status === "REJECTED";
+                          const isVideo = type.toLowerCase().includes("video");
+                          return (
+                            <div className={cn(
+                              "flex items-center gap-3 px-4 py-3 rounded-2xl shadow-sm w-fit",
+                              isOwn ? "ml-auto" : "mr-auto",
+                              isMissed
+                                ? "bg-destructive/10 text-destructive"
+                                : isOwn
+                                  ? "bg-primary text-primary-foreground"
+                                  : "bg-muted text-foreground"
+                            )}>
+                              <div className={cn(
+                                "flex items-center justify-center w-9 h-9 rounded-full shrink-0",
+                                isMissed ? "bg-destructive/20" : isOwn ? "bg-primary-foreground/20" : "bg-primary/15"
+                              )}>
+                                {isMissed
+                                  ? <PhoneMissed className="w-4 h-4" />
+                                  : isVideo
+                                    ? <VideoIcon className="w-4 h-4" />
+                                    : <Phone className="w-4 h-4" />}
+                              </div>
+                              <div className="flex flex-col min-w-0">
+                                <span className="text-sm font-medium leading-tight">
+                                  {isMissed
+                                    ? (isVideo ? "Video call nhỡ" : "Cuộc gọi nhỡ")
+                                    : (isVideo ? "Video call" : "Cuộc gọi thoại")}
+                                </span>
+                                <span className="text-xs opacity-70 mt-0.5">
+                                  {isMissed
+                                    ? (isOwn ? "Không có người nghe" : "Bạn đã bỏ lỡ")
+                                    : duration && duration !== "0" ? duration : ""}
+                                </span>
+                              </div>
+                              {renderTime("opacity-60 ml-1 self-end")}
+                            </div>
+                          );
+                        })()}
+
+                        {message.messageType !== "CALL" && message.content?.trim() && (
                           <div
                             className={cn(
                               "px-4 py-2 rounded-2xl relative break-words text-sm shadow-sm w-fit",
@@ -840,6 +941,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                               align={isOwn ? "end" : "start"}
                             >
                               <DropdownMenuItem
+                                className="hover:bg-primary/10 focus:bg-primary/10 data-[highlighted]:bg-primary/10"
                                 onClick={() => {
                                   if (onReplyToMessage) {
                                     onReplyToMessage(message);
@@ -850,6 +952,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                                 Trả lời
                               </DropdownMenuItem>
                               <DropdownMenuItem
+                                className="hover:bg-primary/10 focus:bg-primary/10 data-[highlighted]:bg-primary/10"
                                 onClick={() =>
                                   handleCopyMessage(message.content)
                                 }
@@ -861,66 +964,53 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                           </DropdownMenu>
                         </div>
 
-                        {(() => {
-                          const reactionsLength =
-                            message.reactions?.length ?? 0;
-                          const apiCount = reactionsCount[message.id];
-                          const displayCount =
-                            message.reactions !== undefined &&
-                            message.reactions !== null
-                              ? reactionsLength
-                              : apiCount !== undefined
-                              ? apiCount
-                              : 0;
-                          const hasReactions = displayCount > 0;
-
-                          return hasReactions ? (
-                            <button
-                              className={cn(
-                                "absolute -bottom-2 translate-y-full flex flex-row items-center gap-0.5 border rounded-full px-2 py-1 bg-background shadow-sm hover:scale-105 transition-transform cursor-pointer z-20",
-                                isOwn ? "right-0" : "left-0"
-                              )}
-                              onClick={() =>
-                                handleOpenReactionsDialog(String(message.id))
+                        {hasReactions ? (
+                          <button
+                            type="button"
+                            className={cn(
+                              "absolute bottom-0 z-20 flex translate-y-1/2 flex-row items-center gap-0.5 rounded-full border border-border/60 bg-background/95 px-1.5 py-0.5 text-xs shadow-md backdrop-blur-sm transition-transform hover:scale-[1.02]",
+                              isOwn ? "right-1.5" : "left-1.5"
+                            )}
+                            onClick={() =>
+                              handleOpenReactionsDialog(String(message.id))
+                            }
+                            onMouseEnter={() => {
+                              if (reactionsCount[message.id] === undefined) {
+                                fetchReactionsCount(message.id);
                               }
-                              onMouseEnter={() => {
-                                if (reactionsCount[message.id] === undefined) {
-                                  fetchReactionsCount(message.id);
-                                }
-                              }}
-                            >
-                              {Object.keys(
-                                message.reactions.reduce((acc, r) => {
-                                  acc[r.reactionType] = true;
-                                  return acc;
-                                }, {} as { [reactionType: string]: boolean })
-                              ).map((reactionType) => {
-                                const emoji =
-                                  reactionType === "LIKE"
-                                    ? "👍"
-                                    : reactionType === "LOVE"
+                            }}
+                          >
+                            {Object.keys(
+                              (message.reactions ?? []).reduce((acc, r) => {
+                                acc[r.reactionType] = true;
+                                return acc;
+                              }, {} as { [reactionType: string]: boolean })
+                            ).map((reactionType) => {
+                              const emoji =
+                                reactionType === "LIKE"
+                                  ? "👍"
+                                  : reactionType === "LOVE"
                                     ? "❤️"
                                     : reactionType === "HAHA"
-                                    ? "😂"
-                                    : reactionType === "WOW"
-                                    ? "😮"
-                                    : reactionType === "SAD"
-                                    ? "😢"
-                                    : reactionType === "ANGRY"
-                                    ? "😡"
-                                    : "🔥";
-                                return (
-                                  <span key={reactionType} className="text-sm">
-                                    {emoji}
-                                  </span>
-                                );
-                              })}
-                              <span className="text-xs text-muted-foreground ml-1">
-                                {displayCount}
-                              </span>
-                            </button>
-                          ) : null;
-                        })()}
+                                      ? "😂"
+                                      : reactionType === "WOW"
+                                        ? "😮"
+                                        : reactionType === "SAD"
+                                          ? "😢"
+                                          : reactionType === "ANGRY"
+                                            ? "😡"
+                                            : "🔥";
+                              return (
+                                <span key={reactionType} className="text-sm">
+                                  {emoji}
+                                </span>
+                              );
+                            })}
+                            <span className="text-muted-foreground ml-0.5 text-[11px] tabular-nums">
+                              {displayCount}
+                            </span>
+                          </button>
+                        ) : null}
                       </div>
                     </div>
                   </div>

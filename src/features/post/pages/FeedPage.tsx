@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { PostCard } from "../components/PostCard";
 import { EditPostDialog } from "../components/EditPostDialog";
 import { ReportPostDialog } from "../components/ReportPostDialog";
@@ -72,21 +72,12 @@ export const FeedPage = () => {
     }
   }, [dispatch, user]);
 
-  // Infinite scroll handler for posts
-  const handleLoadMore = () => {
+  const handleLoadMore = useCallback(() => {
     if (user && !isLoading && hasMore) {
       const nextPage = currentPage + 1;
-      console.log(
-        "Loading more posts, currentPage:",
-        currentPage,
-        "nextPage:",
-        nextPage,
-        "hasMore:",
-        hasMore,
-      );
       dispatch(getFeedThunk({ userId: user.id, page: nextPage, limit: 10 }));
     }
-  };
+  }, [user, isLoading, hasMore, currentPage, dispatch]);
 
   // Infinite scroll handler for stories
   const handleLoadMoreStories = () => {
@@ -315,6 +306,14 @@ export const FeedPage = () => {
   // Sort stories by viewed status
   const sortedStories = sortStoriesByViewedStatus(allStories);
 
+  let lastActivePostIndex = -1;
+  for (let i = posts.length - 1; i >= 0; i--) {
+    if (posts[i].isActive) {
+      lastActivePostIndex = i;
+      break;
+    }
+  }
+
   // Transform to Stories component format
   const displayStories = sortedStories
     .filter((story) => story.content && story.content.length > 0) // Filter out empty stories
@@ -344,11 +343,11 @@ export const FeedPage = () => {
       {/* Posts Feed */}
       <div className="space-y-6 p-4">
         {posts.map((post, index) => {
-          const isLastItem = index === posts.length - 1;
+          const attachInfiniteRef = index === lastActivePostIndex;
           if (!post.isActive) return null;
 
           return (
-            <div key={post.id} ref={isLastItem ? lastElementRef : null}>
+            <div key={post.id} ref={attachInfiniteRef ? lastElementRef : null}>
               <PostCard
                 post={post as any}
                 onLike={handleLike}

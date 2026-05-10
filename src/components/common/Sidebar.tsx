@@ -10,7 +10,7 @@ import {
   Compass,
   Film,
   MessageCircle,
-  Heart,
+  Bell,
   PlusSquare,
   User,
   MoreHorizontal,
@@ -43,7 +43,7 @@ const navigation = [
   { name: "Khám phá", href: "/explore", icon: Compass },
   { name: "Reels", href: "/reels", icon: Film },
   { name: "Tin nhắn", href: "/messages", icon: MessageCircle },
-  { name: "Thông báo", href: "/notifications", icon: Heart },
+  { name: "Thông báo", href: "/notifications", icon: Bell },
   { name: "Tạo bài viết", href: "/create", icon: PlusSquare },
   { name: "Tạo Reel", href: "/reels/create", icon: Video },
   { name: "Hồ sơ", href: "/profile", icon: User, dynamic: true },
@@ -54,6 +54,17 @@ const mlFeatures = [
   { name: "Gợi ý kết bạn", href: "/people/suggestions", icon: Users },
   { name: "Kiểm duyệt nội dung", href: "/admin/moderation", icon: Shield },
 ];
+
+function formatNavBadgeCount(count: number): string {
+  if (count > 99) return "99+";
+  return String(count);
+}
+
+const navUnreadBadgeClass =
+  "pointer-events-none absolute -top-1 -right-1 flex min-h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-semibold leading-none text-white border border-background";
+
+const navUnreadBadgeTrailingClass =
+  "pointer-events-none ml-auto flex min-h-[22px] min-w-[22px] shrink-0 items-center justify-center rounded-full bg-red-500 px-2 text-[11px] font-semibold tabular-nums leading-none text-white shadow-sm ring-2 ring-background";
 
 export const Sidebar = () => {
   const navigate = useNavigate();
@@ -109,25 +120,20 @@ export const Sidebar = () => {
                   caseSensitive
                   className={({ isActive }) =>
                     cn(
-                      "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200",
+                      "flex w-full min-w-0 items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200",
                       isActive
                         ? "bg-primary text-primary-foreground shadow-glow hover:bg-primary/80"
                         : "text-muted-foreground hover:bg-primary/10 hover:text-primary dark:hover:bg-primary/20",
                     )
                   }
                 >
-                  <div className="relative">
-                    <item.icon className="h-5 w-5" />
-
-                    {isNotificationItem && unreadNotificationCount > 0 && (
-                      <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] text-white border border-background">
-                        {unreadNotificationCount > 9
-                          ? "9+"
-                          : unreadNotificationCount}
-                      </span>
-                    )}
-                  </div>
-                  {item.name}
+                  <item.icon className="h-5 w-5 shrink-0" aria-hidden />
+                  <span className="min-w-0 flex-1 truncate">{item.name}</span>
+                  {isNotificationItem && unreadNotificationCount > 0 && (
+                    <span className={navUnreadBadgeTrailingClass}>
+                      {formatNavBadgeCount(unreadNotificationCount)}
+                    </span>
+                  )}
                 </NavLink>
               </li>
             );
@@ -346,12 +352,12 @@ export const Sidebar = () => {
               }
             >
               <div className="relative">
-                <Heart className="h-6 w-6" />
+                <Bell className="h-6 w-6" />
                 {unreadNotificationCount > 0 && (
-                  <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] text-white border-2 border-background">
-                    {unreadNotificationCount > 9
-                      ? "9+"
-                      : unreadNotificationCount}
+                  <span
+                    className={`${navUnreadBadgeClass} border-2 border-background`}
+                  >
+                    {formatNavBadgeCount(unreadNotificationCount)}
                   </span>
                 )}
               </div>
@@ -418,7 +424,9 @@ export const Sidebar = () => {
                   )
                 }
               >
-                <item.icon className="h-5 w-5" />
+                <div className="relative">
+                  <item.icon className="h-5 w-5" />
+                </div>
                 <span className="text-[10px] font-medium">{item.name}</span>
               </NavLink>
             );

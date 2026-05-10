@@ -5,6 +5,7 @@ import React, {
   useCallback,
   useRef,
 } from "react";
+import { useDebouncedSearch } from "@/hooks/use-debounce-search";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useWebSocket } from "../hooks/useWebSocket";
 import { useBatchPresence } from "../hooks/usePresence";
@@ -15,8 +16,11 @@ import { MessageComposer } from "../components/MessageComposer";
 import { MessageRequestActions } from "../components/MessageRequestActions";
 import { InstagramInboxHeader } from "../components/InstagramInboxHeader";
 import { InstagramChatHeader } from "../components/InstagramChatHeader";
+import { CreateGroupDialog } from "../components/CreateGroupDialog";
 import { QuickActionsBar } from "../components/QuickActionsBar";
+import { useCallContext } from "../contexts/CallContext";
 import { Button } from "@/components/ui/button";
+import { playIncomingChatAlertIfNeeded } from "@/utils/inAppAlertSounds";
 import {
   setConversations,
   upsertConversation,
@@ -42,11 +46,14 @@ import {
   EMessageType,
   EReactionType,
   EConversationStatus,
+  ECallType,
   PresenceStatusDTO,
   ReadAllDTO,
   TypingNotificationDTO,
-  ReactionUpdateDTO,
+  ReactionWebSocketPayload,
+  ReactionUpdateLegacyDTO,
 } from "../types";
+
 import { MessageSquarePlus } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -64,13 +71,14 @@ export const InboxPage: React.FC = () => {
   } = useAppSelector((state) => state.message);
   const { user } = useAppSelector((state) => state.auth);
 
-  const [searchQuery, setSearchQuery] = useState("");
+  const { searchValue: searchQuery, debouncedValue: debouncedSearch, setSearchValue: setSearchQuery } = useDebouncedSearch("", 400);
   const [activeFilter, setActiveFilter] = useState("all");
   const [activeView, setActiveView] = useState<"primary" | "requests">(
     "primary"
   );
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [createGroupDialogOpen, setCreateGroupDialogOpen] = useState(false);
   const [presenceUpdates, setPresenceUpdates] = useState<
     Record<number, { isOnline: boolean; lastSeen?: string }>
   >({});
@@ -108,6 +116,9 @@ export const InboxPage: React.FC = () => {
       } else {
         dispatch(addMessage(message));
       }
+      const sid = message.sender?.id;
+      if (sid != null)
+        playIncomingChatAlertIfNeeded(message.id, sid, user?.id);
     },
     onTyping: (typing: TypingNotificationDTO) => {
       dispatch(handleTypingNotification(typing));
@@ -115,7 +126,7 @@ export const InboxPage: React.FC = () => {
     onReadAll: (readAllEvent: ReadAllDTO) => {
       dispatch(handleReadAll({ ...readAllEvent, currentUserId: user.id }));
     },
-    onReactionUpdate: (update: ReactionUpdateDTO) => {
+    onReactionUpdate: (update: ReactionWebSocketPayload) => {
       if ("reactions" in update && Array.isArray(update.reactions)) {
         const conversationId = Object.keys(messages).find((convId) =>
           messages[Number(convId)]?.some((msg) => msg.id === update.messageId)
@@ -131,21 +142,21 @@ export const InboxPage: React.FC = () => {
           );
         }
       } else if ("action" in update && "reaction" in update) {
-        // Legacy format: single reaction with action
-        if (update.action === "ADD") {
+        const legacy = update as ReactionUpdateLegacyDTO;
+        if (legacy.action === "ADD") {
           dispatch(
             addReaction({
-              messageId: update.messageId,
-              conversationId: update.conversationId,
-              reaction: update.reaction,
+              messageId: legacy.messageId,
+              conversationId: legacy.conversationId,
+              reaction: legacy.reaction,
             })
           );
-        } else if (update.action === "REMOVE") {
+        } else if (legacy.action === "REMOVE") {
           dispatch(
             removeReaction({
-              messageId: update.messageId,
-              conversationId: update.conversationId,
-              userId: update.reaction.userId,
+              messageId: legacy.messageId,
+              conversationId: legacy.conversationId,
+              userId: legacy.reaction.userId,
             })
           );
         }
@@ -212,16 +223,17 @@ export const InboxPage: React.FC = () => {
       setIsLoading(true);
       try {
         const { conversationApi } = await import("../services/messageApi");
+        const searchParam = debouncedSearch.trim() || undefined;
         let response;
 
         if (activeView === "requests") {
-          response = await conversationApi.getConversationRequests({});
+          response = await conversationApi.getConversationRequests({ search: searchParam });
         } else if (activeFilter === "unread") {
-          response = await conversationApi.getUnreadConversations({});
+          response = await conversationApi.getUnreadConversations({ search: searchParam });
         } else if (activeFilter === "archived") {
-          response = await conversationApi.getArchivedConversations({});
+          response = await conversationApi.getArchivedConversations({ search: searchParam });
         } else {
-          response = await conversationApi.getConversations({});
+          response = await conversationApi.getConversations({ search: searchParam });
         }
 
         if (response?.data?.content) {
@@ -235,7 +247,7 @@ export const InboxPage: React.FC = () => {
     };
 
     fetchConversations();
-  }, [dispatch, activeFilter, activeView]);
+  }, [dispatch, activeFilter, activeView, debouncedSearch]);
 
   useEffect(() => {
     if (targetConversationId && conversations.length > 0) {
@@ -257,7 +269,7 @@ export const InboxPage: React.FC = () => {
   }, [refetchPresence]);
 
   const filteredChats = conversations.filter((conv) => {
-    if (!conv.lastMessage && conv.id !== targetConversationId) {
+    if (!conv.lastMessage && conv.id !== targetConversationId && !conv.isGroup) {
       return false;
     }
 
@@ -284,7 +296,7 @@ export const InboxPage: React.FC = () => {
       }
     }
 
-    return conv.fullname.toLowerCase().includes(searchQuery.toLowerCase());
+    return true;
   });
 
   const currentMessages = activeConversationId
@@ -345,9 +357,23 @@ export const InboxPage: React.FC = () => {
   }, [dispatch]);
 
   useEffect(() => {
+    if (!ws.isConnected || conversations.length === 0) return;
+    conversations.forEach((conv) => {
+      ws.subscribeToMessageOnly(conv.id, (message: MessageDTO) => {
+        if (user?.id) {
+          dispatch(addMessageWithUnreadUpdate({ message, currentUserId: user.id }));
+        } else {
+          dispatch(addMessage(message));
+        }
+        const sid = message.sender?.id;
+        if (sid != null) playIncomingChatAlertIfNeeded(message.id, sid, user?.id);
+      });
+    });
+  }, [ws.isConnected, conversations.length]);
+
+  useEffect(() => {
     if (activeConversationId && ws) {
       ws.subscribeToConversation(Number(activeConversationId));
-
       ws.markConversationAsRead(Number(activeConversationId));
     }
   }, [activeConversationId, ws]);
@@ -461,7 +487,40 @@ export const InboxPage: React.FC = () => {
     }
   };
 
-  const handleCallAction = (type: "voice" | "video") => {};
+  const { startCall } = useCallContext();
+
+  const otherParticipant = useMemo(
+    () => currentChat?.participants.find((p) => p.id !== user?.id),
+    [currentChat, user?.id]
+  );
+
+  const handleCallAction = useCallback(
+    (type: "voice" | "video") => {
+      if (!currentChat || !otherParticipant) return;
+      const callType = type === "video" ? ECallType.VIDEO_CALL : ECallType.AUDIO_CALL;
+      startCall(currentChat.id, callType, {
+        id: otherParticipant.id,
+        name: otherParticipant.fullName,
+        avatarUrl: otherParticipant.avatarUrl,
+      });
+    },
+    [currentChat, otherParticipant, startCall]
+  );
+
+  const handleCreateGroup = async (
+    groupName: string,
+    memberIds: number[]
+  ) => {
+    const { conversationApi } = await import("../services/messageApi");
+    const response = await conversationApi.createGroup({
+      groupName,
+      memberUserIds: memberIds,
+    });
+    if (response?.data) {
+      dispatch(upsertConversation(response.data));
+      dispatch(setActiveConversation(response.data.id));
+    }
+  };
 
   const handleAcceptRequest = async (conversationId: number) => {
     try {
@@ -485,16 +544,17 @@ export const InboxPage: React.FC = () => {
   const handleRefreshConversations = async () => {
     try {
       const { conversationApi } = await import("../services/messageApi");
+      const searchParam = debouncedSearch.trim() || undefined;
       let response;
 
       if (activeView === "requests") {
-        response = await conversationApi.getConversationRequests({});
+        response = await conversationApi.getConversationRequests({ search: searchParam });
       } else if (activeFilter === "unread") {
-        response = await conversationApi.getUnreadConversations({});
+        response = await conversationApi.getUnreadConversations({ search: searchParam });
       } else if (activeFilter === "archived") {
-        response = await conversationApi.getArchivedConversations({});
+        response = await conversationApi.getArchivedConversations({ search: searchParam });
       } else {
-        response = await conversationApi.getConversations({});
+        response = await conversationApi.getConversations({ search: searchParam });
       }
 
       if (response?.data?.content) {
@@ -550,6 +610,7 @@ export const InboxPage: React.FC = () => {
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
           onNewMessage={handleNewMessage}
+          onCreateGroup={() => setCreateGroupDialogOpen(true)}
           activeView={activeView}
           onViewChange={handleViewChange}
         />
@@ -634,6 +695,8 @@ export const InboxPage: React.FC = () => {
               onCall={handleCallAction}
               onNicknameUpdated={handleRefreshConversations}
               onBlockStatusChanged={handleRefreshConversations}
+              onGroupUpdated={handleRefreshConversations}
+              onGroupLeft={() => dispatch(setActiveConversation(null))}
               showBackButton={!!activeConversationId}
               mobileOnlyBack
               onBack={() => dispatch(setActiveConversation(null))}
@@ -735,6 +798,14 @@ export const InboxPage: React.FC = () => {
           </div>
         )}
       </div>
+
+      <CreateGroupDialog
+        open={createGroupDialogOpen}
+        onOpenChange={setCreateGroupDialogOpen}
+        conversations={conversations}
+        currentUserId={user?.id}
+        onCreate={handleCreateGroup}
+      />
     </div>
   );
 };

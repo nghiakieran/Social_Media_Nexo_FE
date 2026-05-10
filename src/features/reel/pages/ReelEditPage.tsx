@@ -164,6 +164,7 @@ const ReelEditPage = () => {
       await dispatch(updateReelThunk({ files: mediaFiles, reelData })).unwrap();
 
       toast({
+        variant: "success",
         title: "Thành công",
         description: "Reel đã được cập nhật thành công!",
       });

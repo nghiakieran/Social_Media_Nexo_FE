@@ -232,6 +232,7 @@ export default function Users() {
         // }
       );
       toast({
+        variant: "success",
         title: "Thành công",
         description: `Tài khoản ${selectedUser.username} đã bị khóa ${banDuration} ngày.`,
       });
@@ -250,6 +251,7 @@ export default function Users() {
   const handleToggleVerify = async (user: UIUser) => {
     try {
       toast({
+        variant: "success",
         title: "Thành công",
         description: `Đã ${user.isVerified ? "thu hồi" : "cấp"} tick xanh cho ${user.username}`,
       });
@@ -260,6 +262,7 @@ export default function Users() {
   const handleDeleteAvatar = async (user: UIUser) => {
     try {
       toast({
+        variant: "success",
         title: "Thành công",
         description: `Đã xóa avatar của ${user.username}`,
       });
@@ -663,6 +666,7 @@ export default function Users() {
                                   try {
                                     await unbanUser(user.username);
                                     toast({
+                                      variant: "success",
                                       title: "Thành công",
                                       description: "Tài khoản đã được mở khóa",
                                     });
