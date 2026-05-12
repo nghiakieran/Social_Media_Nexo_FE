@@ -31,6 +31,7 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { changePassword } from "../api/profileApi";
+import { ActivityLogs } from "./ActivityLogs";
 
 export const AccountSettings = () => {
   const navigate = useNavigate();
@@ -500,6 +501,9 @@ export const AccountSettings = () => {
           </Dialog>
         </CardContent>
       </Card>
+
+      {/* Activity Logs */}
+      <ActivityLogs />
     </div>
   );
 };
