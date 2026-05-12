@@ -9,10 +9,9 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { BarChart3, ArrowUp, ArrowDown, FileText, Heart, UserCheck } from "lucide-react";
+import { BarChart3, ArrowUp, ArrowDown, FileText, Heart, UserCheck, Users } from "lucide-react";
 import { getUserStatistics } from "@/features/admin/api/userManagementAPI";
 import { Skeleton } from "../ui/skeleton";
-import Users from "@/features/admin/pages/Users";
 
 interface UserStatsDialogProps {
   open: boolean;

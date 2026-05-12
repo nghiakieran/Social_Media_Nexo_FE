@@ -72,9 +72,11 @@ export default function Posts() {
 
   const [search, setSearch] = useState("");
   const [hashtagFilter, setHashtagFilter] = useState("");
+  const [contentFilter, setContentFilter] = useState("");
+  const [authorFilter, setAuthorFilter] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
-  const [timeFilter, setTimeFilter] = useState("all");
-  const [sensitiveFilter, setSensitiveFilter] = useState("all");
+  const [startDateFilter, setStartDateFilter] = useState("");
+  const [endDateFilter, setEndDateFilter] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
 
   const [selectedPost, setSelectedPost] = useState<AdminPostItemDTO | null>(
@@ -90,18 +92,26 @@ export default function Posts() {
   const { toast } = useToast();
   const debouncedSearch = useDebounce(search, 500);
   const debouncedHashtag = useDebounce(hashtagFilter, 500);
+  const debouncedContent = useDebounce(contentFilter, 500);
+  const debouncedAuthor = useDebounce(authorFilter, 500);
 
   const loadData = async () => {
     setLoading(true);
     try {
       const data = await fetchAdminPosts({
         search: debouncedSearch,
-        // hashtag: debouncedHashtag,
+        hashtag: debouncedHashtag,
+        content: debouncedContent,
+        authorName: debouncedAuthor,
         pageNo: currentPage - 1,
         pageSize: 10,
         type: typeFilter,
-        // timeRange: timeFilter,
-        // sensitive: sensitiveFilter,
+        startDate: startDateFilter
+          ? new Date(startDateFilter).toISOString()
+          : undefined,
+        endDate: endDateFilter
+          ? new Date(endDateFilter).toISOString()
+          : undefined,
       });
 
       setPosts(data.content);
@@ -123,9 +133,11 @@ export default function Posts() {
   }, [
     debouncedSearch,
     debouncedHashtag,
+    debouncedContent,
+    debouncedAuthor,
     typeFilter,
-    timeFilter,
-    sensitiveFilter,
+    startDateFilter,
+    endDateFilter,
   ]);
 
   useEffect(() => {
@@ -288,11 +300,12 @@ export default function Posts() {
         </CardHeader>
         <CardContent>
           <div className="flex flex-col space-y-4 mb-6">
+            {/* Row 1: Search & Hashtag */}
             <div className="flex flex-col md:flex-row gap-3">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
-                  placeholder="Tìm kiếm nội dung, tác giả..."
+                  placeholder="Tìm kiếm..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   className="pl-9"
@@ -301,7 +314,7 @@ export default function Posts() {
               <div className="relative flex-1 md:max-w-xs">
                 <Hash className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
-                  placeholder="Lọc hashtag (VD: #nexo)"
+                  placeholder="Hashtag (VD: #nexo)"
                   value={hashtagFilter}
                   onChange={(e) => setHashtagFilter(e.target.value)}
                   className="pl-9"
@@ -309,6 +322,27 @@ export default function Posts() {
               </div>
             </div>
 
+            {/* Row 2: Author & Content */}
+            <div className="flex flex-col md:flex-row gap-3">
+              <div className="relative flex-1">
+                <Input
+                  placeholder="Tên tác giả..."
+                  value={authorFilter}
+                  onChange={(e) => setAuthorFilter(e.target.value)}
+                  className="pl-3"
+                />
+              </div>
+              <div className="relative flex-1">
+                <Input
+                  placeholder="Nội dung..."
+                  value={contentFilter}
+                  onChange={(e) => setContentFilter(e.target.value)}
+                  className="pl-3"
+                />
+              </div>
+            </div>
+
+            {/* Row 3: Type & Date Range */}
             <div className="flex flex-col md:flex-row gap-3">
               <Select value={typeFilter} onValueChange={setTypeFilter}>
                 <SelectTrigger className="w-full md:w-[180px]">
@@ -322,33 +356,25 @@ export default function Posts() {
                 </SelectContent>
               </Select>
 
-              <Select value={timeFilter} onValueChange={setTimeFilter}>
-                <SelectTrigger className="w-full md:w-[180px]">
-                  <Calendar className="w-4 h-4 mr-2" />
-                  <SelectValue placeholder="Thời gian" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Mọi lúc</SelectItem>
-                  <SelectItem value="today">Hôm nay</SelectItem>
-                  <SelectItem value="week">7 ngày qua</SelectItem>
-                  <SelectItem value="month">30 ngày qua</SelectItem>
-                </SelectContent>
-              </Select>
+              <div className="flex-1">
+                <Input
+                  type="date"
+                  placeholder="Từ ngày"
+                  value={startDateFilter}
+                  onChange={(e) => setStartDateFilter(e.target.value)}
+                  className="w-full"
+                />
+              </div>
 
-              <Select
-                value={sensitiveFilter}
-                onValueChange={setSensitiveFilter}
-              >
-                <SelectTrigger className="w-full md:w-[220px]">
-                  <AlertTriangle className="w-4 h-4 mr-2" />
-                  <SelectValue placeholder="Nội dung nhạy cảm" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Tất cả bài viết</SelectItem>
-                  <SelectItem value="flagged">Có từ khóa nhạy cảm</SelectItem>
-                  <SelectItem value="safe">An toàn</SelectItem>
-                </SelectContent>
-              </Select>
+              <div className="flex-1">
+                <Input
+                  type="date"
+                  placeholder="Đến ngày"
+                  value={endDateFilter}
+                  onChange={(e) => setEndDateFilter(e.target.value)}
+                  className="w-full"
+                />
+              </div>
             </div>
           </div>
 

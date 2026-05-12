@@ -114,6 +114,13 @@ interface UIUser {
   createdAt: string;
 }
 
+interface InfoDashboardUser {
+  totalUsers: number;
+  totalUsersActive: number;
+  totalUsersLocked: number;
+  totalUsersPending: number;
+}
+
 export default function Users() {
   const {
     searchValue: searchInput,
@@ -256,7 +263,7 @@ export default function Users() {
         description: `Đã ${user.isVerified ? "thu hồi" : "cấp"} tick xanh cho ${user.username}`,
       });
       fetchUsers();
-    } catch (error) { }
+    } catch (error) {}
   };
 
   const handleDeleteAvatar = async (user: UIUser) => {
@@ -267,27 +274,18 @@ export default function Users() {
         description: `Đã xóa avatar của ${user.username}`,
       });
       fetchUsers();
-    } catch (error) { }
+    } catch (error) {}
   };
 
   const fetchSummaryStats = useCallback(async () => {
     try {
-      const [total, active, locked, pending] = await Promise.all([
-        axios.get("/users", { params: { limit: 1, offset: 0 } }),
-        axios.get("/users", {
-          params: { filter: "account_status = 'ACTIVE'", limit: 1 },
-        }),
-        axios.get("/users", {
-          params: { filter: "account_status = 'LOCKED'", limit: 1 },
-        }),
-        axios.get("/users", {
-          params: { filter: "account_status = 'PENDING'", limit: 1 },
-        }),
-      ]);
-      setTotalUsers(total.data.data.totalHits);
-      setActiveUsers(active.data.data.totalHits);
-      setLockedUsers(locked.data.data.totalHits);
-      setPendingUsers(pending.data.data.totalHits);
+      const response =
+        await axios.get<ResponseData<InfoDashboardUser>>("users/dashboard");
+      const data = response.data.data;
+      setTotalUsers(data.totalUsers);
+      setActiveUsers(data.totalUsersActive);
+      setLockedUsers(data.totalUsersLocked);
+      setPendingUsers(data.totalUsersPending);
     } catch (err) {
       console.error("Failed to load summary stats");
     }
