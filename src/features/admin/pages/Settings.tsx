@@ -95,46 +95,53 @@ export default function Settings() {
     });
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-          Cài đặt hệ thống
-        </h1>
-        <p className="text-muted-foreground">
-          Quản lý cấu hình và bảo mật hệ thống
-        </p>
+    <div className="space-y-8 animate-in fade-in duration-500 p-1">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+        <div>
+          <h1 className="text-4xl font-black tracking-tight text-slate-900">
+            Cài đặt{" "}
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-violet-600">
+              Hệ thống
+            </span>
+          </h1>
+          <p className="text-slate-500 font-medium mt-1">
+            Quản lý cấu hình, bảo mật và dịch vụ AI của Nexo
+          </p>
+        </div>
       </div>
 
-      <Tabs defaultValue="roles" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="roles">
-            <Shield className="w-4 h-4 mr-2" />
-            Vai trò
-          </TabsTrigger>
-          <TabsTrigger value="permissions">
-            <Key className="w-4 h-4 mr-2" />
-            Quyền hạn
-          </TabsTrigger>
-          <TabsTrigger value="system">
-            <SettingsIcon className="w-4 h-4 mr-2" />
-            Hệ thống
-          </TabsTrigger>
-          <TabsTrigger value="api">
-            <Database className="w-4 h-4 mr-2" />
-            API & Dịch vụ
-          </TabsTrigger>
-        </TabsList>
+      <Tabs defaultValue="roles" className="space-y-6">
+        <div className="bg-slate-50/80 p-1.5 rounded-2xl border shadow-sm w-max">
+          <TabsList className="bg-transparent h-12 w-full justify-start gap-2">
+            <TabsTrigger value="roles" className="rounded-xl px-6 data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-md transition-all font-semibold">
+              <Shield className="w-4 h-4 mr-2" />
+              Vai trò
+            </TabsTrigger>
+            <TabsTrigger value="permissions" className="rounded-xl px-6 data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-md transition-all font-semibold">
+              <Key className="w-4 h-4 mr-2" />
+              Quyền hạn
+            </TabsTrigger>
+            <TabsTrigger value="system" className="rounded-xl px-6 data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-md transition-all font-semibold">
+              <SettingsIcon className="w-4 h-4 mr-2" />
+              Hệ thống
+            </TabsTrigger>
+            <TabsTrigger value="api" className="rounded-xl px-6 data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-md transition-all font-semibold">
+              <Database className="w-4 h-4 mr-2" />
+              API & Dịch vụ
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
         {/* ROLES */}
-        <TabsContent value="roles" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Quản lý vai trò</CardTitle>
+        <TabsContent value="roles" className="space-y-4 focus-visible:outline-none">
+          <Card className="border-none shadow-xl rounded-[2rem] overflow-hidden bg-white">
+            <CardHeader className="bg-slate-50/50 border-b p-6">
+              <CardTitle className="text-xl font-bold text-slate-800">Quản lý vai trò</CardTitle>
               <CardDescription>
                 Tạo và quản lý các vai trò người dùng
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-4 p-6">
               {["Admin", "Moderator", "User"].map((role) => (
                 <div
                   key={role}
@@ -164,13 +171,13 @@ export default function Settings() {
         </TabsContent>
 
         {/* PERMISSIONS */}
-        <TabsContent value="permissions" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Quản lý quyền hạn</CardTitle>
+        <TabsContent value="permissions" className="space-y-4 focus-visible:outline-none">
+          <Card className="border-none shadow-xl rounded-[2rem] overflow-hidden bg-white">
+            <CardHeader className="bg-slate-50/50 border-b p-6">
+              <CardTitle className="text-xl font-bold text-slate-800">Quản lý quyền hạn</CardTitle>
               <CardDescription>Cấu hình quyền truy cập</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-4 p-6">
               {[
                 "Quản lý người dùng",
                 "Xóa bài viết",
@@ -190,13 +197,13 @@ export default function Settings() {
         </TabsContent>
 
         {/* SYSTEM */}
-        <TabsContent value="system" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Cấu hình hệ thống</CardTitle>
+        <TabsContent value="system" className="space-y-4 focus-visible:outline-none">
+          <Card className="border-none shadow-xl rounded-[2rem] overflow-hidden bg-white">
+            <CardHeader className="bg-slate-50/50 border-b p-6">
+              <CardTitle className="text-xl font-bold text-slate-800">Cấu hình hệ thống</CardTitle>
               <CardDescription>Thiết lập hệ thống</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-4 p-6">
               <Input
                 type="number"
                 defaultValue="10"
@@ -227,10 +234,10 @@ export default function Settings() {
           value="api"
           className="space-y-4 focus-visible:outline-none focus-visible:ring-0"
         >
-          <Card className="border-muted shadow-sm">
-            <CardHeader className="border-b bg-muted/10 pb-5 mb-5">
-              <CardTitle className="flex items-center gap-2 text-xl">
-                <Server className="w-5 h-5 text-primary" />
+          <Card className="border-none shadow-xl rounded-[2rem] overflow-hidden bg-white">
+            <CardHeader className="bg-slate-50/50 border-b p-6">
+              <CardTitle className="flex items-center gap-2 text-xl font-bold text-slate-800">
+                <Server className="w-5 h-5 text-indigo-600" />
                 API & Dịch vụ
               </CardTitle>
               <CardDescription className="text-sm">
@@ -239,7 +246,7 @@ export default function Settings() {
               </CardDescription>
             </CardHeader>
 
-            <CardContent className="space-y-6">
+            <CardContent className="space-y-6 p-6">
               {/* KHU VỰC CẤU HÌNH API */}
               <div className="space-y-4">
                 <h3 className="text-sm font-semibold flex items-center gap-2 text-foreground">

@@ -37,7 +37,7 @@ import { logoutAsync } from "@/features/auth/authSlice";
 // Types
 interface UserProfile {
   username: string;
-  email: string;
+  email?: string;
   avatarUrl?: string;
 }
 
@@ -85,11 +85,11 @@ export function AdminSidebar() {
     <Sidebar
       className={
         isCollapsed
-          ? "w-16 transition-all duration-300"
-          : "w-64 transition-all duration-300"
+          ? "w-16 transition-all duration-300 !z-50"
+          : "w-64 transition-all duration-300 !z-50"
       }
     >
-      <SidebarContent className="flex flex-col h-full bg-background/50 backdrop-blur-sm border-r border-border/50">
+      <SidebarContent className="flex flex-col h-full bg-background border-r border-border/50">
         {/* Lô-gô & Tiêu đề */}
         <div className="px-4 py-6 border-b border-border/50">
           <div
@@ -203,9 +203,9 @@ export function AdminSidebar() {
                 </div>
                 <DropdownMenuItem
                   onClick={() => setShowChangePassword(true)}
-                  className="cursor-pointer rounded-md mx-1 my-1"
+                  className="focus:bg-primary/15 focus:text-primary cursor-pointer rounded-md mx-1 my-1"
                 >
-                  <KeyRound className="w-4 h-4 mr-2 text-primary" />
+                  <KeyRound className="w-4 h-4 mr-2 opacity-70" />
                   <span>Đổi mật khẩu</span>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator className="my-1" />

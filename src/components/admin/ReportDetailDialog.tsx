@@ -22,7 +22,6 @@ import {
   CheckCircle2,
   AlertCircle,
   Zap,
-  Checkmark,
   Search,
   Clock,
   FileCheck,
@@ -125,12 +124,7 @@ export function ReportDetailDialog({
 
       const statusMsg = getStatusMessage(newStatus);
       toast({
-        title: (
-          <div className="flex items-center gap-2">
-            {statusMsg.icon}
-            <span>Cập nhật thành công</span>
-          </div>
-        ),
+        title: "Cập nhật thành công",
         description: statusMsg.message,
         className:
           "border-l-4 border-emerald-500 bg-gradient-to-r from-emerald-50 to-teal-50 shadow-lg",
@@ -146,12 +140,7 @@ export function ReportDetailDialog({
     } catch (err) {
       console.error("Lỗi cập nhật trạng thái:", err);
       toast({
-        title: (
-          <div className="flex items-center gap-2">
-            <AlertCircle className="w-5 h-5 text-red-600" />
-            <span>Lỗi xảy ra</span>
-          </div>
-        ),
+        title: "Lỗi xảy ra",
         description:
           err instanceof Error
             ? err.message
@@ -217,9 +206,9 @@ export function ReportDetailDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl max-h-[95vh] p-0 overflow-hidden border-none shadow-2xl">
-        <DialogHeader className="p-6 bg-gradient-to-r from-slate-900 to-slate-800 text-white">
-          <div className="flex justify-between items-center">
+      <DialogContent className="max-w-5xl max-h-[95vh] p-0 overflow-hidden border-none shadow-2xl [&>button]:text-white [&>button]:hover:text-white [&>button]:bg-white/10 hover:[&>button]:bg-white/20 [&>button]:rounded-full">
+        <DialogHeader className="p-6 bg-gradient-to-r from-slate-900 to-slate-800 text-white relative">
+          <div className="flex justify-between items-center pr-10">
             <DialogTitle className="text-2xl font-bold flex items-center gap-2">
               <Flag className="w-6 h-6 text-red-400" />
               Chi tiết xử lý vi phạm
@@ -376,7 +365,7 @@ export function ReportDetailDialog({
             {/* ACTION BUTTONS */}
             <div className="pt-6 space-y-2">
               {report?.reportStatus === "PENDING" ||
-              report?.reportStatus === "IN_REVIEW" ? (
+                report?.reportStatus === "IN_REVIEW" ? (
                 <>
                   <Button
                     className="w-full bg-slate-900 hover:bg-black text-white rounded-xl h-12 shadow-lg transition-all active:scale-95"

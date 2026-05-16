@@ -369,15 +369,14 @@ export default function Reports() {
               onValueChange={(val) => dispatch(setStatusFilter(val as any))}
             >
               <SelectTrigger className="w-44 h-11 rounded-xl bg-slate-50">
-                <Filter className="w-4 h-4 mr-2 text-indigo-500" />
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="ALL">Tất cả trạng thái</SelectItem>
-                <SelectItem value="PENDING">🕒 Chờ xử lý</SelectItem>
-                <SelectItem value="IN_REVIEW">🔍 Đang xem xét</SelectItem>
-                <SelectItem value="APPROVED">✅ Đã duyệt</SelectItem>
-                <SelectItem value="REJECTED">❌ Từ chối</SelectItem>
+                <SelectItem value="ALL" hideIcon className="focus:bg-primary/15 focus:text-primary cursor-pointer">Tất cả trạng thái</SelectItem>
+                <SelectItem value="PENDING" hideIcon className="focus:bg-primary/15 focus:text-primary cursor-pointer">Chờ xử lý</SelectItem>
+                <SelectItem value="IN_REVIEW" hideIcon className="focus:bg-primary/15 focus:text-primary cursor-pointer">Đang xem xét</SelectItem>
+                <SelectItem value="APPROVED" hideIcon className="focus:bg-primary/15 focus:text-primary cursor-pointer">Đã duyệt</SelectItem>
+                <SelectItem value="REJECTED" hideIcon className="focus:bg-primary/15 focus:text-primary cursor-pointer">Từ chối</SelectItem>
               </SelectContent>
             </Select>
           </div>

@@ -126,7 +126,7 @@ export default function Users() {
     searchValue: searchInput,
     debouncedValue: search,
     setSearchValue: setSearch,
-  } = useDebouncedSearch("", 200);
+  } = useDebouncedSearch("", 800);
   const { toast } = useToast();
 
   const [statusFilter, setStatusFilter] = useState("all");
@@ -458,19 +458,18 @@ export default function Users() {
                   placeholder="Tìm theo tên, email, username..."
                   value={searchInput}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="pl-10 h-11 bg-white border-slate-200 rounded-xl focus:ring-indigo-500 shadow-sm"
+                  className="pl-10 h-11 bg-white border-slate-200 rounded-xl focus-visible:border-indigo-500 focus-visible:ring-0 shadow-sm"
                 />
               </div>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-44 h-11 rounded-xl bg-white shadow-sm">
-                  <Filter className="w-4 h-4 mr-2 text-indigo-500" />
+                <SelectTrigger className="w-44 h-11 rounded-xl bg-white shadow-sm border-slate-200 focus:border-indigo-500 focus:ring-0">
                   <SelectValue placeholder="Trạng thái" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Tất cả trạng thái</SelectItem>
-                  <SelectItem value="active">● Hoạt động</SelectItem>
-                  <SelectItem value="locked">● Bị khóa</SelectItem>
-                  <SelectItem value="pending">● Chờ xác thực</SelectItem>
+                  <SelectItem value="all" hideIcon className="focus:bg-primary/15 focus:text-primary cursor-pointer">Tất cả trạng thái</SelectItem>
+                  <SelectItem value="active" hideIcon className="focus:bg-primary/15 focus:text-primary cursor-pointer">Hoạt động</SelectItem>
+                  <SelectItem value="locked" hideIcon className="focus:bg-primary/15 focus:text-primary cursor-pointer">Bị khóa</SelectItem>
+                  <SelectItem value="pending" hideIcon className="focus:bg-primary/15 focus:text-primary cursor-pointer">Chờ xác thực</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -628,38 +627,41 @@ export default function Users() {
                             className="w-52 rounded-xl p-2 shadow-2xl border-slate-100"
                           >
                             <DropdownMenuItem
+                              className="focus:bg-primary/15 focus:text-primary cursor-pointer"
                               onClick={() => {
                                 setSelectedUser(user);
                                 setDetailsDialogOpen(true);
                                 setActiveTab("overview");
                               }}
                             >
-                              <FileText className="w-4 h-4 mr-2 text-slate-500" />{" "}
+                              <FileText className="w-4 h-4 mr-2 opacity-70" />{" "}
                               Chi tiết hồ sơ
                             </DropdownMenuItem>
                             <DropdownMenuItem
+                              className="focus:bg-primary/15 focus:text-primary cursor-pointer"
                               onClick={() => {
                                 setSelectedUserForStats(user);
                                 setStatsDialogOpen(true);
                               }}
                             >
-                              <TrendingUp className="w-4 h-4 mr-2 text-indigo-500" />{" "}
+                              <TrendingUp className="w-4 h-4 mr-2 opacity-70" />{" "}
                               Thống kê tăng trưởng
                             </DropdownMenuItem>
                             <DropdownMenuItem
+                              className="focus:bg-primary/15 focus:text-primary cursor-pointer"
                               onClick={() => {
                                 setSelectedUser(user);
                                 setSelectedRole(user.role);
                                 setAssignRoleOpen(true);
                               }}
                             >
-                              <Shield className="w-4 h-4 mr-2 text-amber-500" />{" "}
+                              <Shield className="w-4 h-4 mr-2 opacity-70" />{" "}
                               Phân quyền
                             </DropdownMenuItem>
                             <div className="h-px bg-slate-100 my-1" />
                             {user.status === "locked" ? (
                               <DropdownMenuItem
-                                className="text-emerald-600 focus:text-emerald-700"
+                                className="text-emerald-600 focus:text-emerald-700 focus:bg-emerald-50 cursor-pointer"
                                 onClick={async () => {
                                   try {
                                     await unbanUser(user.username);
@@ -678,12 +680,11 @@ export default function Users() {
                                   }
                                 }}
                               >
-                                <Unlock className="w-4 h-4 mr-2" /> Mở khóa tài
-                                khoản
+                                <Unlock className="w-4 h-4 mr-2" /> Mở khóa tài khoản
                               </DropdownMenuItem>
                             ) : (
                               <DropdownMenuItem
-                                className="text-rose-600 focus:text-rose-700"
+                                className="text-rose-600 focus:text-rose-700 focus:bg-rose-50 cursor-pointer"
                                 onClick={() => {
                                   setSelectedUser(user);
                                   setBanDialogOpen(true);

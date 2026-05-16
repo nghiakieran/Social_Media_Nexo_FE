@@ -90,7 +90,7 @@ export default function Posts() {
   } | null>(null);
 
   const { toast } = useToast();
-  const debouncedSearch = useDebounce(search, 500);
+  const debouncedSearch = useDebounce(search, 800);
   const debouncedHashtag = useDebounce(hashtagFilter, 500);
   const debouncedContent = useDebounce(contentFilter, 500);
   const debouncedAuthor = useDebounce(authorFilter, 500);
@@ -238,86 +238,110 @@ export default function Posts() {
   };
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-          Quản lý bài viết
-        </h1>
-        <p className="text-muted-foreground">
-          Giám sát và kiểm duyệt toàn bộ nội dung trên nền tảng
-        </p>
+    <div className="space-y-8 animate-in fade-in duration-500 p-1">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+        <div>
+          <h1 className="text-4xl font-black tracking-tight text-slate-900">
+            Quản lý{" "}
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-violet-600">
+              Bài viết
+            </span>
+          </h1>
+          <p className="text-slate-500 font-medium mt-1">
+            Giám sát và kiểm duyệt toàn bộ nội dung trên nền tảng Nexo
+          </p>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card>
-          <CardContent className="flex items-center justify-between p-6">
-            <div className="space-y-1">
-              <p className="text-sm font-medium text-muted-foreground">
-                Tổng bài viết
-              </p>
-              <p className="text-2xl font-bold">{postInfo?.totalPost || 0}</p>
-            </div>
-            <div className="p-3 bg-primary/10 rounded-full">
-              <Layers className="w-5 h-5 text-primary" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="flex items-center justify-between p-6">
-            <div className="space-y-1">
-              <p className="text-sm font-medium text-muted-foreground">
-                Bài viết (Posts)
-              </p>
-              <p className="text-2xl font-bold">
-                {postInfo?.quantityPost || 0}
-              </p>
-            </div>
-            <div className="p-3 bg-blue-100 text-blue-600 rounded-full dark:bg-blue-900/20 dark:text-blue-400">
-              <ImageIcon className="w-5 h-5" />
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <Card className="border-none shadow-lg overflow-hidden group hover:shadow-xl transition-all duration-300">
+          <CardContent className="p-0 bg-gradient-to-br from-blue-600 to-indigo-600 text-white">
+            <div className="p-6 flex justify-between items-start">
+              <div>
+                <p className="text-white/70 text-xs font-bold uppercase mb-1 tracking-widest">
+                  Tổng bài viết
+                </p>
+                <h3 className="text-3xl font-black tracking-tighter">
+                  {(postInfo?.totalPost || 0).toLocaleString()}
+                </h3>
+              </div>
+              <div className="bg-white/20 p-3 rounded-2xl backdrop-blur-md group-hover:scale-110 group-hover:rotate-12 transition-transform">
+                <Layers className="w-6 h-6 text-white" />
+              </div>
             </div>
           </CardContent>
         </Card>
-        <Card>
-          <CardContent className="flex items-center justify-between p-6">
-            <div className="space-y-1">
-              <p className="text-sm font-medium text-muted-foreground">
-                Video ngắn (Reels)
-              </p>
-              <p className="text-2xl font-bold">
-                {postInfo?.quantityReel || 0}
-              </p>
+
+        <Card className="border-none shadow-lg overflow-hidden group hover:shadow-xl transition-all duration-300">
+          <CardContent className="p-0 bg-gradient-to-br from-emerald-500 to-teal-600 text-white">
+            <div className="p-6 flex justify-between items-start">
+              <div>
+                <p className="text-white/70 text-xs font-bold uppercase mb-1 tracking-widest">
+                  Bài viết (Posts)
+                </p>
+                <h3 className="text-3xl font-black tracking-tighter">
+                  {(postInfo?.quantityPost || 0).toLocaleString()}
+                </h3>
+              </div>
+              <div className="bg-white/20 p-3 rounded-2xl backdrop-blur-md group-hover:scale-110 group-hover:rotate-12 transition-transform">
+                <ImageIcon className="w-6 h-6 text-white" />
+              </div>
             </div>
-            <div className="rounded-full bg-primary/15 p-3 text-primary dark:bg-primary/25">
-              <Clapperboard className="w-5 h-5" />
+          </CardContent>
+        </Card>
+
+        <Card className="border-none shadow-lg overflow-hidden group hover:shadow-xl transition-all duration-300">
+          <CardContent className="p-0 bg-gradient-to-br from-purple-500 to-fuchsia-600 text-white">
+            <div className="p-6 flex justify-between items-start">
+              <div>
+                <p className="text-white/70 text-xs font-bold uppercase mb-1 tracking-widest">
+                  Video ngắn (Reels)
+                </p>
+                <h3 className="text-3xl font-black tracking-tighter">
+                  {(postInfo?.quantityReel || 0).toLocaleString()}
+                </h3>
+              </div>
+              <div className="bg-white/20 p-3 rounded-2xl backdrop-blur-md group-hover:scale-110 group-hover:rotate-12 transition-transform">
+                <Clapperboard className="w-6 h-6 text-white" />
+              </div>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle>Danh sách & Bộ lọc nâng cao</CardTitle>
+      <Card className="border-none shadow-xl rounded-[2rem] overflow-hidden bg-white">
+        <CardHeader className="bg-slate-50/50 border-b p-6">
+          <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="p-2 bg-indigo-100 rounded-lg">
+                <Layers className="w-5 h-5 text-indigo-600" />
+              </div>
+              <CardTitle className="text-xl font-bold text-slate-800">
+                Cơ sở dữ liệu bài viết
+              </CardTitle>
+            </div>
+          </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-6">
           <div className="flex flex-col space-y-4 mb-6">
             {/* Row 1: Search & Hashtag */}
             <div className="flex flex-col md:flex-row gap-3">
               <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                 <Input
-                  placeholder="Tìm kiếm..."
+                  placeholder="Tìm kiếm nội dung, caption..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="pl-9"
+                  className="pl-9 h-11 rounded-xl bg-white shadow-sm border-slate-200 focus-visible:border-primary focus-visible:ring-0 transition-colors hover:bg-slate-50"
                 />
               </div>
               <div className="relative flex-1 md:max-w-xs">
-                <Hash className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Hash className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                 <Input
                   placeholder="Hashtag (VD: #nexo)"
                   value={hashtagFilter}
                   onChange={(e) => setHashtagFilter(e.target.value)}
-                  className="pl-9"
+                  className="pl-9 h-11 rounded-xl bg-white shadow-sm border-slate-200 focus-visible:border-primary focus-visible:ring-0 transition-colors hover:bg-slate-50"
                 />
               </div>
             </div>
@@ -329,7 +353,7 @@ export default function Posts() {
                   placeholder="Tên tác giả..."
                   value={authorFilter}
                   onChange={(e) => setAuthorFilter(e.target.value)}
-                  className="pl-3"
+                  className="pl-4 h-11 rounded-xl bg-white shadow-sm border-slate-200 focus-visible:border-primary focus-visible:ring-0 transition-colors hover:bg-slate-50"
                 />
               </div>
               <div className="relative flex-1">
@@ -337,7 +361,7 @@ export default function Posts() {
                   placeholder="Nội dung..."
                   value={contentFilter}
                   onChange={(e) => setContentFilter(e.target.value)}
-                  className="pl-3"
+                  className="pl-4 h-11 rounded-xl bg-white shadow-sm border-slate-200 focus-visible:border-primary focus-visible:ring-0 transition-colors hover:bg-slate-50"
                 />
               </div>
             </div>
@@ -345,14 +369,13 @@ export default function Posts() {
             {/* Row 3: Type & Date Range */}
             <div className="flex flex-col md:flex-row gap-3">
               <Select value={typeFilter} onValueChange={setTypeFilter}>
-                <SelectTrigger className="w-full md:w-[180px]">
-                  <Filter className="w-4 h-4 mr-2" />
+                <SelectTrigger className="w-full md:w-[180px] h-11 rounded-xl bg-white shadow-sm border-slate-200 focus:border-primary focus:ring-0 transition-colors hover:bg-slate-50">
                   <SelectValue placeholder="Loại nội dung" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Tất cả định dạng</SelectItem>
-                  <SelectItem value="post">Posts</SelectItem>
-                  <SelectItem value="reel">Reels</SelectItem>
+                  <SelectItem value="all" hideIcon className="focus:bg-primary/15 focus:text-primary cursor-pointer">Tất cả định dạng</SelectItem>
+                  <SelectItem value="post" hideIcon className="focus:bg-primary/15 focus:text-primary cursor-pointer">Posts</SelectItem>
+                  <SelectItem value="reel" hideIcon className="focus:bg-primary/15 focus:text-primary cursor-pointer">Reels</SelectItem>
                 </SelectContent>
               </Select>
 
@@ -362,7 +385,7 @@ export default function Posts() {
                   placeholder="Từ ngày"
                   value={startDateFilter}
                   onChange={(e) => setStartDateFilter(e.target.value)}
-                  className="w-full"
+                  className="w-full h-11 rounded-xl bg-white shadow-sm border-slate-200 focus-visible:border-primary focus-visible:ring-0 transition-colors hover:bg-slate-50"
                 />
               </div>
 
@@ -372,7 +395,7 @@ export default function Posts() {
                   placeholder="Đến ngày"
                   value={endDateFilter}
                   onChange={(e) => setEndDateFilter(e.target.value)}
-                  className="w-full"
+                  className="w-full h-11 rounded-xl bg-white shadow-sm border-slate-200 focus-visible:border-primary focus-visible:ring-0 transition-colors hover:bg-slate-50"
                 />
               </div>
             </div>

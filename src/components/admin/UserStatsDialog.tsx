@@ -65,7 +65,7 @@ export function UserStatsDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl p-0 overflow-hidden border-none shadow-2xl rounded-3xl">
+      <DialogContent className="max-w-4xl p-0 overflow-hidden border-none shadow-2xl rounded-3xl [&>button]:text-white [&>button]:hover:text-white [&>button]:bg-white/10 hover:[&>button]:bg-white/20 [&>button]:rounded-full">
         <DialogHeader className="p-8 bg-slate-900 text-white relative">
           <div className="flex items-center gap-6">
             <Avatar className="w-20 h-20 border-4 border-white/10 shadow-xl rounded-2xl">

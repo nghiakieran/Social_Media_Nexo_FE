@@ -339,26 +339,26 @@ export default function Dashboard() {
       </div>
 
       {/* Trending Hashtags Section */}
-      <Card className="overflow-hidden border-none shadow-xl bg-slate-900 text-white">
-        <CardHeader className="border-b border-slate-800">
+      <Card className="overflow-hidden border-none shadow-xl rounded-[2rem] bg-white text-slate-800">
+        <CardHeader className="bg-slate-50/50 border-b border-slate-100 p-6">
           <CardTitle className="flex items-center gap-3 text-xl font-black">
-            <TrendingUp className="w-6 h-6 text-indigo-400" />
+            <TrendingUp className="w-6 h-6 text-indigo-600" />
             Xu hướng thịnh hành (Top 5)
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
-          <div className="divide-y divide-slate-800">
+          <div className="divide-y divide-slate-100">
             {topHashtags.length > 0 ? (
               topHashtags.map((hashtag, index) => (
                 <div
                   key={hashtag.id}
-                  className="flex items-center gap-4 p-5 transition-colors hover:bg-slate-800/50 group"
+                  className="flex items-center gap-4 p-5 transition-colors hover:bg-slate-50 group"
                 >
-                  <div className="flex items-center justify-center w-10 h-10 font-black rounded-xl bg-slate-800 text-slate-400 group-hover:bg-indigo-600 group-hover:text-white transition-all">
+                  <div className="flex items-center justify-center w-10 h-10 font-black rounded-xl bg-slate-100 text-slate-500 group-hover:bg-indigo-600 group-hover:text-white transition-all">
                     #{index + 1}
                   </div>
                   <div className="flex-1">
-                    <p className="text-lg font-bold text-slate-100 group-hover:text-indigo-400 transition-colors">
+                    <p className="text-lg font-bold text-slate-800 group-hover:text-indigo-600 transition-colors">
                       {hashtag.name}
                     </p>
                     <p className="text-sm font-medium text-slate-500">
@@ -366,7 +366,7 @@ export default function Dashboard() {
                     </p>
                   </div>
                   <div className="flex flex-col items-end">
-                    <div className="px-3 py-1 text-xs font-bold rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                    <div className="px-3 py-1 text-xs font-bold rounded-full bg-emerald-500/10 text-emerald-600 border border-emerald-200">
                       HOT
                     </div>
                   </div>
