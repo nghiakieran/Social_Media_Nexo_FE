@@ -458,11 +458,11 @@ export default function Users() {
                   placeholder="Tìm theo tên, email, username..."
                   value={searchInput}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="pl-10 h-11 bg-white border-slate-200 rounded-xl focus-visible:border-indigo-500 focus-visible:ring-0 shadow-sm"
+                  className="pl-10 h-11 bg-white border-slate-200 rounded-xl focus-visible:border-primary focus-visible:ring-0 shadow-sm transition-colors"
                 />
               </div>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-44 h-11 rounded-xl bg-white shadow-sm border-slate-200 focus:border-indigo-500 focus:ring-0">
+                <SelectTrigger className="w-44 h-11 rounded-xl bg-white shadow-sm border-slate-200 focus:border-primary focus:ring-0 transition-colors">
                   <SelectValue placeholder="Trạng thái" />
                 </SelectTrigger>
                 <SelectContent>
