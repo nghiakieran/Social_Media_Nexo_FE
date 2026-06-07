@@ -31,6 +31,7 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { changePassword } from "../api/profileApi";
+import { ActivityLogs } from "./ActivityLogs";
 
 export const AccountSettings = () => {
   const navigate = useNavigate();
@@ -57,6 +58,7 @@ export const AccountSettings = () => {
   const handleSettingChange = (key: string, value: boolean) => {
     setSettings((prev) => ({ ...prev, [key]: value }));
     toast({
+      variant: "success",
       title: "Đã cập nhật cài đặt",
       description: "Thay đổi của bạn đã được lưu.",
     });
@@ -101,6 +103,7 @@ export const AccountSettings = () => {
       });
 
       toast({
+        variant: "success",
         title: "Thành công",
         description: "Mật khẩu của bạn đã được cập nhật thành công.",
       });
@@ -125,6 +128,7 @@ export const AccountSettings = () => {
 
   const handleDeactivateAccount = () => {
     toast({
+      variant: "success",
       title: "Tài khoản đã được vô hiệu hóa",
       description: "Tài khoản của bạn sẽ bị ẩn cho đến khi bạn đăng nhập lại.",
     });
@@ -133,6 +137,7 @@ export const AccountSettings = () => {
 
   const handleDownloadData = () => {
     toast({
+      variant: "info",
       title: "Đang chuẩn bị dữ liệu",
       description:
         "Chúng tôi sẽ gửi email cho bạn khi dữ liệu sẵn sàng để tải xuống.",
@@ -347,7 +352,7 @@ export const AccountSettings = () => {
                       type="button"
                       variant="ghost"
                       size="icon"
-                      className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                      className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-primary/10"
                       onClick={() =>
                         setShowCurrentPassword(!showCurrentPassword)
                       }
@@ -375,7 +380,7 @@ export const AccountSettings = () => {
                       type="button"
                       variant="ghost"
                       size="icon"
-                      className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                      className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-primary/10"
                       onClick={() => setShowNewPassword(!showNewPassword)}
                       tabIndex={-1}
                     >
@@ -403,7 +408,7 @@ export const AccountSettings = () => {
                       type="button"
                       variant="ghost"
                       size="icon"
-                      className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                      className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-primary/10"
                       onClick={() =>
                         setShowConfirmPassword(!showConfirmPassword)
                       }
@@ -424,6 +429,7 @@ export const AccountSettings = () => {
                   onClick={() => setShowPasswordDialog(false)}
                   disabled={isChangingPassword}
                   tabIndex={-1}
+                  className="font-medium text-foreground"
                 >
                   Hủy
                 </Button>
@@ -495,6 +501,9 @@ export const AccountSettings = () => {
           </Dialog>
         </CardContent>
       </Card>
+
+      {/* Activity Logs */}
+      <ActivityLogs />
     </div>
   );
 };

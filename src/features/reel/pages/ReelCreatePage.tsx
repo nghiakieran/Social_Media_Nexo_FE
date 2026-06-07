@@ -65,6 +65,7 @@ const ReelCreatePage = () => {
       ).unwrap();
 
       toast({
+        variant: "success",
         title: "Tạo reel thành công!",
         description: "Reel của bạn đã được tạo.",
       });

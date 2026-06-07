@@ -111,8 +111,8 @@ export default function SuggestedPage() {
       <div className="mb-6">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-full bg-gradient-instagram flex items-center justify-center">
-              <UserPlus className="w-6 h-6 text-white" />
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-md">
+              <UserPlus className="h-6 w-6" />
             </div>
             <div>
               <h1 className="text-3xl font-bold">Gợi ý kết bạn</h1>
@@ -126,7 +126,7 @@ export default function SuggestedPage() {
             disabled={isRefreshing}
             className="flex items-center gap-2"
           >
-            <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`h-4 w-4 text-primary ${isRefreshing ? "animate-spin" : ""}`} />
             Làm mới
           </Button>
         </div>
@@ -229,7 +229,7 @@ export default function SuggestedPage() {
                   className="mt-4"
                   disabled={isRefreshing}
                 >
-                  <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+                  <RefreshCw className={`mr-2 h-4 w-4 text-primary ${isRefreshing ? "animate-spin" : ""}`} />
                   Tải gợi ý mới
                 </Button>
               )}

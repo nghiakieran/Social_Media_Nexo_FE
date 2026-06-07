@@ -1,4 +1,8 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, lazy } from "react";
+
+const GroupInfoPanelLazy = lazy(() =>
+  import("./GroupInfoPanel").then((m) => ({ default: m.GroupInfoPanel }))
+);
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import {
@@ -8,6 +12,7 @@ import {
   Info,
   MoreVertical,
   Settings,
+  Users,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -39,7 +44,11 @@ interface InstagramChatHeaderProps {
   onCall?: (type: "voice" | "video") => void;
   onNicknameUpdated?: () => void;
   onBlockStatusChanged?: () => void;
+  onGroupUpdated?: () => void;
+  onGroupLeft?: () => void;
   showBackButton?: boolean;
+  /** Chỉ hiện nút quay lại trên mobile (ẩn từ md trở lên) — dùng khi inbox và chat nằm cạnh nhau trên desktop */
+  mobileOnlyBack?: boolean;
   className?: string;
   isOnline?: boolean;
   lastSeen?: string;
@@ -52,13 +61,17 @@ export const InstagramChatHeader: React.FC<InstagramChatHeaderProps> = ({
   onCall,
   onNicknameUpdated,
   onBlockStatusChanged,
+  onGroupUpdated,
+  onGroupLeft,
   showBackButton = false,
+  mobileOnlyBack = false,
   className,
   isOnline = false,
   lastSeen,
   currentUserId,
 }) => {
   const [nicknameDialogOpen, setNicknameDialogOpen] = useState(false);
+  const [groupInfoOpen, setGroupInfoOpen] = useState(false);
   const [participants, setParticipants] = useState<UserDTO[]>([]);
   const [editingUserId, setEditingUserId] = useState<number | null>(null);
   const [nickname, setNickname] = useState("");
@@ -269,14 +282,19 @@ export const InstagramChatHeader: React.FC<InstagramChatHeaderProps> = ({
     return (
       <div
         className={cn(
-          "flex items-center justify-between p-4 border-b border-border bg-background",
+          "flex items-center justify-between border-b border-primary/10 bg-background/95 p-4 backdrop-blur-sm",
           className
         )}
       >
         <div className="flex items-center space-x-3">
           {showBackButton && (
-            <Button variant="ghost" size="icon" onClick={onBack}>
-              <ArrowLeft className="h-4 w-4" />
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onBack}
+              className={cn(mobileOnlyBack && "md:hidden")}
+            >
+              <ArrowLeft className="h-4 w-4 text-primary" />
             </Button>
           )}
           <h1 className="text-xl font-semibold">Tin nhắn</h1>
@@ -291,35 +309,56 @@ export const InstagramChatHeader: React.FC<InstagramChatHeaderProps> = ({
   return (
     <div
       className={cn(
-        "flex items-center justify-between p-2 md:p-3 border-b border-border bg-background",
+        "flex items-center justify-between border-b border-primary/10 bg-background/95 p-2 backdrop-blur-sm md:p-3",
         className
       )}
     >
-      <div className="flex items-center space-x-2 md:space-x-3 flex-1 min-w-0">
+      <div className="flex min-w-0 flex-1 items-center space-x-2 md:space-x-3">
         {showBackButton && (
           <Button
             variant="ghost"
             size="icon"
             onClick={onBack}
-            className="shrink-0 h-8 w-8 md:h-10 md:w-10"
+            className={cn(
+              "h-8 w-8 shrink-0 md:h-10 md:w-10",
+              mobileOnlyBack && "md:hidden"
+            )}
           >
-            <ArrowLeft className="h-4 w-4" />
+            <ArrowLeft className="h-4 w-4 text-primary" />
           </Button>
         )}
 
         <div className="relative shrink-0">
-          <Avatar className="h-8 w-8 md:h-10 md:w-10">
-            <AvatarImage src={chat.avatarUrl ?? ""} alt={chat.fullname ?? ""} />
-            <AvatarFallback>
-              {chat.fullname ? chat.fullname.charAt(0) : "?"}
-            </AvatarFallback>
-          </Avatar>
-          {shouldShowPresence && (
-            <OnlineIndicator
-              isOnline={isOnline}
-              size="sm"
-              className="absolute -bottom-0.5 -right-0.5"
-            />
+          {chat.isGroup ? (
+            <div
+              className="h-8 w-8 md:h-10 md:w-10 rounded-full bg-primary/10 flex items-center justify-center cursor-pointer"
+              onClick={() => setGroupInfoOpen(true)}
+            >
+              {chat.groupAvatarUrl ? (
+                <Avatar className="h-8 w-8 md:h-10 md:w-10">
+                  <AvatarImage src={chat.groupAvatarUrl} alt={chat.groupName} />
+                  <AvatarFallback><Users className="h-4 w-4 text-primary" /></AvatarFallback>
+                </Avatar>
+              ) : (
+                <Users className="h-4 w-4 text-primary" />
+              )}
+            </div>
+          ) : (
+            <>
+              <Avatar className="h-8 w-8 md:h-10 md:w-10">
+                <AvatarImage src={chat.avatarUrl ?? ""} alt={chat.fullname ?? ""} />
+                <AvatarFallback>
+                  {chat.fullname ? chat.fullname.charAt(0) : "?"}
+                </AvatarFallback>
+              </Avatar>
+              {shouldShowPresence && (
+                <OnlineIndicator
+                  isOnline={isOnline}
+                  size="sm"
+                  className="absolute -bottom-0.5 -right-0.5"
+                />
+              )}
+            </>
           )}
         </div>
 
@@ -327,15 +366,23 @@ export const InstagramChatHeader: React.FC<InstagramChatHeaderProps> = ({
           <h3
             className="font-semibold text-sm md:text-base truncate cursor-pointer hover:underline"
             onClick={() => {
-              if (chat.username) navigate(`/${chat.username}`);
+              if (chat.isGroup) {
+                setGroupInfoOpen(true);
+              } else if (chat.username) {
+                navigate(`/${chat.username}`);
+              }
             }}
             tabIndex={0}
             role="button"
-            aria-label={`Xem trang cá nhân của ${chat.fullname ?? ""}`}
+            aria-label={chat.isGroup ? `Xem thông tin nhóm ${chat.groupName ?? ""}` : `Xem trang cá nhân của ${chat.fullname ?? ""}`}
           >
-            {chat.fullname ?? ""}
+            {chat.isGroup ? (chat.groupName ?? chat.fullname ?? "") : (chat.fullname ?? "")}
           </h3>
-          {chat.blockedByMe ? (
+          {chat.isGroup ? (
+            <p className="text-xs text-muted-foreground">
+              {chat.participants.length} thành viên
+            </p>
+          ) : chat.blockedByMe ? (
             <p className="text-xs text-muted-foreground">
               <span className="text-destructive font-medium">
                 Bạn đã chặn người này
@@ -354,52 +401,79 @@ export const InstagramChatHeader: React.FC<InstagramChatHeaderProps> = ({
       </div>
 
       <div className="flex items-center space-x-0.5 md:space-x-1 shrink-0">
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-8 w-8 md:h-9 md:w-9"
-          onClick={() => onCall?.("voice")}
-        >
-          <Phone className="h-4 w-4" />
-        </Button>
+        {!chat.isGroup && (
+          <>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 hover:bg-primary/10 hover:text-primary md:h-9 md:w-9"
+              onClick={() => onCall?.("voice")}
+            >
+              <Phone className="h-4 w-4" />
+            </Button>
 
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-8 w-8 md:h-9 md:w-9"
-          onClick={() => onCall?.("video")}
-        >
-          <Video className="h-4 w-4" />
-        </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 hover:bg-primary/10 hover:text-primary md:h-9 md:w-9"
+              onClick={() => onCall?.("video")}
+            >
+              <Video className="h-4 w-4" />
+            </Button>
+          </>
+        )}
+
+        {chat.isGroup && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 hover:bg-primary/10 hover:text-primary md:h-9 md:w-9"
+            onClick={() => setGroupInfoOpen(true)}
+            title="Thông tin nhóm"
+          >
+            <Info className="h-4 w-4" />
+          </Button>
+        )}
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
               variant="ghost"
               size="icon"
-              className="h-8 w-8 md:h-9 md:w-9"
+              className="h-8 w-8 hover:bg-primary/10 hover:text-primary md:h-9 md:w-9"
             >
               <MoreVertical className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-48">
-            <DropdownMenuItem
-              onClick={() => {
-                if (chat.username) navigate(`/${chat.username}`);
-              }}
-            >
-              Xem trang cá nhân
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={handleOpenNicknameDialog}>
-              Biệt danh
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              className="text-destructive"
-              onClick={handleOpenBlockDialog}
-            >
-              {chat.blockedByMe ? "Bỏ chặn" : "Chặn"}
-            </DropdownMenuItem>
+            {chat.isGroup ? (
+              <>
+                <DropdownMenuItem onClick={() => setGroupInfoOpen(true)}>
+                  <Users className="h-4 w-4 mr-2" />
+                  Thông tin nhóm
+                </DropdownMenuItem>
+              </>
+            ) : (
+              <>
+                <DropdownMenuItem
+                  onClick={() => {
+                    if (chat.username) navigate(`/${chat.username}`);
+                  }}
+                >
+                  Xem trang cá nhân
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleOpenNicknameDialog}>
+                  Biệt danh
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  className="text-destructive"
+                  onClick={handleOpenBlockDialog}
+                >
+                  {chat.blockedByMe ? "Bỏ chặn" : "Chặn"}
+                </DropdownMenuItem>
+              </>
+            )}
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
@@ -530,6 +604,22 @@ export const InstagramChatHeader: React.FC<InstagramChatHeaderProps> = ({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Group Info Panel */}
+      {chat.isGroup && (
+        <React.Suspense fallback={null}>
+          {groupInfoOpen && (
+            <GroupInfoPanelLazy
+              open={groupInfoOpen}
+              onOpenChange={setGroupInfoOpen}
+              conversation={chat}
+              currentUserId={currentUserId}
+              onUpdated={() => { onGroupUpdated?.(); }}
+              onLeft={() => { onGroupLeft?.(); }}
+            />
+          )}
+        </React.Suspense>
+      )}
 
       <Dialog open={blockDialogOpen} onOpenChange={setBlockDialogOpen}>
         <DialogContent className="sm:max-w-md">

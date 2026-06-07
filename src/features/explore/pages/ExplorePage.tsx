@@ -12,8 +12,15 @@ export const ExplorePage: React.FC = () => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const { posts, isLoading, error, hasMore, currentPage } = useAppSelector(
-    (state) => state.explore
+    (state) => state.explore,
   );
+  console.log("ExplorePage render", {
+    posts,
+    isLoading,
+    error,
+    hasMore,
+    currentPage,
+  });
   const [searchParams] = useSearchParams();
   const hashtag = searchParams.get("hashtag") ?? null;
   // Load initial data
@@ -34,7 +41,7 @@ export const ExplorePage: React.FC = () => {
         getExplorePostsThunk({
           pageNo: currentPage + 1,
           pageSize: 10,
-        })
+        }),
       );
     }
   };
@@ -71,7 +78,10 @@ export const ExplorePage: React.FC = () => {
               className="h-10 w-10 rounded-full hover:bg-primary/10 transition-colors"
             >
               <RefreshCw
-                className={cn("h-4 w-4", isLoading && "animate-spin")}
+                className={cn(
+                  "h-4 w-4 text-primary",
+                  isLoading && "animate-spin",
+                )}
               />
             </Button>
           </div>
@@ -101,7 +111,7 @@ export const ExplorePage: React.FC = () => {
               >
                 {isLoading ? (
                   <>
-                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                    <RefreshCw className="mr-2 h-4 w-4 animate-spin text-primary" />
                     Loading...
                   </>
                 ) : (

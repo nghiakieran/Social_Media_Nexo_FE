@@ -252,7 +252,6 @@ const ReelCommentDrawer = () => {
                         isLiked={comment.isLiked}
                         likesCount={comment.likesCount}
                         size="sm"
-                        variant="ghost"
                         showCount={false}
                         onLikeChange={() => handleLikeComment(comment.id)}
                         className="h-auto p-1 text-gray-400 hover:text-red-500"

@@ -214,6 +214,7 @@ export const StoryCreatePage = () => {
     URL.revokeObjectURL(url);
 
     toast({
+      variant: "success",
       title: "Đã tải xuống",
       description: "File đã được tải về máy",
     });
@@ -371,6 +372,7 @@ export const StoryCreatePage = () => {
       // If there are overlays, compose them into the image
       if (!isVideo && (textOverlays.length > 0 || stickers.length > 0)) {
         toast({
+          variant: "info",
           title: "Đang xử lý...",
           description: "Đang tạo story của bạn",
         });
@@ -398,6 +400,7 @@ export const StoryCreatePage = () => {
       ).unwrap();
 
       toast({
+        variant: "success",
         title: "Đã chia sẻ tin",
         description: "Tin của bạn đã được đăng thành công",
       });
@@ -419,7 +422,7 @@ export const StoryCreatePage = () => {
         <header className="border-b px-4 py-3 flex items-center justify-between">
           <button
             onClick={handleClose}
-            className="p-2 hover:bg-accent hover:text-white rounded-full transition-colors"
+            className="rounded-full p-2 transition-colors hover:bg-muted"
           >
             <ArrowLeft className="w-5 h-5" />
           </button>
@@ -428,7 +431,7 @@ export const StoryCreatePage = () => {
         </header>
 
         <div className="flex-1 flex flex-col items-center justify-center p-6">
-          <div className="w-32 h-32 rounded-full bg-gradient-to-br from-purple-500 via-pink-500 to-orange-500 flex items-center justify-center mb-6">
+          <div className="mb-6 flex h-32 w-32 items-center justify-center rounded-full bg-gradient-story">
             <Download className="w-16 h-16 text-white" />
           </div>
           <h2 className="text-xl font-semibold mb-2">Chọn ảnh hoặc video</h2>

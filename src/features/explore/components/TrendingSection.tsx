@@ -39,8 +39,8 @@ export const TrendingSection: React.FC<TrendingSectionProps> = ({
       {/* Section Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-2">
-          <div className="w-8 h-8 rounded-lg instagram-gradient flex items-center justify-center">
-            <TrendingUp className="h-4 w-4 text-white" />
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-sm">
+            <TrendingUp className="h-4 w-4" />
           </div>
           <h2 className="text-xl font-bold">{title}</h2>
           <Sparkles className="h-5 w-5 text-primary" />

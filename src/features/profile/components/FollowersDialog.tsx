@@ -80,6 +80,7 @@ export const FollowersDialog = ({
   const [userToUnfollow, setUserToUnfollow] = useState<
     FollowerUser | FollowingUser | null
   >(null);
+  const lastRequestedPageRef = useRef<number>(-1);
   const { toast } = useToast();
   const { isFollowersLoading, isFollowingLoading } = useAppSelector(
     (state) => state.profile
@@ -95,6 +96,7 @@ export const FollowersDialog = ({
   useEffect(() => {
     if (!isOpen) {
       initialLoadRef.current = false;
+      lastRequestedPageRef.current = -1;
       clearSearch();
     }
   }, [isOpen, clearSearch]);
@@ -113,6 +115,7 @@ export const FollowersDialog = ({
     if (!username || !isOpen) return;
 
     if (debouncedValue !== "") {
+      lastRequestedPageRef.current = 0;
       const params = {
         username,
         pageNo: 0,
@@ -163,6 +166,9 @@ export const FollowersDialog = ({
 
     const nextPage = currentPageNum + 1;
 
+    if (nextPage <= lastRequestedPageRef.current) return;
+    lastRequestedPageRef.current = nextPage;
+
     const params = {
       username,
       pageNo: nextPage,
@@ -194,11 +200,11 @@ export const FollowersDialog = ({
 
   const filteredUsers = Array.isArray(localUsers)
     ? localUsers.filter((user) => {
-        if (title === "Đang theo dõi" && isCurrentUser && !user.isFollowing) {
-          return false;
-        }
-        return true;
-      })
+      if (title === "Đang theo dõi" && isCurrentUser && !user.isFollowing) {
+        return false;
+      }
+      return true;
+    })
     : [];
 
   // Navigate to user profile
@@ -422,7 +428,7 @@ export const FollowersDialog = ({
               {filteredUsers.length === 0 ? (
                 <div className="h-full flex items-center justify-center text-muted-foreground">
                   {listLoading ? (
-                    <Loader2 className="w-6 h-6 animate-spin" />
+                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
                   ) : searchValue ? (
                     "Không tìm thấy kết quả"
                   ) : (
@@ -437,7 +443,7 @@ export const FollowersDialog = ({
                     <div
                       key={user.userId}
                       ref={isLastItem ? lastElementRef : null}
-                      className="flex items-center justify-between px-2 py-2 hover:bg-muted/40 rounded-lg transition-colors"
+                      className="flex items-center justify-between rounded-lg px-2 py-2 transition-colors hover:bg-primary/10 dark:hover:bg-primary/15"
                     >
                       <div
                         className="flex items-center gap-3 flex-1 min-w-0 cursor-pointer"
@@ -461,8 +467,8 @@ export const FollowersDialog = ({
                               (user.closeFriend
                                 ? "Bạn thân"
                                 : title === "Đang theo dõi"
-                                ? "Đang theo dõi"
-                                : "Người theo dõi")}
+                                  ? "Đang theo dõi"
+                                  : "Người theo dõi")}
                           </div>
                         </div>
                       </div>
@@ -470,7 +476,7 @@ export const FollowersDialog = ({
                       <div className="flex items-center gap-2">
                         {/* Không hiển thị nút nếu là chính mình */}
                         {currentUser &&
-                        user.userId === currentUser.id ? null : title ===
+                          user.userId === currentUser.id ? null : title ===
                             "Người theo dõi" && isCurrentUser ? (
                           <Button
                             variant="outline"
@@ -494,7 +500,7 @@ export const FollowersDialog = ({
                             </Button>
                           ) : (
                             <Button
-                              variant="instagram"
+                              variant="default"
                               size="sm"
                               onClick={() => handleFollow(user.userId)}
                               className="text-xs gap-1"
@@ -504,42 +510,42 @@ export const FollowersDialog = ({
                             </Button>
                           )
                         ) : // Following dialog
-                        user.isFollowing ? (
-                          // Show "Đang theo dõi" for confirmed follows
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleFollow(user.userId)}
-                            className="text-xs gap-1"
-                          >
-                            <UserMinus className="w-3 h-3" />
-                            Đang theo dõi
-                          </Button>
-                        ) : user.hasRequestedFollow ? (
-                          // Show "Hủy yêu cầu" for pending requests
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() =>
-                              handleCancelFollowRequest(user.userId)
-                            }
-                            className="text-xs gap-1"
-                          >
-                            <UserCheck className="w-3 h-3" />
-                            Hủy yêu cầu
-                          </Button>
-                        ) : (
-                          // Show "Theo dõi" for not following
-                          <Button
-                            variant="instagram"
-                            size="sm"
-                            onClick={() => handleFollow(user.userId)}
-                            className="text-xs gap-1"
-                          >
-                            <UserPlus className="w-3 h-3" />
-                            Theo dõi
-                          </Button>
-                        )}
+                          user.isFollowing ? (
+                            // Show "Đang theo dõi" for confirmed follows
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleFollow(user.userId)}
+                              className="text-xs gap-1"
+                            >
+                              <UserMinus className="w-3 h-3" />
+                              Đang theo dõi
+                            </Button>
+                          ) : user.hasRequestedFollow ? (
+                            // Show "Hủy yêu cầu" for pending requests
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() =>
+                                handleCancelFollowRequest(user.userId)
+                              }
+                              className="text-xs gap-1"
+                            >
+                              <UserCheck className="w-3 h-3" />
+                              Hủy yêu cầu
+                            </Button>
+                          ) : (
+                            // Show "Theo dõi" for not following
+                            <Button
+                              variant="default"
+                              size="sm"
+                              onClick={() => handleFollow(user.userId)}
+                              className="text-xs gap-1"
+                            >
+                              <UserPlus className="w-3 h-3" />
+                              Theo dõi
+                            </Button>
+                          )}
                       </div>
                     </div>
                   );
@@ -549,7 +555,7 @@ export const FollowersDialog = ({
               {/* Loading indicator */}
               {listLoading && filteredUsers.length > 0 && (
                 <div className="flex items-center justify-center py-4">
-                  <Loader2 className="w-5 h-5 animate-spin" />
+                  <Loader2 className="h-5 w-5 animate-spin text-primary" />
                   <span className="ml-2 text-sm text-muted-foreground">
                     Đang tải...
                   </span>

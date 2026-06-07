@@ -171,7 +171,7 @@ export const MediaUploader = ({
         <div className="space-y-6">
           <div className="w-20 h-20 mx-auto rounded-2xl bg-gradient-to-br from-primary/10 to-accent/10 flex items-center justify-center shadow-lg">
             {uploading ? (
-              <div className="animate-spin rounded-full h-10 w-10 border-3 border-primary/30 border-t-primary"></div>
+              <div className="h-10 w-10 animate-spin rounded-full border-4 border-primary/30 border-t-primary" />
             ) : (
               <Upload className="w-10 h-10 text-primary" />
             )}

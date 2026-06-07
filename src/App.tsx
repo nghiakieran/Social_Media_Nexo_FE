@@ -1,5 +1,4 @@
 import { ErrorBoundary } from "@/components/common/ErrorBoundary";
-import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthLayout } from "@/layouts/AuthLayout";
@@ -26,6 +25,7 @@ import {
   ACCESS_TOKEN_STORAGE_KEY,
 } from "@/utils/constants";
 import { WebSocketProvider } from "./utils/WebSocketProvider";
+import { GlobalCallHandler } from "./features/message/components/GlobalCallHandler";
 import { hasAdminRole } from "@/lib/utils";
 
 // Pages
@@ -160,7 +160,12 @@ const UserGuard = ({ children }: { children: JSX.Element }) => {
 
 const AuthenticatedAppWrapper = ({ children }: { children: JSX.Element }) => {
   const { isAuthenticated } = useAppSelector((state) => state.auth);
-  if (isAuthenticated) return <WebSocketProvider>{children}</WebSocketProvider>;
+  if (isAuthenticated)
+    return (
+      <WebSocketProvider>
+        <GlobalCallHandler>{children}</GlobalCallHandler>
+      </WebSocketProvider>
+    );
   return children;
 };
 
@@ -171,7 +176,6 @@ const App = () => (
         <QueryClientProvider client={queryClient}>
           <TooltipProvider>
             <Toaster />
-            <Sonner />
             <BrowserRouter>
               <NavigationBinder />
               <HydrateOnStart />

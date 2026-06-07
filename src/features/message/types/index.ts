@@ -5,6 +5,7 @@ export enum EMessageType {
   AUDIO = "AUDIO",
   FILE = "FILE",
   STORY = "STORY",
+  CALL = "CALL",
 }
 
 export enum EReactionType {
@@ -92,6 +93,27 @@ export interface ConversationResponseDTO {
   isMuted?: boolean;
   lastReadMessageId?: number;
   senderUserId?: number;
+  // Group fields
+  isGroup?: boolean;
+  groupName?: string;
+  groupAvatarUrl?: string;
+  createdByUserId?: number;
+  isGroupAdmin?: boolean;
+}
+
+export interface CreateGroupRequest {
+  groupName: string;
+  groupAvatarUrl?: string;
+  memberUserIds: number[];
+}
+
+export interface UpdateGroupRequest {
+  groupName?: string;
+  groupAvatarUrl?: string;
+}
+
+export interface AddMembersRequest {
+  userIds: number[];
 }
 
 export interface SendMessageRequest {
@@ -126,6 +148,11 @@ export interface ReactionUpdateLegacyDTO {
   reaction: ReactionDTO;
   action: "ADD" | "REMOVE";
 }
+
+/** Payload STOMP topic reactions  */
+export type ReactionWebSocketPayload =
+  | ReactionUpdateDTO
+  | ReactionUpdateLegacyDTO;
 
 export interface TypingNotificationDTO {
   conversationId: number;
@@ -196,4 +223,76 @@ export interface MessageUI extends MessageDTO {
   isRead?: boolean;
   isSending?: boolean;
   sendError?: string;
+}
+
+// ─── Call types ────────────────────────────────────────────────────────────
+
+export enum ECallType {
+  AUDIO_CALL = "AUDIO_CALL",
+  VIDEO_CALL = "VIDEO_CALL",
+}
+
+export enum ECallStatus {
+  INITIATED = "INITIATED",
+  RINGING = "RINGING",
+  ACCEPTED = "ACCEPTED",
+  REJECTED = "REJECTED",
+  ENDED = "ENDED",
+  MISSED = "MISSED",
+  BUSY = "BUSY",
+}
+
+export interface CallNotificationDTO {
+  callId: number;
+  conversationId: number;
+  callerId: number;
+  callerUsername: string;
+  callerFullName: string;
+  callerAvatarUrl: string;
+  callType: ECallType;
+  startedAt: string;
+}
+
+export interface CallResponseDTO {
+  callId: number;
+  responderId: number;
+  responderUsername: string;
+  status: ECallStatus;
+}
+
+export interface CallSignalDTO {
+  callId: number;
+  senderId: number;
+  type: "OFFER" | "ANSWER" | "ICE_CANDIDATE";
+  sdp?: string;
+  candidate?: string;
+}
+
+export interface CallEndedDTO {
+  callId: number;
+  endedByUserId: number;
+  finalStatus: ECallStatus;
+  durationSeconds: number | null;
+  endedAt: string;
+}
+
+export interface CallInitiateRequest {
+  conversationId: number;
+  callType: ECallType;
+}
+
+export interface CallResponseRequest {
+  callId: number;
+  accepted: boolean;
+}
+
+export interface CallSignalRequest {
+  callId: number;
+  type: "OFFER" | "ANSWER" | "ICE_CANDIDATE";
+  sdp?: string;
+  candidate?: string;
+}
+
+export interface CallEndRequest {
+  callId: number;
 }

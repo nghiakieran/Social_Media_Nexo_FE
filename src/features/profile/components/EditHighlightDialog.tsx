@@ -312,7 +312,7 @@ export const EditHighlightDialog = ({
             </div>
           )}
 
-          <div className="flex justify-end gap-2 pt-4 border-t">
+          <div className="flex justify-end gap-2 border-t border-primary/10 pt-4">
             <Button variant="ghost" onClick={onClose} disabled={isSaving}>
               Hủy
             </Button>

@@ -15,6 +15,7 @@ import {
   blockUser,
   unblockUser,
   deleteAvatar,
+  getActivityLogs,
 } from "./api/profileApi";
 import { transformProfileData } from "./types";
 import type {
@@ -27,6 +28,7 @@ import type {
   FollowRequestUser,
   CloseFriendUser,
   BlockedUser,
+  ActivityLog,
 } from "./types";
 
 interface ProfileState {
@@ -40,7 +42,7 @@ interface ProfileState {
   followRequests: FollowRequestUser[];
   closeFriends: CloseFriendUser[];
   blockedUsers: BlockedUser[];
-  activeTab: "posts" | "reels" | "saved" | "hidden";
+  activeTab: "posts" | "reels" | "saved";
   isLoading: boolean;
   isFollowersLoading: boolean;
   isFollowingLoading: boolean;
@@ -65,6 +67,11 @@ interface ProfileState {
   blockedPage: number;
   blockedTotalPages: number;
   blockedHasMore: boolean;
+  activityLogs: ActivityLog[];
+  activityLogsPage: number;
+  activityLogsTotalPages: number;
+  activityLogsHasMore: boolean;
+  isActivityLogsLoading: boolean;
 }
 
 const initialState: ProfileState = {
@@ -103,6 +110,11 @@ const initialState: ProfileState = {
   blockedPage: 0,
   blockedTotalPages: 0,
   blockedHasMore: false,
+  activityLogs: [],
+  activityLogsPage: 0,
+  activityLogsTotalPages: 0,
+  activityLogsHasMore: false,
+  isActivityLogsLoading: false,
 };
 
 // Async thunks for API calls
@@ -442,6 +454,27 @@ export const deleteAvatarAsync = createAsyncThunk(
   }
 );
 
+export const fetchActivityLogsAsync = createAsyncThunk(
+  "profile/fetchActivityLogs",
+  async (
+    { pageNo = 0, pageSize = 20 }: { pageNo?: number; pageSize?: number } = {},
+    { rejectWithValue }
+  ) => {
+    try {
+      const response = await getActivityLogs(pageNo, pageSize);
+      return response;
+    } catch (error: unknown) {
+      const axiosError = error as {
+        response?: { data?: { message?: string } };
+      };
+      const message =
+        axiosError?.response?.data?.message ||
+        "Không thể tải lịch sử hoạt động";
+      return rejectWithValue(message);
+    }
+  }
+);
+
 const profileSlice = createSlice({
   name: "profile",
   initialState,
@@ -481,7 +514,7 @@ const profileSlice = createSlice({
     },
     setActiveTab: (
       state,
-      action: PayloadAction<"posts" | "reels" | "saved" | "hidden">
+      action: PayloadAction<"posts" | "reels" | "saved">
     ) => {
       state.activeTab = action.payload;
     },
@@ -763,6 +796,27 @@ const profileSlice = createSlice({
       })
       .addCase(deleteAvatarAsync.rejected, (state, action) => {
         state.isLoading = false;
+        state.error = action.payload as string;
+      })
+      .addCase(fetchActivityLogsAsync.pending, (state) => {
+        state.isActivityLogsLoading = true;
+        state.error = null;
+      })
+      .addCase(fetchActivityLogsAsync.fulfilled, (state, action) => {
+        state.isActivityLogsLoading = false;
+        const { content, pageNo, totalPages, last } = action.payload;
+        if (pageNo === 0) {
+          state.activityLogs = content;
+        } else {
+          state.activityLogs.push(...content);
+        }
+        state.activityLogsPage = pageNo;
+        state.activityLogsTotalPages = totalPages;
+        state.activityLogsHasMore = !last;
+        state.error = null;
+      })
+      .addCase(fetchActivityLogsAsync.rejected, (state, action) => {
+        state.isActivityLogsLoading = false;
         state.error = action.payload as string;
       });
   },

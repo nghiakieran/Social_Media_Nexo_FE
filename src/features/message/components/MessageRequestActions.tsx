@@ -24,8 +24,8 @@ export const MessageRequestActions: React.FC<MessageRequestActionsProps> = ({
   if (!otherUser) return null;
 
   return (
-    <div className="border-t border-border bg-background p-4">
-      <div className="max-w-2xl mx-auto">
+    <div className="shrink-0 border-t border-primary/10 bg-background/95 p-4 backdrop-blur-sm">
+      <div className="mx-auto max-w-2xl">
         {/* Message Request Info */}
         <div className="flex items-center gap-4 mb-4">
           <Avatar className="w-12 h-12 shrink-0">

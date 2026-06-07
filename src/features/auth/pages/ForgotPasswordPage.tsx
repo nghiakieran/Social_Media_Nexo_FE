@@ -90,10 +90,10 @@ export default function ForgotPasswordPage() {
         <>
           {/* Header */}
           <div className="text-center mb-8">
-            <div className="w-16 h-16 bg-gradient-to-r from-orange-400 via-pink-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Mail className="w-8 h-8 text-white" />
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-md">
+              <Mail className="h-8 w-8" />
             </div>
-            <h1 className="text-2xl font-bold bg-gradient-instagram bg-clip-text text-transparent mb-2">
+            <h1 className="mb-2 text-2xl font-bold text-foreground">
               Quên mật khẩu
             </h1>
             <p className="text-muted-foreground text-sm">
@@ -125,8 +125,8 @@ export default function ForgotPasswordPage() {
 
             <Button
               type="submit"
-              variant="instagram"
-              className="w-full h-11"
+              variant="default"
+              className="h-11 w-full rounded-full font-semibold shadow-md hover:shadow-lg"
               disabled={isLoading || !email?.trim()}
             >
               {isLoading ? 'Đang gửi...' : 'Gửi liên kết đặt lại'}

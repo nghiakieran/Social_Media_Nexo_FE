@@ -59,16 +59,11 @@ export default {
 				success: {
 					DEFAULT: 'hsl(var(--success))',
 					foreground: 'hsl(var(--success-foreground))'
-				},
-				instagram: {
-					purple: 'hsl(var(--instagram-purple))',
-					pink: 'hsl(var(--instagram-pink))',
-					orange: 'hsl(var(--instagram-orange))',
-					yellow: 'hsl(var(--instagram-yellow))'
 				}
 			},
 			backgroundImage: {
-				'gradient-instagram': 'var(--gradient-instagram)',
+				'gradient-primary': 'var(--gradient-primary)',
+				'gradient-nebula': 'var(--gradient-nebula)',
 				'gradient-story': 'var(--gradient-story)',
 				'gradient-subtle': 'var(--gradient-subtle)'
 			},

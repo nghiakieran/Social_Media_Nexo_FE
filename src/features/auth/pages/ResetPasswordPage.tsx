@@ -262,7 +262,8 @@ export const ResetPasswordPage = () => {
               {/* Submit Button */}
               <Button
                 type="submit"
-                className="w-full h-10 bg-gradient-to-r from-orange-400 via-pink-500 to-purple-600 hover:from-orange-500 hover:via-pink-600 hover:to-purple-700"
+                variant="default"
+                className="h-11 w-full rounded-full font-semibold shadow-md hover:shadow-lg"
                 disabled={isLoading || !passwordValidation.isValid || !passwordsMatch}
               >
                 {isLoading ? 'Đang cập nhật...' : 'Cập nhật mật khẩu'}

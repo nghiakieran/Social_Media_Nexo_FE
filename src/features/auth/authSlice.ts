@@ -9,7 +9,7 @@ import type {
 } from "./types";
 import { AUTH_FORGOT_PASSWORD_ENDPOINT } from "@/utils/constants";
 import { performLogout } from "@/lib/axios";
-import { toast } from "sonner";
+import { toast } from "@/hooks/use-toast";
 import api from "@/lib/axios";
 import {
   AUTH_LOGIN_ENDPOINT,
@@ -27,7 +27,7 @@ import {
 } from "@/features/profile/types";
 
 // Transform UserProfile to User for auth slice
-const transformToUser = (userProfile: UserProfile): User => ({
+const transformToUser = (userProfile: UserProfile, token?: string): User => ({
   id: parseInt(userProfile.id),
   username: userProfile.username,
   fullName: userProfile.name,
@@ -36,6 +36,7 @@ const transformToUser = (userProfile: UserProfile): User => ({
   isPrivate: userProfile.isPrivate,
   followers: userProfile.followersCount,
   following: userProfile.followingCount,
+  token,
 });
 
 type OAuthLoginResult = User | { missing_info: boolean; temp_token: string };
@@ -48,6 +49,7 @@ interface AuthState {
   twoFactorRequired: boolean;
   twoFactorToken: string | null;
   isHydrated: boolean;
+  token: string | null;
 }
 
 const initialState: AuthState = {
@@ -58,6 +60,7 @@ const initialState: AuthState = {
   twoFactorRequired: false,
   twoFactorToken: null,
   isHydrated: false,
+  token: null,
 };
 
 const authSlice = createSlice({
@@ -92,6 +95,7 @@ const authSlice = createSlice({
       state.twoFactorRequired = false;
       state.twoFactorToken = null;
       state.error = null;
+      state.token = null;
     },
     clearError: (state) => {
       state.error = null;
@@ -118,6 +122,7 @@ const authSlice = createSlice({
       .addCase(loginAsync.fulfilled, (state, action: PayloadAction<User>) => {
         state.user = action.payload;
         state.isAuthenticated = true;
+        state.token = action.payload.token;
         state.isLoading = false;
         state.error = null;
         state.twoFactorRequired = false;
@@ -142,19 +147,19 @@ const authSlice = createSlice({
         oauthLoginAsync.fulfilled,
         (state, action: PayloadAction<OAuthLoginResult>) => {
           if ("missing_info" in action.payload) {
-            // User needs to complete profile, don't set authenticated state
             state.isLoading = false;
             state.error = null;
           } else {
             // Normal login success
             state.user = action.payload;
+            state.token = action.payload.token;
             state.isAuthenticated = true;
             state.isLoading = false;
             state.error = null;
             state.twoFactorRequired = false;
             state.twoFactorToken = null;
           }
-        }
+        },
       )
       .addCase(oauthLoginAsync.rejected, (state, action) => {
         state.isLoading = false;
@@ -174,11 +179,12 @@ const authSlice = createSlice({
           if (action.payload) {
             state.user = action.payload;
             state.isAuthenticated = true;
+            state.token = action.payload.token;
           } else {
             state.user = null;
             state.isAuthenticated = false;
           }
-        }
+        },
       )
       .addCase(hydrateAuthAsync.rejected, (state) => {
         state.isHydrated = true;
@@ -212,7 +218,7 @@ export const loginAsync = createAsyncThunk(
         if (api.defaults.headers instanceof AxiosHeaders) {
           api.defaults.headers.set(
             "Authorization",
-            `${BEARER_TOKEN_PREFIX} ${access_token}`
+            `${BEARER_TOKEN_PREFIX} ${access_token}`,
           );
         } else {
           const defaultsHeaders = api.defaults.headers as unknown as {
@@ -227,7 +233,7 @@ export const loginAsync = createAsyncThunk(
       try {
         const profileData = await getCurrentUserProfile();
         const userProfile = transformProfileData(profileData);
-        return transformToUser(userProfile);
+        return transformToUser(userProfile, access_token);
       } catch (profileError) {
         // If profile fetch fails, still return a basic user object
         console.warn("Failed to fetch user profile:", profileError);
@@ -241,6 +247,7 @@ export const loginAsync = createAsyncThunk(
           isPrivate: false,
           followers: 0,
           following: 0,
+          token: access_token,
         } as User;
       }
     } catch (error: unknown) {
@@ -252,7 +259,7 @@ export const loginAsync = createAsyncThunk(
         axiosError?.response?.data?.message || "Đăng nhập thất bại";
       return rejectWithValue({ status, message });
     }
-  }
+  },
 );
 
 export const oauthLoginAsync = createAsyncThunk(
@@ -264,7 +271,7 @@ export const oauthLoginAsync = createAsyncThunk(
         {
           code,
           redirectUri: OAUTH_REDIRECT_URI,
-        }
+        },
       );
       const data = response.data.data;
 
@@ -286,7 +293,7 @@ export const oauthLoginAsync = createAsyncThunk(
         if (api.defaults.headers instanceof AxiosHeaders) {
           api.defaults.headers.set(
             "Authorization",
-            `${BEARER_TOKEN_PREFIX} ${access_token}`
+            `${BEARER_TOKEN_PREFIX} ${access_token}`,
           );
         } else {
           const defaultsHeaders = api.defaults.headers as unknown as {
@@ -301,7 +308,7 @@ export const oauthLoginAsync = createAsyncThunk(
       try {
         const profileData = await getCurrentUserProfile();
         const userProfile = transformProfileData(profileData);
-        return transformToUser(userProfile);
+        return transformToUser(userProfile, access_token);
       } catch (profileError) {
         // If profile fetch fails, still return a basic user object
         console.warn("Failed to fetch user profile:", profileError);
@@ -314,6 +321,7 @@ export const oauthLoginAsync = createAsyncThunk(
           isPrivate: false,
           followers: 0,
           following: 0,
+          token: access_token,
         } as User;
       }
     } catch (error: unknown) {
@@ -325,7 +333,7 @@ export const oauthLoginAsync = createAsyncThunk(
         axiosError?.response?.data?.message || "Đăng nhập OAuth thất bại";
       return rejectWithValue({ status, message });
     }
-  }
+  },
 );
 
 // Thunk: register with real API
@@ -340,7 +348,7 @@ export const registerAsync = createAsyncThunk(
           username: userData.username,
           fullname: userData.fullname,
           password: userData.password,
-        }
+        },
       );
 
       return {
@@ -357,7 +365,7 @@ export const registerAsync = createAsyncThunk(
         "Đăng ký thất bại";
       return rejectWithValue(errorMessage);
     }
-  }
+  },
 );
 
 // Thunk: hydrate auth from stored tokens/profile on app start
@@ -374,14 +382,14 @@ export const hydrateAuthAsync = createAsyncThunk(
       try {
         const profileData = await getCurrentUserProfile();
         const userProfile = transformProfileData(profileData);
-        return transformToUser(userProfile);
+        return transformToUser(userProfile, accessToken ?? undefined);
       } catch (e) {
         // If access token invalid but refresh exists, let interceptors attempt refresh on a lightweight call
         if (refreshToken) {
           try {
             const profileData = await getCurrentUserProfile();
             const userProfile = transformProfileData(profileData);
-            return transformToUser(userProfile);
+            return transformToUser(userProfile, accessToken ?? undefined);
           } catch (e2) {
             return null;
           }
@@ -391,7 +399,7 @@ export const hydrateAuthAsync = createAsyncThunk(
     } catch (error) {
       return rejectWithValue("Hydration failed");
     }
-  }
+  },
 );
 
 // Thunk: forgot password (request reset link)
@@ -412,7 +420,7 @@ export const forgotPasswordAsync = createAsyncThunk(
         message: err?.response?.data?.message || "Yêu cầu khôi phục thất bại",
       });
     }
-  }
+  },
 );
 
 // Thunk: standardize logout flow (abort refresh, call API, clear tokens, reset state, navigate)
@@ -422,8 +430,11 @@ export const logoutAsync = createAsyncThunk(
     // Fail-safe: clear client state first
     dispatch(logout());
     await performLogout({ redirect: true });
-    toast.success("Bạn đã đăng xuất thành công");
-  }
+    toast({
+      variant: "success",
+      description: "Bạn đã đăng xuất thành công",
+    });
+  },
 );
 
 export const {

@@ -14,7 +14,7 @@ export interface AdminPostItemDTO {
   likeQuantity: number;
   commentQuantity: number;
   authorName: string;
-  uuid?: string;
+  uuid: string;
   avatar?: string;
   mediaUrl?: string;
 }
@@ -33,6 +33,11 @@ export interface PostSearchParams {
   pageNo?: number;
   pageSize?: number;
   type?: string; // 'all' | 'post' | 'reel'
+  hashtag?: string;
+  content?: string;
+  authorName?: string;
+  startDate?: string; // ISO 8601 format
+  endDate?: string; // ISO 8601 format
 }
 export interface ApiResponse<T> {
   status: number;

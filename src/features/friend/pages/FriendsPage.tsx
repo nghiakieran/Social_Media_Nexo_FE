@@ -100,13 +100,13 @@ export default function FriendsPage() {
             <div className="relative">
               <Avatar className="w-12 h-12">
                 <AvatarImage src={friend.avatar} alt={friend.name} />
-                <AvatarFallback className="bg-gradient-instagram text-white font-medium">
+                <AvatarFallback className="bg-primary font-medium text-primary-foreground">
                   {friend.name.charAt(0)}
                 </AvatarFallback>
               </Avatar>
               {friend.isCloseFriend && (
-                <div className="absolute -top-1 -right-1 w-5 h-5 bg-gradient-story rounded-full flex items-center justify-center">
-                  <Star className="w-3 h-3 text-white fill-current" />
+                <div className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                  <Star className="h-3 w-3 fill-current" />
                 </div>
               )}
             </div>
@@ -167,8 +167,8 @@ export default function FriendsPage() {
       {/* Header */}
       <div className="mb-6">
         <div className="flex items-center gap-3 mb-4">
-          <div className="w-12 h-12 rounded-full bg-gradient-instagram flex items-center justify-center">
-            <Users className="w-6 h-6 text-white" />
+          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-md">
+            <Users className="h-6 w-6" />
           </div>
           <div>
             <h1 className="text-3xl font-bold">Bạn bè</h1>

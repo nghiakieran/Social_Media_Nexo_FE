@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 import type { ConversationResponseDTO } from "../types";
 import { format, isToday, isYesterday, isThisYear } from "date-fns";
 import { vi } from "date-fns/locale";
-import { MessageCircle, Check, CheckCheck } from "lucide-react";
+import { MessageCircle, Check, CheckCheck, Users } from "lucide-react";
 
 interface ChatListProps {
   chats: ConversationResponseDTO[];
@@ -47,42 +47,66 @@ export const ChatList: React.FC<ChatListProps> = ({
   return (
     <div className={cn("space-y-1", className)}>
       {chats.map((chat) => {
-        const otherUser = chat.participants.find((p) => p.id !== currentUserId);
+        const isGroup = chat.isGroup ?? false;
+        const otherUser = isGroup
+          ? null
+          : chat.participants.find((p) => p.id !== currentUserId);
         const isOnline = otherUser ? presenceMap[otherUser.id] || false : false;
 
         return (
           <div
             key={chat.id}
             className={cn(
-              "flex items-center p-3 rounded-xl cursor-pointer transition-all duration-200 hover:bg-muted/50 group",
-              activeChat === String(chat.id) && "bg-muted"
+              "group flex cursor-pointer items-center rounded-xl p-3 transition-all duration-200 hover:bg-primary/10 dark:hover:bg-primary/15",
+              activeChat === String(chat.id) &&
+                "bg-primary/10 ring-1 ring-primary/20 dark:bg-primary/15"
             )}
             onClick={() => onChatSelect(String(chat.id))}
           >
-            <InstagramStoryRing
-              src={chat.avatarUrl}
-              alt={chat.fullname}
-              size="md"
-              hasStory={true}
-              hasUnread={chat.unreadCount > 0}
-              className="shrink-0"
-            >
-              <OnlineIndicator
-                isOnline={isOnline}
+            {isGroup ? (
+              <div className="relative shrink-0 h-10 w-10 md:h-11 md:w-11">
+                {chat.groupAvatarUrl ? (
+                  <Avatar className="h-full w-full">
+                    <AvatarImage src={chat.groupAvatarUrl} alt={chat.groupName} />
+                    <AvatarFallback className="bg-primary/10 text-primary">
+                      <Users className="h-5 w-5" />
+                    </AvatarFallback>
+                  </Avatar>
+                ) : (
+                  <div className="h-full w-full rounded-full bg-primary/10 flex items-center justify-center">
+                    <Users className="h-5 w-5 text-primary" />
+                  </div>
+                )}
+                {chat.unreadCount > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-primary border-2 border-background" />
+                )}
+              </div>
+            ) : (
+              <InstagramStoryRing
+                src={chat.avatarUrl}
+                alt={chat.fullname}
                 size="md"
-                className="absolute -bottom-0.5 -right-0.5"
-              />
-            </InstagramStoryRing>
+                hasStory={true}
+                hasUnread={chat.unreadCount > 0}
+                className="shrink-0"
+              >
+                <OnlineIndicator
+                  isOnline={isOnline}
+                  size="md"
+                  className="absolute -bottom-0.5 -right-0.5"
+                />
+              </InstagramStoryRing>
+            )}
 
             <div className="flex-1 ml-3 min-w-0">
-              <div className="flex items-center justify-between mb-1">
+              <div className="flex items-center justify-between mb-0.5">
                 <h3
                   className={cn(
                     "font-medium text-sm truncate",
                     chat.unreadCount > 0 && "font-semibold"
                   )}
                 >
-                  {chat.fullname}
+                  {isGroup ? (chat.groupName ?? chat.fullname) : chat.fullname}
                 </h3>
                 <div className="flex items-center space-x-1">
                   {chat.lastMessage && (
@@ -150,8 +174,7 @@ export const ChatList: React.FC<ChatListProps> = ({
                 </div>
                 {chat.unreadCount > 0 && (
                   <Badge
-                    variant="destructive"
-                    className="min-w-[18px] h-[18px] text-xs flex items-center justify-center ml-2"
+                    className="ml-2 flex h-[18px] min-w-[18px] items-center justify-center border-0 bg-primary text-[10px] text-primary-foreground"
                   >
                     {chat.unreadCount > 99 ? "99+" : chat.unreadCount}
                   </Badge>

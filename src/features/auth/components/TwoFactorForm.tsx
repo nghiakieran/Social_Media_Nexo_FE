@@ -17,7 +17,7 @@ export const TwoFactorForm = () => {
   const location = useLocation();
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
-  const email = location.state?.email || 'demo@instagram.com';
+  const email = location.state?.email || "demo@nexo.com";
 
   useEffect(() => {
     inputRefs.current[0]?.focus();
@@ -171,7 +171,7 @@ export const TwoFactorForm = () => {
   return (
     <div className="w-full max-w-sm mx-auto">
       <div className="text-center mb-8">
-        <h1 className="text-3xl font-bold bg-gradient-instagram bg-clip-text text-transparent mb-2">
+        <h1 className="mb-2 text-2xl font-bold text-foreground sm:text-3xl">
           Xác thực 2 bước
         </h1>
         <p className="text-muted-foreground mb-4">
@@ -211,8 +211,8 @@ export const TwoFactorForm = () => {
         {/* Submit Button */}
         <Button
           type="submit"
-          variant="instagram"
-          className="w-full h-11"
+          variant="default"
+          className="h-11 w-full rounded-full font-semibold shadow-md hover:shadow-lg"
           disabled={isLoading || code.join('').length !== 6}
         >
           {isLoading ? 'Đang xác thực...' : 'Xác thực'}

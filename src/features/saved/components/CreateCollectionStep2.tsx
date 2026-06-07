@@ -75,7 +75,7 @@ export const CreateCollectionStep2: React.FC<CreateCollectionStep2Props> = ({
                   {/* Selection Overlay */}
                   {selectedPostIds.includes(post.id) && (
                     <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                      <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
+                      <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary">
                         <Check className="w-4 h-4 text-white" />
                       </div>
                     </div>

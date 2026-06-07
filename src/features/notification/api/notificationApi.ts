@@ -91,3 +91,23 @@ export const readNotificationGroup = async (
     throw new Error("Không thể kết nối đến server. Vui lòng thử lại.");
   }
 };
+
+export const getUnreadNotificationCount = async (): Promise<number> => {
+  try {
+    const response = await api.get<{
+      status: number;
+      message: string;
+      data: number;
+    }>("/notifications/unread-count");
+
+    return response.data.data ?? 0;
+  } catch (error: unknown) {
+    if (error && typeof error === "object" && "response" in error) {
+      const apiError = error as { response?: { data?: { message?: string } } };
+      throw new Error(
+        apiError.response?.data?.message || "Có lỗi xảy ra khi tải số thông báo chưa đọc"
+      );
+    }
+    throw new Error("Không thể kết nối đến server. Vui lòng thử lại.");
+  }
+};

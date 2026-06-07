@@ -67,8 +67,7 @@ const ReelViewer = memo(
       setLikesCount(newCount);
     };
 
-    const handleComment = (e: React.MouseEvent) => {
-      e.stopPropagation();
+    const handleToggleComments = () => {
       dispatch(openCommentsDrawer(reel.id));
     };
 
@@ -89,6 +88,7 @@ const ReelViewer = memo(
           await dispatch(deleteReelThunk(parseInt(reel.id))).unwrap();
 
           toast({
+            variant: "success",
             title: "Thành công",
             description: "Reel đã được xóa thành công!",
           });
@@ -224,7 +224,6 @@ const ReelViewer = memo(
               isLiked={isLiked}
               likesCount={likesCount}
               size="md"
-              variant="ghost"
               showCount={false}
               onLikeChange={handleLikeChange}
               className="h-14 w-14 p-0 bg-transparent hover:bg-transparent text-white hover:text-white active:scale-90 transition-transform"
@@ -239,7 +238,7 @@ const ReelViewer = memo(
 
           {/* Comment */}
           <button
-            onClick={handleComment}
+            onClick={handleToggleComments}
             className="flex flex-col items-center gap-0.5 active:scale-90 transition-transform"
           >
             <MessageCircle className="w-7 h-7 text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.6)]" />

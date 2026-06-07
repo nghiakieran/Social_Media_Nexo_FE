@@ -8,10 +8,7 @@ interface LoaderProps {
 export const Loader = ({ className, overlay = false }: LoaderProps) => {
   const loaderElement = (
     <div className={cn('flex items-center justify-center', className)}>
-      <div className="relative">
-        <div className="w-8 h-8 border-4 border-muted border-t-primary rounded-full animate-spin"></div>
-        <div className="absolute inset-0 w-8 h-8 border-4 border-transparent border-t-accent rounded-full animate-spin animation-delay-200"></div>
-      </div>
+      <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary/20 border-t-primary" />
     </div>
   );
 

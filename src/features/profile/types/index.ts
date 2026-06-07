@@ -142,6 +142,23 @@ export interface BlockedUsersResponse {
   content: BlockedUser[];
 }
 
+// Activity Log Types
+export interface ActivityLog {
+  id: number;
+  action: string;
+  detailsJson: string;
+  createdAt: string;
+}
+
+export interface ActivityLogsResponse {
+  pageNo: number;
+  pageSize: number;
+  totalElements: number;
+  totalPages: number;
+  last: boolean;
+  content: ActivityLog[];
+}
+
 // API Request Types
 export interface GetProfileRequest {
   username?: string; // Optional - if not provided, gets current user's profile

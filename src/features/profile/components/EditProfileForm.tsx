@@ -67,6 +67,7 @@ export const EditProfileForm = ({ onSave, onCancel }: EditProfileFormProps) => {
       
       onSave(result);
       toast({
+        variant: 'success',
         title: 'Đã cập nhật hồ sơ',
         description: 'Thông tin hồ sơ của bạn đã được lưu thành công.',
       });
@@ -197,7 +198,7 @@ export const EditProfileForm = ({ onSave, onCancel }: EditProfileFormProps) => {
             <div className="flex gap-3 pt-4">
               <Button
                 type="submit"
-                variant="instagram"
+                variant="default"
                 disabled={isLoading}
                 className="flex-1"
               >

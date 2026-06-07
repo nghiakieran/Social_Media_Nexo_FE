@@ -97,7 +97,7 @@ export const FollowButton = ({
     if (isFollowing) {
       return isHovered ? 'destructive' : 'outline';
     }
-    return variant === 'outline' ? 'outline' : 'instagram';
+    return variant === "outline" ? "outline" : "default";
   };
 
   return (

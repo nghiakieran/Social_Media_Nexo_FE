@@ -85,14 +85,14 @@ export const ShareDialog = ({
       label: "Chia sẻ lên Story",
       description: "Thêm vào story của bạn",
       icon: MessageCircle,
-      color: "text-purple-500",
+      color: "text-primary",
     },
     {
       id: "message",
       label: "Gửi tin nhắn",
       description: "Chia sẻ qua tin nhắn riêng tư",
       icon: MessageCircle,
-      color: "text-blue-500",
+      color: "text-primary/90",
     },
   ];
 

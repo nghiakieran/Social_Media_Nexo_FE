@@ -313,7 +313,10 @@ export const StoryViewer = memo(
           storyId: parseInt(currentContent.id),
         };
         await api.post("/messages", body);
-        toast({ description: "Đã gửi tin nhắn!" });
+        toast({
+          variant: "success",
+          description: "Đã gửi tin nhắn!",
+        });
         setReplyText("");
       } catch (err) {
         toast({
@@ -323,6 +326,8 @@ export const StoryViewer = memo(
       }
     }, [replyText, currentContent, currentStory, toast]);
 
+    const likeDebounceRef = useRef<Record<string, NodeJS.Timeout>>({});
+
     const handleLike = useCallback(async () => {
       if (!currentContent || currentStory.isOwnStory) return;
 
@@ -331,11 +336,11 @@ export const StoryViewer = memo(
 
       if (isNaN(storyId)) return;
 
-      // Get current like state from Redux
-      const currentLikeState = currentContent.isLike ?? false;
-      const newLikeState = !currentLikeState;
+      // Get current like state from content
+      const isLiked = currentContent.isLike ?? false;
+      const newLikeState = !isLiked;
 
-      // Optimistic update to Redux state
+      // 1. Optimistic update to Redux state
       dispatch(
         toggleStoryLike({
           userId: currentStory.id,
@@ -344,21 +349,32 @@ export const StoryViewer = memo(
         })
       );
 
-      try {
-        await dispatch(likeStoryThunk(storyId)).unwrap();
-        // Success - state already updated
-      } catch (error) {
-        // Revert on error
-        dispatch(
-          toggleStoryLike({
-            userId: currentStory.id,
-            storyId: contentId,
-            isLiked: currentLikeState,
-          })
-        );
-        console.error("Failed to like story:", error);
+      // 2. Debounce API call
+      if (likeDebounceRef.current[contentId]) {
+        clearTimeout(likeDebounceRef.current[contentId]);
       }
-    }, [currentContent, currentStory, dispatch]);
+
+      likeDebounceRef.current[contentId] = setTimeout(async () => {
+        try {
+          await dispatch(likeStoryThunk(storyId)).unwrap();
+        } catch (error) {
+          // Revert on error
+          dispatch(
+            toggleStoryLike({
+              userId: currentStory.id,
+              storyId: contentId,
+              isLiked: isLiked,
+            })
+          );
+          toast({
+            description: "Thao tác thích tin thất bại!",
+            variant: "destructive",
+          });
+        } finally {
+          delete likeDebounceRef.current[contentId];
+        }
+      }, 500);
+    }, [currentContent, currentStory, dispatch, toast]);
 
     const handleShare = useCallback(() => {
       console.log(`Shared ${currentStory.username}'s story`);
@@ -375,7 +391,7 @@ export const StoryViewer = memo(
             storyId: parseInt(currentContent.id),
           };
           await api.post("/messages", body);
-          toast({ description: "Đã gửi tin nhắn!" });
+          toast({ variant: "success", description: "Đã gửi tin nhắn!" });
           setReplyText("");
         } catch (err) {
           toast({
@@ -536,12 +552,12 @@ export const StoryViewer = memo(
               isMobile
                 ? {}
                 : {
-                    height: "701px",
-                    left: "0px",
-                    position: "absolute",
-                    transform: "translateX(calc(-50% + 649px))",
-                    width: "394px",
-                  }
+                  height: "701px",
+                  left: "0px",
+                  position: "absolute",
+                  transform: "translateX(calc(-50% + 649px))",
+                  width: "394px",
+                }
             }
           >
             <div className="relative w-full h-full">
@@ -653,21 +669,21 @@ export const StoryViewer = memo(
           {/* Right navigation arrow */}
           {(currentContentIndex < currentStory.content.length - 1 ||
             currentStoryIndex < stories.length - 1) && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                handleNext();
-              }}
-              className="hidden lg:block absolute top-1/2 -translate-y-1/2 z-40 p-2.5 text-white/80 hover:text-white transition-all duration-200 bg-gray-500/50 backdrop-blur-sm rounded-full hover:bg-gray-500/80 shadow-lg"
-              style={{
-                left: "0px",
-                transform: "translateX(calc(-50% + 868px)) translateY(-50%)",
-              }}
-              aria-label="Tiếp"
-            >
-              <ChevronRight className="w-4 h-4" />
-            </button>
-          )}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleNext();
+                }}
+                className="hidden lg:block absolute top-1/2 -translate-y-1/2 z-40 p-2.5 text-white/80 hover:text-white transition-all duration-200 bg-gray-500/50 backdrop-blur-sm rounded-full hover:bg-gray-500/80 shadow-lg"
+                style={{
+                  left: "0px",
+                  transform: "translateX(calc(-50% + 868px)) translateY(-50%)",
+                }}
+                aria-label="Tiếp"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            )}
 
           {/* Right side thumbnails - desktop only */}
           <div className="hidden lg:block">
@@ -759,6 +775,7 @@ export const StoryViewer = memo(
                       );
 
                       toast({
+                        variant: "success",
                         title: "Đã xóa tin",
                         description: "Tin của bạn đã được xóa thành công",
                       });
@@ -818,6 +835,7 @@ export const StoryViewer = memo(
                         );
 
                         toast({
+                          variant: "success",
                           title: "Đã lưu vào kho lưu trữ",
                           description: "Tin đã được chuyển vào kho lưu trữ",
                         });

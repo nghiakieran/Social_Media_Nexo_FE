@@ -126,7 +126,7 @@ export const NoteCreatePage = () => {
           <Button
             onClick={handlePost}
             disabled={!noteText.trim() || isPosting}
-            variant="instagram"
+            variant="default"
             size="sm"
           >
             {isPosting ? 'Đang đăng...' : 'Đăng'}
