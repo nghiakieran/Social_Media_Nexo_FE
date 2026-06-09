@@ -13,7 +13,8 @@ export const useWebSocket = (token: string, username: string) => {
       return;
     }
 
-    const socket = new SockJS(`http://localhost:8080/api/notifications/ws`);
+    const baseUrl = import.meta.env.VITE_WS_URL || "http://localhost:8080";
+    const socket = new SockJS(`${baseUrl}/api/notifications/ws`);
     const stompClient = new Client({
       webSocketFactory: () => socket,
       connectHeaders: {
