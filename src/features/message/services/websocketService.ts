@@ -34,18 +34,18 @@ type PresenceCallback = (presence: PresenceStatusDTO) => void;
 
 export class WebSocketService {
   private client: Client | null = null;
-  private subscriptions: Map<string, StompSubscription> = new Map();
+  private readonly subscriptions: Map<string, StompSubscription> = new Map();
   private reconnectAttempts = 0;
-  private maxReconnectAttempts = 5;
-  private reconnectDelay = 3000;
+  private readonly maxReconnectAttempts = 5;
+  private readonly reconnectDelay = 3000;
 
   private onConnectedCallback?: () => void;
   private onDisconnectedCallback?: () => void;
   private onErrorCallback?: (error: unknown) => void;
-  private connectedListeners: Set<() => void> = new Set();
+  private readonly connectedListeners: Set<() => void> = new Set();
 
   constructor(
-    private baseUrl: string = import.meta.env.VITE_WS_URL ||
+    private readonly baseUrl: string = import.meta.env.VITE_WS_URL ||
       "http://localhost:8080"
   ) {}
 
@@ -236,6 +236,23 @@ export class WebSocketService {
     if (sub) {
       sub.unsubscribe();
       this.subscriptions.delete("user-presence");
+    }
+  }
+
+  unsubscribeFromErrors(username?: string) {
+    if (username) {
+      const userKey = `user-errors:${username}`;
+      const userSub = this.subscriptions.get(userKey);
+      if (userSub) {
+        userSub.unsubscribe();
+        this.subscriptions.delete(userKey);
+      }
+    }
+
+    const globalSub = this.subscriptions.get("global-errors");
+    if (globalSub) {
+      globalSub.unsubscribe();
+      this.subscriptions.delete("global-errors");
     }
   }
 

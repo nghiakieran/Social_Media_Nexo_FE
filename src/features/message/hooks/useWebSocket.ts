@@ -42,15 +42,22 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
   const [isConnected, setIsConnected] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
   const subscribedConversations = useRef<Set<number>>(new Set());
+  const ownsConnectionRef = useRef(false);
+  const hasPresenceSubscriptionRef = useRef(false);
+  const hasErrorSubscriptionRef = useRef(false);
+  const errorSubscriptionUsernameRef = useRef<string | undefined>(undefined);
 
   const connect = useCallback(() => {
-    if (wsRef.current?.isConnected()) {
+    const ws = getWebSocketService();
+    wsRef.current = ws;
+
+    if (ws.isConnected()) {
+      ownsConnectionRef.current = false;
       return;
     }
 
+    ownsConnectionRef.current = true;
     setIsConnecting(true);
-    const ws = getWebSocketService();
-    wsRef.current = ws;
 
     ws.connect(
       () => {
@@ -69,10 +76,30 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
 
   const disconnect = useCallback(() => {
     if (wsRef.current) {
-      wsRef.current.disconnect();
-      wsRef.current = null;
-      setIsConnected(false);
+      subscribedConversations.current.forEach((conversationId) => {
+        wsRef.current?.unsubscribeFromConversation(conversationId);
+      });
       subscribedConversations.current.clear();
+
+      if (hasPresenceSubscriptionRef.current) {
+        wsRef.current.unsubscribeFromPresence();
+        hasPresenceSubscriptionRef.current = false;
+      }
+
+      if (hasErrorSubscriptionRef.current) {
+        wsRef.current.unsubscribeFromErrors(errorSubscriptionUsernameRef.current);
+        hasErrorSubscriptionRef.current = false;
+        errorSubscriptionUsernameRef.current = undefined;
+      }
+
+      if (ownsConnectionRef.current) {
+        wsRef.current.disconnect();
+      }
+
+      wsRef.current = null;
+      ownsConnectionRef.current = false;
+      setIsConnected(false);
+      setIsConnecting(false);
     }
   }, []);
 
@@ -115,11 +142,13 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
     }
 
     wsRef.current.subscribeToPresence(onPresence);
+    hasPresenceSubscriptionRef.current = true;
   }, [onPresence]);
 
   const unsubscribeFromPresence = useCallback(() => {
     if (wsRef.current) {
       wsRef.current.unsubscribeFromPresence();
+      hasPresenceSubscriptionRef.current = false;
     }
   }, []);
 
@@ -130,6 +159,8 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
       }
 
       wsRef.current.subscribeToErrors(onError, username);
+      hasErrorSubscriptionRef.current = true;
+      errorSubscriptionUsernameRef.current = username;
     },
     [onError]
   );

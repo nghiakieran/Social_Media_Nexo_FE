@@ -4,6 +4,7 @@ import { Sidebar } from "@/components/common/Sidebar";
 import { FloatingMessageTab } from "@/features/message/components/FloatingMessageTab";
 import { FloatingChatWindow } from "@/features/message/components/FloatingChatWindow";
 import { useAppDispatch, useAppSelector } from "@/store";
+import { useWebSocket as useMessageWebSocket } from "@/features/message/hooks/useWebSocket";
 import {
   closeFloatingConversation,
   minimizeFloatingConversation,
@@ -27,6 +28,8 @@ export const MainLayout = () => {
   } = useAppSelector((state) => state.message);
 
   const [showMessageTab, setShowMessageTab] = React.useState(false);
+
+  useMessageWebSocket();
 
   React.useEffect(() => {
     if (!user?.id) return;
