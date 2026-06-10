@@ -242,7 +242,6 @@ export const PostCard = ({
         }
       } catch (error) {
         console.error("Error fetching comments preview:", error);
-        setHasFetchedComments(false); // Allow retry on error
       }
     };
 
@@ -280,7 +279,7 @@ export const PostCard = ({
           setLatestLikeName(null);
         }
       } catch (e) {
-        setHasFetchedLikePreview(false);
+        // Keep flag as true to prevent infinite retry loops on persistent errors (e.g. 403)
       }
     };
     fetchLikePreview();

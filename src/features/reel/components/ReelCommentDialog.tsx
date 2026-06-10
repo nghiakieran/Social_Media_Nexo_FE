@@ -179,7 +179,7 @@ const ReelCommentDialog = () => {
           setLatestLikeName(null);
         }
       } catch (_) {
-        setHasFetchedLikePreview(false);
+        // Keep flag as true to prevent infinite retry
       }
     };
     run();
@@ -918,7 +918,7 @@ const ReelCommentDialog = () => {
                     </div>
                   </div>
                   {(comment.replies && comment.replies.length > 0) ||
-                  comment.hasMoreReplies ? (
+                    comment.hasMoreReplies ? (
                     <div className="mt-2 ml-11">
                       {!expandedReplies[comment.id] ? (
                         <button
@@ -1225,19 +1225,19 @@ const ReelCommentDialog = () => {
                           <div className="flex items-center gap-4">
                             {getLikesCount(comment.id, comment.likesCount) >
                               0 && (
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  openLikesDialog(comment.id, "comment")
-                                }
-                                className="text-xs text-gray-500 hover:underline"
-                              >
-                                {formatNumber(
-                                  getLikesCount(comment.id, comment.likesCount)
-                                )}{" "}
-                                lượt thích
-                              </button>
-                            )}
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    openLikesDialog(comment.id, "comment")
+                                  }
+                                  className="text-xs text-gray-500 hover:underline"
+                                >
+                                  {formatNumber(
+                                    getLikesCount(comment.id, comment.likesCount)
+                                  )}{" "}
+                                  lượt thích
+                                </button>
+                              )}
                             <button
                               className="text-xs text-gray-500 hover:text-gray-600 transition-colors"
                               onClick={() => setReplyingTo(comment.id)}
@@ -1260,7 +1260,7 @@ const ReelCommentDialog = () => {
                             </button>
                           </div>
                           {(comment.replies && comment.replies.length > 0) ||
-                          comment.hasMoreReplies ? (
+                            comment.hasMoreReplies ? (
                             <div className="mt-2">
                               {!expandedReplies[comment.id] ? (
                                 <button
@@ -1508,67 +1508,67 @@ const ReelCommentDialog = () => {
           items={
             currentCommentForAction === "reel"
               ? (() => {
-                  const isReelOwner =
-                    currentReel.userId === user?.id.toString();
-                  const items: ActionMenuItem[] = [];
-                  if (isReelOwner) {
-                    items.push({
-                      label: "Xóa",
-                      action: handleDeleteReelClick,
-                      isDestructive: true,
-                    });
-                  }
+                const isReelOwner =
+                  currentReel.userId === user?.id.toString();
+                const items: ActionMenuItem[] = [];
+                if (isReelOwner) {
                   items.push({
-                    label: "Báo cáo",
-                    action: () => setShowReportDialog(true),
+                    label: "Xóa",
+                    action: handleDeleteReelClick,
                     isDestructive: true,
                   });
-                  items.push({ label: "Hủy", action: handleCloseActionMenu });
-                  return items;
-                })()
+                }
+                items.push({
+                  label: "Báo cáo",
+                  action: () => setShowReportDialog(true),
+                  isDestructive: true,
+                });
+                items.push({ label: "Hủy", action: handleCloseActionMenu });
+                return items;
+              })()
               : (() => {
-                  let comment: Comment | undefined = displayComments.find(
-                    (c) => c.id === currentCommentForAction
-                  );
-                  if (!comment) {
-                    for (const root of displayComments) {
-                      if (root.replies) {
-                        const r = root.replies.find(
-                          (x) => x.id === currentCommentForAction
-                        );
-                        if (r) {
-                          comment = r;
-                          break;
-                        }
+                let comment: Comment | undefined = displayComments.find(
+                  (c) => c.id === currentCommentForAction
+                );
+                if (!comment) {
+                  for (const root of displayComments) {
+                    if (root.replies) {
+                      const r = root.replies.find(
+                        (x) => x.id === currentCommentForAction
+                      );
+                      if (r) {
+                        comment = r;
+                        break;
                       }
                     }
                   }
-                  if (!comment)
-                    return [{ label: "Hủy", action: handleCloseActionMenu }];
+                }
+                if (!comment)
+                  return [{ label: "Hủy", action: handleCloseActionMenu }];
 
-                  const isCommentOwner = comment.userId === user?.id.toString();
-                  const isReelOwner =
-                    currentReel.userId === user?.id.toString();
-                  const canDelete = isCommentOwner || isReelOwner;
+                const isCommentOwner = comment.userId === user?.id.toString();
+                const isReelOwner =
+                  currentReel.userId === user?.id.toString();
+                const canDelete = isCommentOwner || isReelOwner;
 
-                  const items: ActionMenuItem[] = [];
-                  if (canDelete) {
-                    items.push({
-                      label: "Xóa",
-                      action: () => handleDeleteComment(comment!.id),
-                      isDestructive: true,
-                    });
-                  }
+                const items: ActionMenuItem[] = [];
+                if (canDelete) {
                   items.push({
-                    label: "Báo cáo",
-                    action: () => {
-                      /* report comment */
-                    },
+                    label: "Xóa",
+                    action: () => handleDeleteComment(comment!.id),
                     isDestructive: true,
                   });
-                  items.push({ label: "Hủy", action: handleCloseActionMenu });
-                  return items;
-                })()
+                }
+                items.push({
+                  label: "Báo cáo",
+                  action: () => {
+                    /* report comment */
+                  },
+                  isDestructive: true,
+                });
+                items.push({ label: "Hủy", action: handleCloseActionMenu });
+                return items;
+              })()
           }
         />
       )}
