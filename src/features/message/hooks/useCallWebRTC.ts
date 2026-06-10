@@ -50,6 +50,7 @@ export function useCallWebRTC({ onCallEnded }: UseCallWebRTCOptions = {}) {
 
   const pcRef = useRef<RTCPeerConnection | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
+  const remoteStreamRef = useRef<MediaStream | null>(null);
   const localVideoRef = useRef<HTMLVideoElement | null>(null);
   const remoteVideoRef = useRef<HTMLVideoElement | null>(null);
   const durationIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -85,6 +86,7 @@ export function useCallWebRTC({ onCallEnded }: UseCallWebRTCOptions = {}) {
     }
     if (localVideoRef.current) localVideoRef.current.srcObject = null;
     if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
+    remoteStreamRef.current = null;
     setDuration(0);
     setIsMuted(false);
     setIsVideoOff(false);
@@ -110,6 +112,7 @@ export function useCallWebRTC({ onCallEnded }: UseCallWebRTCOptions = {}) {
     };
 
     pc.ontrack = (event) => {
+      remoteStreamRef.current = event.streams[0];
       if (remoteVideoRef.current) {
         remoteVideoRef.current.srcObject = event.streams[0];
       }
@@ -327,6 +330,38 @@ export function useCallWebRTC({ onCallEnded }: UseCallWebRTCOptions = {}) {
       return !prev;
     });
   }, []);
+
+  // ─── Sync streams to video elements ──────────────────────────────────────────
+
+  useEffect(() => {
+    let animationFrameId: number;
+
+    const syncStreams = () => {
+      if (localVideoRef.current && localStreamRef.current) {
+        if (localVideoRef.current.srcObject !== localStreamRef.current) {
+          localVideoRef.current.srcObject = localStreamRef.current;
+        }
+      }
+      if (remoteVideoRef.current && remoteStreamRef.current) {
+        if (remoteVideoRef.current.srcObject !== remoteStreamRef.current) {
+          remoteVideoRef.current.srcObject = remoteStreamRef.current;
+        }
+      }
+      if (callState !== "idle") {
+        animationFrameId = requestAnimationFrame(syncStreams);
+      }
+    };
+
+    if (callState !== "idle") {
+      syncStreams();
+    }
+
+    return () => {
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+      }
+    };
+  }, [callState]);
 
   // ─── WebSocket event handlers (stable refs — never recreated) ────────────────
 
