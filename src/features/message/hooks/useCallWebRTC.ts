@@ -9,10 +9,18 @@ import type {
   ECallStatus,
 } from "../types";
 
+const TURN_SERVER_URL = import.meta.env.VITE_TURN_SERVER_URL ?? "turn:nexosocial.id.vn:3478";
+const TURN_USERNAME = import.meta.env.VITE_TURN_USERNAME ?? "nexo";
+const TURN_CREDENTIAL = import.meta.env.VITE_TURN_CREDENTIAL ?? "nexo@turn123";
+
 const ICE_SERVERS: RTCIceServer[] = [
   { urls: "stun:stun.l.google.com:19302" },
   { urls: "stun:stun1.l.google.com:19302" },
-  { urls: "stun:stun2.l.google.com:19302" },
+  {
+    urls: TURN_SERVER_URL,
+    username: TURN_USERNAME,
+    credential: TURN_CREDENTIAL,
+  },
 ];
 
 export type CallState = "idle" | "calling" | "ringing" | "connected" | "ended";
