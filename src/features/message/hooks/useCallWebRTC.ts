@@ -250,10 +250,13 @@ export function useCallWebRTC({ onCallEnded }: UseCallWebRTCOptions = {}) {
     if (!incoming) return;
     stopRingtone();
     ws.respondToCall({ callId: incoming.callId, accepted: false });
-    setIncomingCall(null);
-    incomingCallRef.current = null;
+    cleanup();
     setCallState("idle");
     callStateRef.current = "idle";
+    setTimeout(() => {
+      setIncomingCall(null);
+      incomingCallRef.current = null;
+    }, 500);
   }, [ws]);
 
   // ─── Hang up ─────────────────────────────────────────────────────────────────
@@ -297,9 +300,12 @@ export function useCallWebRTC({ onCallEnded }: UseCallWebRTCOptions = {}) {
       const inc = incomingCallRef.current;
       ws.respondToCall({ callId: inc.callId, accepted: false });
       setIncomingCall(null);
-      incomingCallRef.current = null;
       setCallState("idle");
       callStateRef.current = "idle";
+      setTimeout(() => {
+        setIncomingCall(null);
+        incomingCallRef.current = null;
+      }, 500);
       return;
     }
 
@@ -308,10 +314,14 @@ export function useCallWebRTC({ onCallEnded }: UseCallWebRTCOptions = {}) {
       ws.endCall({ callId });
     }
     cleanup();
-    setActiveCall(null);
-    activeCallRef.current = null;
-    setCallState("idle");
-    callStateRef.current = "idle";
+    setCallState("ended");
+    callStateRef.current = "ended";
+    setTimeout(() => {
+      setCallState("idle");
+      callStateRef.current = "idle";
+      setActiveCall(null);
+      activeCallRef.current = null;
+    }, 1500);
   }, [hangUp, ws, cleanup]);
 
   // ─── Toggle mute / video ─────────────────────────────────────────────────────
@@ -386,11 +396,11 @@ export function useCallWebRTC({ onCallEnded }: UseCallWebRTCOptions = {}) {
         cleanup();
         setCallState("ended");
         callStateRef.current = "ended";
-        setActiveCall(null);
-        activeCallRef.current = null;
         setTimeout(() => {
           setCallState("idle");
           callStateRef.current = "idle";
+          setActiveCall(null);
+          activeCallRef.current = null;
         }, 1500);
       }
     },
@@ -440,13 +450,13 @@ export function useCallWebRTC({ onCallEnded }: UseCallWebRTCOptions = {}) {
     cleanup();
     setCallState("ended");
     callStateRef.current = "ended";
-    setActiveCall(null);
-    activeCallRef.current = null;
-    setIncomingCall(null);
-    incomingCallRef.current = null;
     setTimeout(() => {
       setCallState("idle");
       callStateRef.current = "idle";
+      setActiveCall(null);
+      activeCallRef.current = null;
+      setIncomingCall(null);
+      incomingCallRef.current = null;
     }, 1500);
   }, [cleanup]); // no onCallEnded dep — reads onCallEndedRef
 
