@@ -169,25 +169,28 @@ export default function Users() {
       if (statusFilter !== "all")
         params.filter = `account_status = '${statusFilter.toUpperCase()}'`;
 
-      const response = await axios.get<ResponseData<UserSearchResponseAdmin>>(
+      const response = await axios.get<ResponseData<any>>(
         "/users",
         { params },
       );
-      const apiUsers = response.data.data.users;
+      const responseData = response.data?.data;
+      const apiUsers = Array.isArray(responseData)
+        ? responseData
+        : (responseData?.users || responseData?.content || []);
 
-      const mappedUsers: UIUser[] = apiUsers.map((apiUser) => ({
-        id: apiUser.id.toString(),
-        username: apiUser.username,
-        fullName: apiUser.fullName || apiUser.username,
-        email: apiUser.email,
-        role: apiUser.role,
-        status: apiUser.account_status.toLowerCase(),
+      const mappedUsers: UIUser[] = apiUsers.map((apiUser: any) => ({
+        id: apiUser.id?.toString() || "",
+        username: apiUser.username || "",
+        fullName: apiUser.fullName || apiUser.username || "",
+        email: apiUser.email || "",
+        role: apiUser.role || "USER",
+        status: (apiUser.account_status || "active").toLowerCase(),
         posts: apiUser.posts_count || 0,
         interactions: apiUser.interactions_count || 0,
         violations: apiUser.violation_count || 0,
         avatar:
           apiUser.avatar_url ||
-          "https://ui-avatars.com/api/?name=" + apiUser.username,
+          "https://ui-avatars.com/api/?name=" + (apiUser.username || "user"),
         isVerified: apiUser.is_verified || false,
         createdAt: apiUser.created_at || new Date().toISOString(),
       }));
@@ -281,11 +284,13 @@ export default function Users() {
     try {
       const response =
         await axios.get<ResponseData<InfoDashboardUser>>("users/dashboard");
-      const data = response.data.data;
-      setTotalUsers(data.totalUsers);
-      setActiveUsers(data.totalUsersActive);
-      setLockedUsers(data.totalUsersLocked);
-      setPendingUsers(data.totalUsersPending);
+      const data = response.data?.data;
+      if (data) {
+        setTotalUsers(data.totalUsers || 0);
+        setActiveUsers(data.totalUsersActive || 0);
+        setLockedUsers(data.totalUsersLocked || 0);
+        setPendingUsers(data.totalUsersPending || 0);
+      }
     } catch (err) {
       console.error("Failed to load summary stats");
     }

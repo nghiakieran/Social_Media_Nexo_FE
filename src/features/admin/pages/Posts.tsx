@@ -114,9 +114,9 @@ export default function Posts() {
           : undefined,
       });
 
-      setPosts(data.content);
-      setTotalPages(data.totalPages);
-      setTotalElements(data.totalElements);
+      setPosts(data?.content || []);
+      setTotalPages(data?.totalPages || 0);
+      setTotalElements(data?.totalElements || 0);
     } catch (error) {
       console.error(error);
     } finally {
