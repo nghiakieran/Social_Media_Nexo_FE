@@ -49,12 +49,12 @@ export interface SearchUserResponse {
   status: number;
   message: string;
   data: {
-    users: SearchUserData[];
-    totalHits: number;
-    limit: number;
-    offset: number;
-    processingTimeMs: number;
-    query: string;
+    pageNo: number;
+    pageSize: number;
+    totalElements: number;
+    totalPages: number;
+    last: boolean;
+    content: SearchUserData[];
   };
 }
 

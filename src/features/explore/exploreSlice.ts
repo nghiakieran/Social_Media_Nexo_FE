@@ -212,9 +212,9 @@ const exploreSlice = createSlice({
       })
       .addCase(searchUsersThunk.fulfilled, (state, action) => {
         state.isSearching = false;
-        const { users } = action.payload;
+        const { content } = action.payload;
 
-        state.searchResults.users = users.map((user) => ({
+        state.searchResults.users = (content || []).map((user) => ({
           id: user.id.toString(),
           username: user.username,
           name: user.fullName,
