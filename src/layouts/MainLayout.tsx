@@ -10,7 +10,12 @@ import {
   minimizeFloatingConversation,
   restoreFloatingConversation,
   fetchMessages,
+  fetchConversations,
+  addMessageWithUnreadUpdate,
+  addMessage,
 } from "@/features/message/messageSlice";
+import { MessageDTO } from "@/features/message/types";
+import { playIncomingChatAlertIfNeeded } from "@/utils/inAppAlertSounds";
 import { Suggestions } from "@/components/common/Suggestions";
 import { getUnreadNotificationCountThunk } from "@/features/notification/notificationSlice";
 
@@ -29,12 +34,28 @@ export const MainLayout = () => {
 
   const [showMessageTab, setShowMessageTab] = React.useState(false);
 
-  useMessageWebSocket();
+  const ws = useMessageWebSocket();
 
   React.useEffect(() => {
     if (!user?.id) return;
     dispatch(getUnreadNotificationCountThunk());
+    dispatch(fetchConversations());
   }, [dispatch, user?.id]);
+
+  React.useEffect(() => {
+    if (!ws.isConnected || conversations.length === 0) return;
+    conversations.forEach((conv) => {
+      ws.subscribeToMessageOnly(conv.id, (message: MessageDTO) => {
+        if (user?.id) {
+          dispatch(addMessageWithUnreadUpdate({ message, currentUserId: user.id }));
+        } else {
+          dispatch(addMessage(message));
+        }
+        const sid = message.sender?.id;
+        if (sid != null) playIncomingChatAlertIfNeeded(message.id, sid, user?.id);
+      });
+    });
+  }, [ws.isConnected, conversations.length, dispatch, user?.id, ws]);
 
   // Load messages when floating chat opens
   React.useEffect(() => {
