@@ -120,7 +120,7 @@ export const getReelsFeed = async (
   try {
     const { userId, page = 0, limit = 10 } = params;
     const response = await api.get(
-      `/feeds/reels/${userId}?page=${page}&limit=${limit}`
+      `/feeds/reels/${userId}?pageNo=${page}&limit=${limit}`
     );
     return response.data;
   } catch (error: unknown) {
