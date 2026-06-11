@@ -52,6 +52,7 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
     wsRef.current = ws;
 
     if (ws.isConnected()) {
+      setIsConnected(true);
       ownsConnectionRef.current = false;
       return;
     }

@@ -85,6 +85,7 @@ export class WebSocketService {
       },
 
       onDisconnect: () => {
+        this.subscriptions.clear();
         this.onDisconnectedCallback?.();
       },
 
@@ -193,7 +194,7 @@ export class WebSocketService {
   
   subscribeToMessageOnly(conversationId: number, onMessage: MessageCallback) {
     if (!this.client?.connected) return;
-    const key = `/topic/conversation/${conversationId}:message`;
+    const key = `/topic/conversation/${conversationId}:messageOnly`;
     if (this.subscriptions.has(key)) return;
     const sub = this.client.subscribe(`/topic/conversation/${conversationId}`, (frame: IMessage) => {
       const data: MessageDTO = JSON.parse(frame.body);
