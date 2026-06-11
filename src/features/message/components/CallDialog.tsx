@@ -376,7 +376,6 @@ export const CallDialog: React.FC<CallDialogProps> = ({
               )}
             </div>
 
-            {/* Audio controls dock */}
             <div className="absolute inset-x-0 bottom-0 z-20 flex justify-center bg-gradient-to-t from-black/75 via-black/30 to-transparent px-6 pb-12 pt-20">
               <div className="flex items-center justify-center gap-6 sm:gap-10">
                 {isIncoming && (
