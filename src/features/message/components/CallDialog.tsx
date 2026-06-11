@@ -30,6 +30,7 @@ interface CallDialogProps {
 
   localVideoRef: React.RefObject<HTMLVideoElement>;
   remoteVideoRef: React.RefObject<HTMLVideoElement>;
+  localStreamRef?: React.RefObject<MediaStream | null>;
 
   onAccept: () => void;
   onDecline: () => void;
@@ -59,6 +60,7 @@ export const CallDialog: React.FC<CallDialogProps> = ({
   duration,
   localVideoRef,
   remoteVideoRef,
+  localStreamRef,
   onAccept,
   onDecline,
   onHangUp,
@@ -124,6 +126,9 @@ export const CallDialog: React.FC<CallDialogProps> = ({
             <video
               ref={(el) => {
                 localVideoEl.current = el;
+                if (el && localStreamRef?.current && el.srcObject !== localStreamRef.current) {
+                  el.srcObject = localStreamRef.current;
+                }
               }}
               autoPlay
               playsInline
@@ -287,6 +292,15 @@ export const CallDialog: React.FC<CallDialogProps> = ({
         {/* ─── Audio call */}
         {!withVideo && (
           <div className="relative flex min-h-[min(88dvh,580px)] w-full flex-col overflow-hidden rounded-3xl">
+            {/* Hidden video element to play remote audio */}
+            <video
+              ref={(el) => {
+                remoteVideoEl.current = el;
+              }}
+              autoPlay
+              playsInline
+              className="hidden"
+            />
             <div className="absolute inset-0 bg-gradient-to-br from-slate-950 via-indigo-950/90 to-slate-950" />
             {contactAvatar ? (
               <div className="absolute inset-0 opacity-35">

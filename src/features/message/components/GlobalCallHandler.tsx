@@ -23,6 +23,7 @@ export const GlobalCallHandler: React.FC<{ children?: React.ReactNode }> = ({ ch
     duration,
     localVideoRef,
     remoteVideoRef,
+    localStreamRef,
     startCall,
     answerCall,
     rejectCall,
@@ -62,6 +63,7 @@ export const GlobalCallHandler: React.FC<{ children?: React.ReactNode }> = ({ ch
         duration={duration}
         localVideoRef={localVideoRef}
         remoteVideoRef={remoteVideoRef}
+        localStreamRef={localStreamRef}
         onAccept={answerCall}
         onDecline={rejectCall}
         onHangUp={hangUp}

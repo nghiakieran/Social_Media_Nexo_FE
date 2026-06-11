@@ -1,6 +1,6 @@
 import { useRef, useState, useCallback, useEffect } from "react";
 import { getWebSocketService } from "../services/websocketService";
-import { startRingtone, stopRingtone } from "@/utils/inAppAlertSounds";
+import { startRingtone, stopRingtone, startRingbackTone, stopRingbackTone } from "@/utils/inAppAlertSounds";
 import type {
   CallNotificationDTO,
   CallSignalDTO,
@@ -88,6 +88,8 @@ export function useCallWebRTC({ onCallEnded }: UseCallWebRTCOptions = {}) {
     setDuration(0);
     setIsMuted(false);
     setIsVideoOff(false);
+    stopRingtone();
+    stopRingbackTone();
   }, []);
 
   // ─── Create RTCPeerConnection ────────────────────────────────────────────────
@@ -120,6 +122,7 @@ export function useCallWebRTC({ onCallEnded }: UseCallWebRTCOptions = {}) {
       if (pc.connectionState === "connected" && !durationIntervalRef.current) {
         setCallState("connected");
         callStateRef.current = "connected";
+        stopRingbackTone();
         durationIntervalRef.current = setInterval(() => setDuration((d) => d + 1), 1000);
       } else if (
         pc.connectionState === "failed" ||
@@ -170,6 +173,7 @@ export function useCallWebRTC({ onCallEnded }: UseCallWebRTCOptions = {}) {
         await getUserMedia(isVideo);
         setCallState("calling");
         callStateRef.current = "calling";
+        startRingbackTone();
 
         const info: ActiveCallInfo = {
           callId: 0, // updated when BE confirms
@@ -358,6 +362,7 @@ export function useCallWebRTC({ onCallEnded }: UseCallWebRTCOptions = {}) {
       if (!call) return;
 
       if (response.status === "ACCEPTED") {
+        stopRingbackTone();
         // Update callId from BE (was 0 placeholder)
         const updatedCall = { ...call, callId: response.callId };
         setActiveCall(updatedCall);
@@ -429,6 +434,7 @@ export function useCallWebRTC({ onCallEnded }: UseCallWebRTCOptions = {}) {
   const handleCallEnded = useCallback((ended: CallEndedDTO) => {
     console.log("[Call] ended:", ended);
     stopRingtone();
+    stopRingbackTone();
     const convId = activeCallRef.current?.conversationId || incomingCallRef.current?.conversationId;
     onCallEndedRef.current?.(ended.finalStatus, ended.durationSeconds, convId);
     cleanup();

@@ -77,6 +77,26 @@ export function stopRingtone(): void {
   }
 }
 
+let ringbackInterval: ReturnType<typeof setInterval> | null = null;
+
+function playRingbackPattern(): void {
+  // Standard ringback tone (e.g. 440Hz for 1.2s, then pause)
+  playTone(440, 1200, 0.1);
+}
+
+export function startRingbackTone(): void {
+  if (ringbackInterval) return;
+  playRingbackPattern();
+  ringbackInterval = setInterval(playRingbackPattern, 4000); // repeat every 4 seconds
+}
+
+export function stopRingbackTone(): void {
+  if (ringbackInterval) {
+    clearInterval(ringbackInterval);
+    ringbackInterval = null;
+  }
+}
+
 const recentChatSoundByMessageId = new Map<number, number>();
 const CHAT_SOUND_DEDUP_MS = 1200;
 
