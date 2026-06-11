@@ -269,11 +269,11 @@ export function useCallWebRTC({ onCallEnded }: UseCallWebRTCOptions = {}) {
     cleanup();
     setCallState("ended");
     callStateRef.current = "ended";
-    setActiveCall(null);
-    activeCallRef.current = null;
     setTimeout(() => {
       setCallState("idle");
       callStateRef.current = "idle";
+      setActiveCall(null);
+      activeCallRef.current = null;
     }, 1500);
   }, [ws, cleanup]);
 
@@ -291,8 +291,10 @@ export function useCallWebRTC({ onCallEnded }: UseCallWebRTCOptions = {}) {
       cleanup();
       setCallState("idle");
       callStateRef.current = "idle";
-      setActiveCall(null);
-      activeCallRef.current = null;
+      setTimeout(() => {
+        setActiveCall(null);
+        activeCallRef.current = null;
+      }, 500);
       return;
     }
 
