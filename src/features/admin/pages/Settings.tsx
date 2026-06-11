@@ -44,7 +44,7 @@ export default function Settings() {
     trending: false,
   });
 
-  const API_BASE = "http://localhost:8001";
+  const API_BASE = import.meta.env.VITE_AI_API_URL || "http://localhost:8001";
   const [confirmDialog, setConfirmDialog] = useState({
     isOpen: false,
     type: null,
