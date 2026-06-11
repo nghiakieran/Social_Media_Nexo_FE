@@ -7,7 +7,7 @@ import React, {
 } from "react";
 import { useDebouncedSearch } from "@/hooks/use-debounce-search";
 import { useLocation, useNavigate } from "react-router-dom";
-import { useWebSocket } from "../hooks/useWebSocket";
+ import { useWebSocket } from "../hooks/useWebSocket";
 import { useBatchPresence } from "../hooks/usePresence";
 import { useAppDispatch, useAppSelector } from "@/store";
 import { ChatList } from "../components/ChatList";
@@ -476,10 +476,6 @@ export const InboxPage: React.FC = () => {
     [dispatch]
   );
 
-  const handleNewMessage = () => {
-    navigate("/people/suggestions");
-  };
-
   const handleViewChange = (view: "primary" | "requests") => {
     setActiveView(view);
     if (view === "requests") {
@@ -609,7 +605,6 @@ export const InboxPage: React.FC = () => {
         <InstagramInboxHeader
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
-          onNewMessage={handleNewMessage}
           onCreateGroup={() => setCreateGroupDialogOpen(true)}
           activeView={activeView}
           onViewChange={handleViewChange}
@@ -648,14 +643,6 @@ export const InboxPage: React.FC = () => {
                       : "Kết bạn hoặc bắt đầu chat — tin nhắn sẽ hiển thị trong danh sách này."}
                   </p>
                 </div>
-                {activeView === "primary" && (
-                  <Button
-                    className="w-full sm:w-auto"
-                    onClick={handleNewMessage}
-                  >
-                    Tìm bạn bè để nhắn tin
-                  </Button>
-                )}
               </div>
             </div>
           ) : (
@@ -781,9 +768,6 @@ export const InboxPage: React.FC = () => {
                 </p>
               </div>
               <div className="flex flex-wrap items-center justify-center gap-2">
-                <Button variant="outline" onClick={handleNewMessage}>
-                  Tìm bạn bè
-                </Button>
                 {filteredChats[0] && (
                   <Button
                     onClick={() =>

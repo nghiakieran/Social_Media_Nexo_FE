@@ -29,7 +29,7 @@ import { cn } from "@/lib/utils";
 interface InstagramInboxHeaderProps {
   searchQuery: string;
   onSearchChange: (query: string) => void;
-  onNewMessage: () => void;
+  onNewMessage?: () => void;
   onCreateGroup?: () => void;
   className?: string;
   activeView?: "primary" | "requests";
@@ -135,15 +135,17 @@ export const InstagramInboxHeader: React.FC<InstagramInboxHeaderProps> = ({
               <Users className="h-4 w-4" />
             </Button>
           )}
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onNewMessage}
-            className="h-8 w-8 hover:bg-primary/10 hover:text-primary md:h-9 md:w-9"
-            aria-label="Tin nhắn mới"
-          >
-            <Edit3 className="h-4 w-4" />
-          </Button>
+          {onNewMessage && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onNewMessage}
+              className="h-8 w-8 hover:bg-primary/10 hover:text-primary md:h-9 md:w-9"
+              aria-label="Tin nhắn mới"
+            >
+              <Edit3 className="h-4 w-4" />
+            </Button>
+          )}
           <Button
             variant="ghost"
             size="icon"

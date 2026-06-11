@@ -273,7 +273,7 @@ export const CommentDialog = ({
           setLatestLikeName(null);
         }
       } catch (_) {
-        setHasFetchedLikePreview(false);
+        // Keep flag as true to prevent infinite retry
       }
     };
     run();

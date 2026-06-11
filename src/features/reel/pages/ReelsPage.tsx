@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useAppDispatch, useAppSelector } from "@/store";
 import {
   setCurrentReel,
+  setReels,
   getReelsFeedThunk,
   likeReelThunk,
   deleteReelThunk,
@@ -33,9 +34,20 @@ const ReelsPage = () => {
   const isScrollingRef = useRef(false);
 
   useEffect(() => {
-    // Load initial reels
     if (user?.id) {
-      dispatch(getReelsFeedThunk({ userId: user.id, page: 0, limit: 10 }));
+      // Clear stale reels to show loading state instead of old reels
+      dispatch(setReels([]));
+      dispatch(getReelsFeedThunk({ userId: user.id, page: 0, limit: 10 }))
+        .unwrap()
+        .then((res) => {
+          if (res.reels && res.reels.length > 0) {
+            dispatch(setCurrentReel(res.reels[0]));
+            setCurrentReelIndex(0);
+          }
+        })
+        .catch((err) => {
+          console.error("Failed to load reels:", err);
+        });
     }
   }, [dispatch, user?.id]);
 
