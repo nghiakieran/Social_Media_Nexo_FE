@@ -68,6 +68,7 @@ export const InboxPage: React.FC = () => {
     typingUsers,
     messagesPagination,
     replyingTo,
+    pendingRequestsCount,
   } = useAppSelector((state) => state.message);
   const { user } = useAppSelector((state) => state.auth);
 
@@ -608,6 +609,7 @@ export const InboxPage: React.FC = () => {
           onCreateGroup={() => setCreateGroupDialogOpen(true)}
           activeView={activeView}
           onViewChange={handleViewChange}
+          pendingRequestsCount={pendingRequestsCount}
         />
 
         {activeView === "primary" && (

@@ -13,6 +13,7 @@ import {
   fetchConversations,
   addMessageWithUnreadUpdate,
   addMessage,
+  fetchPendingRequestsCountThunk,
 } from "@/features/message/messageSlice";
 import { MessageDTO } from "@/features/message/types";
 import { playIncomingChatAlertIfNeeded } from "@/utils/inAppAlertSounds";
@@ -40,6 +41,7 @@ export const MainLayout = () => {
     if (!user?.id) return;
     dispatch(getUnreadNotificationCountThunk());
     dispatch(fetchConversations());
+    dispatch(fetchPendingRequestsCountThunk());
   }, [dispatch, user?.id]);
 
   React.useEffect(() => {

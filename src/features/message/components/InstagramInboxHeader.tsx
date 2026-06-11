@@ -34,6 +34,7 @@ interface InstagramInboxHeaderProps {
   className?: string;
   activeView?: "primary" | "requests";
   onViewChange?: (view: "primary" | "requests") => void;
+  pendingRequestsCount?: number;
 }
 
 export const InstagramInboxHeader: React.FC<InstagramInboxHeaderProps> = ({
@@ -44,6 +45,7 @@ export const InstagramInboxHeader: React.FC<InstagramInboxHeaderProps> = ({
   className,
   activeView = "primary",
   onViewChange,
+  pendingRequestsCount = 0,
 }) => {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [activityStatus, setActivityStatus] = useState(true);
@@ -114,9 +116,16 @@ export const InstagramInboxHeader: React.FC<InstagramInboxHeaderProps> = ({
                 <MessageSquare className="h-4 w-4 mr-2" />
                 Chính
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onViewChange?.("requests")}>
-                <Archive className="h-4 w-4 mr-2" />
-                Chờ
+              <DropdownMenuItem onClick={() => onViewChange?.("requests")} className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <Archive className="h-4 w-4 mr-2" />
+                  Chờ
+                </div>
+                {pendingRequestsCount > 0 && (
+                  <span className="ml-2 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
+                    {pendingRequestsCount > 99 ? "99+" : pendingRequestsCount}
+                  </span>
+                )}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

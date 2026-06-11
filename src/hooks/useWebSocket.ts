@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useAppDispatch } from "@/store";
 import { addNotification } from "@/features/notification/notificationSlice";
+import { fetchPendingRequestsCountThunk } from "@/features/message/messageSlice";
 import { Client } from "@stomp/stompjs";
 import SockJS from "sockjs-client";
 export const useWebSocket = (token: string, username: string) => {
@@ -28,6 +29,15 @@ export const useWebSocket = (token: string, username: string) => {
           try {
             const newNotification = JSON.parse(message.body);
             dispatch(addNotification(newNotification));
+            
+            // Cập nhật số lượng tin nhắn chờ khi có thông báo (backend có thể gửi MESSAGE/MESSAGE_REQUEST)
+            if (
+              newNotification.notificationType === "MESSAGE_REQUEST" ||
+              newNotification.notificationType === "MESSAGE" ||
+              !newNotification.notificationType // fallback
+            ) {
+              dispatch(fetchPendingRequestsCountThunk());
+            }
           } catch (error) {
             console.error("Lỗi parse JSON từ thông báo:", error);
           }

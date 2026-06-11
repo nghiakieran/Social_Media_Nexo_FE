@@ -74,6 +74,14 @@ export const Sidebar = () => {
   const unreadNotificationCount = useAppSelector(
     (state) => state.notification.unreadCount,
   );
+  const unreadConversationsCount = useAppSelector(
+    (state) => state.message.conversations.filter(c => c.unreadCount && c.unreadCount > 0).length,
+  );
+  const pendingRequestsCount = useAppSelector(
+    (state) => state.message.pendingRequestsCount,
+  );
+  const totalUnreadMessages = unreadConversationsCount + pendingRequestsCount;
+
   const { isConnected } = useWebSocket(token || "", user?.username || "");
 
   const { setTheme } = useTheme();
@@ -132,6 +140,11 @@ export const Sidebar = () => {
                   {isNotificationItem && unreadNotificationCount > 0 && (
                     <span className={navUnreadBadgeTrailingClass}>
                       {formatNavBadgeCount(unreadNotificationCount)}
+                    </span>
+                  )}
+                  {item.name === "Tin nhắn" && totalUnreadMessages > 0 && (
+                    <span className={navUnreadBadgeTrailingClass}>
+                      {formatNavBadgeCount(totalUnreadMessages)}
                     </span>
                   )}
                 </NavLink>
@@ -426,6 +439,9 @@ export const Sidebar = () => {
               >
                 <div className="relative">
                   <item.icon className="h-5 w-5" />
+                  {item.name === "Tin nhắn" && totalUnreadMessages > 0 && (
+                    <span className="absolute -top-1 -right-1 flex h-2 w-2 rounded-full bg-red-500 ring-1 ring-background"></span>
+                  )}
                 </div>
                 <span className="text-[10px] font-medium">{item.name}</span>
               </NavLink>

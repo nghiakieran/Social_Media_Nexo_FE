@@ -42,6 +42,7 @@ export interface MessageState {
       hasMore: boolean;
     };
   };
+  pendingRequestsCount: number;
 }
 
 const initialState: MessageState = {
@@ -63,6 +64,7 @@ const initialState: MessageState = {
     hasMore: true,
   },
   messagesPagination: {},
+  pendingRequestsCount: 0,
 };
 
 export const fetchConversations = createAsyncThunk(
@@ -78,6 +80,14 @@ export const fetchConversationRequests = createAsyncThunk(
   async (params: { search?: string; page?: number; size?: number } = {}) => {
     const response = await conversationApi.getConversationRequests(params);
     return response.data;
+  }
+);
+
+export const fetchPendingRequestsCountThunk = createAsyncThunk(
+  "message/fetchPendingRequestsCount",
+  async () => {
+    const response = await conversationApi.getConversationRequests({ size: 1 });
+    return response.data?.totalElements ?? 0;
   }
 );
 
@@ -188,6 +198,9 @@ const messageSlice = createSlice({
   name: "message",
   initialState,
   reducers: {
+    setPendingRequestsCount: (state, action: PayloadAction<number>) => {
+      state.pendingRequestsCount = action.payload;
+    },
     setConversations: (
       state,
       action: PayloadAction<ConversationResponseDTO[]>
@@ -831,10 +844,15 @@ const messageSlice = createSlice({
         conv.status = EConversationStatus.DECLINED;
       }
     });
+
+    builder.addCase(fetchPendingRequestsCountThunk.fulfilled, (state, action) => {
+      state.pendingRequestsCount = action.payload;
+    });
   },
 });
 
 export const {
+  setPendingRequestsCount,
   setConversations,
   upsertConversation,
   setMessages,
