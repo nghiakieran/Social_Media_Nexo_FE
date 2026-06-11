@@ -126,7 +126,7 @@ export const getFeed = async (
       data: GetFeedResponse;
     }>(`/feeds/posts/${userId}`, {
       params: {
-        page,
+        pageNo: page,
         limit,
       },
     });
