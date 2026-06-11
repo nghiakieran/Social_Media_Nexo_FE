@@ -2,9 +2,12 @@ import React, { useEffect, useState } from "react";
 import { useCallWebRTC } from "../hooks/useCallWebRTC";
 import { CallDialog } from "./CallDialog";
 import { CallContextProvider } from "../contexts/CallContext";
+import { useAppDispatch } from "@/store";
+import { fetchMessages, fetchConversations } from "../messageSlice";
 
 export const GlobalCallHandler: React.FC<{ children?: React.ReactNode }> = ({ children }) => {
   const [callDialogOpen, setCallDialogOpen] = useState(false);
+  const dispatch = useAppDispatch();
 
   useEffect(() => {
     console.log("[GlobalCallHandler] mounted");
@@ -27,7 +30,16 @@ export const GlobalCallHandler: React.FC<{ children?: React.ReactNode }> = ({ ch
     dismissCall,
     toggleMute,
     toggleVideo,
-  } = useCallWebRTC();
+  } = useCallWebRTC({
+    onCallEnded: (status, duration, conversationId) => {
+      if (conversationId) {
+        setTimeout(() => {
+          dispatch(fetchMessages({ conversationId, page: 1, size: 20 }));
+          dispatch(fetchConversations({ page: 0, size: 20 }));
+        }, 500);
+      }
+    },
+  });
 
   useEffect(() => {
     setCallDialogOpen(callState !== "idle");

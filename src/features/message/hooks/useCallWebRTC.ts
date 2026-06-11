@@ -37,7 +37,7 @@ export interface ActiveCallInfo {
 }
 
 interface UseCallWebRTCOptions {
-  onCallEnded?: (status: ECallStatus, durationSeconds: number | null) => void;
+  onCallEnded?: (status: ECallStatus, durationSeconds: number | null, conversationId?: number) => void;
 }
 
 export function useCallWebRTC({ onCallEnded }: UseCallWebRTCOptions = {}) {
@@ -429,7 +429,8 @@ export function useCallWebRTC({ onCallEnded }: UseCallWebRTCOptions = {}) {
   const handleCallEnded = useCallback((ended: CallEndedDTO) => {
     console.log("[Call] ended:", ended);
     stopRingtone();
-    onCallEndedRef.current?.(ended.finalStatus, ended.durationSeconds);
+    const convId = activeCallRef.current?.conversationId || incomingCallRef.current?.conversationId;
+    onCallEndedRef.current?.(ended.finalStatus, ended.durationSeconds, convId);
     cleanup();
     setCallState("ended");
     callStateRef.current = "ended";
