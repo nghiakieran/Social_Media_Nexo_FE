@@ -28,20 +28,20 @@ export const SearchInput = ({
   };
 
   return (
-    <div className={cn("relative", className)}>
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+    <div className={cn("relative w-full min-w-0", className)}>
+      <div className="relative w-full">
+        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input
           type="text"
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
-          className="pl-10 pr-10 h-10 text-sm md:text-base"
+          className="h-10 w-full min-w-0 pl-10 pr-10 text-sm focus-visible:ring-primary/30 md:text-base"
           autoFocus={autoFocus}
         />
-        <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+        <div className="absolute right-2 top-1/2 flex -translate-y-1/2 items-center gap-1">
           {isDebouncing && (
-            <Loader2 className="h-4 w-4 text-muted-foreground animate-spin" />
+            <Loader2 className="h-4 w-4 animate-spin text-primary" />
           )}
           {value && !isDebouncing && (
             <Button
@@ -49,9 +49,9 @@ export const SearchInput = ({
               variant="ghost"
               size="sm"
               onClick={handleClear}
-              className="h-6 w-6 p-0 hover:bg-transparent"
+              className="h-7 w-7 p-0 hover:bg-primary/10"
             >
-              <X className="h-4 w-4 text-muted-foreground hover:text-foreground" />
+              <X className="h-4 w-4 text-muted-foreground transition-colors hover:text-primary" />
             </Button>
           )}
         </div>

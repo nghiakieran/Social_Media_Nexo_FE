@@ -6,7 +6,6 @@ import {
   MoreHorizontal,
   Smile,
   ArrowLeft,
-  Bookmark,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -33,7 +32,6 @@ import { cn } from "@/lib/utils";
 import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
-import { useBookmark } from "@/features/saved/hooks/useBookmark";
 import { getAvatarUrl, getAvatarInitials } from "@/utils/avatar";
 import { parseMentions } from "@/utils/mentions";
 import { navigateToProfile } from "@/utils/navigation";
@@ -74,8 +72,6 @@ const ReelCommentDialog = () => {
     currentPage: commentsCurrentPage,
     isCreating,
   } = useAppSelector((s) => s.interaction.comments);
-
-  const { isBookmarked, toggleBookmark } = useBookmark();
 
   const dialogRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -183,7 +179,7 @@ const ReelCommentDialog = () => {
           setLatestLikeName(null);
         }
       } catch (_) {
-        setHasFetchedLikePreview(false);
+        // Keep flag as true to prevent infinite retry
       }
     };
     run();
@@ -461,7 +457,9 @@ const ReelCommentDialog = () => {
       } else {
         setLatestLikeName(null);
       }
-    } catch (_) {}
+    } catch (error) {
+      console.error("Failed to refresh reel like preview:", error);
+    }
   };
 
   const getTotalRepliesCount = (commentId: string): number => {
@@ -920,7 +918,7 @@ const ReelCommentDialog = () => {
                     </div>
                   </div>
                   {(comment.replies && comment.replies.length > 0) ||
-                  comment.hasMoreReplies ? (
+                    comment.hasMoreReplies ? (
                     <div className="mt-2 ml-11">
                       {!expandedReplies[comment.id] ? (
                         <button
@@ -988,7 +986,7 @@ const ReelCommentDialog = () => {
                 <button
                   type="button"
                   onClick={() => setReplyingTo(null)}
-                  className="text-xs text-blue-500 hover:text-blue-700"
+                  className="text-xs text-primary hover:text-primary/90"
                 >
                   Hủy
                 </button>
@@ -1227,19 +1225,19 @@ const ReelCommentDialog = () => {
                           <div className="flex items-center gap-4">
                             {getLikesCount(comment.id, comment.likesCount) >
                               0 && (
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  openLikesDialog(comment.id, "comment")
-                                }
-                                className="text-xs text-gray-500 hover:underline"
-                              >
-                                {formatNumber(
-                                  getLikesCount(comment.id, comment.likesCount)
-                                )}{" "}
-                                lượt thích
-                              </button>
-                            )}
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    openLikesDialog(comment.id, "comment")
+                                  }
+                                  className="text-xs text-gray-500 hover:underline"
+                                >
+                                  {formatNumber(
+                                    getLikesCount(comment.id, comment.likesCount)
+                                  )}{" "}
+                                  lượt thích
+                                </button>
+                              )}
                             <button
                               className="text-xs text-gray-500 hover:text-gray-600 transition-colors"
                               onClick={() => setReplyingTo(comment.id)}
@@ -1262,7 +1260,7 @@ const ReelCommentDialog = () => {
                             </button>
                           </div>
                           {(comment.replies && comment.replies.length > 0) ||
-                          comment.hasMoreReplies ? (
+                            comment.hasMoreReplies ? (
                             <div className="mt-2">
                               {!expandedReplies[comment.id] ? (
                                 <button
@@ -1357,8 +1355,7 @@ const ReelCommentDialog = () => {
                 targetType="reel"
                 isLiked={isReelLikedLocal}
                 likesCount={reelLikesCount}
-                size="default"
-                variant="ghost"
+                size="md"
                 showCount={false}
                 onLikeChange={handleReelLikeChange}
                 className="h-auto p-0"
@@ -1373,23 +1370,6 @@ const ReelCommentDialog = () => {
                 <Send className="w-6 h-6" />
               </button>
               <div className="flex-1" />
-              <button
-                className="text-gray-500 hover:text-gray-700 transition-colors"
-                type="button"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  toggleBookmark(currentReel.id);
-                }}
-              >
-                <Bookmark
-                  className={cn(
-                    "w-6 h-6",
-                    isBookmarked(currentReel.id) &&
-                      "fill-current text-gray-800 dark:text-gray-100"
-                  )}
-                />
-              </button>
             </div>
 
             {reelLikesCount > 0 && (
@@ -1448,7 +1428,7 @@ const ReelCommentDialog = () => {
                   <button
                     type="button"
                     onClick={() => setReplyingTo(null)}
-                    className="text-xs text-blue-500 hover:text-blue-700"
+                    className="text-xs text-primary hover:text-primary/90"
                   >
                     Hủy
                   </button>
@@ -1474,7 +1454,7 @@ const ReelCommentDialog = () => {
                     size="sm"
                     disabled={!replyContent.trim()}
                     variant="ghost"
-                    className="px-4 text-blue-500 hover:text-blue-700 disabled:text-gray-400"
+                    className="px-4 text-primary hover:text-primary/90 disabled:text-gray-400"
                   >
                     Gửi
                   </Button>
@@ -1503,7 +1483,7 @@ const ReelCommentDialog = () => {
                   size="sm"
                   disabled={!commentText.trim() || isCreating}
                   variant="ghost"
-                  className="px-4 text-blue-500 hover:text-blue-700 disabled:text-gray-400"
+                  className="px-4 text-primary hover:text-primary/90 disabled:text-gray-400"
                 >
                   Gửi
                 </Button>
@@ -1528,67 +1508,67 @@ const ReelCommentDialog = () => {
           items={
             currentCommentForAction === "reel"
               ? (() => {
-                  const isReelOwner =
-                    currentReel.userId === user?.id.toString();
-                  const items: ActionMenuItem[] = [];
-                  if (isReelOwner) {
-                    items.push({
-                      label: "Xóa",
-                      action: handleDeleteReelClick,
-                      isDestructive: true,
-                    });
-                  }
+                const isReelOwner =
+                  currentReel.userId === user?.id.toString();
+                const items: ActionMenuItem[] = [];
+                if (isReelOwner) {
                   items.push({
-                    label: "Báo cáo",
-                    action: () => setShowReportDialog(true),
+                    label: "Xóa",
+                    action: handleDeleteReelClick,
                     isDestructive: true,
                   });
-                  items.push({ label: "Hủy", action: handleCloseActionMenu });
-                  return items;
-                })()
+                }
+                items.push({
+                  label: "Báo cáo",
+                  action: () => setShowReportDialog(true),
+                  isDestructive: true,
+                });
+                items.push({ label: "Hủy", action: handleCloseActionMenu });
+                return items;
+              })()
               : (() => {
-                  let comment: Comment | undefined = displayComments.find(
-                    (c) => c.id === currentCommentForAction
-                  );
-                  if (!comment) {
-                    for (const root of displayComments) {
-                      if (root.replies) {
-                        const r = root.replies.find(
-                          (x) => x.id === currentCommentForAction
-                        );
-                        if (r) {
-                          comment = r;
-                          break;
-                        }
+                let comment: Comment | undefined = displayComments.find(
+                  (c) => c.id === currentCommentForAction
+                );
+                if (!comment) {
+                  for (const root of displayComments) {
+                    if (root.replies) {
+                      const r = root.replies.find(
+                        (x) => x.id === currentCommentForAction
+                      );
+                      if (r) {
+                        comment = r;
+                        break;
                       }
                     }
                   }
-                  if (!comment)
-                    return [{ label: "Hủy", action: handleCloseActionMenu }];
+                }
+                if (!comment)
+                  return [{ label: "Hủy", action: handleCloseActionMenu }];
 
-                  const isCommentOwner = comment.userId === user?.id.toString();
-                  const isReelOwner =
-                    currentReel.userId === user?.id.toString();
-                  const canDelete = isCommentOwner || isReelOwner;
+                const isCommentOwner = comment.userId === user?.id.toString();
+                const isReelOwner =
+                  currentReel.userId === user?.id.toString();
+                const canDelete = isCommentOwner || isReelOwner;
 
-                  const items: ActionMenuItem[] = [];
-                  if (canDelete) {
-                    items.push({
-                      label: "Xóa",
-                      action: () => handleDeleteComment(comment!.id),
-                      isDestructive: true,
-                    });
-                  }
+                const items: ActionMenuItem[] = [];
+                if (canDelete) {
                   items.push({
-                    label: "Báo cáo",
-                    action: () => {
-                      /* report comment */
-                    },
+                    label: "Xóa",
+                    action: () => handleDeleteComment(comment!.id),
                     isDestructive: true,
                   });
-                  items.push({ label: "Hủy", action: handleCloseActionMenu });
-                  return items;
-                })()
+                }
+                items.push({
+                  label: "Báo cáo",
+                  action: () => {
+                    /* report comment */
+                  },
+                  isDestructive: true,
+                });
+                items.push({ label: "Hủy", action: handleCloseActionMenu });
+                return items;
+              })()
           }
         />
       )}

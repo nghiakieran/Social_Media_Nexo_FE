@@ -168,7 +168,11 @@ export const PostDetailPage = () => {
       case "delete":
         try {
           await dispatch(deletePostThunk(parseInt(post.id))).unwrap();
-          toast({ title: "Đã xóa", description: "Bài viết đã được xóa." });
+          toast({
+            variant: "success",
+            title: "Đã xóa",
+            description: "Bài viết đã được xóa.",
+          });
           navigate(-1);
         } catch (error) {
           toast({
@@ -186,6 +190,7 @@ export const PostDetailPage = () => {
           await dispatch(togglePostActiveThunk(parseInt(post.id))).unwrap();
           const isNowHidden = !post.isActive;
           toast({
+            variant: "success",
             title: isNowHidden ? "Đã ẩn bài viết" : "Đã hiển thị bài viết",
             description: isNowHidden
               ? "Bài viết sẽ không hiển thị trên trang cá nhân của bạn."
@@ -205,12 +210,14 @@ export const PostDetailPage = () => {
         break;
       case "hideLikes":
         toast({
+          variant: "success",
           title: "Đã ẩn",
           description: "Số lượt thích đã được ẩn với những người khác.",
         });
         break;
       case "disableComments":
         toast({
+          variant: "success",
           title: "Đã tắt",
           description: "Tính năng bình luận đã được tắt.",
         });
@@ -231,6 +238,7 @@ export const PostDetailPage = () => {
       .unwrap()
       .then(() => {
         toast({
+          variant: "success",
           title: "Cập nhật thành công!",
           description: "Bài viết đã được cập nhật.",
         });
@@ -256,6 +264,7 @@ export const PostDetailPage = () => {
     message: string
   ) => {
     toast({
+      variant: "success",
       title: "Đã chia sẻ",
       description: `Bài viết đã được chia sẻ với ${userIds.length} người dùng.`,
     });
@@ -588,12 +597,12 @@ export const PostDetailPage = () => {
                       targetType="post"
                       isLiked={interactions.isLiked}
                       likesCount={post.stats.likes}
-                      size="sm"
+                      size="md"
                       showCount={false}
                       onLikeChange={handleLikeChange}
-                      className="flex items-center gap-2 px-3 py-2 rounded-full transition-colors"
+                      className="px-4 py-2 rounded-full hover:bg-muted/80 transition-colors"
                     >
-                      <span className="hidden sm:inline">Thích</span>
+                      <span className="text-sm font-medium">Thích</span>
                     </LikeButton>
 
                     <Button
@@ -632,7 +641,7 @@ export const PostDetailPage = () => {
                           "w-5 h-5",
                           (isBookmarked(post.id) ||
                             interactions.isBookmarked) &&
-                            "fill-current"
+                          "fill-current"
                         )}
                       />
                       <span className="hidden sm:inline">Lưu</span>
@@ -684,12 +693,12 @@ export const PostDetailPage = () => {
           showLikesDialog?.targetType === "post"
             ? "post"
             : showLikesDialog?.targetType === "comment"
-            ? "comment"
-            : undefined
+              ? "comment"
+              : undefined
         }
         targetId={
           showLikesDialog?.targetType === "post" ||
-          showLikesDialog?.targetType === "comment"
+            showLikesDialog?.targetType === "comment"
             ? parseInt(showLikesDialog.targetId)
             : undefined
         }
@@ -706,7 +715,6 @@ export const PostDetailPage = () => {
         onClose={handleCloseActionMenu}
         onAction={handleActionMenuAction}
         isOwnPost={post.userId === user?.id.toString()}
-        isPostHidden={!post.isActive}
       />
 
       {/* Edit Post Dialog */}
@@ -758,6 +766,7 @@ export const PostDetailPage = () => {
           try {
             await dispatch(deletePostThunk(parseInt(pid))).unwrap();
             toast({
+              variant: "success",
               title: "Đã xóa",
               description: "Bài viết đã được xóa.",
             });

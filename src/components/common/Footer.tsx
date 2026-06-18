@@ -4,8 +4,9 @@ export const Footer = () => {
       <div className="container mx-auto px-4">
         <div className="flex flex-col md:flex-row justify-between items-center">
           <div className="mb-4 md:mb-0">
-            <h3 className="text-lg font-bold bg-gradient-instagram bg-clip-text text-transparent">
-              Nexo
+            <h3 className="text-lg font-bold tracking-tight">
+              <span className="text-foreground">Nexo</span>{" "}
+              <span className="text-primary">Social</span>
             </h3>
             <p className="text-sm text-muted-foreground mt-1">
               Mạng xã hội thông minh với AI

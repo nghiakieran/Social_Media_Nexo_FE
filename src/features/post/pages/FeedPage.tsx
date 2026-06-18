@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { PostCard } from "../components/PostCard";
 import { EditPostDialog } from "../components/EditPostDialog";
 import { ReportPostDialog } from "../components/ReportPostDialog";
@@ -40,7 +40,7 @@ export const FeedPage = () => {
   const dispatch = useAppDispatch();
   const { user } = useAppSelector((state) => state.auth);
   const { posts, isLoading, error, hasMore, currentPage } = useAppSelector(
-    (state) => state.post
+    (state) => state.post,
   );
   const {
     userStories,
@@ -63,22 +63,21 @@ export const FeedPage = () => {
       dispatch(getFeedThunk({ userId: user.id, page: 0, limit: 10 }));
       // Load current user's stories
       dispatch(
-        getUserStoriesThunk({ userId: user.id, pageNo: 0, pageSize: 10 })
+        getUserStoriesThunk({ userId: user.id, pageNo: 0, pageSize: 10 }),
       );
       // Load friends' stories
       dispatch(
-        getFriendStoriesThunk({ userId: user.id, pageNo: 0, pageSize: 10 })
+        getFriendStoriesThunk({ userId: user.id, pageNo: 0, pageSize: 10 }),
       );
     }
   }, [dispatch, user]);
 
-  // Infinite scroll handler for posts
-  const handleLoadMore = () => {
+  const handleLoadMore = useCallback(() => {
     if (user && !isLoading && hasMore) {
       const nextPage = currentPage + 1;
       dispatch(getFeedThunk({ userId: user.id, page: nextPage, limit: 10 }));
     }
-  };
+  }, [user, isLoading, hasMore, currentPage, dispatch]);
 
   // Infinite scroll handler for stories
   const handleLoadMoreStories = () => {
@@ -90,7 +89,7 @@ export const FeedPage = () => {
           userId: user.id,
           pageNo: nextPage,
           pageSize: 10,
-        })
+        }),
       );
     }
   };
@@ -132,6 +131,7 @@ export const FeedPage = () => {
       .unwrap()
       .then(() => {
         toast({
+          variant: "success",
           title: "Cập nhật thành công!",
           description: "Bài viết đã được cập nhật.",
         });
@@ -157,6 +157,7 @@ export const FeedPage = () => {
         .unwrap()
         .then(() => {
           toast({
+            variant: "success",
             title: "Xóa bài viết thành công!",
             description: "Bài viết đã được xóa khỏi trang cá nhân của bạn.",
           });
@@ -182,6 +183,7 @@ export const FeedPage = () => {
     console.log("Sharing post:", { postId, userIds, message });
 
     toast({
+      variant: "success",
       title: "Chia sẻ thành công!",
       description: `Đã gửi bài viết đến ${userIds.length} người`,
       duration: 2000,
@@ -209,7 +211,7 @@ export const FeedPage = () => {
           parentId: 0,
           content,
           listMentionUserId: [],
-        })
+        }),
       ).unwrap();
       // Refresh comments if needed - CommentDialog will reload automatically
     } catch (error) {
@@ -236,7 +238,7 @@ export const FeedPage = () => {
   const handleReplyComment = async (
     commentId: string,
     content: string,
-    postId?: string
+    postId?: string,
   ) => {
     if (!user || !postId) return;
 
@@ -250,7 +252,7 @@ export const FeedPage = () => {
           parentId: parseInt(commentId),
           content,
           listMentionUserId: [],
-        })
+        }),
       ).unwrap();
       // Refresh comments if needed
     } catch (error) {
@@ -304,6 +306,14 @@ export const FeedPage = () => {
   // Sort stories by viewed status
   const sortedStories = sortStoriesByViewedStatus(allStories);
 
+  let lastActivePostIndex = -1;
+  for (let i = posts.length - 1; i >= 0; i--) {
+    if (posts[i].isActive) {
+      lastActivePostIndex = i;
+      break;
+    }
+  }
+
   // Transform to Stories component format
   const displayStories = sortedStories
     .filter((story) => story.content && story.content.length > 0) // Filter out empty stories
@@ -333,10 +343,11 @@ export const FeedPage = () => {
       {/* Posts Feed */}
       <div className="space-y-6 p-4">
         {posts.map((post, index) => {
-          const isLastItem = index === posts.length - 1;
+          const attachInfiniteRef = index === lastActivePostIndex;
+          if (!post.isActive) return null;
 
           return (
-            <div key={post.id} ref={isLastItem ? lastElementRef : null}>
+            <div key={post.id} ref={attachInfiniteRef ? lastElementRef : null}>
               <PostCard
                 post={post as any}
                 onLike={handleLike}

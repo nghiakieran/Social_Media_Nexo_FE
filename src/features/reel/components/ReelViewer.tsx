@@ -67,8 +67,7 @@ const ReelViewer = memo(
       setLikesCount(newCount);
     };
 
-    const handleComment = (e: React.MouseEvent) => {
-      e.stopPropagation();
+    const handleToggleComments = () => {
       dispatch(openCommentsDrawer(reel.id));
     };
 
@@ -89,6 +88,7 @@ const ReelViewer = memo(
           await dispatch(deleteReelThunk(parseInt(reel.id))).unwrap();
 
           toast({
+            variant: "success",
             title: "Thành công",
             description: "Reel đã được xóa thành công!",
           });
@@ -224,10 +224,11 @@ const ReelViewer = memo(
               isLiked={isLiked}
               likesCount={likesCount}
               size="md"
-              variant="ghost"
               showCount={false}
               onLikeChange={handleLikeChange}
-              className="h-14 w-14 p-0 bg-transparent hover:bg-transparent text-white hover:text-white active:scale-90 transition-transform"
+              className={`h-14 w-14 p-0 bg-transparent hover:bg-transparent active:scale-90 transition-transform flex flex-col items-center gap-0.5 [&_svg]:w-7 [&_svg]:h-7 [&_svg]:drop-shadow-[0_2px_4px_rgba(0,0,0,0.6)] ${
+                isLiked ? "text-red-500 hover:text-red-600" : "text-white hover:text-white"
+              }`}
             >
               {likesCount > 0 && (
                 <span className="text-white text-[11px] font-semibold drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">
@@ -239,7 +240,7 @@ const ReelViewer = memo(
 
           {/* Comment */}
           <button
-            onClick={handleComment}
+            onClick={handleToggleComments}
             className="flex flex-col items-center gap-0.5 active:scale-90 transition-transform"
           >
             <MessageCircle className="w-7 h-7 text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.6)]" />

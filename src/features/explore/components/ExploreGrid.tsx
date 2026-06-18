@@ -1,7 +1,14 @@
 import React, { useState } from "react";
 import { cn } from "@/lib/utils";
 import { ExplorePost } from "../types";
-import { Heart, MessageCircle, Play, Copy } from "lucide-react";
+import {
+  Heart,
+  MessageCircle,
+  Play,
+  Copy,
+  AlignLeft,
+  Quote,
+} from "lucide-react";
 import { LazyImage } from "@/components/common/LazyImage";
 import { SimpleVideoPreview } from "@/components/common/SimpleVideoPreview";
 
@@ -25,35 +32,46 @@ export const ExploreGrid: React.FC<ExploreGridProps> = ({
   return (
     <div className={cn("w-full", className)}>
       {/* Masonry Grid */}
-      <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-2 space-y-2">
+      <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-4">
         {posts.map((post, index) => (
           <div
             key={post.id}
-            className="relative break-inside-avoid cursor-pointer group"
+            className="relative break-inside-avoid mb-4 cursor-pointer group"
             onClick={() => handlePostClick(post)}
             onMouseEnter={() => setHoveredPost(post.id)}
             onMouseLeave={() => setHoveredPost(null)}
           >
-            {/* Post Image/Video Container */}
             <div className="relative overflow-hidden rounded-lg bg-muted shadow-sm hover:shadow-md transition-shadow duration-300">
-              {post.media.length > 0 && (
+              {post.media && post.media.length > 0 ? (
                 <>
                   {post.media[0].type === "image" ? (
                     <LazyImage
                       src={post.media[0].url}
-                      alt={post.caption || `Post by ${post.userName}`}
-                      className="w-full h-auto"
-                      loading="lazy"
-                      decoding="async"
-                      enableProgressiveLoading
+                      alt={post.caption || `Post`}
+                      className="w-full h-auto min-h-[100px] object-cover"
                     />
                   ) : (
                     <SimpleVideoPreview
                       videoUrl={post.media[0].url}
-                      className="w-full h-auto"
+                      className="w-full h-auto min-h-[100px]"
                     />
                   )}
                 </>
+              ) : (
+                <div className="w-full aspect-[4/5] sm:aspect-square bg-gradient-to-br from-background via-muted/50 to-muted flex flex-col justify-center p-6 relative border border-border/50">
+                  <div className="absolute top-3 right-3 bg-background/80 backdrop-blur-sm rounded-full p-1.5 shadow-sm border border-border/50">
+                    <AlignLeft className="h-3 w-3 text-foreground/70" />
+                  </div>
+
+                  <div className="relative z-10 flex flex-col items-center text-center">
+                    <Quote className="h-8 w-8 text-primary/20 mb-4" />
+                    <p className="text-base sm:text-lg font-medium text-foreground/80 line-clamp-6 leading-relaxed">
+                      {post.caption || "Bài viết này không có nội dung."}
+                    </p>
+                  </div>
+
+                  <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:20px_20px]" />
+                </div>
               )}
 
               {/* Video/Carousel Indicators */}
@@ -77,7 +95,7 @@ export const ExploreGrid: React.FC<ExploreGridProps> = ({
               <div
                 className={cn(
                   "absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent flex items-end justify-center transition-opacity duration-300",
-                  hoveredPost === post.id ? "opacity-100" : "opacity-0"
+                  hoveredPost === post.id ? "opacity-100" : "opacity-0",
                 )}
               >
                 <div className="flex items-center space-x-6 text-white p-4">

@@ -1,7 +1,28 @@
-import { createSlice, PayloadAction, createAsyncThunk } from '@reduxjs/toolkit';
-import { createPost, getPosts, getFeed, getPostDetail, updatePost, togglePostActive, deletePost, likePost, bookmarkPost, createComment, getMutualFollowers } from './api/postApi';
-import { transformPostData } from './types';
-import type { Post, CreatePostRequest, UpdatePostRequest, GetPostsRequest, GetFeedRequest, CreateCommentRequest, GetMutualFollowersRequest, MutualUser } from './types';
+import { createSlice, PayloadAction, createAsyncThunk } from "@reduxjs/toolkit";
+import {
+  createPost,
+  getPosts,
+  getFeed,
+  getPostDetail,
+  updatePost,
+  togglePostActive,
+  deletePost,
+  likePost,
+  bookmarkPost,
+  createComment,
+  getMutualFollowers,
+} from "./api/postApi";
+import { transformPostData } from "./types";
+import type {
+  Post,
+  CreatePostRequest,
+  UpdatePostRequest,
+  GetPostsRequest,
+  GetFeedRequest,
+  CreateCommentRequest,
+  GetMutualFollowersRequest,
+  MutualUser,
+} from "./types";
 
 interface PostState {
   posts: Post[];
@@ -37,139 +58,187 @@ const initialState: PostState = {
 
 // Async thunks for API calls
 export const createPostThunk = createAsyncThunk(
-  'post/createPost',
-  async ({ files, postData }: { files: File[]; postData: CreatePostRequest }, { rejectWithValue }) => {
+  "post/createPost",
+  async (
+    { files, postData }: { files: File[]; postData: CreatePostRequest },
+    { rejectWithValue },
+  ) => {
     try {
       const response = await createPost(files, postData);
       return response;
     } catch (error: unknown) {
-      return rejectWithValue(error instanceof Error ? error.message : 'Có lỗi xảy ra khi tạo bài viết');
+      return rejectWithValue(
+        error instanceof Error
+          ? error.message
+          : "Có lỗi xảy ra khi tạo bài viết",
+      );
     }
-  }
+  },
 );
 
 export const getPostsThunk = createAsyncThunk(
-  'post/getPosts',
+  "post/getPosts",
   async (params: GetPostsRequest, { rejectWithValue }) => {
     try {
       const response = await getPosts(params);
       return response;
     } catch (error: unknown) {
-      return rejectWithValue(error instanceof Error ? error.message : 'Có lỗi xảy ra khi tải danh sách bài viết');
+      return rejectWithValue(
+        error instanceof Error
+          ? error.message
+          : "Có lỗi xảy ra khi tải danh sách bài viết",
+      );
     }
-  }
+  },
 );
 
 export const getFeedThunk = createAsyncThunk(
-  'post/getFeed',
+  "post/getFeed",
   async (params: GetFeedRequest, { rejectWithValue }) => {
     try {
       const response = await getFeed(params);
       return response;
     } catch (error: unknown) {
-      return rejectWithValue(error instanceof Error ? error.message : 'Có lỗi xảy ra khi tải feed');
+      return rejectWithValue(
+        error instanceof Error ? error.message : "Có lỗi xảy ra khi tải feed",
+      );
     }
-  }
+  },
 );
 
 export const getPostDetailThunk = createAsyncThunk(
-  'post/getPostDetail',
+  "post/getPostDetail",
   async (postId: number, { rejectWithValue }) => {
     try {
       const response = await getPostDetail(postId);
       return response;
     } catch (error: unknown) {
-      return rejectWithValue(error instanceof Error ? error.message : 'Có lỗi xảy ra khi tải chi tiết bài viết');
+      return rejectWithValue(
+        error instanceof Error
+          ? error.message
+          : "Có lỗi xảy ra khi tải chi tiết bài viết",
+      );
     }
-  }
+  },
 );
 
 export const updatePostThunk = createAsyncThunk(
-  'post/updatePost',
-  async ({ files, postData }: { files: File[]; postData: UpdatePostRequest }, { rejectWithValue }) => {
+  "post/updatePost",
+  async (
+    { files, postData }: { files: File[]; postData: UpdatePostRequest },
+    { rejectWithValue },
+  ) => {
     try {
       const response = await updatePost(files, postData);
       return { postId: postData.postId, response };
     } catch (error: unknown) {
-      return rejectWithValue(error instanceof Error ? error.message : 'Có lỗi xảy ra khi cập nhật bài viết');
+      return rejectWithValue(
+        error instanceof Error
+          ? error.message
+          : "Có lỗi xảy ra khi cập nhật bài viết",
+      );
     }
-  }
+  },
 );
 
 export const togglePostActiveThunk = createAsyncThunk(
-  'post/togglePostActive',
+  "post/togglePostActive",
   async (postId: number, { rejectWithValue }) => {
     try {
       const response = await togglePostActive(postId);
       return { postId, response };
     } catch (error: unknown) {
-      return rejectWithValue(error instanceof Error ? error.message : 'Có lỗi xảy ra khi thay đổi trạng thái bài viết');
+      return rejectWithValue(
+        error instanceof Error
+          ? error.message
+          : "Có lỗi xảy ra khi thay đổi trạng thái bài viết",
+      );
     }
-  }
+  },
 );
 
 export const deletePostThunk = createAsyncThunk(
-  'post/deletePost',
+  "post/deletePost",
   async (postId: number, { rejectWithValue }) => {
     try {
       const response = await deletePost(postId);
       return { postId, response };
     } catch (error: unknown) {
-      return rejectWithValue(error instanceof Error ? error.message : 'Có lỗi xảy ra khi xóa bài viết');
+      return rejectWithValue(
+        error instanceof Error
+          ? error.message
+          : "Có lỗi xảy ra khi xóa bài viết",
+      );
     }
-  }
+  },
 );
 
 export const likePostThunk = createAsyncThunk(
-  'post/likePost',
+  "post/likePost",
   async (postId: string, { rejectWithValue }) => {
     try {
       const response = await likePost(postId);
       return { postId, ...response.data };
     } catch (error: unknown) {
-      return rejectWithValue(error instanceof Error ? error.message : 'Có lỗi xảy ra khi thích bài viết');
+      return rejectWithValue(
+        error instanceof Error
+          ? error.message
+          : "Có lỗi xảy ra khi thích bài viết",
+      );
     }
-  }
+  },
 );
 
 export const bookmarkPostThunk = createAsyncThunk(
-  'post/bookmarkPost',
+  "post/bookmarkPost",
   async (postId: string, { rejectWithValue }) => {
     try {
       const response = await bookmarkPost(postId);
       return { postId, ...response.data };
     } catch (error: unknown) {
-      return rejectWithValue(error instanceof Error ? error.message : 'Có lỗi xảy ra khi lưu bài viết');
+      return rejectWithValue(
+        error instanceof Error
+          ? error.message
+          : "Có lỗi xảy ra khi lưu bài viết",
+      );
     }
-  }
+  },
 );
 
 export const createCommentThunk = createAsyncThunk(
-  'post/createComment',
+  "post/createComment",
   async (commentData: CreateCommentRequest, { rejectWithValue }) => {
     try {
       const response = await createComment(commentData);
       return response.data;
     } catch (error: unknown) {
-      return rejectWithValue(error instanceof Error ? error.message : 'Có lỗi xảy ra khi tạo bình luận');
+      return rejectWithValue(
+        error instanceof Error
+          ? error.message
+          : "Có lỗi xảy ra khi tạo bình luận",
+      );
     }
-  }
+  },
 );
 
 export const getMutualFollowersThunk = createAsyncThunk(
-  'post/getMutualFollowers',
+  "post/getMutualFollowers",
   async (params: GetMutualFollowersRequest = {}, { rejectWithValue }) => {
     try {
       const response = await getMutualFollowers(params);
       return response;
     } catch (error: unknown) {
-      return rejectWithValue(error instanceof Error ? error.message : 'Có lỗi xảy ra khi tải danh sách bạn bè chung');
+      return rejectWithValue(
+        error instanceof Error
+          ? error.message
+          : "Có lỗi xảy ra khi tải danh sách bạn bè chung",
+      );
     }
-  }
+  },
 );
 
 const postSlice = createSlice({
-  name: 'post',
+  name: "post",
   initialState,
   reducers: {
     clearError: (state) => {
@@ -184,9 +253,12 @@ const postSlice = createSlice({
       state.totalPages = 0;
       state.hasMore = true;
     },
-    updatePostOptimistically: (state, action: PayloadAction<{ postId: string; updates: Partial<Post> }>) => {
+    updatePostOptimistically: (
+      state,
+      action: PayloadAction<{ postId: string; updates: Partial<Post> }>,
+    ) => {
       const { postId, updates } = action.payload;
-      const postIndex = state.posts.findIndex(post => post.id === postId);
+      const postIndex = state.posts.findIndex((post) => post.id === postId);
       if (postIndex !== -1) {
         state.posts[postIndex] = { ...state.posts[postIndex], ...updates };
       }
@@ -202,11 +274,11 @@ const postSlice = createSlice({
         state.isCreating = true;
         state.error = null;
       })
-    .addCase(createPostThunk.fulfilled, (state, action) => {
-      state.isCreating = false;
-      // Create post API only returns success/failure, no post data
-      // The post will be added to the list when getPosts is called
-    })
+      .addCase(createPostThunk.fulfilled, (state, action) => {
+        state.isCreating = false;
+        // Create post API only returns success/failure, no post data
+        // The post will be added to the list when getPosts is called
+      })
       .addCase(createPostThunk.rejected, (state, action) => {
         state.isCreating = false;
         state.error = action.payload as string;
@@ -222,21 +294,21 @@ const postSlice = createSlice({
         state.isLoading = false;
         const { content, totalPages, pageNo } = action.payload;
         const transformedPosts = content.map(transformPostData);
-        
+
         // Remove duplicates from the response itself
         const uniquePosts = Array.from(
-          new Map(transformedPosts.map(post => [post.id, post])).values()
+          new Map(transformedPosts.map((post) => [post.id, post])).values(),
         );
-        
+
         if (pageNo === 0) {
           state.posts = uniquePosts;
         } else {
           // Filter out duplicates when appending
-          const existingIds = new Set(state.posts.map(p => p.id));
-          const newPosts = uniquePosts.filter(p => !existingIds.has(p.id));
+          const existingIds = new Set(state.posts.map((p) => p.id));
+          const newPosts = uniquePosts.filter((p) => !existingIds.has(p.id));
           state.posts.push(...newPosts);
         }
-        
+
         state.currentPage = pageNo;
         state.totalPages = totalPages;
         state.hasMore = pageNo < totalPages - 1;
@@ -254,26 +326,46 @@ const postSlice = createSlice({
       })
       .addCase(getFeedThunk.fulfilled, (state, action) => {
         state.isLoading = false;
-        const { content, totalPages, pageNo } = action.payload;
+        const requestedPage = action.meta.arg.page ?? 0;
+        const { content, totalPages, last: payloadLast } = action.payload;
         const transformedPosts = content.map(transformPostData);
-        
+
         // Remove duplicates from the response itself
         const uniquePosts = Array.from(
-          new Map(transformedPosts.map(post => [post.id, post])).values()
+          new Map(transformedPosts.map((post) => [post.id, post])).values(),
         );
-        
-        if (pageNo === 0) {
+
+        let newPosts: typeof uniquePosts = [];
+        if (requestedPage === 0) {
           state.posts = uniquePosts;
         } else {
-          // Filter out duplicates when appending
-          const existingIds = new Set(state.posts.map(p => p.id));
-          const newPosts = uniquePosts.filter(p => !existingIds.has(p.id));
+          const existingIds = new Set(state.posts.map((p) => p.id));
+          newPosts = uniquePosts.filter((p) => !existingIds.has(p.id));
           state.posts.push(...newPosts);
         }
-        
-        state.currentPage = pageNo;
+
+        state.currentPage = requestedPage;
         state.totalPages = totalPages;
-        state.hasMore = pageNo < totalPages - 1;
+
+        const backendSaysMore =
+          typeof payloadLast === "boolean"
+            ? !payloadLast
+            : totalPages > 0
+              ? requestedPage < totalPages - 1
+              : uniquePosts.length > 0;
+
+        const duplicateAppendPage =
+          requestedPage > 0 &&
+          uniquePosts.length > 0 &&
+          newPosts.length === 0;
+        const emptyFollowUpPage =
+          requestedPage > 0 && uniquePosts.length === 0;
+
+        state.hasMore =
+          backendSaysMore &&
+          !duplicateAppendPage &&
+          !emptyFollowUpPage &&
+          (requestedPage === 0 ? uniquePosts.length > 0 : true);
       })
       .addCase(getFeedThunk.rejected, (state, action) => {
         state.isLoading = false;
@@ -301,7 +393,9 @@ const postSlice = createSlice({
       .addCase(updatePostThunk.fulfilled, (state, action) => {
         // Update post in the list if it exists
         const { postId } = action.payload;
-        const postIndex = state.posts.findIndex(post => post.id === postId.toString());
+        const postIndex = state.posts.findIndex(
+          (post) => post.id === postId.toString(),
+        );
         if (postIndex !== -1) {
           // Remove the updated post from the list
           // It will be refreshed when getPosts is called again
@@ -316,7 +410,9 @@ const postSlice = createSlice({
     builder
       .addCase(togglePostActiveThunk.fulfilled, (state, action) => {
         const { postId } = action.payload;
-        const postIndex = state.posts.findIndex(post => post.id === postId.toString());
+        const postIndex = state.posts.findIndex(
+          (post) => post.id === postId.toString(),
+        );
         if (postIndex !== -1) {
           state.posts.splice(postIndex, 1);
         }
@@ -330,7 +426,9 @@ const postSlice = createSlice({
       .addCase(deletePostThunk.fulfilled, (state, action) => {
         const { postId } = action.payload;
         // Remove deleted post from the list
-        state.posts = state.posts.filter(post => post.id !== postId.toString());
+        state.posts = state.posts.filter(
+          (post) => post.id !== postId.toString(),
+        );
         // Clear current post if it was deleted
         if (state.currentPost?.id === postId.toString()) {
           state.currentPost = null;
@@ -344,7 +442,7 @@ const postSlice = createSlice({
     builder
       .addCase(likePostThunk.fulfilled, (state, action) => {
         const { postId, isLiked, likesCount } = action.payload;
-        const postIndex = state.posts.findIndex(post => post.id === postId);
+        const postIndex = state.posts.findIndex((post) => post.id === postId);
         if (postIndex !== -1) {
           state.posts[postIndex].isLiked = isLiked;
           state.posts[postIndex].likesCount = likesCount;
@@ -362,7 +460,7 @@ const postSlice = createSlice({
     builder
       .addCase(bookmarkPostThunk.fulfilled, (state, action) => {
         const { postId, isBookmarked } = action.payload;
-        const postIndex = state.posts.findIndex(post => post.id === postId);
+        const postIndex = state.posts.findIndex((post) => post.id === postId);
         if (postIndex !== -1) {
           state.posts[postIndex].isBookmarked = isBookmarked;
         }
@@ -379,9 +477,9 @@ const postSlice = createSlice({
       .addCase(createCommentThunk.fulfilled, (state, action) => {
         const comment = action.payload;
         const postId = comment.postId;
-        
+
         // Update comments count for the post
-        const postIndex = state.posts.findIndex(post => post.id === postId);
+        const postIndex = state.posts.findIndex((post) => post.id === postId);
         if (postIndex !== -1) {
           state.posts[postIndex].commentsCount += 1;
         }
@@ -401,7 +499,7 @@ const postSlice = createSlice({
       .addCase(getMutualFollowersThunk.fulfilled, (state, action) => {
         state.isLoadingMutuals = false;
         const { content, totalPages, pageNo } = action.payload;
-        
+
         if (pageNo === 0) {
           // First page - replace mutual followers
           state.mutualFollowers = content;
@@ -409,7 +507,7 @@ const postSlice = createSlice({
           // Subsequent pages - append mutual followers
           state.mutualFollowers.push(...content);
         }
-        
+
         state.mutualFollowersPage = pageNo;
         state.mutualFollowersHasMore = pageNo < totalPages - 1;
       })

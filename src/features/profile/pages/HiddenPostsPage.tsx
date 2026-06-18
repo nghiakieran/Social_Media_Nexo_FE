@@ -126,10 +126,10 @@ export const HiddenPostsPage = () => {
                   <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
                     <div className="flex items-center gap-2">
                       <Button
-                        variant="secondary"
+                        variant="outline"
                         size="sm"
                         onClick={() => handleUnhide(post.id)}
-                        className="gap-1"
+                        className="gap-1 border-primary/25 bg-background/90 hover:bg-primary/10 hover:text-primary"
                       >
                         <Eye className="w-4 h-4" />
                         Hiện lại

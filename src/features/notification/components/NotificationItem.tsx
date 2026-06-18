@@ -40,9 +40,9 @@ export const NotificationItem = ({
       case "COMMENT_POST":
       case "COMMENT_REEL":
       case "COMMENT_MENTION":
-        return <MessageCircle className="w-4 h-4 text-blue-500" />;
+        return <MessageCircle className="h-4 w-4 text-primary" />;
       case "FOLLOW":
-        return <UserPlus className="w-4 h-4 text-purple-500" />;
+        return <UserPlus className="h-4 w-4 text-primary" />;
       case "TAG":
         return <Hash className="w-4 h-4 text-green-500" />;
       case "MESSAGE":
@@ -91,9 +91,9 @@ export const NotificationItem = ({
       onClick={handleClick}
     >
       <CardContent className="p-4">
-        <div className="flex items-start gap-3">
+        <div className="flex items-center gap-3">
           {/* Icon */}
-          <div className="flex-shrink-0 mt-1">{getNotificationIcon()}</div>
+          <div className="flex-shrink-0">{getNotificationIcon()}</div>
 
           {/* Avatar */}
           <Avatar
@@ -109,7 +109,7 @@ export const NotificationItem = ({
 
           {/* Content */}
           <div className="flex-1 min-w-0">
-            <div className="flex items-start justify-between">
+            <div className="flex items-center justify-between">
               <div className="flex-1 min-w-0">
                 <p className="text-sm text-foreground">
                   {notification.userList.length > 0 && (

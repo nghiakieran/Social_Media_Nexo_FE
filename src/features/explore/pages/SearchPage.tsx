@@ -223,7 +223,7 @@ export const SearchPage: React.FC = () => {
                     </TabsTrigger> */}
                     <TabsTrigger value="users" className="text-xs">
                       <Users className="h-3 w-3 mr-1" />
-                      Người dùng ({getFilteredCount("users")})
+                      Người dùng
                     </TabsTrigger>
                     {/* <TabsTrigger value="hashtags" className="text-xs">
                       <Hash className="h-3 w-3 mr-1" />
@@ -308,7 +308,7 @@ export const SearchPage: React.FC = () => {
                   ))}
                 </div>
               </div>
-            )}
+            )}{" "}
             Trending Hashtags
             <TrendingSection
               hashtags={trendingHashtags}
@@ -324,6 +324,7 @@ export const SearchPage: React.FC = () => {
               }
               onViewAll={() => console.log("View all trending")}
             />
+            {/* TrendingSection removed as requested */}
             {/* Suggested Searches */}
             {/* <div className="space-y-4">
               <h3 className="text-lg font-semibold flex items-center">

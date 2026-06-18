@@ -3,13 +3,14 @@ import { useState, useRef } from "react";
 import { useAppDispatch, useAppSelector } from "@/store";
 import { logoutAsync } from "@/features/auth/authSlice";
 import { Theme, useTheme } from "@/contexts/ThemeContext";
+import { useWebSocket } from "@/hooks/useWebSocket";
 import {
   Home,
   Search,
   Compass,
   Film,
   MessageCircle,
-  Heart,
+  Bell,
   PlusSquare,
   User,
   MoreHorizontal,
@@ -22,6 +23,8 @@ import {
   Shield,
   ChevronLeft,
   Video,
+  Wifi,
+  WifiOff,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Logo } from "./Logo";
@@ -40,7 +43,7 @@ const navigation = [
   { name: "Khám phá", href: "/explore", icon: Compass },
   { name: "Reels", href: "/reels", icon: Film },
   { name: "Tin nhắn", href: "/messages", icon: MessageCircle },
-  { name: "Thông báo", href: "/notifications", icon: Heart },
+  { name: "Thông báo", href: "/notifications", icon: Bell },
   { name: "Tạo bài viết", href: "/create", icon: PlusSquare },
   { name: "Tạo Reel", href: "/reels/create", icon: Video },
   { name: "Hồ sơ", href: "/profile", icon: User, dynamic: true },
@@ -52,10 +55,27 @@ const mlFeatures = [
   { name: "Kiểm duyệt nội dung", href: "/admin/moderation", icon: Shield },
 ];
 
+function formatNavBadgeCount(count: number): string {
+  if (count > 99) return "99+";
+  return String(count);
+}
+
+const navUnreadBadgeClass =
+  "pointer-events-none absolute -top-1 -right-1 flex min-h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-semibold leading-none text-white border border-background";
+
+const navUnreadBadgeTrailingClass =
+  "pointer-events-none ml-auto flex min-h-[22px] min-w-[22px] shrink-0 items-center justify-center rounded-full bg-red-500 px-2 text-[11px] font-semibold tabular-nums leading-none text-white shadow-sm ring-2 ring-background";
+
 export const Sidebar = () => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
-  const user = useAppSelector((state) => state.auth.user);
+
+  const { user, token } = useAppSelector((state) => state.auth);
+  const unreadNotificationCount = useAppSelector(
+    (state) => state.notification.unreadCount,
+  );
+  const { isConnected } = useWebSocket(token || "", user?.username || "");
+
   const { setTheme } = useTheme();
   const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
   const [isMobileMoreMenuOpen, setIsMobileMoreMenuOpen] = useState(false);
@@ -90,9 +110,8 @@ export const Sidebar = () => {
       <nav className="flex-1 p-4">
         <ul className="space-y-2">
           {navigation.map((item) => {
-            // For profile link, use current user's username
             const href = item.dynamic && user ? `/${user.username}` : item.href;
-
+            const isNotificationItem = item.name === "Thông báo";
             return (
               <li key={item.name}>
                 <NavLink
@@ -101,15 +120,20 @@ export const Sidebar = () => {
                   caseSensitive
                   className={({ isActive }) =>
                     cn(
-                      "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200",
+                      "flex w-full min-w-0 items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200",
                       isActive
-                        ? "bg-primary text-primary-foreground shadow-glow"
-                        : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                        ? "bg-primary text-primary-foreground shadow-glow hover:bg-primary/80"
+                        : "text-muted-foreground hover:bg-primary/10 hover:text-primary dark:hover:bg-primary/20",
                     )
                   }
                 >
-                  <item.icon className="h-5 w-5" />
-                  {item.name}
+                  <item.icon className="h-5 w-5 shrink-0" aria-hidden />
+                  <span className="min-w-0 flex-1 truncate">{item.name}</span>
+                  {isNotificationItem && unreadNotificationCount > 0 && (
+                    <span className={navUnreadBadgeTrailingClass}>
+                      {formatNavBadgeCount(unreadNotificationCount)}
+                    </span>
+                  )}
                 </NavLink>
               </li>
             );
@@ -130,8 +154,8 @@ export const Sidebar = () => {
                     cn(
                       "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200",
                       isActive
-                        ? "bg-gradient-instagram text-white shadow-glow"
-                        : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                        ? "bg-primary text-primary-foreground shadow-glow"
+                        : "text-muted-foreground hover:bg-primary/10 hover:text-primary dark:hover:bg-primary/20"
                     )
                   }
                 >
@@ -149,7 +173,7 @@ export const Sidebar = () => {
           <PopoverTrigger asChild>
             <Button
               variant="ghost"
-              className="w-full justify-start gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground transition-all duration-200"
+              className="w-full justify-start gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground transition-all duration-200 hover:bg-primary/10 hover:text-primary dark:hover:bg-primary/20"
             >
               <MoreHorizontal className="h-5 w-5" />
               Xem thêm
@@ -305,6 +329,13 @@ export const Sidebar = () => {
             <Logo size="md" />
           </button>
           <div className="flex items-center gap-4">
+            <div title={isConnected ? "Đã kết nối" : "Mất kết nối"}>
+              {isConnected ? (
+                <div className="h-2 w-2 rounded-full bg-green-500"></div>
+              ) : (
+                <div className="h-2 w-2 rounded-full bg-red-500"></div>
+              )}
+            </div>
             <button
               onClick={() => setShowCreateDialog(true)}
               className="p-2 rounded-lg transition-all duration-200 text-muted-foreground hover:text-primary"
@@ -316,11 +347,20 @@ export const Sidebar = () => {
               className={({ isActive }) =>
                 cn(
                   "p-2 rounded-lg transition-all duration-200",
-                  isActive ? "text-primary" : "text-muted-foreground"
+                  isActive ? "text-primary" : "text-muted-foreground",
                 )
               }
             >
-              <Heart className="h-6 w-6" />
+              <div className="relative">
+                <Bell className="h-6 w-6" />
+                {unreadNotificationCount > 0 && (
+                  <span
+                    className={`${navUnreadBadgeClass} border-2 border-background`}
+                  >
+                    {formatNavBadgeCount(unreadNotificationCount)}
+                  </span>
+                )}
+              </div>
             </NavLink>
 
             {/* Mobile Menu Button */}
@@ -371,7 +411,6 @@ export const Sidebar = () => {
       <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-sm border-t border-border">
         <div className="flex items-center justify-around py-2 px-2">
           {mobileNavItems.map((item) => {
-            // For profile link, use current user's username
             const href = item.dynamic && user ? `/${user.username}` : item.href;
 
             return (
@@ -381,11 +420,13 @@ export const Sidebar = () => {
                 className={({ isActive }) =>
                   cn(
                     "flex flex-col items-center gap-0.5 p-1.5 rounded-lg transition-all duration-200",
-                    isActive ? "text-primary" : "text-muted-foreground"
+                    isActive ? "text-primary" : "text-muted-foreground",
                   )
                 }
               >
-                <item.icon className="h-5 w-5" />
+                <div className="relative">
+                  <item.icon className="h-5 w-5" />
+                </div>
                 <span className="text-[10px] font-medium">{item.name}</span>
               </NavLink>
             );
@@ -412,12 +453,12 @@ export const Sidebar = () => {
         <PopoverTrigger asChild>
           <Button className="hidden" aria-hidden="true" />
         </PopoverTrigger>
-        <PopoverContent 
-          className="w-48 p-0" 
+        <PopoverContent
+          className="w-48 p-0"
           align="end"
-          style={{ 
-            position: 'fixed',
-            transform: "translate(167px, 56px)"
+          style={{
+            position: "fixed",
+            transform: "translate(167px, 56px)",
           }}
         >
           {/* Header with back button */}

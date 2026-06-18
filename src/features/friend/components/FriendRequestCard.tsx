@@ -25,6 +25,8 @@ export const FriendRequestCard = ({
   const handleAccept = () => {
     onAccept?.(request.id);
     toast({
+      variant: "success",
+      title: "Lời mời kết bạn",
       description: `Đã chấp nhận lời mời kết bạn từ ${request.user.name}`,
     });
   };
@@ -32,7 +34,9 @@ export const FriendRequestCard = ({
   const handleDecline = () => {
     onDecline?.(request.id);
     toast({
-      description: 'Đã từ chối lời mời kết bạn',
+      variant: "success",
+      title: "Lời mời kết bạn",
+      description: "Đã từ chối lời mời kết bạn",
     });
   };
 
@@ -47,7 +51,7 @@ export const FriendRequestCard = ({
         <div className="flex items-start space-x-3">
           <Avatar className="w-12 h-12 flex-shrink-0">
             <AvatarImage src={request.user.avatar} alt={request.user.name} />
-            <AvatarFallback className="bg-gradient-instagram text-white font-medium">
+            <AvatarFallback className="bg-primary font-medium text-primary-foreground">
               {request.user.name.charAt(0)}
             </AvatarFallback>
           </Avatar>
@@ -85,7 +89,7 @@ export const FriendRequestCard = ({
             <div className="flex space-x-2">
               <Button
                 size="sm"
-                variant="instagram"
+                variant="default"
                 onClick={handleAccept}
                 className="flex-1"
               >

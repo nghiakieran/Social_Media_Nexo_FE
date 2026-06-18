@@ -135,6 +135,7 @@ export interface GetFeedResponse {
   pageSize: number;
   totalElements: number;
   totalPages: number;
+  last?: boolean;
   content: PostData[];
 }
 

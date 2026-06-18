@@ -1,11 +1,13 @@
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Sparkles } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "@/store";
 import { createReelThunk } from "../reelSlice";
 import { ReelComposer } from "../components/ReelComposer";
+
+const REEL_SYNC_DELAY_MS = 1000;
 
 // Interface for UI form data
 interface CreateReelFormData {
@@ -22,6 +24,15 @@ const ReelCreatePage = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [uploadMessage, setUploadMessage] = useState<string>("");
+  const [isSyncingFeed, setIsSyncingFeed] = useState(false);
+  const syncCancelledRef = useRef(false);
+
+  useEffect(() => {
+    syncCancelledRef.current = false;
+    return () => {
+      syncCancelledRef.current = true;
+    };
+  }, []);
 
   const handleSubmit = async (reelData: CreateReelFormData) => {
     if (!user) {
@@ -65,9 +76,22 @@ const ReelCreatePage = () => {
       ).unwrap();
 
       toast({
+        variant: "success",
         title: "Tạo reel thành công!",
         description: "Reel của bạn đã được tạo.",
       });
+
+      setUploadMessage("Đang đồng bộ với thước phim");
+      setIsSyncingFeed(true);
+      await new Promise<void>((resolve) => {
+        setTimeout(resolve, REEL_SYNC_DELAY_MS);
+      });
+
+      if (syncCancelledRef.current) {
+        setUploadMessage("");
+        setIsSyncingFeed(false);
+        return;
+      }
 
       // Navigate back to reels
       navigate("/reels");
@@ -81,8 +105,8 @@ const ReelCreatePage = () => {
             ? error.message
             : "Không thể tạo reel. Vui lòng thử lại.",
       });
-    } finally {
       setUploadMessage("");
+      setIsSyncingFeed(false);
     }
   };
 
@@ -121,12 +145,15 @@ const ReelCreatePage = () => {
         {/* Main Content */}
         <div className="flex justify-center">
           <div className="w-full max-w-2xl">
-            <ReelComposer onSubmit={handleSubmit} isLoading={isCreating} />
+            <ReelComposer
+              onSubmit={handleSubmit}
+              isLoading={isCreating || isSyncingFeed}
+            />
           </div>
         </div>
 
         {/* Loading Overlay with Upload Message */}
-        {isCreating && (
+        {(isCreating || isSyncingFeed) && (
           <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center">
             <div className="bg-background/95 backdrop-blur-md rounded-2xl shadow-2xl p-8 max-w-md w-full mx-4">
               <div className="flex flex-col items-center gap-6">

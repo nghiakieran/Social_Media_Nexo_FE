@@ -1,10 +1,10 @@
-import { Grid3X3, Film, Bookmark, EyeOff } from 'lucide-react';
+import { Grid3X3, Film, Bookmark } from 'lucide-react';
 import type { ComponentType, SVGProps } from 'react';
 import { cn } from '@/lib/utils';
 
 interface ProfileTabsProps {
-  activeTab: 'posts' | 'reels' | 'saved' | 'hidden';
-  onTabChange: (tab: 'posts' | 'reels' | 'saved' | 'hidden') => void;
+  activeTab: 'posts' | 'reels' | 'saved';
+  onTabChange: (tab: 'posts' | 'reels' | 'saved') => void;
   isCurrentUser: boolean;
 }
 
@@ -33,11 +33,6 @@ export const ProfileTabs = ({ activeTab, onTabChange, isCurrentUser }: ProfileTa
           id: 'saved' as const,
           label: 'ĐÃ LƯU',
           icon: Bookmark,
-        },
-        {
-          id: 'hidden' as const,
-          label: 'ĐÃ ẨN',
-          icon: EyeOff,
         }
       ]
     : baseTabs;
@@ -57,12 +52,17 @@ export const ProfileTabs = ({ activeTab, onTabChange, isCurrentUser }: ProfileTa
               onClick={() => onTabChange(tab.id)}
               className={cn(
                 "flex-1 flex items-center justify-center gap-2 py-3 text-xs font-medium tracking-wider border-t-2 transition-colors",
-                isActive 
-                  ? "text-foreground border-foreground" 
-                  : "text-muted-foreground border-transparent hover:text-foreground/80"
+                isActive
+                  ? "border-primary text-primary"
+                  : "border-transparent text-muted-foreground hover:border-primary/30 hover:text-primary"
               )}
             >
-              <Icon className={cn("w-4 h-4", isActive ? "text-foreground" : "text-muted-foreground")} />
+              <Icon
+                className={cn(
+                  "h-4 w-4",
+                  isActive ? "text-primary" : "text-muted-foreground"
+                )}
+              />
               <span className="hidden sm:inline">{tab.label}</span>
             </button>
           );

@@ -30,6 +30,7 @@ export interface MessageState {
     page: number;
     size: number;
     totalPages: number;
+    totalElements: number;
     hasMore: boolean;
   };
   messagesPagination: {
@@ -58,6 +59,7 @@ const initialState: MessageState = {
     page: 0,
     size: 20,
     totalPages: 0,
+    totalElements: 0,
     hasMore: true,
   },
   messagesPagination: {},
@@ -673,7 +675,8 @@ const messageSlice = createSlice({
       })
       .addCase(fetchConversations.fulfilled, (state, action) => {
         state.loading = false;
-        const { content, totalPages, number, last } = action.payload;
+        const { content, totalPages, totalElements, number, last } =
+          action.payload;
 
         if (number === 0) {
           state.conversations = content.map((conv) => ({
@@ -697,6 +700,7 @@ const messageSlice = createSlice({
           page: number,
           size: content.length,
           totalPages,
+          totalElements: totalElements ?? 0,
           hasMore: !last,
         };
       })

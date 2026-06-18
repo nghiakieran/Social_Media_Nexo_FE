@@ -13,15 +13,29 @@ export const fetchAdminPosts = async (params: PostSearchParams) => {
       "/posts/admin/posts/all",
       {
         params: {
-          search: params.search || "",
+          search: params.search || undefined,
           pageNo: params.pageNo || 0,
           pageSize: params.pageSize || 10,
           type: params.type || "all",
+          hashtag: params.hashtag || undefined,
+          content: params.content || undefined,
+          authorName: params.authorName || undefined,
+          startDate: params.startDate || undefined,
+          endDate: params.endDate || undefined,
         },
-      }
+      },
     );
 
-    return res.data.data;
+    const response = res.data.data;
+    // Flatten nested array nếu cần
+    const flatContent = Array.isArray(response.content[0])
+      ? response.content.flat()
+      : response.content;
+
+    return {
+      ...response,
+      content: flatContent,
+    };
   } catch (error) {
     console.error("Không thể tải danh sách bài viết:", error);
     throw error;
@@ -42,7 +56,7 @@ export const fetchAdminPostsInfo = async () => {
 export const fetchPostById = async (id: number, type: string) => {
   try {
     const res = await api.get<ApiResponse<any>>(
-      `/posts/admin/posts/${type}/${id}`
+      `/posts/admin/posts/${type}/${id}`,
     );
 
     return res.data.data;
@@ -55,7 +69,7 @@ export const fetchPostById = async (id: number, type: string) => {
 export const deletePostById = async (id: number, type: string) => {
   try {
     const res = await api.delete<ApiResponse<any>>(
-      `/posts/admin/posts/${type}/${id}`
+      `/posts/admin/posts/${type}/${id}`,
     );
     return res.data.data;
   } catch (error) {

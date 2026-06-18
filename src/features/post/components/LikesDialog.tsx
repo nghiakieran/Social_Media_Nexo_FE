@@ -304,7 +304,7 @@ useEffect(() => {
                         className={
                           following && !requested
                             ? 'px-4 py-1.5 rounded-lg text-[13px] font-semibold bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200'
-                            : 'px-4 py-1.5 rounded-lg text-[13px] font-semibold text-white bg-gradient-instagram hover:opacity-90 active:opacity-85 shadow-glow'
+                            : "rounded-lg bg-primary px-4 py-1.5 text-[13px] font-semibold text-primary-foreground shadow-md hover:bg-primary/90 active:bg-primary/85"
                         }
                       >
                         {requested ? 'Đang yêu cầu' : (following ? 'Đang theo dõi' : 'Theo dõi')}

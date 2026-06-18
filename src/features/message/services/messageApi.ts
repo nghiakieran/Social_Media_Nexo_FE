@@ -7,6 +7,9 @@ import type {
   ReactMessageRequest,
   EReactionType,
   ReactionDetailDTO,
+  CreateGroupRequest,
+  UpdateGroupRequest,
+  AddMembersRequest,
 } from "../types";
 
 const BASE_PATH = "";
@@ -106,6 +109,60 @@ export const conversationApi = {
     const response = await api.put<ResponseData>(
       `${BASE_PATH}/conversations/${conversationId}/nickname`,
       { userId, nickname }
+    );
+    return response.data;
+  },
+
+  // ─── Group ─────────────────────────────────────────────────────────────────
+
+  createGroup: async (request: CreateGroupRequest) => {
+    const response = await api.post<ResponseData<ConversationResponseDTO>>(
+      `${BASE_PATH}/conversations/group`,
+      request
+    );
+    return response.data;
+  },
+
+  updateGroup: async (conversationId: number, request: UpdateGroupRequest) => {
+    const response = await api.put<ResponseData<ConversationResponseDTO>>(
+      `${BASE_PATH}/conversations/${conversationId}/group`,
+      request
+    );
+    return response.data;
+  },
+
+  addMembers: async (conversationId: number, request: AddMembersRequest) => {
+    const response = await api.post<ResponseData<ConversationResponseDTO>>(
+      `${BASE_PATH}/conversations/${conversationId}/group/members`,
+      request
+    );
+    return response.data;
+  },
+
+  removeMember: async (conversationId: number, targetUserId: number) => {
+    const response = await api.delete<ResponseData>(
+      `${BASE_PATH}/conversations/${conversationId}/group/members/${targetUserId}`
+    );
+    return response.data;
+  },
+
+  leaveGroup: async (conversationId: number) => {
+    const response = await api.post<ResponseData>(
+      `${BASE_PATH}/conversations/${conversationId}/group/leave`
+    );
+    return response.data;
+  },
+
+  promoteAdmin: async (conversationId: number, targetUserId: number) => {
+    const response = await api.put<ResponseData>(
+      `${BASE_PATH}/conversations/${conversationId}/group/members/${targetUserId}/promote`
+    );
+    return response.data;
+  },
+
+  demoteAdmin: async (conversationId: number, targetUserId: number) => {
+    const response = await api.put<ResponseData>(
+      `${BASE_PATH}/conversations/${conversationId}/group/members/${targetUserId}/demote`
     );
     return response.data;
   },

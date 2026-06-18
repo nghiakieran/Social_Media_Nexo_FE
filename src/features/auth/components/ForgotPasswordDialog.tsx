@@ -137,8 +137,8 @@ export const ForgotPasswordDialog = ({ isOpen, onClose, onBackToLogin }: ForgotP
             <>
               {/* Instructions */}
               <div className="text-center mb-6">
-                <div className="w-16 h-16 bg-gradient-to-r from-orange-400 via-pink-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Mail className="w-8 h-8 text-white" />
+                <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-md">
+                  <Mail className="h-8 w-8" />
                 </div>
                 <h3 className="text-lg font-semibold mb-2">Đặt lại mật khẩu</h3>
                 <p className="text-sm text-muted-foreground">
@@ -163,7 +163,8 @@ export const ForgotPasswordDialog = ({ isOpen, onClose, onBackToLogin }: ForgotP
 
                 <Button
                   type="submit"
-                  className="w-full h-10 bg-gradient-to-r from-orange-400 via-pink-500 to-purple-600 hover:from-orange-500 hover:via-pink-600 hover:to-purple-700"
+                  variant="default"
+                  className="h-11 w-full rounded-full font-semibold shadow-md hover:shadow-lg"
                   disabled={isLoading || !email.trim()}
                 >
                   {isLoading ? 'Đang gửi...' : 'Gửi liên kết đặt lại'}

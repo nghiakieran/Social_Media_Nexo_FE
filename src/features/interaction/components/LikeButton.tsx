@@ -36,65 +36,117 @@ export const LikeButton: React.FC<LikeButtonProps> = ({
   const dispatch = useAppDispatch();
   const { toast } = useToast();
 
-  const handleLike = async () => {
-    try {
-      let thunk;
+  const [localIsLiked, setLocalIsLiked] = React.useState(isLiked);
+  const [localLikesCount, setLocalLikesCount] = React.useState(likesCount);
+  const debounceRef = React.useRef<NodeJS.Timeout | null>(null);
+  const processingRef = React.useRef(false);
 
-      switch (targetType) {
-        case "post":
-          thunk = likePostThunk(targetId);
-          break;
-        case "comment":
-          thunk = likeCommentThunk(targetId);
-          break;
-        case "reel":
-          thunk = likeReelThunk(targetId);
-          break;
-        default:
-          throw new Error("Invalid target type");
+  // Sync state from props ONLY when not interacting
+  React.useEffect(() => {
+    if (!processingRef.current && !debounceRef.current) {
+      setLocalIsLiked(isLiked);
+      setLocalLikesCount(likesCount);
+    }
+  }, [isLiked, likesCount]);
+
+  const handleLike = (e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+
+    const newIsLiked = !localIsLiked;
+    const newCount = newIsLiked ? localLikesCount + 1 : localLikesCount - 1;
+
+    // Update local state immediately (Optimistic UI)
+    setLocalIsLiked(newIsLiked);
+    setLocalLikesCount(newCount);
+
+    // Call parent listener if any
+    onLikeChange?.(newIsLiked, newCount);
+
+    // Debounce the actual API call
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+    }
+
+    debounceRef.current = setTimeout(async () => {
+      // If the state returned to initial, don't call API
+      if (newIsLiked === isLiked) {
+        debounceRef.current = null;
+        return;
       }
 
-      await dispatch(thunk).unwrap();
+      processingRef.current = true;
+      try {
+        let thunk;
+        switch (targetType) {
+          case "post":
+            thunk = likePostThunk(targetId);
+            break;
+          case "comment":
+            thunk = likeCommentThunk(targetId);
+            break;
+          case "reel":
+            thunk = likeReelThunk(targetId);
+            break;
+          default:
+            throw new Error("Invalid target type");
+        }
 
-      // Callback for optimistic updates
-      onLikeChange?.(!isLiked, isLiked ? likesCount - 1 : likesCount + 1);
-    } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Lỗi",
-        description: error as string,
-      });
-    }
+        await dispatch(thunk).unwrap();
+      } catch (error) {
+        // Rollback on error
+        setLocalIsLiked(isLiked);
+        setLocalLikesCount(likesCount);
+        onLikeChange?.(isLiked, likesCount);
+
+        toast({
+          variant: "destructive",
+          title: "Lỗi",
+          description: error as string,
+        });
+      } finally {
+        processingRef.current = false;
+        debounceRef.current = null;
+      }
+    }, 500);
   };
 
   // Size configurations
   const sizeConfig = {
-    sm: { button: "h-6 w-6", icon: "w-4 h-4" },
-    md: { button: "h-9 w-9", icon: "w-6 h-6" },
-    lg: { button: "h-12 w-12", icon: "w-8 h-8" },
+    sm: { button: "h-8 min-w-[32px]", icon: "w-4 h-4" },
+    md: { button: "h-10 min-w-[40px]", icon: "w-5 h-5" },
+    lg: { button: "h-12 min-w-[48px]", icon: "w-6 h-6" },
   };
 
-const currentSize = sizeConfig[size] || sizeConfig["md"];
+  const currentSize = sizeConfig[size] || sizeConfig["md"];
 
   return (
-  <button
-    onClick={handleLike}
-    type="button"
-    className={cn(
-        currentSize.button,
-        "inline-flex items-center justify-center gap-1",
-      "select-none touch-manipulation",
-      "text-foreground hover:opacity-80 active:opacity-60",
-      "transition-opacity",
-      isLiked && "text-red-500 hover:text-red-600",
-      className
-    )}
-  >
-    <Heart className={cn(currentSize.icon, isLiked && "fill-current")} />
-    {showCount && likesCount > 0 && (
-      <span className="text-sm mt-1">{formatNumber(likesCount)}</span>
-    )}
-    {children}
-  </button>
+    <button
+      onClick={handleLike}
+      type="button"
+      className={cn(
+        "inline-flex items-center justify-center gap-2",
+        "select-none touch-manipulation transition-all duration-200",
+        "text-foreground hover:bg-muted/50 active:scale-95",
+        !children && currentSize.button,
+        !children && "rounded-full",
+        localIsLiked && "text-red-500 hover:text-red-600",
+        className
+      )}
+    >
+      <Heart
+        className={cn(
+          currentSize.icon,
+          "transition-transform",
+          localIsLiked && "fill-current scale-110"
+        )}
+      />
+      {showCount && localLikesCount > 0 && (
+        <span className="text-sm font-medium">{formatNumber(localLikesCount)}</span>
+      )}
+      {children}
+    </button>
   );
 };

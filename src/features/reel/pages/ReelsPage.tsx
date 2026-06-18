@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useAppDispatch, useAppSelector } from "@/store";
 import {
   setCurrentReel,
+  setReels,
   getReelsFeedThunk,
   likeReelThunk,
   deleteReelThunk,
@@ -33,9 +34,20 @@ const ReelsPage = () => {
   const isScrollingRef = useRef(false);
 
   useEffect(() => {
-    // Load initial reels
     if (user?.id) {
-      dispatch(getReelsFeedThunk({ userId: user.id, page: 0, limit: 10 }));
+      // Clear stale reels to show loading state instead of old reels
+      dispatch(setReels([]));
+      dispatch(getReelsFeedThunk({ userId: user.id, page: 0, limit: 10 }))
+        .unwrap()
+        .then((res) => {
+          if (res.reels && res.reels.length > 0) {
+            dispatch(setCurrentReel(res.reels[0]));
+            setCurrentReelIndex(0);
+          }
+        })
+        .catch((err) => {
+          console.error("Failed to load reels:", err);
+        });
     }
   }, [dispatch, user?.id]);
 
@@ -168,6 +180,31 @@ const ReelsPage = () => {
 
   const currentReelData = reels[currentReelIndex];
 
+  if (isLoading && reels.length === 0) {
+    return (
+      <div
+        className="flex w-full items-center justify-center"
+        style={{ height: isMobile ? "calc(100dvh - 65px)" : "100dvh" }}
+      >
+        <div className="flex flex-col items-center gap-3">
+          <div className="h-9 w-9 animate-spin rounded-full border-2 border-primary/30 border-t-primary" />
+          <p className="text-sm text-muted-foreground">Đang tải reels...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isLoading && reels.length === 0) {
+    return (
+      <div
+        className="flex w-full items-center justify-center"
+        style={{ height: isMobile ? "calc(100dvh - 65px)" : "100dvh" }}
+      >
+        <p className="text-sm text-muted-foreground">Chưa có reel nào để hiển thị.</p>
+      </div>
+    );
+  }
+
   // Convert Reel to Post format for ShareDialog
   const reelAsPost = currentReelData
     ? {
@@ -214,7 +251,7 @@ const ReelsPage = () => {
           >
             <ReelViewer
               reel={reel}
-              isActive={index === currentReelIndex}
+              isActive={index === currentReelIndex && !isCommentsDrawerOpen}
               onShare={handleShare}
               isDetail={false}
               showEditButton={false}

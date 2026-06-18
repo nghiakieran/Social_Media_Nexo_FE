@@ -411,7 +411,7 @@ export const MediaViewer = ({ media, isOpen, onClose }: MediaViewerProps) => {
                       {bufferedProgress > 0 && (
                         <div className="w-full bg-gray-700 rounded-full h-2 mb-2">
                           <div
-                            className="bg-blue-500 h-2 rounded-full transition-all duration-300"
+                            className="h-2 rounded-full bg-primary transition-all duration-300"
                             style={{ width: `${bufferedProgress}%` }}
                           />
                         </div>

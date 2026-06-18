@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useCallback, useRef } from "react";
+import React, { useEffect, useMemo, useCallback, useRef, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "@/store";
 import { useWebSocket } from "../hooks/useWebSocket";
@@ -6,13 +6,16 @@ import { useBatchPresence } from "../hooks/usePresence";
 import { ChatWindow } from "../components/ChatWindow";
 import { MessageComposer } from "../components/MessageComposer";
 import { InstagramChatHeader } from "../components/InstagramChatHeader";
+import { useCallContext } from "../contexts/CallContext";
 import { Button } from "@/components/ui/button";
+import { playIncomingChatAlertIfNeeded } from "@/utils/inAppAlertSounds";
 import {
   setActiveConversation,
   addMessage,
   addMessageWithUnreadUpdate,
   setMessages,
   handleReadAll,
+  handleReadReceipt,
   handleTypingNotification,
   clearOldTypingIndicators,
   updateMessagesPagination,
@@ -27,8 +30,11 @@ import {
   EMessageType,
   EReactionType,
   ReadAllDTO,
+  ReadReceiptDTO,
   TypingNotificationDTO,
-  ReactionUpdateDTO,
+  ECallType,
+  ReactionWebSocketPayload,
+  ReactionUpdateLegacyDTO,
 } from "../types";
 
 export const ChatPage: React.FC = () => {
@@ -76,14 +82,20 @@ export const ChatPage: React.FC = () => {
       } else {
         dispatch(addMessage(message));
       }
+      const sid = message.sender?.id;
+      if (sid != null)
+        playIncomingChatAlertIfNeeded(message.id, sid, user?.id);
     },
     onTyping: (typing: TypingNotificationDTO) => {
       dispatch(handleTypingNotification(typing));
     },
+    onReadReceipt: (receipt: ReadReceiptDTO) => {
+      dispatch(handleReadReceipt(receipt));
+    },
     onReadAll: (readAllEvent: ReadAllDTO) => {
       dispatch(handleReadAll({ ...readAllEvent, currentUserId: user.id }));
     },
-    onReactionUpdate: (update: ReactionUpdateDTO) => {
+    onReactionUpdate: (update: ReactionWebSocketPayload) => {
       // Check if it's the new aggregated format (has reactions array)
       if ("reactions" in update && Array.isArray(update.reactions)) {
         // New format: aggregated reactions from backend
@@ -111,20 +123,21 @@ export const ChatPage: React.FC = () => {
           );
         }
       } else if ("action" in update && "reaction" in update) {
-        if (update.action === "ADD") {
+        const legacy = update as ReactionUpdateLegacyDTO;
+        if (legacy.action === "ADD") {
           dispatch(
             addReaction({
-              messageId: update.messageId,
-              conversationId: update.conversationId,
-              reaction: update.reaction,
+              messageId: legacy.messageId,
+              conversationId: legacy.conversationId,
+              reaction: legacy.reaction,
             })
           );
-        } else if (update.action === "REMOVE") {
+        } else if (legacy.action === "REMOVE") {
           dispatch(
             removeReaction({
-              messageId: update.messageId,
-              conversationId: update.conversationId,
-              userId: update.reaction.userId,
+              messageId: legacy.messageId,
+              conversationId: legacy.conversationId,
+              userId: legacy.reaction.userId,
             })
           );
         }
@@ -368,9 +381,30 @@ export const ChatPage: React.FC = () => {
 
   const handleGoBack = () => navigate("/messages");
 
+  const { startCall } = useCallContext();
+
+  const otherParticipant = useMemo(
+    () => currentChat?.participants.find((p) => p.id !== user?.id),
+    [currentChat, user?.id]
+  );
+
+  const handleStartCall = useCallback(
+    (type: "voice" | "video") => {
+      if (!currentChat || !otherParticipant) return;
+      const callType =
+        type === "video" ? ECallType.VIDEO_CALL : ECallType.AUDIO_CALL;
+      startCall(currentChat.id, callType, {
+        id: otherParticipant.id,
+        name: otherParticipant.fullName,
+        avatarUrl: otherParticipant.avatarUrl,
+      });
+    },
+    [currentChat, otherParticipant, startCall]
+  );
+
   if (!currentChat) {
     return (
-      <div className="h-screen flex items-center justify-center">
+      <div className="flex h-[100dvh] max-h-[100dvh] items-center justify-center px-4">
         <div className="text-center">
           <h2 className="text-xl font-semibold mb-2">
             Không tìm thấy cuộc trò chuyện
@@ -382,10 +416,11 @@ export const ChatPage: React.FC = () => {
   }
 
   return (
-    <div className="h-screen flex flex-col bg-background">
+    <div className="flex h-full min-h-0 w-full flex-col overflow-hidden bg-background">
       <InstagramChatHeader
         chat={currentChat}
         onBack={handleGoBack}
+        onCall={handleStartCall}
         showBackButton={true}
         isOnline={otherUserId ? presenceMap[otherUserId] || false : false}
         lastSeen={otherUserId ? lastSeenMap[otherUserId] : undefined}
@@ -412,13 +447,14 @@ export const ChatPage: React.FC = () => {
         />
 
         <MessageComposer
+          className="shrink-0 border-primary/10 bg-background/95 backdrop-blur-sm"
           onSendMessage={handleSendMessage}
           onTyping={handleTyping}
           replyingTo={replyingTo}
           onCancelReply={() => dispatch(clearReplyingTo())}
-          currentUserId={user?.id}
         />
       </div>
+
     </div>
   );
 };

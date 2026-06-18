@@ -12,7 +12,7 @@ import type {
   WebSocketErrorResponse,
   SendMessageRequest,
   PresenceStatusDTO,
-  ReactionUpdateDTO,
+  ReactionWebSocketPayload,
 } from "../types";
 
 interface UseWebSocketOptions {
@@ -20,7 +20,7 @@ interface UseWebSocketOptions {
   onTyping?: (notification: TypingNotificationDTO) => void;
   onReadReceipt?: (receipt: ReadReceiptDTO) => void;
   onReadAll?: (receipt: ReadAllDTO) => void;
-  onReactionUpdate?: (update: ReactionUpdateDTO) => void;
+  onReactionUpdate?: (update: ReactionWebSocketPayload) => void;
   onError?: (error: WebSocketErrorResponse) => void;
   onPresence?: (presence: PresenceStatusDTO) => void;
   autoConnect?: boolean;
@@ -180,6 +180,15 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
     }
   }, []);
 
+  const subscribeToMessageOnly = useCallback(
+    (conversationId: number, onMessage: (msg: MessageDTO) => void) => {
+      if (wsRef.current?.isConnected()) {
+        wsRef.current.subscribeToMessageOnly(conversationId, onMessage);
+      }
+    },
+    []
+  );
+
   // Send reaction via WebSocket
   const sendReaction = useCallback(
     (messageId: number, reactionType: EReactionType) => {
@@ -225,6 +234,7 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
     disconnect,
     subscribeToConversation,
     unsubscribeFromConversation,
+    subscribeToMessageOnly,
     subscribeToPresence,
     unsubscribeFromPresence,
     subscribeToErrors,

@@ -114,7 +114,7 @@ export const FollowRequestsDialog = ({
                   <div
                     key={request.userName}
                     ref={isLastItem ? lastElementRef : null}
-                    className="flex items-center justify-between px-2 py-3 hover:bg-muted/40 rounded-lg transition-colors"
+                    className="flex items-center justify-between rounded-lg px-2 py-3 transition-colors hover:bg-primary/10 dark:hover:bg-primary/15"
                   >
                     <div className="flex items-center gap-3">
                       <Avatar className="w-11 h-11">
@@ -138,7 +138,7 @@ export const FollowRequestsDialog = ({
 
                     <div className="flex items-center gap-2">
                       <Button
-                        variant="instagram"
+                        variant="default"
                         size="sm"
                         onClick={() => handleAccept(request.userName)}
                         disabled={isLoading}
@@ -165,7 +165,7 @@ export const FollowRequestsDialog = ({
               {/* Loading indicator */}
               {isLoading && localRequests.length > 0 && (
                 <div className="flex items-center justify-center py-4">
-                  <Loader2 className="w-5 h-5 animate-spin" />
+                  <Loader2 className="h-5 w-5 animate-spin text-primary" />
                   <span className="ml-2 text-sm text-muted-foreground">
                     Đang tải...
                   </span>

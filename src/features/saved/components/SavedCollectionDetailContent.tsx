@@ -203,6 +203,7 @@ export const SavedCollectionDetailContent: React.FC<SavedCollectionDetailContent
 
   const handleShare = (postId: string, userIds: string[], message: string) => {
     toast({
+      variant: "success",
       title: "Đã chia sẻ bài viết!",
       description: `Chia sẻ với ${userIds.length} người dùng.`,
       duration: 2000,
@@ -222,6 +223,7 @@ export const SavedCollectionDetailContent: React.FC<SavedCollectionDetailContent
       [userId]: nextIsFollowing
     }));
     toast({
+      variant: "success",
       title: nextIsFollowing ? "Đã theo dõi!" : "Đã bỏ theo dõi!",
       duration: 1500,
     });
