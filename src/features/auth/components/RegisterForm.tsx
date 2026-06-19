@@ -18,9 +18,8 @@ import { useToast } from "@/hooks/use-toast";
 import { OAuthButton } from "./OAuthButton";
 import { useAppDispatch, useAppSelector } from "@/store";
 import { registerAsync } from "../authSlice";
-import { mockAuthDelay } from "../__mocks__/users";
 import type { RegisterFormData } from "../types";
-import { AUTH_LOGIN_ENDPOINT } from "@/utils/constants";
+import { AUTH_LOGIN_ENDPOINT, OAUTH_AUTH_BASE_URL } from "@/utils/constants";
 import { cn } from "@/lib/utils";
 
 const fieldClass =
@@ -81,11 +80,17 @@ export const RegisterForm = () => {
   };
 
   const handleOAuth = async (provider: string) => {
-    await mockAuthDelay();
-    toast({
-      title: `Đăng ký ${provider}`,
-      description: "Tính năng này sẽ có sẵn sớm!",
+    const baseUrl = OAUTH_AUTH_BASE_URL;
+    const params = new URLSearchParams({
+      client_id: "auth-service-client",
+      redirect_uri:
+        import.meta.env.VITE_OAUTH_REDIRECT_URI ||
+        "http://localhost:3000/auth/oauth/callback",
+      response_type: "code",
+      kc_idp_hint: provider,
     });
+    const authUrl = `${baseUrl}?${params.toString()}`;
+    window.location.href = authUrl;
   };
 
   const labelClass =
