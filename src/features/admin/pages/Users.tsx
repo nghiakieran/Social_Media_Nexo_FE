@@ -223,6 +223,7 @@ export default function Users() {
       setSelectedUser(null);
       setSelectedRole("");
       fetchUsers();
+      fetchSummaryStats();
     } catch (err) {
       toast({
         title: "Lỗi",
@@ -251,6 +252,7 @@ export default function Users() {
       setBanDialogOpen(false);
       setDetailsDialogOpen(false);
       fetchUsers();
+      fetchSummaryStats();
     } catch (err) {
       toast({
         title: "Lỗi",
@@ -300,8 +302,11 @@ export default function Users() {
 
   useEffect(() => {
     fetchUsers();
+  }, [fetchUsers]);
+
+  useEffect(() => {
     fetchSummaryStats();
-  }, [fetchUsers, fetchSummaryStats]);
+  }, [fetchSummaryStats]);
 
   // Slicing useEffect removed for server-side pagination
 
@@ -672,7 +677,10 @@ export default function Users() {
                                       title: "Thành công",
                                       description: "Tài khoản đã được mở khóa",
                                     });
-                                    setTimeout(() => fetchUsers(), 1000);
+                                    setTimeout(() => {
+                                      fetchUsers();
+                                      fetchSummaryStats();
+                                    }, 1000);
                                   } catch (error) {
                                     toast({
                                       title: "Lỗi",
@@ -905,7 +913,25 @@ export default function Users() {
                     <Button
                       variant="default"
                       className="w-full h-11 justify-start bg-emerald-600 hover:bg-emerald-700 rounded-xl"
-                      onClick={() => unbanUser(selectedUser.username)}
+                      onClick={async () => {
+                        try {
+                          await unbanUser(selectedUser.username);
+                          toast({
+                            variant: "success",
+                            title: "Thành công",
+                            description: "Tài khoản đã được mở khóa",
+                          });
+                          fetchUsers();
+                          fetchSummaryStats();
+                          setDetailsDialogOpen(false);
+                        } catch (err) {
+                          toast({
+                            title: "Lỗi",
+                            description: "Không thể mở khóa tài khoản",
+                            variant: "destructive",
+                          });
+                        }
+                      }}
                     >
                       <Unlock className="w-4 h-4 mr-2" /> Mở khóa ngay
                     </Button>
