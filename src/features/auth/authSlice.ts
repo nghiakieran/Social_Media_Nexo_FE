@@ -115,6 +115,18 @@ const authSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
+      .addCase(registerAsync.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(registerAsync.fulfilled, (state) => {
+        state.isLoading = false;
+        state.error = null;
+      })
+      .addCase(registerAsync.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = (action.payload as string) || "Đăng ký thất bại";
+      })
       .addCase(loginAsync.pending, (state) => {
         state.isLoading = true;
         state.error = null;
