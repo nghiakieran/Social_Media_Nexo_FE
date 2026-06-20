@@ -487,22 +487,22 @@ export default function Users() {
             <Table>
               <TableHeader className="bg-slate-50/80">
                 <TableRow className="hover:bg-transparent border-b-slate-100">
-                  <TableHead className="font-bold py-5 pl-8 text-slate-700">
+                  <TableHead className="font-bold py-5 pl-8 text-slate-700 whitespace-nowrap">
                     Thành viên
                   </TableHead>
-                  <TableHead className="font-bold text-slate-700">
+                  <TableHead className="font-bold text-slate-700 whitespace-nowrap">
                     Ngày gia nhập
                   </TableHead>
-                  <TableHead className="font-bold text-slate-700">
+                  <TableHead className="font-bold text-slate-700 whitespace-nowrap">
                     Vai trò
                   </TableHead>
-                  <TableHead className="font-bold text-slate-700">
+                  <TableHead className="font-bold text-slate-700 whitespace-nowrap">
                     Trạng thái
                   </TableHead>
-                  <TableHead className="font-bold text-slate-700">
+                  <TableHead className="font-bold text-slate-700 whitespace-nowrap">
                     Chỉ số
                   </TableHead>
-                  <TableHead className="font-bold text-slate-700 text-center">
+                  <TableHead className="font-bold text-slate-700 text-center whitespace-nowrap">
                     Vi phạm
                   </TableHead>
                   <TableHead className="pr-8"></TableHead>
@@ -533,7 +533,7 @@ export default function Users() {
                   users.map((user) => (
                     <TableRow
                       key={user.id}
-                      className="group cursor-pointer hover:bg-indigo-50/30 transition-all border-b-slate-50"
+                      className="group cursor-pointer hover:bg-indigo-50/30 transition-all border-b-slate-50 h-[88px]"
                       onClick={() => {
                         setSelectedUser(user);
                         setDetailsDialogOpen(true);
@@ -557,47 +557,47 @@ export default function Users() {
                             />
                           </div>
                           <div className="space-y-0.5">
-                            <div className="font-bold text-slate-900 flex items-center gap-1.5 leading-none">
+                            <div className="font-bold text-slate-900 flex items-center gap-1.5 leading-none max-w-[180px] truncate" title={user.fullName}>
                               {user.fullName}
                               {user.isVerified && (
-                                <BadgeCheck className="w-4 h-4 text-blue-500 fill-blue-50" />
+                                <BadgeCheck className="w-4 h-4 text-blue-500 fill-blue-50 shrink-0" />
                               )}
                             </div>
-                            <div className="text-xs text-slate-500 font-medium">
+                            <div className="text-xs text-slate-500 font-medium max-w-[180px] truncate" title={user.username}>
                               @{user.username}
                             </div>
-                            <div className="text-[10px] text-slate-400 italic">
+                            <div className="text-[10px] text-slate-400 italic max-w-[180px] truncate" title={user.email}>
                               {user.email}
                             </div>
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="whitespace-nowrap">
                         <div className="flex items-center text-sm font-medium text-slate-600">
                           <CalendarIcon className="w-3.5 h-3.5 mr-2 text-slate-400" />
                           {formatDate(user.createdAt)}
                         </div>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="whitespace-nowrap">
                         <Badge className={getRoleBadge(user.role)}>
                           {user.role}
                         </Badge>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="whitespace-nowrap">
                         <Badge className={getStatusBadge(user.status)}>
                           {getStatusText(user.status)}
                         </Badge>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="whitespace-nowrap">
                         <div className="space-y-1">
-                          <div className="flex items-center gap-1.5 text-xs font-bold text-slate-700">
+                          <div className="flex items-center gap-1.5 text-xs font-bold text-slate-700 whitespace-nowrap">
                             <FileText className="w-3 h-3 text-indigo-500" />{" "}
                             {user.posts}{" "}
                             <span className="font-normal text-slate-400">
                               bài viết
                             </span>
                           </div>
-                          <div className="flex items-center gap-1.5 text-xs font-bold text-slate-700">
+                          <div className="flex items-center gap-1.5 text-xs font-bold text-slate-700 whitespace-nowrap">
                             <TrendingUp className="w-3 h-3 text-emerald-500" />{" "}
                             {user.interactions}{" "}
                             <span className="font-normal text-slate-400">
@@ -606,7 +606,7 @@ export default function Users() {
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell className="text-center">
+                      <TableCell className="text-center whitespace-nowrap">
                         {user.violations > 0 ? (
                           <div className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-rose-50 text-rose-600 font-black text-xs border border-rose-100">
                             {user.violations}
@@ -1188,16 +1188,17 @@ export default function Users() {
 }
 
 function TableSkeleton() {
-  return Array(7)
+  return Array(10)
     .fill(0)
     .map((_, i) => (
-      <TableRow key={i} className="hover:bg-transparent border-none">
+      <TableRow key={i} className="hover:bg-transparent border-none h-[88px]">
         <TableCell className="pl-8 py-5">
           <div className="flex items-center gap-4">
             <Skeleton className="h-12 w-12 rounded-2xl" />
-            <div className="space-y-2">
+            <div className="space-y-1">
               <Skeleton className="h-4 w-32" />
               <Skeleton className="h-3 w-20" />
+              <Skeleton className="h-2.5 w-40" />
             </div>
           </div>
         </TableCell>
@@ -1211,7 +1212,7 @@ function TableSkeleton() {
           <Skeleton className="h-6 w-16 rounded-lg" />
         </TableCell>
         <TableCell>
-          <div className="space-y-2">
+          <div className="space-y-1">
             <Skeleton className="h-3 w-20" />
             <Skeleton className="h-3 w-24" />
           </div>
