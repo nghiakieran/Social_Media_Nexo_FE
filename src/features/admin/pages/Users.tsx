@@ -122,6 +122,7 @@ interface InfoDashboardUser {
 }
 
 export default function Users() {
+  const PAGE_SIZE = 10;
   const {
     searchValue: searchInput,
     debouncedValue: search,
@@ -137,7 +138,6 @@ export default function Users() {
   const [lockedUsers, setLockedUsers] = useState(0);
   const [pendingUsers, setPendingUsers] = useState(0);
 
-  const [allUsers, setAllUsers] = useState<UIUser[]>([]);
   const [users, setUsers] = useState<UIUser[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -162,8 +162,8 @@ export default function Users() {
     setError(null);
     try {
       const params: Record<string, string | number> = {
-        limit: 1000,
-        offset: 0,
+        pageNo: currentPage - 1,
+        pageSize: PAGE_SIZE,
       };
       if (search) params.query = search;
       if (statusFilter !== "all")
@@ -189,14 +189,16 @@ export default function Users() {
         interactions: apiUser.interactions_count || 0,
         violations: apiUser.violation_count || 0,
         avatar:
+          apiUser.avatar ||
           apiUser.avatar_url ||
           "https://ui-avatars.com/api/?name=" + (apiUser.username || "user"),
         isVerified: apiUser.is_verified || false,
         createdAt: apiUser.created_at || new Date().toISOString(),
       }));
 
-      setAllUsers(mappedUsers);
-      setTotalHits(mappedUsers.length);
+      setUsers(mappedUsers);
+      const totalElements = responseData?.totalElements ?? responseData?.totalHits ?? mappedUsers.length;
+      setTotalHits(totalElements);
     } catch (err: unknown) {
       const errorMessage =
         err instanceof Error ? err.message : "Failed to fetch users";
@@ -204,7 +206,7 @@ export default function Users() {
     } finally {
       setLoading(false);
     }
-  }, [search, statusFilter]);
+  }, [search, statusFilter, currentPage]);
 
   const handleAssignRole = async () => {
     if (!selectedUser || !selectedRole) return;
@@ -277,7 +279,7 @@ export default function Users() {
         description: `Đã xóa avatar của ${user.username}`,
       });
       fetchUsers();
-    } catch (error) {}
+    } catch (error) { /* empty */ }
   };
 
   const fetchSummaryStats = useCallback(async () => {
@@ -301,12 +303,7 @@ export default function Users() {
     fetchSummaryStats();
   }, [fetchUsers, fetchSummaryStats]);
 
-  useEffect(() => {
-    const start = (currentPage - 1) * 20;
-    const end = start + 20;
-    const pageUsers = allUsers.slice(start, end);
-    setUsers(pageUsers);
-  }, [currentPage, allUsers]);
+  // Slicing useEffect removed for server-side pagination
 
   useEffect(() => {
     setCurrentPage(1);
@@ -358,7 +355,7 @@ export default function Users() {
   };
 
   const getPagesToShow = () => {
-    const totalPages = Math.ceil(totalHits / 20);
+    const totalPages = Math.ceil(totalHits / PAGE_SIZE);
     if (totalPages <= 7) {
       return Array.from({ length: totalPages }, (_, i) => i + 1);
     }
@@ -708,7 +705,7 @@ export default function Users() {
             </Table>
           </div>
 
-          {totalHits > 20 && (
+          {totalHits > PAGE_SIZE && (
             <div className="p-6 border-t border-slate-50 bg-slate-50/30">
               <Pagination>
                 <PaginationContent>
@@ -749,7 +746,7 @@ export default function Users() {
                       size="sm"
                       className="rounded-lg gap-1 px-3"
                       onClick={() => setCurrentPage((prev) => prev + 1)}
-                      disabled={currentPage >= Math.ceil(totalHits / 20)}
+                      disabled={currentPage >= Math.ceil(totalHits / PAGE_SIZE)}
                     >
                       Sau <ChevronRight className="w-4 h-4" />
                     </Button>
