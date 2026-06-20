@@ -92,7 +92,7 @@ export const LoginForm = () => {
   }, [location.search, toast]);
 
   const handleOAuth = async (provider: string) => {
-    const baseUrl = OAUTH_AUTH_BASE_URL;
+    const baseUrl = OAUTH_AUTH_BASE_URL ;
     const params = new URLSearchParams({
       client_id: "auth-service-client",
       redirect_uri:
