@@ -404,7 +404,7 @@ export default function Users() {
   ];
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500 p-1">
+    <div className="space-y-8 p-1">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
           <h1 className="text-4xl font-black tracking-tight text-slate-900">
@@ -424,10 +424,10 @@ export default function Users() {
         {summaryCards.map((card, i) => (
           <Card
             key={i}
-            className="border-none shadow-lg overflow-hidden group hover:shadow-xl transition-all duration-300"
+            className={`border-none shadow-lg overflow-hidden group hover:shadow-xl transition-all duration-300 bg-gradient-to-br ${card.color} text-white`}
           >
             <CardContent
-              className={`p-0 bg-gradient-to-br ${card.color} text-white`}
+              className="p-0 text-white"
             >
               <div className="p-6 flex justify-between items-start">
                 <div>
@@ -447,8 +447,8 @@ export default function Users() {
         ))}
       </div>
 
-      <Card className="border-none shadow-xl rounded-[2rem] overflow-hidden bg-white">
-        <CardHeader className="bg-slate-50/50 border-b p-6">
+      <Card className="border-none shadow-xl rounded-[2rem] bg-white">
+        <CardHeader className="bg-slate-50/50 border-b p-6 rounded-t-[2rem]">
           <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
             <div className="flex items-center gap-2">
               <div className="p-2 bg-indigo-100 rounded-lg">
@@ -482,30 +482,30 @@ export default function Users() {
             </div>
           </div>
         </CardHeader>
-        <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <Table>
+        <CardContent className="p-0 bg-white rounded-b-[2rem]">
+          <div className="relative">
+            <Table wrapperClassName="overflow-visible">
               <TableHeader className="bg-slate-50/80">
                 <TableRow className="hover:bg-transparent border-b-slate-100">
-                  <TableHead className="font-bold py-5 pl-8 text-slate-700 whitespace-nowrap">
+                  <TableHead className="font-bold py-5 pl-8 text-slate-700 whitespace-nowrap sticky top-16 bg-slate-50 z-10">
                     Thành viên
                   </TableHead>
-                  <TableHead className="font-bold text-slate-700 whitespace-nowrap">
+                  <TableHead className="font-bold text-slate-700 whitespace-nowrap sticky top-16 bg-slate-50 z-10">
                     Ngày gia nhập
                   </TableHead>
-                  <TableHead className="font-bold text-slate-700 whitespace-nowrap">
+                  <TableHead className="font-bold text-slate-700 whitespace-nowrap sticky top-16 bg-slate-50 z-10">
                     Vai trò
                   </TableHead>
-                  <TableHead className="font-bold text-slate-700 whitespace-nowrap">
+                  <TableHead className="font-bold text-slate-700 whitespace-nowrap sticky top-16 bg-slate-50 z-10">
                     Trạng thái
                   </TableHead>
-                  <TableHead className="font-bold text-slate-700 whitespace-nowrap">
+                  <TableHead className="font-bold text-slate-700 whitespace-nowrap sticky top-16 bg-slate-50 z-10">
                     Chỉ số
                   </TableHead>
-                  <TableHead className="font-bold text-slate-700 text-center whitespace-nowrap">
+                  <TableHead className="font-bold text-slate-700 text-center whitespace-nowrap sticky top-16 bg-slate-50 z-10">
                     Vi phạm
                   </TableHead>
-                  <TableHead className="pr-8"></TableHead>
+                  <TableHead className="pr-8 sticky top-16 bg-slate-50 z-10"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -714,7 +714,7 @@ export default function Users() {
           </div>
 
           {totalHits > PAGE_SIZE && (
-            <div className="p-6 border-t border-slate-50 bg-slate-50/30">
+            <div className="p-6 border-t border-slate-50 bg-slate-50/30 rounded-b-[2rem]">
               <Pagination>
                 <PaginationContent>
                   <PaginationItem>
@@ -739,7 +739,7 @@ export default function Users() {
                         <Button
                           variant={page === currentPage ? "default" : "ghost"}
                           size="sm"
-                          className={`w-9 h-9 p-0 rounded-lg ${page === currentPage ? "bg-indigo-600 shadow-indigo-200 shadow-lg" : ""}`}
+                          className={`w-9 h-9 p-0 rounded-lg ${page === currentPage ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20" : ""}`}
                           onClick={() => setCurrentPage(page as number)}
                         >
                           {page}
