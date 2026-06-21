@@ -798,13 +798,13 @@ export default function Users() {
                   <SelectValue placeholder="Chọn vai trò" />
                 </SelectTrigger>
                 <SelectContent className="rounded-xl">
-                  <SelectItem value="USER">
+                  <SelectItem value="USER" className="focus:bg-primary/15 focus:text-primary cursor-pointer">
                     USER - Người dùng phổ thông
                   </SelectItem>
-                  <SelectItem value="MODERATOR">
+                  <SelectItem value="MODERATOR" className="focus:bg-primary/15 focus:text-primary cursor-pointer">
                     MODERATOR - Người kiểm duyệt
                   </SelectItem>
-                  <SelectItem value="ADMIN">
+                  <SelectItem value="ADMIN" className="focus:bg-primary/15 focus:text-primary cursor-pointer">
                     ADMIN - Quản trị viên hệ thống
                   </SelectItem>
                 </SelectContent>
@@ -1127,10 +1127,10 @@ export default function Users() {
                   <SelectValue placeholder="Chọn thời gian" />
                 </SelectTrigger>
                 <SelectContent className="rounded-xl">
-                  <SelectItem value="3">Tạm đình chỉ 3 ngày</SelectItem>
-                  <SelectItem value="7">Tạm đình chỉ 7 ngày</SelectItem>
-                  <SelectItem value="30">Đình chỉ 1 tháng (30 ngày)</SelectItem>
-                  <SelectItem value="9999">
+                  <SelectItem value="3" className="focus:bg-primary/15 focus:text-primary cursor-pointer">Tạm đình chỉ 3 ngày</SelectItem>
+                  <SelectItem value="7" className="focus:bg-primary/15 focus:text-primary cursor-pointer">Tạm đình chỉ 7 ngày</SelectItem>
+                  <SelectItem value="30" className="focus:bg-primary/15 focus:text-primary cursor-pointer">Đình chỉ 1 tháng (30 ngày)</SelectItem>
+                  <SelectItem value="9999" className="focus:bg-primary/15 focus:text-primary cursor-pointer">
                     Khóa vĩnh viễn (Permanent)
                   </SelectItem>
                 </SelectContent>
