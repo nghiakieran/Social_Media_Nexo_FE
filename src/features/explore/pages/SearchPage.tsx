@@ -319,7 +319,7 @@ export const SearchPage: React.FC = () => {
               onFollowHashtag={(hashtagId) =>
                 dispatch(followHashtag(hashtagId))
               }
-              onViewAll={() => console.log("View all trending")}
+              onViewAll={() => navigate("/explore")}
             />
             {/* TrendingSection removed as requested */}
             {/* Suggested Searches */}
