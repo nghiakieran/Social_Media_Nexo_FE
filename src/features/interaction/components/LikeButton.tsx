@@ -19,6 +19,7 @@ interface LikeButtonProps {
   size?: "sm" | "md" | "lg";
   className?: string;
   onLikeChange?: (isLiked: boolean, newCount: number) => void;
+  onLikeSuccess?: (isLiked: boolean, newCount: number) => void;
   children?: React.ReactNode;
 }
 
@@ -31,6 +32,7 @@ export const LikeButton: React.FC<LikeButtonProps> = ({
   size = "md",
   className,
   onLikeChange,
+  onLikeSuccess,
   children,
 }) => {
   const dispatch = useAppDispatch();
@@ -95,6 +97,8 @@ export const LikeButton: React.FC<LikeButtonProps> = ({
         }
 
         await dispatch(thunk).unwrap();
+        // Call success callback after the API succeeds
+        onLikeSuccess?.(newIsLiked, newCount);
       } catch (error) {
         // Rollback on error
         setLocalIsLiked(isLiked);

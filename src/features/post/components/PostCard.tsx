@@ -315,12 +315,14 @@ export const PostCard = ({
     navigateToPost(navigate, postId);
   };
 
-  const handleLikeChange = async (newIsLiked: boolean, newCount: number) => {
+  const handleLikeChange = (newIsLiked: boolean, newCount: number) => {
     setIsLiked(newIsLiked);
     // Đơn giản: tăng/giảm 1 khi like/unlike
     setLikesCount(newIsLiked ? likesCount + 1 : likesCount - 1);
+  };
 
-    // Gọi API để đồng bộ lại danh sách likes
+  const handleLikeSuccess = async () => {
+    // Gọi API để đồng bộ lại danh sách likes sau khi API POST like hoàn tất thành công
     try {
       const data = await dispatch(
         getPostLikeDetailThunk({
@@ -775,6 +777,7 @@ export const PostCard = ({
                 likesCount={likesCount}
                 showCount
                 onLikeChange={handleLikeChange}
+                onLikeSuccess={handleLikeSuccess}
               />
               <button
                 className="h-9 w-9 inline-flex items-center justify-center select-none touch-manipulation text-foreground hover:opacity-80 active:opacity-60 transition-opacity"
