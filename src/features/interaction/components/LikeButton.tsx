@@ -136,8 +136,8 @@ export const LikeButton: React.FC<LikeButtonProps> = ({
         "text-foreground hover:bg-muted/50 active:scale-95",
         !children && currentSize.button,
         !children && "rounded-full",
-        localIsLiked && "text-red-500 hover:text-red-600",
-        className
+        className,
+        localIsLiked && "text-red-500 hover:text-red-600"
       )}
     >
       <Heart

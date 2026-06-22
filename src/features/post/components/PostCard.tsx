@@ -49,6 +49,7 @@ import {
 import { getPostLikeDetailThunk } from "@/features/interaction";
 import { useInView } from "@/hooks/use-in-view";
 import { parseMentions } from "@/utils/mentions";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface MediaItem {
   id: string;
@@ -180,6 +181,7 @@ export const PostCard = ({
   const [hasMoreComments, setHasMoreComments] = useState(true);
   const [latestLikeName, setLatestLikeName] = useState<string | null>(null);
   const [hasFetchedLikePreview, setHasFetchedLikePreview] = useState(false);
+  const [isLoadingLikePreview, setIsLoadingLikePreview] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
@@ -253,6 +255,7 @@ export const PostCard = ({
     if (!hasBeenInView || hasFetchedLikePreview) return;
     const fetchLikePreview = async () => {
       try {
+        setIsLoadingLikePreview(true);
         setHasFetchedLikePreview(true);
         const data = await dispatch(
           getPostLikeDetailThunk({
@@ -280,6 +283,8 @@ export const PostCard = ({
         }
       } catch (e) {
         // Keep flag as true to prevent infinite retry loops on persistent errors (e.g. 403)
+      } finally {
+        setIsLoadingLikePreview(false);
       }
     };
     fetchLikePreview();
@@ -324,6 +329,7 @@ export const PostCard = ({
   const handleLikeSuccess = async () => {
     // Gọi API để đồng bộ lại danh sách likes sau khi API POST like hoàn tất thành công
     try {
+      setIsLoadingLikePreview(true);
       const data = await dispatch(
         getPostLikeDetailThunk({
           postId: parseInt(post.id),
@@ -342,6 +348,8 @@ export const PostCard = ({
       }
     } catch (_) {
       // Giữ nguyên state hiện tại nếu API lỗi
+    } finally {
+      setIsLoadingLikePreview(false);
     }
   };
 
@@ -825,38 +833,44 @@ export const PostCard = ({
 
           {/* Likes summary */}
           {likesCount > 0 && (
-            <button
-              type="button"
-              onClick={handleOpenLikesDialog}
-              className="mt-1 text-left text-sm w-full"
-            >
-              {latestLikeName ? (
-                <>
-                  <span className="font-medium hover:underline">
-                    {latestLikeName}
-                  </span>
-                  {likesCount > 1 && (
-                    <>
-                      <span className="text-gray-600 dark:text-gray-300">
-                        {" "}
-                        và{" "}
-                      </span>
-                      <span className="font-medium hover:underline">
-                        những người khác
-                      </span>
-                    </>
-                  )}
+            isLoadingLikePreview ? (
+              <div className="mt-1.5 mb-1 flex items-center">
+                <Skeleton className="h-4 w-48 rounded bg-muted-foreground/20 animate-pulse" />
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={handleOpenLikesDialog}
+                className="mt-1 text-left text-sm w-full"
+              >
+                {latestLikeName ? (
+                  <>
+                    <span className="font-medium hover:underline">
+                      {latestLikeName}
+                    </span>
+                    {likesCount > 1 && (
+                      <>
+                        <span className="text-gray-600 dark:text-gray-300">
+                          {" "}
+                          và{" "}
+                        </span>
+                        <span className="font-medium hover:underline">
+                          những người khác
+                        </span>
+                      </>
+                    )}
+                    <span className="text-gray-600 dark:text-gray-300">
+                      {" "}
+                      đã thích
+                    </span>
+                  </>
+                ) : (
                   <span className="text-gray-600 dark:text-gray-300">
-                    {" "}
-                    đã thích
+                    {likesCount.toLocaleString("vi-VN")} lượt thích
                   </span>
-                </>
-              ) : (
-                <span className="text-gray-600 dark:text-gray-300">
-                  {likesCount.toLocaleString("vi-VN")} lượt thích
-                </span>
-              )}
-            </button>
+                )}
+              </button>
+            )
           )}
 
           {/* Comments Count */}
@@ -934,14 +948,16 @@ export const PostCard = ({
       <CommentDialog
         isOpen={showCommentDialog}
         onClose={handleCloseCommentDialog}
-        post={post}
+        post={{ ...post, likesCount }}
         comments={postComments}
         onAddComment={handleAddComment}
         onLikeComment={handleLikeComment}
         onReplyComment={handleReplyComment}
         onLikePost={onLike}
         onShare={onShare}
-        isPostLiked={post.isLiked}
+        isPostLiked={isLiked}
+        onPostLikeChange={handleLikeChange}
+        onPostLikeSuccess={handleLikeSuccess}
         onOpenShareDialog={onOpenShareDialog}
         isShareDialogOpen={isShareDialogOpen}
         isAuthorFollowed={false}

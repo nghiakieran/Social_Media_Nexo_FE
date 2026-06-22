@@ -43,6 +43,7 @@ import { useNavigate } from "react-router-dom";
 import { ReportPostDialog } from "@/features/post/components/ReportPostDialog";
 import { reportComment } from "../api/postApi";
 import { searchUsers } from "@/features/explore/api/exploreApi";
+import { Skeleton } from "@/components/ui/skeleton";
 import type { SearchUserData } from "@/features/explore/types";
 
 interface Comment {
@@ -101,6 +102,8 @@ interface CommentDialogProps {
   onOpenShareDialog?: () => void;
   isShareDialogOpen?: boolean;
   isPostLiked: boolean;
+  onPostLikeChange?: (isLiked: boolean, newCount: number) => void;
+  onPostLikeSuccess?: () => void;
   onAddEmojiReaction?: (commentId: string, emoji: string) => void;
   onAddPostEmojiReaction?: (postId: string, emoji: string) => void;
   isAuthorFollowed?: boolean;
@@ -124,6 +127,8 @@ export const CommentDialog = ({
   onOpenShareDialog,
   isShareDialogOpen = false,
   isPostLiked,
+  onPostLikeChange,
+  onPostLikeSuccess,
   onAddEmojiReaction,
   onAddPostEmojiReaction,
   isAuthorFollowed,
@@ -201,6 +206,7 @@ export const CommentDialog = ({
   const [postLikesCount, setPostLikesCount] = useState(post.likesCount || 0);
   const [latestLikeName, setLatestLikeName] = useState<string | null>(null);
   const [hasFetchedLikePreview, setHasFetchedLikePreview] = useState(false);
+  const [isLoadingLikePreview, setIsLoadingLikePreview] = useState(false);
   const [mentionQuery, setMentionQuery] = useState("");
   const [mentionCandidates, setMentionCandidates] = useState<SearchUserData[]>(
     [],
@@ -221,13 +227,13 @@ export const CommentDialog = ({
   const isPostLikeInteracting = useRef(false);
   const interactingCommentIds = useRef<Set<string>>(new Set());
 
-  // Sync post like state when prop changes - ensure it's always in sync with API data per user
+  // Sync post like state when prop changes or dialog opens - ensure it's always in sync with API data per user
   useEffect(() => {
     if (!isPostLikeInteracting.current) {
       setIsPostLikedLocal(isPostLiked);
       setPostLikesCount(post.likesCount || 0);
     }
-  }, [post.id, isPostLiked, post.likesCount]);
+  }, [post.id, isPostLiked, post.likesCount, isOpen]);
 
   // Fetch comments when dialog opens
   useEffect(() => {
@@ -245,9 +251,10 @@ export const CommentDialog = ({
 
   // Fetch like preview for the post when dialog opens
   useEffect(() => {
-    if (!isOpen || hasFetchedLikePreview) return;
+    if (!isOpen) return;
     const run = async () => {
       try {
+        setIsLoadingLikePreview(true);
         setHasFetchedLikePreview(true);
         const data = await dispatch(
           getPostLikeDetailThunk({
@@ -274,10 +281,12 @@ export const CommentDialog = ({
         }
       } catch (_) {
         // Keep flag as true to prevent infinite retry
+      } finally {
+        setIsLoadingLikePreview(false);
       }
     };
     run();
-  }, [dispatch, isOpen, post.id, hasFetchedLikePreview]);
+  }, [dispatch, isOpen, post.id]);
 
   // Load more comments function
   const handleLoadMoreComments = () => {
@@ -539,17 +548,26 @@ export const CommentDialog = ({
     }, 1000);
   };
 
-  const handlePostLikeChange = async (
+  const handlePostLikeChange = (
     newIsLiked: boolean,
     newCount: number,
   ) => {
     isPostLikeInteracting.current = true;
     setIsPostLikedLocal(newIsLiked);
     setPostLikesCount(newCount);
-    onLikePost(post.id);
 
-    // Call API to sync back likes list (preview name)
+    // Notify parent to optimistically sync heart state and likes count
+    onPostLikeChange?.(newIsLiked, newCount);
+
+    setTimeout(() => {
+      isPostLikeInteracting.current = false;
+    }, 1000);
+  };
+
+  const handlePostLikeSuccess = async () => {
+    // Call API to sync back likes list (preview name) after successful API completion
     try {
+      setIsLoadingLikePreview(true);
       const data = await dispatch(
         getPostLikeDetailThunk({
           postId: parseInt(post.id),
@@ -564,13 +582,13 @@ export const CommentDialog = ({
       } else {
         setLatestLikeName(null);
       }
+
+      // Notify parent to sync likes preview name and total count from API
+      onPostLikeSuccess?.();
     } catch (_) {
       // Keep optimistic UI if API fails
     } finally {
-      // Keep protection for a bit longer to wait for Redux to flush
-      setTimeout(() => {
-        isPostLikeInteracting.current = false;
-      }, 1000);
+      setIsLoadingLikePreview(false);
     }
   };
 
@@ -680,8 +698,8 @@ export const CommentDialog = ({
         limit: 5,
         offset: 0,
       });
-      setMentionCandidates(data.users || []);
-      setShowMentionMenu(data.users.length > 0);
+      setMentionCandidates(data.content || []);
+      setShowMentionMenu(data.content.length > 0);
     } catch (error) {
       setMentionCandidates([]);
       setShowMentionMenu(false);
@@ -1975,6 +1993,7 @@ export const CommentDialog = ({
                 likesCount={postLikesCount}
                 showCount
                 onLikeChange={handlePostLikeChange}
+                onLikeSuccess={handlePostLikeSuccess}
                 className="hover:bg-transparent -ml-2 text-gray-700 dark:text-gray-200"
                 size="md"
               />
@@ -2010,46 +2029,52 @@ export const CommentDialog = ({
 
             {/* Likes summary like Instagram */}
             {postLikesCount > 0 && (
-              <div className="mt-1 text-sm">
-                {latestLikeName ? (
-                  <>
+              isLoadingLikePreview ? (
+                <div className="mt-1.5 mb-1.5 flex items-center">
+                  <Skeleton className="h-4 w-48 rounded bg-muted-foreground/20 animate-pulse" />
+                </div>
+              ) : (
+                <div className="mt-1 text-sm">
+                  {latestLikeName ? (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => openLikesDialog(post.id, "post")}
+                        className="font-medium hover:underline"
+                      >
+                        {latestLikeName}
+                      </button>
+                      {postLikesCount > 1 && (
+                        <>
+                          <span className="text-gray-600 dark:text-gray-300">
+                            {" "}
+                            và{" "}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => openLikesDialog(post.id, "post")}
+                            className="font-medium hover:underline"
+                          >
+                            những người khác
+                          </button>
+                        </>
+                      )}
+                      <span className="text-gray-600 dark:text-gray-300">
+                        {" "}
+                        đã thích
+                      </span>
+                    </>
+                  ) : (
                     <button
                       type="button"
                       onClick={() => openLikesDialog(post.id, "post")}
-                      className="font-medium hover:underline"
+                      className="text-gray-600 dark:text-gray-300"
                     >
-                      {latestLikeName}
+                      {postLikesCount.toLocaleString("vi-VN")} lượt thích
                     </button>
-                    {postLikesCount > 1 && (
-                      <>
-                        <span className="text-gray-600 dark:text-gray-300">
-                          {" "}
-                          và{" "}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => openLikesDialog(post.id, "post")}
-                          className="font-medium hover:underline"
-                        >
-                          những người khác
-                        </button>
-                      </>
-                    )}
-                    <span className="text-gray-600 dark:text-gray-300">
-                      {" "}
-                      đã thích
-                    </span>
-                  </>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => openLikesDialog(post.id, "post")}
-                    className="text-gray-600 dark:text-gray-300"
-                  >
-                    {postLikesCount.toLocaleString("vi-VN")} lượt thích
-                  </button>
-                )}
-              </div>
+                  )}
+                </div>
+              )
             )}
 
             {/* Post time under summary */}
