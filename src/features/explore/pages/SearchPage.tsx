@@ -254,9 +254,6 @@ export const SearchPage: React.FC = () => {
                       onPostClick={(postId) =>
                         console.log("Post clicked:", postId)
                       }
-                      onFollowUser={(userId) =>
-                        console.log("Follow user:", userId)
-                      }
                       onFollowHashtag={(hashtagId) =>
                         dispatch(followHashtag(hashtagId))
                       }

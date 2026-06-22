@@ -1,9 +1,8 @@
 import React from "react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { Check, Plus, Verified, Hash, Grid3X3 } from "lucide-react";
+import { Verified, Hash, Grid3X3 } from "lucide-react";
 import { SearchResult } from "../exploreSlice";
 import { HashtagChip } from "./HashtagChip";
 
@@ -13,7 +12,6 @@ interface SearchResultListProps {
   onUserClick?: (userId: string) => void;
   onHashtagClick?: (hashtagId: string) => void;
   onPostClick?: (postId: string) => void;
-  onFollowUser?: (userId: string) => void;
   onFollowHashtag?: (hashtagId: string) => void;
   className?: string;
 }
@@ -24,7 +22,6 @@ export const SearchResultList: React.FC<SearchResultListProps> = ({
   onUserClick,
   onHashtagClick,
   onPostClick,
-  onFollowUser,
   onFollowHashtag,
   className,
 }) => {
@@ -87,27 +84,6 @@ export const SearchResultList: React.FC<SearchResultListProps> = ({
                       </p> */}
                     </div>
                   </div>
-                  <Button
-                    variant={user.isFollowing ? "secondary" : "default"}
-                    size="sm"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onFollowUser?.(user.id);
-                    }}
-                    className="h-8 px-4"
-                  >
-                    {user.isFollowing ? (
-                      <>
-                        <Check className="h-3 w-3 mr-1" />
-                        Đang theo dõi
-                      </>
-                    ) : (
-                      <>
-                        <Plus className="h-3 w-3 mr-1" />
-                        Theo dõi
-                      </>
-                    )}
-                  </Button>
                 </div>
               ))}
           </div>
