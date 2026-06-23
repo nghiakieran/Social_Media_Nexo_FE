@@ -559,12 +559,23 @@ export const PostCard = ({
         if (onOpenShareDialog) onOpenShareDialog();
         break;
       case "copyLink":
-        navigator.clipboard?.writeText(window.location.href).catch(() => {});
-        break;
-      case "embed":
-        break;
-      case "aboutAccount":
-        break;
+        { const postUrl = `${window.location.origin}/posts/${post.id}`;
+        navigator.clipboard?.writeText(postUrl)
+          .then(() => {
+            toast({
+              variant: "success",
+              title: "Đã sao chép liên kết",
+              description: "Liên kết bài viết đã được sao chép vào bộ nhớ tạm.",
+            });
+          })
+          .catch(() => {
+            toast({
+              variant: "destructive",
+              title: "Lỗi",
+              description: "Không thể sao chép liên kết.",
+            });
+          });
+        break; }
       default:
         break;
     }
@@ -994,11 +1005,6 @@ export const PostCard = ({
           {
             label: "Sao chép liên kết",
             action: () => handlePostAction("copyLink"),
-          },
-          { label: "Nhúng", action: () => handlePostAction("embed") },
-          {
-            label: "Giới thiệu về tài khoản này",
-            action: () => handlePostAction("aboutAccount"),
           },
           { label: "Hủy", action: handleCloseActionMenu },
         ]}

@@ -1080,6 +1080,25 @@ export const CommentDialog = ({
         handleCloseActionMenu();
         onClose();
         break;
+      case "copyLink":
+        { const postUrl = `${window.location.origin}/posts/${post.id}`;
+        navigator.clipboard?.writeText(postUrl)
+          .then(() => {
+            toast({
+              variant: "success",
+              title: "Đã sao chép liên kết",
+              description: "Liên kết bài viết đã được sao chép vào bộ nhớ tạm.",
+            });
+          })
+          .catch(() => {
+            toast({
+              variant: "destructive",
+              title: "Lỗi",
+              description: "Không thể sao chép liên kết.",
+            });
+          });
+        handleCloseActionMenu();
+        break; }
       default:
         break;
     }
@@ -2270,14 +2289,6 @@ export const CommentDialog = ({
                   {
                     label: "Sao chép liên kết",
                     action: () => handleCommentAction("copyLink"),
-                  },
-                  {
-                    label: "Nhúng",
-                    action: () => handleCommentAction("embed"),
-                  },
-                  {
-                    label: "Giới thiệu về tài khoản này",
-                    action: () => handleCommentAction("aboutAccount"),
                   },
                   { label: "Hủy", action: handleCloseActionMenu },
                 ]
