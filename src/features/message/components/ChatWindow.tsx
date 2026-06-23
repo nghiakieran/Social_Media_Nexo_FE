@@ -941,7 +941,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                               align={isOwn ? "end" : "start"}
                             >
                               <DropdownMenuItem
-                                className="hover:bg-primary/10 focus:bg-primary/10 data-[highlighted]:bg-primary/10"
+                                className="cursor-pointer hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground data-[highlighted]:bg-primary data-[highlighted]:text-primary-foreground"
                                 onClick={() => {
                                   if (onReplyToMessage) {
                                     onReplyToMessage(message);
@@ -952,7 +952,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                                 Trả lời
                               </DropdownMenuItem>
                               <DropdownMenuItem
-                                className="hover:bg-primary/10 focus:bg-primary/10 data-[highlighted]:bg-primary/10"
+                                className="cursor-pointer hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground data-[highlighted]:bg-primary data-[highlighted]:text-primary-foreground"
                                 onClick={() =>
                                   handleCopyMessage(message.content)
                                 }

@@ -448,7 +448,10 @@ export const InstagramChatHeader: React.FC<InstagramChatHeaderProps> = ({
           <DropdownMenuContent align="end" className="w-48">
             {chat.isGroup ? (
               <>
-                <DropdownMenuItem onClick={() => setGroupInfoOpen(true)}>
+                <DropdownMenuItem
+                  className="cursor-pointer hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground data-[highlighted]:bg-primary data-[highlighted]:text-primary-foreground"
+                  onClick={() => setGroupInfoOpen(true)}
+                >
                   <Users className="h-4 w-4 mr-2" />
                   Thông tin nhóm
                 </DropdownMenuItem>
@@ -456,18 +459,22 @@ export const InstagramChatHeader: React.FC<InstagramChatHeaderProps> = ({
             ) : (
               <>
                 <DropdownMenuItem
+                  className="cursor-pointer hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground data-[highlighted]:bg-primary data-[highlighted]:text-primary-foreground"
                   onClick={() => {
                     if (chat.username) navigate(`/${chat.username}`);
                   }}
                 >
                   Xem trang cá nhân
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleOpenNicknameDialog}>
+                <DropdownMenuItem
+                  className="cursor-pointer hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground data-[highlighted]:bg-primary data-[highlighted]:text-primary-foreground"
+                  onClick={handleOpenNicknameDialog}
+                >
                   Biệt danh
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
-                  className="text-destructive"
+                  className="cursor-pointer text-destructive hover:bg-destructive hover:text-destructive-foreground focus:bg-destructive focus:text-destructive-foreground data-[highlighted]:bg-destructive data-[highlighted]:text-destructive-foreground"
                   onClick={handleOpenBlockDialog}
                 >
                   {chat.blockedByMe ? "Bỏ chặn" : "Chặn"}
