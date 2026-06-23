@@ -27,6 +27,7 @@ import { TypingIndicator } from "./TypingIndicator";
 import { ReactionMessage } from "./ReactionMessage";
 import { ForwardMessageDialog } from "./ForwardMessageDialog";
 import { ReactionsDialog } from "./ReactionsDialog";
+import { MessageAudioPlayer } from "./MessageAudioPlayer";
 import { cn } from "@/lib/utils";
 import type {
   MessageDTO,
@@ -802,24 +803,17 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                                 <div
                                   key={media.id || idx}
                                   className={cn(
-                                    "flex items-center gap-2 px-3 py-2 rounded-2xl shadow-sm",
+                                    "px-3 py-2 rounded-2xl shadow-sm border border-border/10",
                                     isOwn
                                       ? "bg-primary text-primary-foreground"
                                       : "bg-muted text-foreground"
                                   )}
                                 >
-                                  <Mic className="h-4 w-4 shrink-0 opacity-80" />
-                                  <audio
-                                    controls
+                                  <MessageAudioPlayer
                                     src={media.mediaUrl}
-                                    className="h-8 max-w-[220px] md:max-w-[280px]"
+                                    isOwn={isOwn}
+                                    createdAt={message.createdAt}
                                   />
-                                  <span className="text-xs opacity-70 shrink-0">
-                                    {new Date(message.createdAt).toLocaleTimeString("vi-VN", {
-                                      hour: "2-digit",
-                                      minute: "2-digit",
-                                    })}
-                                  </span>
                                 </div>
                               ))}
                             </div>
