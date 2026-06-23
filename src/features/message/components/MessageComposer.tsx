@@ -5,7 +5,6 @@ import { cn } from "@/lib/utils";
 import {
   Send,
   Smile,
-  Paperclip,
   Mic,
   MicOff,
   Image,
@@ -458,49 +457,14 @@ export const MessageComposer: React.FC<MessageComposerProps> = ({
                   className="min-h-[36px] md:min-h-[40px] max-h-[120px] resize-none pr-10 md:pr-12 py-2 text-sm md:text-base"
                   rows={1}
                 />
-                {}
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="absolute right-1 top-1 h-8 w-8"
-                    >
-                      <Paperclip className="h-4 w-4" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-48 p-2">
-                    <div className="space-y-1">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="w-full justify-start"
-                        onClick={handleImageSelect}
-                      >
-                        <Image className="h-4 w-4 mr-2" />
-                        Ảnh
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="w-full justify-start"
-                        onClick={() => handleFileUpload("image")}
-                      >
-                        <Camera className="h-4 w-4 mr-2" />
-                        Camera
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="w-full justify-start"
-                        onClick={() => handleFileUpload("file")}
-                      >
-                        <Paperclip className="h-4 w-4 mr-2" />
-                        Tệp tin
-                      </Button>
-                    </div>
-                  </PopoverContent>
-                </Popover>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-1 top-1 h-8 w-8"
+                  onClick={handleImageSelect}
+                >
+                  <Image className="h-4 w-4" />
+                </Button>
               </>
             )}
           </div>
