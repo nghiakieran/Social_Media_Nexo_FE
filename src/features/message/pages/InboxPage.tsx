@@ -175,27 +175,34 @@ export const InboxPage: React.FC = () => {
     autoConnect: true,
   });
 
+  const loadingChatIdRef = useRef<number | null>(null);
+
   const handleChatSelect = useCallback(
     async (chatId: string) => {
-      dispatch(setActiveConversation(Number(chatId)));
+      const numericId = Number(chatId);
+      if (numericId === activeConversationId) return;
+      if (loadingChatIdRef.current === numericId) return;
+
+      loadingChatIdRef.current = numericId;
+      dispatch(setActiveConversation(numericId));
 
       try {
         const { messageApi } = await import("../services/messageApi");
         const response = await messageApi.getMessages({
-          conversationId: Number(chatId),
+          conversationId: numericId,
           page: 1,
           size: 8,
         });
-        if (response?.data?.content) {
+        if (response?.data?.content && loadingChatIdRef.current === numericId) {
           dispatch(
             setMessages({
-              conversationId: Number(chatId),
+              conversationId: numericId,
               messages: response.data.content,
             })
           );
           dispatch(
             updateMessagesPagination({
-              conversationId: Number(chatId),
+              conversationId: numericId,
               pagination: {
                 page: 1,
                 size: response.data.size,
@@ -208,9 +215,13 @@ export const InboxPage: React.FC = () => {
         }
       } catch (error) {
         // Error handled silently
+      } finally {
+        if (loadingChatIdRef.current === numericId) {
+          loadingChatIdRef.current = null;
+        }
       }
     },
-    [dispatch]
+    [dispatch, activeConversationId]
   );
 
   useEffect(() => {
