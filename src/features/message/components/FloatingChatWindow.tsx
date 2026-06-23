@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { X, Minus, Phone, Video, ArrowLeft } from "lucide-react";
@@ -130,10 +130,16 @@ export const FloatingChatWindow: React.FC<FloatingChatWindowProps> = ({
     }
   }, [chat.id, ws.isConnected, ws]);
 
-  // Scroll to bottom when messages are first loaded for this floating chat
+  const hasInitialScrolledRef = useRef(false);
+
   useEffect(() => {
-    if (messages.length > 0) {
-      // Small delay to ensure DOM is rendered
+    hasInitialScrolledRef.current = false;
+  }, [chat.id]);
+
+  // Scroll to bottom only when messages are first loaded for this floating chat session
+  useEffect(() => {
+    if (messages.length > 0 && !hasInitialScrolledRef.current) {
+      hasInitialScrolledRef.current = true;
       setTimeout(() => {
         const scrollArea = document.querySelector(
           `[data-chat-id="${chat.id}"] [data-scroll-area]`
@@ -431,9 +437,9 @@ export const FloatingChatWindow: React.FC<FloatingChatWindowProps> = ({
           isTyping={isOtherUserTyping}
           onAddReaction={handleAddReaction}
           onRemoveReaction={handleRemoveReaction}
-          onForwardMessage={() => {}}
-          onDeleteMessage={() => {}}
-          onReplyToMessage={() => {}}
+          onForwardMessage={() => { }}
+          onDeleteMessage={() => { }}
+          onReplyToMessage={() => { }}
           onMarkAsRead={(msgId) => ws.markMessageAsRead(msgId, chat.id)}
           className="h-full w-full"
         />

@@ -126,6 +126,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
   const prevMessagesLengthRef = useRef<number>(0);
   const isLoadingMoreRef = useRef<boolean>(false);
   const lastLoadMoreScrollTopRef = useRef<number>(-1);
+  const prevFirstMessageIdRef = useRef<number | null>(null);
 
   useEffect(() => {
     let timeout: NodeJS.Timeout;
@@ -145,6 +146,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
       hasScrolledToBottomRef.current = false;
       prevChatIdRef.current = chat.id;
       prevMessagesLengthRef.current = 0;
+      prevFirstMessageIdRef.current = null;
       isLoadingMoreRef.current = false;
       lastLoadMoreScrollTopRef.current = -1;
       
@@ -162,9 +164,6 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
   useLayoutEffect(() => {
     const scrollArea = scrollAreaRef.current;
     if (scrollArea) {
-      prevScrollHeightRef.current = scrollArea.scrollHeight;
-      prevScrollTopRef.current = scrollArea.scrollTop;
-
       const distanceFromBottom =
         scrollArea.scrollHeight -
         scrollArea.scrollTop -
@@ -181,21 +180,26 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
     const currentScrollHeight = scrollArea.scrollHeight;
     const prevScrollHeight = prevScrollHeightRef.current;
     const prevScrollTop = prevScrollTopRef.current;
+    
+    const firstMessage = messages[0];
+    const lastMessage = messages[messages.length - 1];
+
     const messagesLengthChanged =
       messages.length !== prevMessagesLengthRef.current;
 
-    prevMessagesLengthRef.current = messages.length;
+    // Xác định xem có phải là hành động tải tin nhắn cũ (prepend) hay không
+    const isPrepended =
+      prevMessagesLengthRef.current > 0 &&
+      firstMessage &&
+      firstMessage.id !== prevFirstMessageIdRef.current;
 
-    // Kiểm tra tin nhắn cuối cùng có phải của mình không
-    const lastMessage = messages[messages.length - 1];
-    const isLastMessageMine = user && lastMessage?.sender && String(lastMessage.sender.id) === String(user.id);
+    prevMessagesLengthRef.current = messages.length;
+    prevFirstMessageIdRef.current = firstMessage?.id || null;
 
     if (
-      messagesLengthChanged &&
-      currentScrollHeight > prevScrollHeight &&
-      prevScrollTop < 500 &&
-      !isNearBottomRef.current &&
-      !isLastMessageMine // Chỉ giữ vị trí khi load more message cũ, và tin nhắn mới ko phải của mình
+      isPrepended &&
+      prevScrollHeight > 0 &&
+      currentScrollHeight > prevScrollHeight
     ) {
       const heightDifference = currentScrollHeight - prevScrollHeight;
 
@@ -204,6 +208,10 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
           if (scrollArea) {
             const newScrollTop = prevScrollTop + heightDifference;
             scrollArea.scrollTop = newScrollTop;
+
+            // Cập nhật lại ref sau khi scroll để đồng bộ
+            prevScrollHeightRef.current = scrollArea.scrollHeight;
+            prevScrollTopRef.current = newScrollTop;
 
             setTimeout(() => {
               // Logic check load more cũ
@@ -250,19 +258,23 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
       // 1. Đang ở gần đáy
       // 2. Hoặc lần đầu vào chưa cuộn
       // 3. HOẶC tin nhắn mới nhất là CỦA MÌNH (isLastMessageMine) -> BẮT BUỘC CUỘN
+      const isInitialScroll = !hasScrolledToBottomRef.current;
+      const isLastMessageMine = user && lastMessage?.sender && String(lastMessage.sender.id) === String(user.id);
+
       if (
         isNearBottomRef.current ||
-        !hasScrolledToBottomRef.current ||
+        isInitialScroll ||
         isLastMessageMine
       ) {
         requestAnimationFrame(() => {
           if (scrollArea) {
-            // Dùng scrollTo để có thể set behavior smooth
             scrollArea.scrollTo({
                 top: scrollArea.scrollHeight,
-                behavior: isLastMessageMine ? "smooth" : "auto"
+                behavior: (isLastMessageMine && !isInitialScroll) ? "smooth" : "auto"
             });
             hasScrolledToBottomRef.current = true;
+            prevScrollHeightRef.current = scrollArea.scrollHeight;
+            prevScrollTopRef.current = scrollArea.scrollHeight;
           }
         });
       }
@@ -272,6 +284,10 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
     const target = e.currentTarget;
     const scrollTop = target.scrollTop;
+
+    // Lưu vị trí scroll hiện tại trước khi có bất kỳ cập nhật DOM nào
+    prevScrollHeightRef.current = target.scrollHeight;
+    prevScrollTopRef.current = scrollTop;
 
     const distanceFromTop = scrollTop;
 
