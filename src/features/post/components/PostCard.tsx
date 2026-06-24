@@ -844,44 +844,38 @@ export const PostCard = ({
 
           {/* Likes summary */}
           {likesCount > 0 && (
-            isLoadingLikePreview ? (
-              <div className="mt-1.5 mb-1 flex items-center">
-                <Skeleton className="h-4 w-48 rounded bg-muted-foreground/20 animate-pulse" />
-              </div>
-            ) : (
-              <button
-                type="button"
-                onClick={handleOpenLikesDialog}
-                className="mt-1 text-left text-sm w-full"
-              >
-                {latestLikeName ? (
-                  <>
-                    <span className="font-medium hover:underline">
-                      {latestLikeName}
-                    </span>
-                    {likesCount > 1 && (
-                      <>
-                        <span className="text-gray-600 dark:text-gray-300">
-                          {" "}
-                          và{" "}
-                        </span>
-                        <span className="font-medium hover:underline">
-                          những người khác
-                        </span>
-                      </>
-                    )}
-                    <span className="text-gray-600 dark:text-gray-300">
-                      {" "}
-                      đã thích
-                    </span>
-                  </>
-                ) : (
-                  <span className="text-gray-600 dark:text-gray-300">
-                    {likesCount.toLocaleString("vi-VN")} lượt thích
+            <button
+              type="button"
+              onClick={handleOpenLikesDialog}
+              className="mt-1 text-left text-sm w-full"
+            >
+              {latestLikeName ? (
+                <>
+                  <span className="font-medium hover:underline">
+                    {latestLikeName}
                   </span>
-                )}
-              </button>
-            )
+                  {likesCount > 1 && (
+                    <>
+                      <span className="text-gray-600 dark:text-gray-300">
+                        {" "}
+                        và{" "}
+                      </span>
+                      <span className="font-medium hover:underline">
+                        những người khác
+                      </span>
+                    </>
+                  )}
+                  <span className="text-gray-600 dark:text-gray-300">
+                    {" "}
+                    đã thích
+                  </span>
+                </>
+              ) : (
+                <span className="text-gray-600 dark:text-gray-300">
+                  {likesCount.toLocaleString("vi-VN")} lượt thích
+                </span>
+              )}
+            </button>
           )}
 
           {/* Comments Count */}

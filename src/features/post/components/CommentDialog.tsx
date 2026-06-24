@@ -2048,52 +2048,46 @@ export const CommentDialog = ({
 
             {/* Likes summary like Instagram */}
             {postLikesCount > 0 && (
-              isLoadingLikePreview ? (
-                <div className="mt-1.5 mb-1.5 flex items-center">
-                  <Skeleton className="h-4 w-48 rounded bg-muted-foreground/20 animate-pulse" />
-                </div>
-              ) : (
-                <div className="mt-1 text-sm">
-                  {latestLikeName ? (
-                    <>
-                      <button
-                        type="button"
-                        onClick={() => openLikesDialog(post.id, "post")}
-                        className="font-medium hover:underline"
-                      >
-                        {latestLikeName}
-                      </button>
-                      {postLikesCount > 1 && (
-                        <>
-                          <span className="text-gray-600 dark:text-gray-300">
-                            {" "}
-                            và{" "}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => openLikesDialog(post.id, "post")}
-                            className="font-medium hover:underline"
-                          >
-                            những người khác
-                          </button>
-                        </>
-                      )}
-                      <span className="text-gray-600 dark:text-gray-300">
-                        {" "}
-                        đã thích
-                      </span>
-                    </>
-                  ) : (
+              <div className="mt-1 text-sm">
+                {latestLikeName ? (
+                  <>
                     <button
                       type="button"
                       onClick={() => openLikesDialog(post.id, "post")}
-                      className="text-gray-600 dark:text-gray-300"
+                      className="font-medium hover:underline"
                     >
-                      {postLikesCount.toLocaleString("vi-VN")} lượt thích
+                      {latestLikeName}
                     </button>
-                  )}
-                </div>
-              )
+                    {postLikesCount > 1 && (
+                      <>
+                        <span className="text-gray-600 dark:text-gray-300">
+                          {" "}
+                          và{" "}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => openLikesDialog(post.id, "post")}
+                          className="font-medium hover:underline"
+                        >
+                          những người khác
+                        </button>
+                      </>
+                    )}
+                    <span className="text-gray-600 dark:text-gray-300">
+                      {" "}
+                      đã thích
+                    </span>
+                  </>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => openLikesDialog(post.id, "post")}
+                    className="text-gray-600 dark:text-gray-300"
+                  >
+                    {postLikesCount.toLocaleString("vi-VN")} lượt thích
+                  </button>
+                )}
+              </div>
             )}
 
             {/* Post time under summary */}
