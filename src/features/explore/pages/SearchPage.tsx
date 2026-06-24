@@ -4,18 +4,13 @@ import { useAppDispatch, useAppSelector } from "@/store";
 import { useDebouncedSearch } from "@/hooks/use-debounce-search";
 import { SearchBar } from "../components/SearchBar";
 import { SearchResultList } from "../components/SearchResultList";
-import { TrendingSection } from "../components/TrendingSection";
+import { SuggestedUsersSection } from "../components/SuggestedUsersSection";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { navigateToProfile } from "@/utils/navigation";
 import {
   Clock,
   X,
-  TrendingUp,
-  Users,
-  Hash,
-  Grid3X3,
   Search as SearchIcon,
 } from "lucide-react";
 import {
@@ -25,10 +20,8 @@ import {
   removeRecentSearch,
   clearRecentSearches,
   followHashtag,
-  setTrendingHashtags,
   searchUsersThunk,
 } from "../exploreSlice";
-import { getExploreHashtags } from "../api/exploreApi";
 
 export const SearchPage: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -38,7 +31,6 @@ export const SearchPage: React.FC = () => {
     isSearching,
     activeFilter,
     recentSearches,
-    trendingHashtags,
   } = useAppSelector((state) => state.explore);
 
   const [hasSearched, setHasSearched] = useState(false);
@@ -48,15 +40,6 @@ export const SearchPage: React.FC = () => {
     "",
     500
   );
-
-  // Initialize data
-  useEffect(() => {
-    const fetchHashtags = async () => {
-      const data = await getExploreHashtags();
-      dispatch(setTrendingHashtags(data));
-    };
-    fetchHashtags();
-  }, [dispatch]);
 
   // Auto search when debounced value changes
   useEffect(() => {
@@ -98,14 +81,6 @@ export const SearchPage: React.FC = () => {
     }
   };
 
-  const trendingSearches = [
-    "du lịch",
-    "ẩm thực",
-    "thời trang",
-    "nhiếp ảnh",
-    "nghệ thuật",
-  ];
-
   const getTotalResults = () => {
     return (
       searchResults.users.length +
@@ -137,9 +112,8 @@ export const SearchPage: React.FC = () => {
             value={searchValue}
             onChange={handleQueryChange}
             onSubmit={handleSearch}
-            placeholder="Tìm kiếm tài khoản, hashtag và nhiều hơn nữa..."
+            placeholder="Tìm kiếm tài khoản"
             recentSearches={recentSearches}
-            trendingSearches={trendingSearches}
             onRecentSelect={(search) => {
               setSearchValue(search);
               dispatch(setSearchQuery(search));
@@ -149,19 +123,7 @@ export const SearchPage: React.FC = () => {
             className="mb-4"
           />
 
-          {/* Clear Recent Searches */}
-          {!hasSearched && recentSearches.length > 0 && (
-            <div className="flex justify-end">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => dispatch(clearRecentSearches())}
-                className="text-primary hover:text-primary/80"
-              >
-                Xóa tất cả
-              </Button>
-            </div>
-          )}
+
         </div>
 
         {/* Loading State */}
@@ -192,7 +154,7 @@ export const SearchPage: React.FC = () => {
                   Không tìm thấy kết quả
                 </h3>
                 <p className="text-muted-foreground text-sm">
-                  Hãy thử tìm kiếm người dùng, hashtag hoặc từ khóa khác.
+                  Hãy thử tìm kiếm tài khoản khác.
                 </p>
               </div>
             )}
@@ -206,89 +168,69 @@ export const SearchPage: React.FC = () => {
                   </h2>
                 </div>
 
-                {/* Filter Tabs */}
-                <Tabs
-                  value={activeFilter}
-                  onValueChange={(value) =>
-                    dispatch(
-                      setActiveFilter(
-                        value as "all" | "users" | "hashtags" | "posts"
-                      )
-                    )
-                  }
-                >
-                  <TabsList className="grid w-full grid-cols-4">
-                    {/* <TabsTrigger value="all" className="text-xs">
-                      Tất cả ({getTotalResults()})
-                    </TabsTrigger> */}
-                    <TabsTrigger value="users" className="text-xs">
-                      <Users className="h-3 w-3 mr-1" />
-                      Người dùng
-                    </TabsTrigger>
-                    {/* <TabsTrigger value="hashtags" className="text-xs">
-                      <Hash className="h-3 w-3 mr-1" />
-                      Hashtag ({getFilteredCount("hashtags")})
-                    </TabsTrigger>
-                    <TabsTrigger value="posts" className="text-xs">
-                      <Grid3X3 className="h-3 w-3 mr-1" />
-                      Bài viết ({getFilteredCount("posts")})
-                    </TabsTrigger> */}
-                  </TabsList>
-
-                  <TabsContent value={activeFilter} className="mt-6">
-                    <SearchResultList
-                      results={searchResults}
-                      activeFilter={activeFilter}
-                      onUserClick={(userId) => {
-                        // Find user by id to get username
-                        const user = searchResults.users.find(
-                          (u) => u.id === userId
-                        );
-                        if (user) {
-                          navigateToProfile(navigate, user.username);
-                        }
-                      }}
-                      onHashtagClick={(hashtagId) =>
-                        console.log("Hashtag clicked:", hashtagId)
+                <div className="mt-4">
+                  <SearchResultList
+                    results={searchResults}
+                    activeFilter={activeFilter}
+                    onUserClick={(userId) => {
+                      // Find user by id to get username
+                      const user = searchResults.users.find(
+                        (u) => u.id === userId
+                      );
+                      if (user) {
+                        navigateToProfile(navigate, user.username);
                       }
-                      onPostClick={(postId) =>
-                        console.log("Post clicked:", postId)
-                      }
-                      onFollowHashtag={(hashtagId) =>
-                        dispatch(followHashtag(hashtagId))
-                      }
-                    />
-                  </TabsContent>
-                </Tabs>
+                    }}
+                    onHashtagClick={(hashtagId) =>
+                      console.log("Hashtag clicked:", hashtagId)
+                    }
+                    onPostClick={(postId) =>
+                      console.log("Post clicked:", postId)
+                    }
+                    onFollowHashtag={(hashtagId) =>
+                      dispatch(followHashtag(hashtagId))
+                    }
+                  />
+                </div>
               </>
             )}
           </div>
         )}
 
-        {/* Default State - Trending */}
+        {/* Default State */}
         {!hasSearched && !isSearching && (
-          <div className="space-y-8">
+          <div className="space-y-6">
             {/* Recent Searches */}
             {recentSearches.length > 0 && (
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold flex items-center">
-                  <Clock className="h-5 w-5 mr-2 text-muted-foreground" />
-                  Gần đây
-                </h3>
-                <div className="space-y-2">
+              <div className="space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-semibold text-muted-foreground flex items-center">
+                    <Clock className="h-4 w-4 mr-1.5 text-muted-foreground/70" />
+                    Gần đây
+                  </h3>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => dispatch(clearRecentSearches())}
+                    className="text-xs text-primary hover:text-primary/80 h-auto p-0 hover:bg-transparent"
+                  >
+                    Xóa tất cả
+                  </Button>
+                </div>
+                <div className="space-y-1">
                   {recentSearches.slice(0, 5).map((search, index) => (
                     <div
                       key={index}
-                      className="flex items-center justify-between p-3 hover:bg-muted/50 rounded-lg cursor-pointer group"
+                      className="flex items-center justify-between py-1.5 px-2.5 hover:bg-muted/50 rounded-lg cursor-pointer group"
                       onClick={() => {
                         setSearchValue(search);
                         dispatch(setSearchQuery(search));
                         handleSearch(search);
                       }}
                     >
-                      <div className="flex items-center space-x-3">
-                        <SearchIcon className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm">{search}</span>
+                      <div className="flex items-center space-x-2.5">
+                        <SearchIcon className="h-3.5 w-3.5 text-muted-foreground/60" />
+                        <span className="text-sm text-foreground/90">{search}</span>
                       </div>
                       <Button
                         variant="ghost"
@@ -299,53 +241,16 @@ export const SearchPage: React.FC = () => {
                           dispatch(removeRecentSearch(search));
                         }}
                       >
-                        <X className="h-3 w-3" />
+                        <X className="h-3.5 w-3.5" />
                       </Button>
                     </div>
                   ))}
                 </div>
               </div>
-            )}{" "}
-            Trending Hashtags
-            <TrendingSection
-              hashtags={trendingHashtags}
-              onHashtagClick={(hashtag) => {
-                navigate(
-                  `/explore?hashtag=${encodeURIComponent(
-                    hashtag.name.replace(/^#/, "")
-                  )}`
-                );
-              }}
-              onFollowHashtag={(hashtagId) =>
-                dispatch(followHashtag(hashtagId))
-              }
-              onViewAll={() => navigate("/explore")}
-            />
-            {/* TrendingSection removed as requested */}
-            {/* Suggested Searches */}
-            {/* <div className="space-y-4">
-              <h3 className="text-lg font-semibold flex items-center">
-                <TrendingUp className="h-5 w-5 mr-2 text-muted-foreground" />
-                Tìm kiếm thịnh hành
-              </h3>
-              <div className="flex flex-wrap gap-2">
-                {trendingSearches.map((search, index) => (
-                  <Button
-                    key={index}
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setSearchValue(search);
-                      dispatch(setSearchQuery(search));
-                      handleSearch(search);
-                    }}
-                    className="rounded-full"
-                  >
-                    {search}
-                  </Button>
-                ))}
-              </div> */}
-            {/* </div> */}
+            )}
+
+            {/* Suggested Users */}
+            <SuggestedUsersSection />
           </div>
         )}
       </div>

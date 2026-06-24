@@ -109,7 +109,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
               {/* Recent Searches */}
               {recentSearches.length > 0 && (
                 <div className="p-3 border-b border-border">
-                  <h4 className="text-sm font-semibold mb-2 text-muted-foreground">Recent</h4>
+                  <h4 className="text-sm font-semibold mb-2 text-muted-foreground">Gần đây</h4>
                   {recentSearches.slice(0, 5).map((search, index) => (
                     <div
                       key={index}
@@ -166,7 +166,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
                 onClick={() => handleSuggestionClick(value)}
               >
                 <Search className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm">Search for "{value}"</span>
+                <span className="text-sm">Tìm kiếm "{value}"</span>
               </div>
             </div>
           )}
