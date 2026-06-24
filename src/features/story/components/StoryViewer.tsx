@@ -65,10 +65,8 @@ export const StoryViewer = memo(
     const [progress, setProgress] = useState(0);
     const [replyText, setReplyText] = useState("");
     const [showMenu, setShowMenu] = useState(false);
-    const [showReactions, setShowReactions] = useState(false);
     const [isMobile, setIsMobile] = useState(false);
     const [isHolding, setIsHolding] = useState(false);
-    const [showQuickReply, setShowQuickReply] = useState(false);
     const [isInitialLoading, setIsInitialLoading] = useState(true); // Only for initial open
     const [isMenuLoading, setIsMenuLoading] = useState(false);
     const [showViewerList, setShowViewerList] = useState(false);
@@ -293,16 +291,6 @@ export const StoryViewer = memo(
     ]);
 
     // Action handlers
-    const handleReactionClick = useCallback(
-      (emoji: string) => {
-        console.log(
-          `Reacted with ${emoji} to ${currentStory.username}'s story`
-        );
-        setShowReactions(false);
-      },
-      [currentStory?.username]
-    );
-
     const handleSendReply = useCallback(async () => {
       if (!replyText.trim() || !currentContent || !currentStory?.id) return;
       try {
@@ -379,29 +367,6 @@ export const StoryViewer = memo(
     const handleShare = useCallback(() => {
       console.log(`Shared ${currentStory.username}'s story`);
     }, [currentStory?.username]);
-
-    const handleQuickReply = useCallback(
-      async (reply: string) => {
-        if (!reply.trim() || !currentContent || !currentStory?.id) return;
-        try {
-          const body = {
-            userId: currentStory.id,
-            content: reply,
-            messageType: EMessageType.STORY,
-            storyId: parseInt(currentContent.id),
-          };
-          await api.post("/messages", body);
-          toast({ variant: "success", description: "Đã gửi tin nhắn!" });
-          setReplyText("");
-        } catch (err) {
-          toast({
-            description: "Gửi tin nhắn thất bại!",
-            variant: "destructive",
-          });
-        }
-      },
-      [currentContent, currentStory, toast]
-    );
 
     // Touch handlers
     const handleTouchStart = useCallback(
@@ -614,19 +579,13 @@ export const StoryViewer = memo(
                 replyText={replyText}
                 isLiked={currentContent.isLike ?? false}
                 viewerCount={currentContent.quantitySeen || 0}
-                showReactions={showReactions}
-                showQuickReply={showQuickReply}
                 isOwnStory={currentStory.isOwnStory}
                 isCloseFriend={currentContent.isCloseFriend}
                 onReplyChange={setReplyText}
                 onSendReply={handleSendReply}
                 onLike={handleLike}
                 onShare={handleShare}
-                onReactionToggle={() => setShowReactions(!showReactions)}
-                onQuickReply={handleQuickReply}
-                onReactionClick={handleReactionClick}
                 onViewerListToggle={() => setShowViewerList(!showViewerList)}
-                showSendButton={!!replyText.trim()}
               />
 
               {/* Mobile navigation areas */}
