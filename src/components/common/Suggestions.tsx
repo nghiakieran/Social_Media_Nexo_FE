@@ -282,7 +282,7 @@ export const Suggestions = () => {
 
         {/* Footer Links */}
         <div className="space-y-4 pt-4 border-t border-border/50">
-          <div className="text-xs text-muted-foreground space-y-2">
+          {/* <div className="text-xs text-muted-foreground space-y-2">
             <div className="flex flex-wrap gap-x-3 gap-y-1">
               <a
                 href="/about"
@@ -327,7 +327,7 @@ export const Suggestions = () => {
                 Ngôn ngữ
               </a>
             </div>
-          </div>
+          </div> */}
           <p className="text-xs text-muted-foreground font-medium">
             © 2025 Nexo
           </p>
