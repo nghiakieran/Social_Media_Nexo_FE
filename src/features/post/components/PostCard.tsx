@@ -806,6 +806,7 @@ export const PostCard = ({
               >
                 <MessageCircle className="w-6 h-6" />
               </button>
+              {/* Temporarily hidden share button
               <button
                 className="h-9 w-9 inline-flex items-center justify-center select-none touch-manipulation text-foreground hover:opacity-80 active:opacity-60 transition-opacity"
                 onClick={handleShareClick}
@@ -814,6 +815,7 @@ export const PostCard = ({
               >
                 <Send className="w-6 h-6" />
               </button>
+              */}
             </div>
             <button
               className={`h-9 w-9 inline-flex items-center justify-center select-none touch-manipulation transition-opacity ${
@@ -995,7 +997,9 @@ export const PostCard = ({
             label: "Đi đến bài viết",
             action: () => handlePostAction("goToPost"),
           },
+          /* Temporarily hidden share option
           { label: "Chia sẻ lên...", action: () => handlePostAction("share") },
+          */
           {
             label: "Sao chép liên kết",
             action: () => handlePostAction("copyLink"),
