@@ -2016,7 +2016,16 @@ export const CommentDialog = ({
                 className="hover:bg-transparent -ml-2 text-gray-700 dark:text-gray-200"
                 size="md"
               />
-              <button className="text-gray-500 hover:text-gray-700 transition-colors">
+              <button 
+                onClick={() => {
+                  if (textareaRef.current) {
+                    textareaRef.current.focus();
+                  }
+                }}
+                className="text-gray-500 hover:text-gray-700 transition-colors"
+                type="button"
+                aria-label="Tập trung ô bình luận"
+              >
                 <MessageCircle className="w-6 h-6" />
               </button>
               {/* Temporarily hidden share button
