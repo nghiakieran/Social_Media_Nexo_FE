@@ -90,6 +90,7 @@ export const LoginForm = () => {
       });
     }
   }, [location.search, toast]);
+  
 
   const handleOAuth = async (provider: string) => {
     const baseUrl = OAUTH_AUTH_BASE_URL ;
