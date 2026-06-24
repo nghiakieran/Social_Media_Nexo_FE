@@ -179,18 +179,6 @@ export const ProfileHeader = ({
               </Avatar>
             )}
           </button>
-
-          {/* Notes Overlay - Separate clickable area */}
-          {isCurrentUser && (
-            <div className="absolute -bottom-2 -right-2">
-              <button
-                onClick={handleNotesClick}
-                className="bg-black/80 hover:bg-black/90 text-white text-xs font-medium px-3 py-1.5 rounded-full backdrop-blur-sm transition-all duration-200 hover:scale-105"
-              >
-                Ghi chú...
-              </button>
-            </div>
-          )}
         </div>
 
         {/* Profile Info */}
@@ -375,17 +363,6 @@ export const ProfileHeader = ({
           </div>
         </div>
       </div>
-
-      {/* Notes Dialog - Only render when open */}
-      {isNotesDialogOpen && (
-        <NotesDialog
-          isOpen={isNotesDialogOpen}
-          onClose={() => setIsNotesDialogOpen(false)}
-          onPublish={handlePublishNote}
-          userAvatar={profile.avatar}
-          userName={profile.name}
-        />
-      )}
 
       {/* Following Options Dialog */}
       {!isCurrentUser && (
