@@ -6,6 +6,7 @@ export { StoryTextEditor } from "./components/StoryTextEditor";
 // Export pages
 export { ArchivePage } from "./pages/ArchivePage";
 export { StoryCreatePage } from "./pages/StoryCreatePage";
+export { StoryDetailPage } from "./pages/StoryDetailPage";
 
 // Export slice and thunks
 export {

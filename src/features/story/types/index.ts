@@ -33,6 +33,7 @@ export interface StoryViewerProps {
   initialStoryIndex: number
   initialContentIndex?: number
   isArchivePage?: boolean
+  onLikeChange?: (storyId: string, contentId: string, isLiked: boolean) => void
 }
 
 // API Response Types

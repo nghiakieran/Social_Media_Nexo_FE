@@ -68,7 +68,16 @@ export const NotificationItem = ({
       }
 
       if (notification.targetUrl) {
-        navigateToPost2(navigate, notification.targetUrl);
+        let url = notification.targetUrl;
+        if (notification.notificationType === "LIKE_STORY" || url.includes("story")) {
+          const match = url.match(/\/(\d+)(?:\D|$)/);
+          if (match && match[1]) {
+            url = `/posts/story/view-detail/${match[1]}`;
+          } else {
+            url = url.replace(/^\/?api\//, "/");
+          }
+        }
+        navigateToPost2(navigate, url);
       }
     } catch (error) {
       console.error("Đánh dấu thông báo lỗi:", error);

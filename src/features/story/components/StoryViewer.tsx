@@ -44,6 +44,7 @@ export const StoryViewer = memo(
     initialStoryIndex,
     initialContentIndex = 0,
     isArchivePage = false,
+    onLikeChange,
   }: StoryViewerProps) => {
     const dispatch = useAppDispatch();
     const { toast } = useToast();
@@ -337,6 +338,10 @@ export const StoryViewer = memo(
         })
       );
 
+      if (onLikeChange) {
+        onLikeChange(currentStory.id, contentId, newLikeState);
+      }
+
       // 2. Debounce API call
       if (likeDebounceRef.current[contentId]) {
         clearTimeout(likeDebounceRef.current[contentId]);
@@ -354,6 +359,9 @@ export const StoryViewer = memo(
               isLiked: isLiked,
             })
           );
+          if (onLikeChange) {
+            onLikeChange(currentStory.id, contentId, isLiked);
+          }
           toast({
             description: "Thao tác thích tin thất bại!",
             variant: "destructive",
@@ -362,7 +370,7 @@ export const StoryViewer = memo(
           delete likeDebounceRef.current[contentId];
         }
       }, 500);
-    }, [currentContent, currentStory, dispatch, toast]);
+    }, [currentContent, currentStory, dispatch, toast, onLikeChange]);
 
     const handleShare = useCallback(() => {
       console.log(`Shared ${currentStory.username}'s story`);
@@ -858,31 +866,29 @@ export const StoryViewer = memo(
                   onClick={(e) => {
                     e.stopPropagation();
                     setShowMenu(false);
-                  }}
-                  className="w-full px-4 py-3 text-left text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-sm flex items-center gap-3"
-                >
-                  <Flag className="w-4 h-4" />
-                  Báo cáo tin
-                </button>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setShowMenu(false);
+                    if (currentContent && currentStory) {
+                      const storyUrl = `${window.location.origin}/posts/story/view-detail/${currentContent.id}`;
+                      navigator.clipboard?.writeText(storyUrl)
+                        .then(() => {
+                          toast({
+                            variant: "success",
+                            title: "Đã sao chép liên kết",
+                            description: "Liên kết tin đã được sao chép vào bộ nhớ tạm.",
+                          });
+                        })
+                        .catch(() => {
+                          toast({
+                            variant: "destructive",
+                            title: "Lỗi",
+                            description: "Không thể sao chép liên kết.",
+                          });
+                        });
+                    }
                   }}
                   className="w-full px-4 py-3 text-left text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-sm flex items-center gap-3"
                 >
                   <Share className="w-4 h-4" />
                   Sao chép liên kết
-                </button>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setShowMenu(false);
-                  }}
-                  className="w-full px-4 py-3 text-left text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-sm flex items-center gap-3"
-                >
-                  <UserMinus className="w-4 h-4" />
-                  Tắt tiếng {currentStory.username}
                 </button>
               </>
             )}

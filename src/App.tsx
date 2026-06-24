@@ -78,6 +78,7 @@ import { ProfilePage } from "./features/profile/pages/ProfilePage";
 // Story Pages
 import { ArchivePage } from "./features/story/pages/ArchivePage";
 import { StoryCreatePage } from "./features/story/pages/StoryCreatePage";
+import { StoryDetailPage } from "./features/story/pages/StoryDetailPage";
 
 // Admin Pages
 import AdminLayout from "./features/admin/pages/AdminLayout";
@@ -228,6 +229,7 @@ const App = () => (
                   />
                   <Route path="archive/stories" element={<ArchivePage />} />
                   <Route path="stories/create" element={<StoryCreatePage />} />
+                  <Route path="posts/story/view-detail/:storyId" element={<StoryDetailPage />} />
                   <Route path=":username" element={<ProfilePage />} />
                   <Route path="settings" element={<AccountSettingsPage />} />
                   <Route
