@@ -2258,11 +2258,13 @@ export const CommentDialog = ({
           items={
             currentCommentForAction === "post"
               ? actionMenuItems && actionMenuItems.length > 0
-                ? actionMenuItems.map((item) =>
-                  item.label === "Xóa"
-                    ? { ...item, action: handleDeletePostClick }
-                    : item,
-                )
+                ? actionMenuItems
+                  .filter((item) => item.label !== "Chia sẻ lên...")
+                  .map((item) =>
+                    item.label === "Xóa"
+                      ? { ...item, action: handleDeletePostClick }
+                      : item,
+                  )
                 : [
                   {
                     label: "Xóa",
@@ -2278,10 +2280,12 @@ export const CommentDialog = ({
                     label: "Đi đến bài viết",
                     action: () => handleCommentAction("goToPost"),
                   },
+                  /* Temporarily hidden share option
                   {
                     label: "Chia sẻ lên...",
                     action: () => handleCommentAction("share"),
                   },
+                  */
                   {
                     label: "Sao chép liên kết",
                     action: () => handleCommentAction("copyLink"),
