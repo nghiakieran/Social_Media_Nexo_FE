@@ -437,12 +437,15 @@ const ReelCommentDialog = () => {
     setLikesCountById((prev) => ({ ...prev, [commentId]: newCount }));
   };
 
-  const handleReelLikeChange = async (
+  const handleReelLikeChange = (
     newIsLiked: boolean,
     newCount: number
   ) => {
     setIsReelLikedLocal(newIsLiked);
-    setReelLikesCount((prev) => prev + (newIsLiked ? 1 : -1));
+    setReelLikesCount(newCount);
+  };
+
+  const handleReelLikeSuccess = async () => {
     try {
       const data = await dispatch(
         getReelLikeDetailThunk({
@@ -1358,6 +1361,7 @@ const ReelCommentDialog = () => {
                 size="md"
                 showCount={false}
                 onLikeChange={handleReelLikeChange}
+                onLikeSuccess={handleReelLikeSuccess}
                 className="h-auto p-0"
               />
               <button className="text-gray-500 hover:text-gray-700 transition-colors">
