@@ -445,8 +445,11 @@ export const CommentDialog = ({
               handleProfileClick(username);
             })}
           </p>
-          <div className="flex items-center gap-4">
-            <span className="text-xs text-gray-500">
+          <div className="flex items-center flex-wrap gap-x-3 gap-y-1 mt-1">
+            <span 
+              className="text-xs text-gray-500"
+              style={{ whiteSpace: "nowrap" }}
+            >
               {formatTimeAgo(reply.createdAt)}
             </span>
             {getLikesCount(reply.id, reply.likesCount) > 0 && (
@@ -454,25 +457,28 @@ export const CommentDialog = ({
                 type="button"
                 onClick={() => openLikesDialog(reply.id, "reply")}
                 className="text-xs text-gray-500 hover:underline"
+                style={{ whiteSpace: "nowrap" }}
               >
                 {getLikesCount(reply.id, reply.likesCount)} lượt thích
               </button>
             )}
             <button
               onClick={() => setReplyingTo(reply.id)}
-              className="text-xs text-gray-500 hover:text-gray-600 transition-colors"
+              className="text-xs text-gray-500 hover:text-gray-600 transition-colors font-semibold"
               type="button"
+              style={{ whiteSpace: "nowrap" }}
             >
               Trả lời
             </button>
             <button
               onClick={(e) => handleOpenActionMenu(reply.id, e)}
               className={cn(
-                "inline-flex items-center justify-center w-5 h-5 p-1 ml-1 transition-opacity",
+                "inline-flex items-center justify-center w-5 h-5 p-1 transition-opacity",
                 hoveredItemId === reply.id ? "opacity-100" : "opacity-0",
               )}
               aria-label="Tùy chọn"
               type="button"
+              style={{ whiteSpace: "nowrap" }}
             >
               <MoreHorizontal className="w-3 h-3 text-gray-500 hover:text-gray-700" />
             </button>
@@ -1263,29 +1269,35 @@ export const CommentDialog = ({
                           handleProfileClick(username);
                         })}
                       </p>
-                      <div className="flex items-center gap-4">
+                      <div className="flex items-center flex-wrap gap-x-3 gap-y-1">
+                        <span 
+                          className="text-xs text-gray-500"
+                          style={{ whiteSpace: "nowrap" }}
+                        >
+                          {formatTimeAgo(comment.createdAt)}
+                        </span>
                         {getLikesCount(comment.id, comment.likesCount) > 0 && (
                           <button
                             type="button"
-                            onClick={() =>
-                              openLikesDialog(comment.id, "comment")
-                            }
+                            onClick={() => openLikesDialog(comment.id, "comment")}
                             className="text-xs text-gray-500 hover:underline"
+                            style={{ whiteSpace: "nowrap" }}
                           >
-                            {getLikesCount(comment.id, comment.likesCount)} lượt
-                            thích
+                            {getLikesCount(comment.id, comment.likesCount)} lượt thích
                           </button>
                         )}
                         <button
                           onClick={() => setReplyingTo(comment.id)}
-                          className="text-xs text-gray-500 hover:text-gray-600 transition-colors"
+                          className="text-xs text-gray-500 hover:text-gray-600 transition-colors font-semibold"
+                          style={{ whiteSpace: "nowrap" }}
                         >
                           Trả lời
                         </button>
                         <button
                           onClick={(e) => handleOpenActionMenu(comment.id, e)}
-                          className="text-gray-500 hover:text-gray-700 p-1 ml-2"
+                          className="text-gray-500 hover:text-gray-700 p-1"
                           aria-label="Tùy chọn"
+                          style={{ whiteSpace: "nowrap" }}
                         >
                           <MoreHorizontal className="w-4 h-4" />
                         </button>
@@ -1356,8 +1368,11 @@ export const CommentDialog = ({
                                       },
                                     )}
                                   </p>
-                                  <div className="flex items-center gap-4">
-                                    <span className="text-xs text-gray-500">
+                                  <div className="flex items-center flex-wrap gap-x-3 gap-y-1">
+                                    <span 
+                                      className="text-xs text-gray-500"
+                                      style={{ whiteSpace: "nowrap" }}
+                                    >
                                       {formatTimeAgo(reply.createdAt)}
                                     </span>
                                     {getLikesCount(reply.id, reply.likesCount) >
@@ -1368,6 +1383,7 @@ export const CommentDialog = ({
                                             openLikesDialog(reply.id, "reply")
                                           }
                                           className="text-xs text-gray-500 hover:underline"
+                                          style={{ whiteSpace: "nowrap" }}
                                         >
                                           {getLikesCount(
                                             reply.id,
@@ -1378,7 +1394,8 @@ export const CommentDialog = ({
                                       )}
                                     <button
                                       onClick={() => setReplyingTo(reply.id)}
-                                      className="text-xs text-gray-500 hover:text-gray-600 transition-colors"
+                                      className="text-xs text-gray-500 hover:text-gray-600 transition-colors font-semibold"
+                                      style={{ whiteSpace: "nowrap" }}
                                     >
                                       Trả lời
                                     </button>
@@ -1819,38 +1836,41 @@ export const CommentDialog = ({
                           handleProfileClick(username);
                         })}
                       </p>
-                      <div className="flex items-center gap-4">
-                        <span className="text-xs text-gray-500">
+                      <div className="flex items-center flex-wrap gap-x-3 gap-y-1">
+                        <span 
+                          className="text-xs text-gray-500"
+                          style={{ whiteSpace: "nowrap" }}
+                        >
                           {formatTimeAgo(comment.createdAt)}
                         </span>
                         {getLikesCount(comment.id, comment.likesCount) > 0 && (
                           <button
                             type="button"
-                            onClick={() =>
-                              openLikesDialog(comment.id, "comment")
-                            }
+                            onClick={() => openLikesDialog(comment.id, "comment")}
                             className="text-xs text-gray-500 hover:underline"
+                            style={{ whiteSpace: "nowrap" }}
                           >
-                            {getLikesCount(comment.id, comment.likesCount)} lượt
-                            thích
+                            {getLikesCount(comment.id, comment.likesCount)} lượt thích
                           </button>
                         )}
                         <button
                           onClick={() => setReplyingTo(comment.id)}
-                          className="text-xs text-gray-500 hover:text-gray-600 transition-colors"
+                          className="text-xs text-gray-500 hover:text-gray-600 transition-colors font-semibold"
+                          style={{ whiteSpace: "nowrap" }}
                         >
                           Trả lời
                         </button>
                         <button
                           onClick={(e) => handleOpenActionMenu(comment.id, e)}
                           className={cn(
-                            "inline-flex items-center justify-center w-6 h-6 p-1 ml-2 transition-opacity",
+                            "inline-flex items-center justify-center w-6 h-6 p-1 transition-opacity",
                             hoveredItemId === comment.id
                               ? "opacity-100"
                               : "opacity-0",
                           )}
                           aria-label="Tùy chọn"
                           type="button"
+                          style={{ whiteSpace: "nowrap" }}
                         >
                           <MoreHorizontal className="w-4 h-4 text-gray-500 hover:text-gray-700" />
                         </button>
