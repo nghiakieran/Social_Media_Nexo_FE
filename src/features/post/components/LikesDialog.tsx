@@ -242,7 +242,7 @@ useEffect(() => {
   // Mobile version - align with CommentDialog safe areas (show app header/bottom nav)
   if (isMobile) {
     return (
-      <div className="fixed inset-x-0 top-[58px] bottom-20 bg-white dark:bg-gray-900 z-[40] flex flex-col overflow-hidden" role="dialog" aria-modal="true">
+      <div className="fixed inset-x-0 top-[58px] bottom-20 bg-white dark:bg-gray-900 z-[100] flex flex-col overflow-hidden" role="dialog" aria-modal="true">
         {/* Mobile Header - matching CommentDialog */}
         <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
           <Button
