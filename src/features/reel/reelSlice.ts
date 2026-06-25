@@ -239,6 +239,18 @@ const reelSlice = createSlice({
       if (reel) {
         reel.commentsCount += 1;
       }
+      if (state.currentReel && state.currentReel.id === action.payload) {
+        state.currentReel.commentsCount += 1;
+      }
+    },
+    decrementCommentsCount: (state, action: PayloadAction<string>) => {
+      const reel = state.reels.find((r) => r.id === action.payload);
+      if (reel) {
+        reel.commentsCount = Math.max(0, reel.commentsCount - 1);
+      }
+      if (state.currentReel && state.currentReel.id === action.payload) {
+        state.currentReel.commentsCount = Math.max(0, state.currentReel.commentsCount - 1);
+      }
     },
     setComments: (
       state,
@@ -417,6 +429,7 @@ export const {
   toggleLike,
   updateReelLikeOptimistic,
   incrementCommentsCount,
+  decrementCommentsCount,
   setComments,
   addComment,
   toggleCommentLike,

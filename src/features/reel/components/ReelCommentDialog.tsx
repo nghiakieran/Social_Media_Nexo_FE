@@ -37,7 +37,7 @@ import { parseMentions } from "@/utils/mentions";
 import { navigateToProfile } from "@/utils/navigation";
 import { ReportPostDialog } from "@/features/post/components/ReportPostDialog";
 import { reportReel } from "@/features/reel/api/reelApi";
-import { updateReelLikeOptimistic } from "@/features/reel/reelSlice";
+import { updateReelLikeOptimistic, incrementCommentsCount, decrementCommentsCount } from "@/features/reel/reelSlice";
 
 interface Comment {
   id: string;
@@ -363,6 +363,7 @@ const ReelCommentDialog = () => {
       ).unwrap();
 
       setCommentText("");
+      dispatch(incrementCommentsCount(selectedReelId));
       dispatch(
         getReelCommentsThunk({
           reelId: parseInt(selectedReelId),
@@ -400,7 +401,7 @@ const ReelCommentDialog = () => {
 
       setReplyContent("");
       setReplyingTo(null);
-
+      dispatch(incrementCommentsCount(selectedReelId));
       dispatch(
         getReelCommentsThunk({
           reelId: parseInt(selectedReelId),
@@ -646,6 +647,9 @@ const ReelCommentDialog = () => {
   const handleDeleteComment = async (commentId: string) => {
     try {
       await dispatch(deleteCommentThunk(parseInt(commentId))).unwrap();
+      if (selectedReelId) {
+        dispatch(decrementCommentsCount(selectedReelId));
+      }
       dispatch(
         getReelCommentsThunk({
           reelId: parseInt(selectedReelId!),

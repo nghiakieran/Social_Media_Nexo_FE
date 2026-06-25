@@ -25,7 +25,7 @@ import { ActionMenu, ActionMenuItem } from "@/components/common/ActionMenu";
 import { LikesDialog } from "@/features/post/components/LikesDialog";
 import { ReportPostDialog } from "@/features/post/components/ReportPostDialog";
 import { reportReel } from "@/features/reel/api/reelApi";
-import { updateReelLikeOptimistic } from "@/features/reel/reelSlice";
+import { updateReelLikeOptimistic, incrementCommentsCount, decrementCommentsCount } from "@/features/reel/reelSlice";
 import { useToast } from "@/hooks/use-toast";
 import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
 import { getAvatarUrl, getAvatarInitials } from "@/utils/avatar";
@@ -282,6 +282,7 @@ const ReelCommentDrawer = () => {
       ).unwrap();
 
       setCommentText("");
+      appDispatch(incrementCommentsCount(selectedReelId));
       appDispatch(
         getReelCommentsThunk({
           reelId: parseInt(selectedReelId),
@@ -319,7 +320,7 @@ const ReelCommentDrawer = () => {
 
       setReplyContent("");
       setReplyingTo(null);
-
+      appDispatch(incrementCommentsCount(selectedReelId));
       appDispatch(
         getReelCommentsThunk({
           reelId: parseInt(selectedReelId),
@@ -534,6 +535,7 @@ const ReelCommentDrawer = () => {
     try {
       await appDispatch(deleteCommentThunk(parseInt(commentId))).unwrap();
       if (selectedReelId) {
+        appDispatch(decrementCommentsCount(selectedReelId));
         appDispatch(
           getReelCommentsThunk({
             reelId: parseInt(selectedReelId),
