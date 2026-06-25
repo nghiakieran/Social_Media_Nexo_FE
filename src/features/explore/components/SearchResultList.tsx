@@ -55,7 +55,7 @@ export const SearchResultList: React.FC<SearchResultListProps> = ({
           )}
           <div className="space-y-3">
             {results.users
-              .slice(0, activeFilter === "users" ? undefined : 3)
+              .slice(0, activeFilter === "all" || activeFilter === "users" ? undefined : 3)
               .map((user) => (
                 <div
                   key={user.id}
