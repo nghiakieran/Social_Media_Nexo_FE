@@ -368,7 +368,7 @@ useEffect(() => {
                   const requested = (requestMap[u.id] ?? !!u.hasRequestedFollow);
                   const following = (followMap[u.id] ?? !!u.isFollowing);
                   return (
-                    <Button size="sm" variant={following && !requested ? 'secondary' : 'default'} onClick={() => handleToggle(u.id)}>
+                    <Button size="sm" variant={following && !requested ? 'outline' : 'default'} onClick={() => handleToggle(u.id)}>
                       {requested ? 'Đang yêu cầu' : (following ? 'Đang theo dõi' : 'Theo dõi')}
                     </Button>
                   );
