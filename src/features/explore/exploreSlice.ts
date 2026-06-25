@@ -48,6 +48,9 @@ export interface ExploreState {
   hasMore: boolean;
   currentPage: number;
   totalPages: number;
+  searchPage: number;
+  searchHasMore: boolean;
+  searchTotalElements: number;
 }
 
 const initialState: ExploreState = {
@@ -67,6 +70,9 @@ const initialState: ExploreState = {
   hasMore: true,
   currentPage: 0,
   totalPages: 0,
+  searchPage: 0,
+  searchHasMore: true,
+  searchTotalElements: 0,
 };
 
 // Async thunk for getting explore posts
@@ -200,21 +206,27 @@ const exploreSlice = createSlice({
       });
 
     builder
-      .addCase(searchUsersThunk.pending, (state) => {
+      .addCase(searchUsersThunk.pending, (state, action) => {
         state.isSearching = true;
         state.error = null;
-        // Clear previous search results when starting new search
-        state.searchResults = {
-          users: [],
-          hashtags: [],
-          posts: [],
-        };
+        const reqPageNo = action.meta.arg.pageNo ?? 0;
+        if (reqPageNo === 0) {
+          state.searchResults = {
+            users: [],
+            hashtags: [],
+            posts: [],
+          };
+          state.searchPage = 0;
+          state.searchHasMore = true;
+          state.searchTotalElements = 0;
+        }
       })
       .addCase(searchUsersThunk.fulfilled, (state, action) => {
         state.isSearching = false;
-        const { content } = action.payload;
+        const { content, totalPages, totalElements } = action.payload;
+        const reqPageNo = action.meta.arg.pageNo ?? 0;
 
-        state.searchResults.users = (content || []).map((user) => ({
+        const mappedUsers = (content || []).map((user: any) => ({
           id: user.id.toString(),
           username: user.username,
           name: user.fullName,
@@ -223,6 +235,18 @@ const exploreSlice = createSlice({
           isVerified: false,
           followersCount: 0,
         }));
+
+        if (reqPageNo === 0) {
+          state.searchResults.users = mappedUsers;
+        } else {
+          const existingIds = new Set(state.searchResults.users.map((u) => u.id));
+          const newUsers = mappedUsers.filter((u) => !existingIds.has(u.id));
+          state.searchResults.users.push(...newUsers);
+        }
+
+        state.searchPage = reqPageNo;
+        state.searchHasMore = reqPageNo < totalPages - 1;
+        state.searchTotalElements = totalElements || 0;
       })
       .addCase(searchUsersThunk.rejected, (state, action) => {
         state.isSearching = false;

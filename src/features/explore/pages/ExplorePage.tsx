@@ -8,6 +8,7 @@ import { getExplorePostsThunk, clearPosts, clearError } from "../exploreSlice";
 import { ExplorePost } from "../types";
 import { useNavigate } from "react-router-dom";
 import { useSearchParams } from "react-router-dom";
+import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
 export const ExplorePage: React.FC = () => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
@@ -41,10 +42,18 @@ export const ExplorePage: React.FC = () => {
         getExplorePostsThunk({
           pageNo: currentPage + 1,
           pageSize: 10,
+          hashtag,
         }),
       );
     }
   };
+
+  const { lastElementRef } = useInfiniteScroll(handleLoadMore, {
+    hasMore,
+    isLoading,
+    error,
+    threshold: 200,
+  });
 
   const handlePostClick = (post: ExplorePost) => {
     navigate(`/posts/${post.id}`);
@@ -62,10 +71,10 @@ export const ExplorePage: React.FC = () => {
               </div>
               <div>
                 <h1 className="text-2xl font-bold bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-transparent">
-                  Explore
+                  Khám phá
                 </h1>
                 <p className="text-sm text-muted-foreground">
-                  Discover amazing content
+                  Khám phá những nội dung thú vị
                 </p>
               </div>
             </div>
@@ -100,24 +109,15 @@ export const ExplorePage: React.FC = () => {
         <div className="space-y-8">
           <ExploreGrid posts={posts} onPostClick={handlePostClick} />
 
-          {/* Load More Button */}
+          {/* Infinite Scroll Anchor & Loader */}
           {hasMore && (
-            <div className="flex justify-center pt-8">
-              <Button
-                variant="outline"
-                onClick={handleLoadMore}
-                disabled={isLoading}
-                className="rounded-full px-8 py-2 bg-background/50 backdrop-blur-sm border-border/50 hover:bg-primary/5 hover:border-primary/20 transition-all duration-300"
-              >
-                {isLoading ? (
-                  <>
-                    <RefreshCw className="mr-2 h-4 w-4 animate-spin text-primary" />
-                    Loading...
-                  </>
-                ) : (
-                  "Load more posts"
-                )}
-              </Button>
+            <div
+              ref={lastElementRef as unknown as (node: HTMLDivElement | null) => void}
+              className="flex justify-center pt-8 min-h-[40px]"
+            >
+              {isLoading && (
+                <RefreshCw className="h-6 w-6 animate-spin text-primary" />
+              )}
             </div>
           )}
 
@@ -128,10 +128,10 @@ export const ExplorePage: React.FC = () => {
                 <Compass className="h-8 w-8 text-muted-foreground" />
               </div>
               <h3 className="text-lg font-semibold text-foreground mb-2">
-                No posts found
+                Không tìm thấy bài viết nào
               </h3>
               <p className="text-muted-foreground">
-                Try refreshing to discover new content
+                Hãy thử làm mới để khám phá nội dung mới
               </p>
             </div>
           )}
