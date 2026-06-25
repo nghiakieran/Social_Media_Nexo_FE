@@ -37,6 +37,7 @@ import { parseMentions } from "@/utils/mentions";
 import { navigateToProfile } from "@/utils/navigation";
 import { ReportPostDialog } from "@/features/post/components/ReportPostDialog";
 import { reportReel } from "@/features/reel/api/reelApi";
+import { updateReelLikeOptimistic } from "@/features/reel/reelSlice";
 
 interface Comment {
   id: string;
@@ -443,6 +444,7 @@ const ReelCommentDialog = () => {
   ) => {
     setIsReelLikedLocal(newIsLiked);
     setReelLikesCount(newCount);
+    dispatch(updateReelLikeOptimistic({ reelId: selectedReelId!, isLiked: newIsLiked, likesCount: newCount }));
   };
 
   const handleReelLikeSuccess = async () => {
@@ -1359,7 +1361,7 @@ const ReelCommentDialog = () => {
                 isLiked={isReelLikedLocal}
                 likesCount={reelLikesCount}
                 size="md"
-                showCount={false}
+                showCount={true}
                 onLikeChange={handleReelLikeChange}
                 onLikeSuccess={handleReelLikeSuccess}
                 className="h-auto p-0"
@@ -1591,7 +1593,14 @@ const ReelCommentDialog = () => {
       <LikesDialog
         isOpen={!!showLikesDialog}
         onClose={closeLikesDialog}
-        targetType={showLikesDialog?.targetType === "reel" ? "reel" : undefined}
+        targetType={
+          showLikesDialog?.targetType === "reel"
+            ? "reel"
+            : showLikesDialog?.targetType === "comment" ||
+              showLikesDialog?.targetType === "reply"
+              ? "comment"
+              : undefined
+        }
         targetId={
           showLikesDialog?.targetId
             ? parseInt(showLikesDialog.targetId)

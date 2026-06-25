@@ -10,7 +10,7 @@ import {
   VolumeX,
 } from "lucide-react";
 import { Reel } from "../types";
-import { openCommentsDrawer, deleteReelThunk } from "../reelSlice";
+import { openCommentsDrawer, deleteReelThunk, updateReelLikeOptimistic } from "../reelSlice";
 import { LikeButton } from "@/features/interaction/components/LikeButton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ActionMenu } from "@/components/common/ActionMenu";
@@ -64,6 +64,7 @@ const ReelViewer = memo(
     const handleLikeChange = (newIsLiked: boolean, newCount: number) => {
       setIsLiked(newIsLiked);
       setLikesCount(newCount);
+      dispatch(updateReelLikeOptimistic({ reelId: reel.id, isLiked: newIsLiked, likesCount: newCount }));
     };
 
     const handleToggleComments = () => {

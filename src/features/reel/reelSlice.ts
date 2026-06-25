@@ -219,6 +219,21 @@ const reelSlice = createSlice({
         reel.likesCount += reel.isLiked ? 1 : -1;
       }
     },
+    updateReelLikeOptimistic: (
+      state,
+      action: PayloadAction<{ reelId: string; isLiked: boolean; likesCount: number }>
+    ) => {
+      const { reelId, isLiked, likesCount } = action.payload;
+      const reel = state.reels.find((r) => r.id === reelId);
+      if (reel) {
+        reel.isLiked = isLiked;
+        reel.likesCount = likesCount;
+      }
+      if (state.currentReel && state.currentReel.id === reelId) {
+        state.currentReel.isLiked = isLiked;
+        state.currentReel.likesCount = likesCount;
+      }
+    },
     incrementCommentsCount: (state, action: PayloadAction<string>) => {
       const reel = state.reels.find((r) => r.id === action.payload);
       if (reel) {
@@ -400,6 +415,7 @@ export const {
   setError,
   setHasMore,
   toggleLike,
+  updateReelLikeOptimistic,
   incrementCommentsCount,
   setComments,
   addComment,
