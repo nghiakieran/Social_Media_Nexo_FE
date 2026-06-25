@@ -62,10 +62,10 @@ export const ExplorePage: React.FC = () => {
               </div>
               <div>
                 <h1 className="text-2xl font-bold bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-transparent">
-                  Explore
+                  Khám phá
                 </h1>
                 <p className="text-sm text-muted-foreground">
-                  Discover amazing content
+                  Khám phá những nội dung thú vị
                 </p>
               </div>
             </div>
@@ -112,10 +112,10 @@ export const ExplorePage: React.FC = () => {
                 {isLoading ? (
                   <>
                     <RefreshCw className="mr-2 h-4 w-4 animate-spin text-primary" />
-                    Loading...
+                    Đang tải...
                   </>
                 ) : (
-                  "Load more posts"
+                  "Tải thêm bài viết"
                 )}
               </Button>
             </div>
@@ -128,10 +128,10 @@ export const ExplorePage: React.FC = () => {
                 <Compass className="h-8 w-8 text-muted-foreground" />
               </div>
               <h3 className="text-lg font-semibold text-foreground mb-2">
-                No posts found
+                Không tìm thấy bài viết nào
               </h3>
               <p className="text-muted-foreground">
-                Try refreshing to discover new content
+                Hãy thử làm mới để khám phá nội dung mới
               </p>
             </div>
           )}
