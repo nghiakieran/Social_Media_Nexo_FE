@@ -65,7 +65,7 @@ export const useInfiniteScroll = (
       );
       observer.current.observe(node);
     },
-    [hasMore, threshold, error, root, rootRef]
+    [hasMore, isLoading, threshold, error, root, rootRef]
   );
 
   useEffect(() => {
