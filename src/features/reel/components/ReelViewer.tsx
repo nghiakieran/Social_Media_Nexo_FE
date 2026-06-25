@@ -67,6 +67,9 @@ const ReelViewer = memo(
     };
 
     const handleToggleComments = () => {
+      if (isDetail) {
+        window.dispatchEvent(new CustomEvent("focus-reel-comment-input"));
+      }
       dispatch(openCommentsDrawer(reel.id));
     };
 

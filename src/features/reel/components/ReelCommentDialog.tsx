@@ -1364,15 +1364,26 @@ const ReelCommentDialog = () => {
                 onLikeSuccess={handleReelLikeSuccess}
                 className="h-auto p-0"
               />
-              <button className="text-gray-500 hover:text-gray-700 transition-colors">
+              <button
+                onClick={() => {
+                  if (textareaRef.current) {
+                    textareaRef.current.focus();
+                  }
+                }}
+                className="text-gray-500 hover:text-gray-700 transition-colors"
+                type="button"
+                aria-label="Tập trung ô bình luận"
+              >
                 <MessageCircle className="w-6 h-6" />
               </button>
+              {/* Temporarily hidden share button
               <button
                 className="text-gray-500 hover:text-gray-700 transition-colors"
                 type="button"
               >
                 <Send className="w-6 h-6" />
               </button>
+              */}
               <div className="flex-1" />
             </div>
 

@@ -46,6 +46,19 @@ const ReelCommentSection = ({
   const [commentText, setCommentText] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
+  // Focus input on custom event
+  useEffect(() => {
+    const handleFocusInput = () => {
+      if (textareaRef.current) {
+        textareaRef.current.focus();
+      }
+    };
+    window.addEventListener("focus-reel-comment-input", handleFocusInput);
+    return () => {
+      window.removeEventListener("focus-reel-comment-input", handleFocusInput);
+    };
+  }, []);
+
   // Load comments when component mounts
   useEffect(() => {
     dispatch(clearComments());
@@ -158,6 +171,7 @@ const ReelCommentSection = ({
           </span>
         </div>
         <div className="flex items-center gap-2">
+          {/* Temporarily hidden share button
           {onShare && (
             <Button
               variant="ghost"
@@ -168,6 +182,7 @@ const ReelCommentSection = ({
               Chia sẻ
             </Button>
           )}
+          */}
         </div>
       </div>
 
