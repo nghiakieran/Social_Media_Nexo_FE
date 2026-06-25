@@ -41,8 +41,8 @@ export interface TaggedUser {
 // Search User Types
 export interface SearchUserRequest {
   query: string;
-  limit?: number;
-  offset?: number;
+  pageNo?: number;
+  pageSize?: number;
 }
 
 export interface SearchUserResponse {

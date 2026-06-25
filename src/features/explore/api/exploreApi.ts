@@ -10,13 +10,13 @@ export const searchUsers = async (
   params: SearchUserRequest
 ): Promise<SearchUserResponse["data"]> => {
   try {
-    const { query, limit = 10, offset = 0 } = params;
+    const { query, pageNo = 0, pageSize = 10 } = params;
 
     const response = await api.get<SearchUserResponse>("/users/search", {
       params: {
         query,
-        limit,
-        offset,
+        pageNo,
+        pageSize,
       },
     });
     return response.data.data;

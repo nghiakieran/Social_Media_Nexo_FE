@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "@/store";
 import { useDebouncedSearch } from "@/hooks/use-debounce-search";
@@ -22,6 +22,7 @@ import {
   followHashtag,
   searchUsersThunk,
 } from "../exploreSlice";
+import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
 
 export const SearchPage: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -31,9 +32,19 @@ export const SearchPage: React.FC = () => {
     isSearching,
     activeFilter,
     recentSearches,
+    searchPage,
+    searchHasMore,
+    searchTotalElements,
+    error,
   } = useAppSelector((state) => state.explore);
 
   const [hasSearched, setHasSearched] = useState(false);
+  const lastLoadedPageRef = useRef(0);
+
+  // Sync lastLoadedPageRef with Redux searchPage
+  useEffect(() => {
+    lastLoadedPageRef.current = searchPage;
+  }, [searchPage]);
 
   // Use debounced search hook with 500ms delay
   const { searchValue, debouncedValue, setSearchValue } = useDebouncedSearch(
@@ -45,8 +56,8 @@ export const SearchPage: React.FC = () => {
   useEffect(() => {
     if (debouncedValue.trim()) {
       setHasSearched(true);
-      // Call search users API
-      dispatch(searchUsersThunk({ query: debouncedValue }))
+      // Call search users API starting with pageNo 0 and pageSize 10
+      dispatch(searchUsersThunk({ query: debouncedValue, pageNo: 0, pageSize: 10 }))
         .unwrap()
         .catch((error) => {
           console.error("Search error:", error);
@@ -67,11 +78,32 @@ export const SearchPage: React.FC = () => {
     setHasSearched(true);
 
     try {
-      await dispatch(searchUsersThunk({ query })).unwrap();
+      await dispatch(searchUsersThunk({ query, pageNo: 0, pageSize: 10 })).unwrap();
     } catch (error) {
       console.error("Search error:", error);
     }
   };
+
+  const handleLoadMore = () => {
+    const nextPage = searchPage + 1;
+    if (searchHasMore && !isSearching && debouncedValue.trim() && nextPage > lastLoadedPageRef.current) {
+      lastLoadedPageRef.current = nextPage;
+      dispatch(
+        searchUsersThunk({
+          query: debouncedValue,
+          pageNo: nextPage,
+          pageSize: 10,
+        })
+      );
+    }
+  };
+
+  const { lastElementRef } = useInfiniteScroll(handleLoadMore, {
+    hasMore: searchHasMore,
+    isLoading: isSearching,
+    error,
+    threshold: 200,
+  });
 
   const handleQueryChange = (query: string) => {
     setSearchValue(query);
@@ -127,7 +159,7 @@ export const SearchPage: React.FC = () => {
         </div>
 
         {/* Loading State */}
-        {isSearching && (
+        {isSearching && searchResults.users.length === 0 && (
           <div className="space-y-4">
             {Array.from({ length: 5 }).map((_, index) => (
               <div key={index} className="flex items-center space-x-3 p-3">
@@ -142,10 +174,10 @@ export const SearchPage: React.FC = () => {
         )}
 
         {/* Search Results */}
-        {hasSearched && !isSearching && (
+        {hasSearched && (searchResults.users.length > 0 || !isSearching) && (
           <div className="space-y-6">
             {/* No Results Message */}
-            {getTotalResults() === 0 && (
+            {!isSearching && searchTotalElements === 0 && (
               <div className="text-center py-12">
                 <div className="w-16 h-16 mx-auto rounded-full bg-muted flex items-center justify-center mb-4">
                   <SearchIcon className="h-8 w-8 text-muted-foreground" />
@@ -160,11 +192,11 @@ export const SearchPage: React.FC = () => {
             )}
 
             {/* Results Header */}
-            {getTotalResults() > 0 && (
+            {searchTotalElements > 0 && (
               <>
                 <div className="flex items-center justify-between">
                   <h2 className="text-lg font-semibold">
-                    {getTotalResults()} kết quả cho "{searchValue}"
+                    {searchTotalElements} kết quả cho "{searchValue}"
                   </h2>
                 </div>
 
@@ -191,6 +223,20 @@ export const SearchPage: React.FC = () => {
                       dispatch(followHashtag(hashtagId))
                     }
                   />
+
+                  {/* Infinite Scroll Anchor & Loader */}
+                  {searchHasMore && (
+                    <div
+                      ref={lastElementRef as unknown as (node: HTMLDivElement | null) => void}
+                      className="flex justify-center py-4 min-h-[40px]"
+                    >
+                      {isSearching && (
+                        <div className="text-center text-muted-foreground text-xs animate-pulse">
+                          Đang tải kết quả...
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               </>
             )}
