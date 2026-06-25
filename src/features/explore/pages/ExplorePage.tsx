@@ -8,6 +8,7 @@ import { getExplorePostsThunk, clearPosts, clearError } from "../exploreSlice";
 import { ExplorePost } from "../types";
 import { useNavigate } from "react-router-dom";
 import { useSearchParams } from "react-router-dom";
+import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
 export const ExplorePage: React.FC = () => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
@@ -41,10 +42,18 @@ export const ExplorePage: React.FC = () => {
         getExplorePostsThunk({
           pageNo: currentPage + 1,
           pageSize: 10,
+          hashtag,
         }),
       );
     }
   };
+
+  const { lastElementRef } = useInfiniteScroll(handleLoadMore, {
+    hasMore,
+    isLoading,
+    error,
+    threshold: 200,
+  });
 
   const handlePostClick = (post: ExplorePost) => {
     navigate(`/posts/${post.id}`);
@@ -100,24 +109,15 @@ export const ExplorePage: React.FC = () => {
         <div className="space-y-8">
           <ExploreGrid posts={posts} onPostClick={handlePostClick} />
 
-          {/* Load More Button */}
+          {/* Infinite Scroll Anchor & Loader */}
           {hasMore && (
-            <div className="flex justify-center pt-8">
-              <Button
-                variant="outline"
-                onClick={handleLoadMore}
-                disabled={isLoading}
-                className="rounded-full px-8 py-2 bg-background/50 backdrop-blur-sm border-border/50 hover:bg-primary/5 hover:border-primary/20 transition-all duration-300"
-              >
-                {isLoading ? (
-                  <>
-                    <RefreshCw className="mr-2 h-4 w-4 animate-spin text-primary" />
-                    Đang tải...
-                  </>
-                ) : (
-                  "Tải thêm bài viết"
-                )}
-              </Button>
+            <div
+              ref={lastElementRef as unknown as (node: HTMLDivElement | null) => void}
+              className="flex justify-center pt-8 min-h-[40px]"
+            >
+              {isLoading && (
+                <RefreshCw className="h-6 w-6 animate-spin text-primary" />
+              )}
             </div>
           )}
 
