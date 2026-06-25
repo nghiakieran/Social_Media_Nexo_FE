@@ -5,7 +5,6 @@ import { ActionMenuDialog } from "./ActionMenuDialog";
 import { useToast } from "@/hooks/use-toast";
 import {
   MessageCircle,
-  Send,
   MoreVertical,
   Volume2,
   VolumeX,
@@ -71,10 +70,7 @@ const ReelViewer = memo(
       dispatch(openCommentsDrawer(reel.id));
     };
 
-    const handleShare = (e: React.MouseEvent) => {
-      e.stopPropagation();
-      onShare?.(reel.id);
-    };
+
 
     const handleMoreClick = (e: React.MouseEvent) => {
       e.stopPropagation();
@@ -251,13 +247,7 @@ const ReelViewer = memo(
             )}
           </button>
 
-          {/* Share */}
-          <button
-            onClick={handleShare}
-            className="flex flex-col items-center gap-0.5 active:scale-90 transition-transform"
-          >
-            <Send className="w-7 h-7 text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.6)]" />
-          </button>
+
 
           {/* More */}
           <button
@@ -380,25 +370,27 @@ const ReelViewer = memo(
               isDestructive: true,
             },
             {
-              label: "Không quan tâm",
-              action: () => console.log("Not Interested"),
-            },
-            {
               label: "Sao chép liên kết",
               action: () => {
                 navigator.clipboard.writeText(
                   `${window.location.origin}/reels/${reel.id}`
-                );
-                console.log("Copy Link");
+                )
+                  .then(() => {
+                    toast({
+                      variant: "success",
+                      title: "Đã sao chép liên kết",
+                      description: "Liên kết thước phim đã được sao chép vào bộ nhớ tạm.",
+                    });
+                  })
+                  .catch(() => {
+                    toast({
+                      variant: "destructive",
+                      title: "Lỗi",
+                      description: "Không thể sao chép liên kết.",
+                    });
+                  });
+                setShowMore(false);
               },
-            },
-            {
-              label: "Chia sẻ đến...",
-              action: () => onShare?.(reel.id),
-            },
-            {
-              label: "Về tài khoản này",
-              action: () => console.log("About"),
             },
           ]}
         />
