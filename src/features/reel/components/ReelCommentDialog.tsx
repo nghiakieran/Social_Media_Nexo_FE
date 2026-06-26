@@ -37,6 +37,7 @@ import { parseMentions } from "@/utils/mentions";
 import { navigateToProfile } from "@/utils/navigation";
 import { ReportPostDialog } from "@/features/post/components/ReportPostDialog";
 import { reportReel } from "@/features/reel/api/reelApi";
+import { updateReelLikeOptimistic, incrementCommentsCount, decrementCommentsCount } from "@/features/reel/reelSlice";
 
 interface Comment {
   id: string;
@@ -141,7 +142,15 @@ const ReelCommentDialog = () => {
       setHasFetchedLikePreview(false);
       setLatestLikeName(null);
     }
-  }, [currentReel?.id, currentReel?.isLiked, currentReel?.likesCount]);
+  }, [currentReel?.id]);
+
+  useEffect(() => {
+    if (currentReel) {
+      setIsReelLikedLocal(currentReel.isLiked);
+      setReelLikesCount(currentReel.likesCount || 0);
+    }
+  }, [currentReel?.isLiked, currentReel?.likesCount]);
+
 
   useEffect(() => {
     if (isCommentsDrawerOpen && selectedReelId) {
@@ -354,6 +363,7 @@ const ReelCommentDialog = () => {
       ).unwrap();
 
       setCommentText("");
+      dispatch(incrementCommentsCount(selectedReelId));
       dispatch(
         getReelCommentsThunk({
           reelId: parseInt(selectedReelId),
@@ -391,7 +401,7 @@ const ReelCommentDialog = () => {
 
       setReplyContent("");
       setReplyingTo(null);
-
+      dispatch(incrementCommentsCount(selectedReelId));
       dispatch(
         getReelCommentsThunk({
           reelId: parseInt(selectedReelId),
@@ -437,12 +447,16 @@ const ReelCommentDialog = () => {
     setLikesCountById((prev) => ({ ...prev, [commentId]: newCount }));
   };
 
-  const handleReelLikeChange = async (
+  const handleReelLikeChange = (
     newIsLiked: boolean,
     newCount: number
   ) => {
     setIsReelLikedLocal(newIsLiked);
-    setReelLikesCount((prev) => prev + (newIsLiked ? 1 : -1));
+    setReelLikesCount(newCount);
+    dispatch(updateReelLikeOptimistic({ reelId: selectedReelId!, isLiked: newIsLiked, likesCount: newCount }));
+  };
+
+  const handleReelLikeSuccess = async () => {
     try {
       const data = await dispatch(
         getReelLikeDetailThunk({
@@ -633,6 +647,9 @@ const ReelCommentDialog = () => {
   const handleDeleteComment = async (commentId: string) => {
     try {
       await dispatch(deleteCommentThunk(parseInt(commentId))).unwrap();
+      if (selectedReelId) {
+        dispatch(decrementCommentsCount(selectedReelId));
+      }
       dispatch(
         getReelCommentsThunk({
           reelId: parseInt(selectedReelId!),
@@ -702,8 +719,11 @@ const ReelCommentDialog = () => {
               handleProfileClick(username);
             })}
           </p>
-          <div className="flex items-center gap-4">
-            <span className="text-[11px] text-gray-500">
+          <div className="flex items-center flex-wrap gap-x-3 gap-y-1 mt-1">
+            <span 
+              className="text-[11px] text-gray-500"
+              style={{ whiteSpace: "nowrap" }}
+            >
               {formatTimeAgo(reply.createdAt)}
             </span>
             {getLikesCount(reply.id, reply.likesCount) > 0 && (
@@ -711,26 +731,28 @@ const ReelCommentDialog = () => {
                 type="button"
                 onClick={() => openLikesDialog(reply.id, "reply")}
                 className="text-[11px] text-gray-500 hover:underline"
+                style={{ whiteSpace: "nowrap" }}
               >
-                {formatNumber(getLikesCount(reply.id, reply.likesCount))} lượt
-                thích
+                {formatNumber(getLikesCount(reply.id, reply.likesCount))} lượt thích
               </button>
             )}
             <button
               onClick={() => setReplyingTo(reply.id)}
-              className="text-[11px] text-gray-500 hover:text-gray-600 transition-colors"
+              className="text-[11px] text-gray-500 hover:text-gray-600 transition-colors font-semibold"
               type="button"
+              style={{ whiteSpace: "nowrap" }}
             >
               Trả lời
             </button>
             <button
               onClick={(e) => handleOpenActionMenu(reply.id, e)}
               className={cn(
-                "inline-flex items-center justify-center w-5 h-5 p-1 ml-1 transition-opacity",
+                "inline-flex items-center justify-center w-5 h-5 p-1 transition-opacity",
                 hoveredItemId === reply.id ? "opacity-100" : "opacity-0"
               )}
               aria-label="Tùy chọn"
               type="button"
+              style={{ whiteSpace: "nowrap" }}
             >
               <MoreHorizontal className="w-3 h-3 text-gray-500 hover:text-gray-700" />
             </button>
@@ -865,31 +887,29 @@ const ReelCommentDialog = () => {
                           handleProfileClick(username);
                         })}
                       </p>
-                      <div className="flex items-center gap-4">
+                      <div className="flex items-center flex-wrap gap-x-3 gap-y-1 mt-2">
                         {getLikesCount(comment.id, comment.likesCount) > 0 && (
                           <button
                             type="button"
-                            onClick={() =>
-                              openLikesDialog(comment.id, "comment")
-                            }
+                            onClick={() => openLikesDialog(comment.id, "comment")}
                             className="text-xs text-gray-500 hover:underline"
+                            style={{ whiteSpace: "nowrap" }}
                           >
-                            {formatNumber(
-                              getLikesCount(comment.id, comment.likesCount)
-                            )}{" "}
-                            lượt thích
+                            {formatNumber(getLikesCount(comment.id, comment.likesCount))} lượt thích
                           </button>
                         )}
                         <button
                           onClick={() => setReplyingTo(comment.id)}
-                          className="text-xs text-gray-500 hover:text-gray-600 transition-colors"
+                          className="text-xs text-gray-500 hover:text-gray-600 transition-colors font-semibold"
+                          style={{ whiteSpace: "nowrap" }}
                         >
                           Trả lời
                         </button>
                         <button
                           onClick={(e) => handleOpenActionMenu(comment.id, e)}
-                          className="text-gray-500 hover:text-gray-700 p-1 ml-2"
+                          className="text-gray-500 hover:text-gray-700 p-1"
                           aria-label="Tùy chọn"
+                          style={{ whiteSpace: "nowrap" }}
                         >
                           <MoreHorizontal className="w-4 h-4" />
                         </button>
@@ -1356,19 +1376,31 @@ const ReelCommentDialog = () => {
                 isLiked={isReelLikedLocal}
                 likesCount={reelLikesCount}
                 size="md"
-                showCount={false}
+                showCount={true}
                 onLikeChange={handleReelLikeChange}
+                onLikeSuccess={handleReelLikeSuccess}
                 className="h-auto p-0"
               />
-              <button className="text-gray-500 hover:text-gray-700 transition-colors">
+              <button
+                onClick={() => {
+                  if (textareaRef.current) {
+                    textareaRef.current.focus();
+                  }
+                }}
+                className="text-gray-500 hover:text-gray-700 transition-colors"
+                type="button"
+                aria-label="Tập trung ô bình luận"
+              >
                 <MessageCircle className="w-6 h-6" />
               </button>
+              {/* Temporarily hidden share button
               <button
                 className="text-gray-500 hover:text-gray-700 transition-colors"
                 type="button"
               >
                 <Send className="w-6 h-6" />
               </button>
+              */}
               <div className="flex-1" />
             </div>
 
@@ -1576,7 +1608,14 @@ const ReelCommentDialog = () => {
       <LikesDialog
         isOpen={!!showLikesDialog}
         onClose={closeLikesDialog}
-        targetType={showLikesDialog?.targetType === "reel" ? "reel" : undefined}
+        targetType={
+          showLikesDialog?.targetType === "reel"
+            ? "reel"
+            : showLikesDialog?.targetType === "comment" ||
+              showLikesDialog?.targetType === "reply"
+              ? "comment"
+              : undefined
+        }
         targetId={
           showLikesDialog?.targetId
             ? parseInt(showLikesDialog.targetId)

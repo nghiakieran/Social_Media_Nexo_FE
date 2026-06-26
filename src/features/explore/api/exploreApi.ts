@@ -45,8 +45,8 @@ export const getExplorePosts = async (
       data: GetExploreResponse;
     }>("/posts/explore", {
       params: {
-        pageNo,
-        pageSize,
+        page: pageNo,
+        size: pageSize,
         hashtag,
       },
     });

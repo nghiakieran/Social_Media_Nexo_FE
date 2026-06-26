@@ -31,41 +31,41 @@ export const ExploreGrid: React.FC<ExploreGridProps> = ({
 
   return (
     <div className={cn("w-full", className)}>
-      {/* Masonry Grid */}
-      <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-4">
-        {posts.map((post, index) => (
+      {/* Instagram-style Stable Grid */}
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-4">
+        {posts.map((post) => (
           <div
             key={post.id}
-            className="relative break-inside-avoid mb-4 cursor-pointer group"
+            className="relative aspect-square cursor-pointer group overflow-hidden rounded-xl bg-muted shadow-sm hover:shadow-md transition-all duration-300 border border-border/10"
             onClick={() => handlePostClick(post)}
             onMouseEnter={() => setHoveredPost(post.id)}
             onMouseLeave={() => setHoveredPost(null)}
           >
-            <div className="relative overflow-hidden rounded-lg bg-muted shadow-sm hover:shadow-md transition-shadow duration-300">
+            <div className="w-full h-full relative overflow-hidden">
               {post.media && post.media.length > 0 ? (
                 <>
                   {post.media[0].type === "image" ? (
                     <LazyImage
                       src={post.media[0].url}
                       alt={post.caption || `Post`}
-                      className="w-full h-auto min-h-[100px] object-cover"
+                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                     />
                   ) : (
                     <SimpleVideoPreview
                       videoUrl={post.media[0].url}
-                      className="w-full h-auto min-h-[100px]"
+                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                     />
                   )}
                 </>
               ) : (
-                <div className="w-full aspect-[4/5] sm:aspect-square bg-gradient-to-br from-background via-muted/50 to-muted flex flex-col justify-center p-6 relative border border-border/50">
-                  <div className="absolute top-3 right-3 bg-background/80 backdrop-blur-sm rounded-full p-1.5 shadow-sm border border-border/50">
+                <div className="w-full h-full bg-gradient-to-br from-background via-muted/50 to-muted flex flex-col justify-center p-4 relative border border-border/50">
+                  <div className="absolute top-2.5 right-2.5 bg-background/80 backdrop-blur-sm rounded-full p-1.5 shadow-sm border border-border/50 z-10">
                     <AlignLeft className="h-3 w-3 text-foreground/70" />
                   </div>
 
                   <div className="relative z-10 flex flex-col items-center text-center">
-                    <Quote className="h-8 w-8 text-primary/20 mb-4" />
-                    <p className="text-base sm:text-lg font-medium text-foreground/80 line-clamp-6 leading-relaxed">
+                    <Quote className="h-6 w-6 text-primary/20 mb-2" />
+                    <p className="text-xs sm:text-sm font-medium text-foreground/80 line-clamp-4 leading-relaxed px-2">
                       {post.caption || "Bài viết này không có nội dung."}
                     </p>
                   </div>
@@ -76,16 +76,16 @@ export const ExploreGrid: React.FC<ExploreGridProps> = ({
 
               {/* Video/Carousel Indicators */}
               {post.media.length > 0 && post.media[0].type === "video" && (
-                <div className="absolute top-3 right-3">
-                  <div className="bg-black/80 rounded-full p-1.5 backdrop-blur-sm">
+                <div className="absolute top-2.5 right-2.5 z-10">
+                  <div className="bg-black/60 rounded-full p-1.5 backdrop-blur-sm">
                     <Play className="h-3 w-3 text-white fill-white" />
                   </div>
                 </div>
               )}
 
               {post.media.length > 1 && (
-                <div className="absolute top-3 right-3">
-                  <div className="bg-black/80 rounded-full p-1.5 backdrop-blur-sm">
+                <div className="absolute top-2.5 right-2.5 z-10">
+                  <div className="bg-black/60 rounded-full p-1.5 backdrop-blur-sm">
                     <Copy className="h-3 w-3 text-white" />
                   </div>
                 </div>
@@ -94,7 +94,7 @@ export const ExploreGrid: React.FC<ExploreGridProps> = ({
               {/* Hover Overlay */}
               <div
                 className={cn(
-                  "absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent flex items-end justify-center transition-opacity duration-300",
+                  "absolute inset-0 bg-black/40 flex items-center justify-center transition-opacity duration-300 z-25",
                   hoveredPost === post.id ? "opacity-100" : "opacity-0",
                 )}
               >
