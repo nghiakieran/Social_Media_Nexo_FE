@@ -2,12 +2,13 @@ import React, { useEffect, useState } from "react";
 import { useCallWebRTC } from "../hooks/useCallWebRTC";
 import { CallDialog } from "./CallDialog";
 import { CallContextProvider } from "../contexts/CallContext";
-import { useAppDispatch } from "@/store";
+import { useAppDispatch, useAppSelector } from "@/store";
 import { fetchMessages, fetchConversations } from "../messageSlice";
 
 export const GlobalCallHandler: React.FC<{ children?: React.ReactNode }> = ({ children }) => {
   const [callDialogOpen, setCallDialogOpen] = useState(false);
   const dispatch = useAppDispatch();
+  const myUserId = useAppSelector((state) => state.auth.user?.id);
 
   useEffect(() => {
     console.log("[GlobalCallHandler] mounted");
@@ -24,6 +25,7 @@ export const GlobalCallHandler: React.FC<{ children?: React.ReactNode }> = ({ ch
     localVideoRef,
     remoteVideoRef,
     localStreamRef,
+    remoteStreams,
     startCall,
     answerCall,
     rejectCall,
@@ -32,6 +34,7 @@ export const GlobalCallHandler: React.FC<{ children?: React.ReactNode }> = ({ ch
     toggleMute,
     toggleVideo,
   } = useCallWebRTC({
+    myUserId,
     onCallEnded: (status, duration, conversationId) => {
       if (conversationId) {
         setTimeout(() => {
@@ -64,6 +67,7 @@ export const GlobalCallHandler: React.FC<{ children?: React.ReactNode }> = ({ ch
         localVideoRef={localVideoRef}
         remoteVideoRef={remoteVideoRef}
         localStreamRef={localStreamRef}
+        remoteStreams={remoteStreams}
         onAccept={answerCall}
         onDecline={rejectCall}
         onHangUp={hangUp}
