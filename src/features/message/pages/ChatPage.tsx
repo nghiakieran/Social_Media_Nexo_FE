@@ -390,14 +390,27 @@ export const ChatPage: React.FC = () => {
 
   const handleStartCall = useCallback(
     (type: "voice" | "video") => {
-      if (!currentChat || !otherParticipant) return;
+      if (!currentChat) return;
       const callType =
         type === "video" ? ECallType.VIDEO_CALL : ECallType.AUDIO_CALL;
-      startCall(currentChat.id, callType, {
-        id: otherParticipant.id,
-        name: otherParticipant.fullName,
-        avatarUrl: otherParticipant.avatarUrl,
-      });
+        
+      let callTarget;
+      if (currentChat.isGroup) {
+        callTarget = {
+          id: currentChat.id,
+          name: currentChat.groupName || "Nhóm",
+          avatarUrl: currentChat.groupAvatarUrl || "",
+        };
+      } else {
+        if (!otherParticipant) return;
+        callTarget = {
+          id: otherParticipant.id,
+          name: otherParticipant.fullName,
+          avatarUrl: otherParticipant.avatarUrl,
+        };
+      }
+      
+      startCall(currentChat.id, callType, callTarget);
     },
     [currentChat, otherParticipant, startCall]
   );

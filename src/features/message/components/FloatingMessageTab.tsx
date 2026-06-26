@@ -71,40 +71,51 @@ export const FloatingMessageTab: React.FC<FloatingMessageTabProps> = ({
     navigate("/messages");
   };
 
-  const resolveFirstDirectConversation = (): ConversationUI | null => {
+  const resolveFirstConversation = (): ConversationUI | null => {
     const pool = searchQuery.trim() ? filteredChats : conversations;
-    const direct = pool.find((c) => !c.isGroup);
-    return direct ?? null;
+    return pool[0] ?? null;
   };
 
   const handleCallFromList = (kind: "voice" | "video") => {
     if (!user?.id) return;
-    const conv = resolveFirstDirectConversation();
+    const conv = resolveFirstConversation();
     if (!conv) {
       toast({
         variant: "destructive",
-        title: "Chưa có cuộc chat cá nhân",
-        description: "Chọn một tin nhắn riêng trong danh sách hoặc vào Tin nhắn.",
+        title: "Chưa có cuộc trò chuyện",
+        description: "Không tìm thấy cuộc trò chuyện nào để gọi.",
       });
       return;
     }
-    const other = conv.participants?.find((p) => p.id !== user.id);
-    if (!other) {
-      toast({
-        variant: "destructive",
-        title: "Không thể gọi",
-        description: "Không tìm thấy người nhận trong cuộc trò chuyện.",
-      });
-      return;
-    }
-    void startCall(
-      conv.id,
-      kind === "video" ? ECallType.VIDEO_CALL : ECallType.AUDIO_CALL,
-      {
+    
+    let callTarget;
+    if (conv.isGroup) {
+      callTarget = {
+        id: conv.id,
+        name: conv.groupName || conv.fullname || "Nhóm",
+        avatarUrl: conv.groupAvatarUrl || conv.avatarUrl || "",
+      };
+    } else {
+      const other = conv.participants?.find((p) => p.id !== user.id);
+      if (!other) {
+        toast({
+          variant: "destructive",
+          title: "Không thể gọi",
+          description: "Không tìm thấy người nhận trong cuộc trò chuyện.",
+        });
+        return;
+      }
+      callTarget = {
         id: other.id,
         name: other.fullName || other.username || conv.fullname || "",
         avatarUrl: other.avatarUrl || conv.avatarUrl || "",
-      },
+      };
+    }
+
+    void startCall(
+      conv.id,
+      kind === "video" ? ECallType.VIDEO_CALL : ECallType.AUDIO_CALL,
+      callTarget
     );
   };
 

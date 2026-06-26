@@ -158,17 +158,29 @@ export const FloatingChatWindow: React.FC<FloatingChatWindowProps> = ({
   }, [chat.id, typingUsers, user]);
 
   const handleOutgoingCall = (kind: "voice" | "video") => {
-    if (!user?.id || chat.isGroup) return;
-    const other = chat.participants?.find((p) => p.id !== user.id);
-    if (!other) return;
-    void startCall(
-      chat.id,
-      kind === "video" ? ECallType.VIDEO_CALL : ECallType.AUDIO_CALL,
-      {
+    if (!user?.id) return;
+    
+    let callTarget;
+    if (chat.isGroup) {
+      callTarget = {
+        id: chat.id,
+        name: chat.groupName || chat.fullname || "Nhóm",
+        avatarUrl: chat.groupAvatarUrl || chat.avatarUrl || "",
+      };
+    } else {
+      const other = chat.participants?.find((p) => p.id !== user.id);
+      if (!other) return;
+      callTarget = {
         id: other.id,
         name: other.fullName || other.username || chat.fullname || "",
         avatarUrl: other.avatarUrl || chat.avatarUrl || "",
-      },
+      };
+    }
+    
+    void startCall(
+      chat.id,
+      kind === "video" ? ECallType.VIDEO_CALL : ECallType.AUDIO_CALL,
+      callTarget
     );
   };
 

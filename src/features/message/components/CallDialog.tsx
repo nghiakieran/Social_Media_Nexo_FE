@@ -77,7 +77,8 @@ export const CallDialog: React.FC<CallDialogProps> = ({
   const localVideoEl = localVideoRef as React.MutableRefObject<HTMLVideoElement | null>;
 
   const contactName =
-    activeCall?.remoteUserName ?? incomingCall?.callerFullName ?? "";
+    activeCall?.remoteUserName ?? 
+    (incomingCall?.isGroupCall ? `Cuộc gọi nhóm từ ${incomingCall.callerFullName}` : incomingCall?.callerFullName) ?? "";
   const contactAvatar =
     activeCall?.remoteAvatarUrl ?? incomingCall?.callerAvatarUrl ?? "";
 
