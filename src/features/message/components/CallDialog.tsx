@@ -12,6 +12,7 @@ import {
   Circle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { VideoPlayer } from "./VideoPlayer";
 import type { CallState, ActiveCallInfo } from "../hooks/useCallWebRTC";
 import type { CallNotificationDTO, ECallType } from "../types";
 
@@ -31,6 +32,7 @@ interface CallDialogProps {
   localVideoRef: React.RefObject<HTMLVideoElement>;
   remoteVideoRef: React.RefObject<HTMLVideoElement>;
   localStreamRef?: React.RefObject<MediaStream | null>;
+  remoteStreams?: Map<number, MediaStream>;
 
   onAccept: () => void;
   onDecline: () => void;
@@ -61,6 +63,7 @@ export const CallDialog: React.FC<CallDialogProps> = ({
   localVideoRef,
   remoteVideoRef,
   localStreamRef,
+  remoteStreams,
   onAccept,
   onDecline,
   onHangUp,
@@ -113,14 +116,31 @@ export const CallDialog: React.FC<CallDialogProps> = ({
                 : "min-h-[min(56dvh,420px)] sm:min-h-[min(50dvh,380px)]"
             )}
           >
-            <video
-              ref={(el) => {
-                remoteVideoEl.current = el;
-              }}
-              autoPlay
-              playsInline
-              className="absolute inset-0 h-full w-full bg-zinc-950 object-cover"
-            />
+            {/* Mesh UI: Grid rendering */}
+            {remoteStreams && remoteStreams.size > 0 ? (
+              <div
+                className={cn(
+                  "absolute inset-0 h-full w-full bg-zinc-950",
+                  remoteStreams.size > 1 ? "grid gap-1 p-1" : "",
+                  remoteStreams.size === 2 ? "grid-cols-2" : "",
+                  remoteStreams.size === 3 || remoteStreams.size === 4 ? "grid-cols-2 grid-rows-2" : "",
+                  remoteStreams.size > 4 ? "grid-cols-3 grid-rows-2" : ""
+                )}
+              >
+                {Array.from(remoteStreams.entries()).map(([userId, stream]) => (
+                  <VideoPlayer key={userId} stream={stream} className="h-full w-full rounded-lg" />
+                ))}
+              </div>
+            ) : (
+              <video
+                ref={(el) => {
+                  remoteVideoEl.current = el;
+                }}
+                autoPlay
+                playsInline
+                className="absolute inset-0 h-full w-full bg-zinc-950 object-cover"
+              />
+            )}
 
             {/* Local preview: avoid stacking on bottom dock while ringing / connecting */}
             <video
@@ -293,14 +313,22 @@ export const CallDialog: React.FC<CallDialogProps> = ({
         {!withVideo && (
           <div className="relative flex min-h-[min(88dvh,580px)] w-full flex-col overflow-hidden rounded-3xl">
             {/* Hidden video element to play remote audio */}
-            <video
-              ref={(el) => {
-                remoteVideoEl.current = el;
-              }}
-              autoPlay
-              playsInline
-              className="hidden"
-            />
+            {remoteStreams && remoteStreams.size > 0 ? (
+              <div className="hidden">
+                {Array.from(remoteStreams.entries()).map(([userId, stream]) => (
+                  <VideoPlayer key={userId} stream={stream} />
+                ))}
+              </div>
+            ) : (
+              <video
+                ref={(el) => {
+                  remoteVideoEl.current = el;
+                }}
+                autoPlay
+                playsInline
+                className="hidden"
+              />
+            )}
             <div className="absolute inset-0 bg-gradient-to-br from-slate-950 via-indigo-950/90 to-slate-950" />
             {contactAvatar ? (
               <div className="absolute inset-0 opacity-35">

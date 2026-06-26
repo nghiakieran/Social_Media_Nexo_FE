@@ -30,17 +30,18 @@ export interface ActiveCallInfo {
   conversationId: number;
   callType: ECallType;
   isIncoming: boolean;
-  remoteUserId: number;
+  remoteUserId: number; // Tạm giữ for compat, nhưng ở mesh sẽ có nhiều remote users
   remoteUserName: string;
   remoteAvatarUrl: string;
   startedAt?: string;
 }
 
 interface UseCallWebRTCOptions {
+  myUserId?: number;
   onCallEnded?: (status: ECallStatus, durationSeconds: number | null, conversationId?: number) => void;
 }
 
-export function useCallWebRTC({ onCallEnded }: UseCallWebRTCOptions = {}) {
+export function useCallWebRTC({ myUserId, onCallEnded }: UseCallWebRTCOptions = {}) {
   const [callState, setCallState] = useState<CallState>("idle");
   const [activeCall, setActiveCall] = useState<ActiveCallInfo | null>(null);
   const [incomingCall, setIncomingCall] = useState<CallNotificationDTO | null>(null);
@@ -48,10 +49,17 @@ export function useCallWebRTC({ onCallEnded }: UseCallWebRTCOptions = {}) {
   const [isVideoOff, setIsVideoOff] = useState(false);
   const [duration, setDuration] = useState(0);
 
-  const pcRef = useRef<RTCPeerConnection | null>(null);
+  // Mesh Topology states
+  const peersRef = useRef<Map<number, RTCPeerConnection>>(new Map());
+  const [remoteStreams, setRemoteStreams] = useState<Map<number, MediaStream>>(new Map());
+
   const localStreamRef = useRef<MediaStream | null>(null);
   const localVideoRef = useRef<HTMLVideoElement | null>(null);
+  
+  // Vẫn giữ remoteVideoRef để code cũ không lỗi ngay lập tức, 
+  // nhưng Mesh UI nên dùng remoteStreams.
   const remoteVideoRef = useRef<HTMLVideoElement | null>(null);
+  
   const durationIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Refs to hold latest values without causing effect re-runs
@@ -59,12 +67,14 @@ export function useCallWebRTC({ onCallEnded }: UseCallWebRTCOptions = {}) {
   const callStateRef = useRef<CallState>("idle");
   const incomingCallRef = useRef<CallNotificationDTO | null>(null);
   const onCallEndedRef = useRef(onCallEnded);
+  const myUserIdRef = useRef(myUserId);
 
   // Keep refs in sync
   useEffect(() => { activeCallRef.current = activeCall; }, [activeCall]);
   useEffect(() => { callStateRef.current = callState; }, [callState]);
   useEffect(() => { incomingCallRef.current = incomingCall; }, [incomingCall]);
   useEffect(() => { onCallEndedRef.current = onCallEnded; }, [onCallEnded]);
+  useEffect(() => { myUserIdRef.current = myUserId; }, [myUserId]);
 
   const ws = getWebSocketService();
 
@@ -79,10 +89,12 @@ export function useCallWebRTC({ onCallEnded }: UseCallWebRTCOptions = {}) {
       localStreamRef.current.getTracks().forEach((t) => t.stop());
       localStreamRef.current = null;
     }
-    if (pcRef.current) {
-      pcRef.current.close();
-      pcRef.current = null;
-    }
+    
+    // Close all PeerConnections
+    peersRef.current.forEach((pc) => pc.close());
+    peersRef.current.clear();
+    setRemoteStreams(new Map());
+
     if (localVideoRef.current) localVideoRef.current.srcObject = null;
     if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
     setDuration(0);
@@ -92,11 +104,12 @@ export function useCallWebRTC({ onCallEnded }: UseCallWebRTCOptions = {}) {
     stopRingbackTone();
   }, []);
 
-  // ─── Create RTCPeerConnection ────────────────────────────────────────────────
+  // ─── Create RTCPeerConnection for a specific user ─────────────────────────────
 
-  const createPeerConnection = useCallback((callId: number) => {
-    if (pcRef.current) {
-      pcRef.current.close();
+  const createPeerConnection = useCallback((callId: number, targetUserId: number) => {
+    const existingPc = peersRef.current.get(targetUserId);
+    if (existingPc) {
+      existingPc.close();
     }
 
     const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
@@ -105,6 +118,7 @@ export function useCallWebRTC({ onCallEnded }: UseCallWebRTCOptions = {}) {
       if (event.candidate) {
         ws.sendCallSignal({
           callId,
+          targetUserId,
           type: "ICE_CANDIDATE",
           candidate: JSON.stringify(event.candidate),
         });
@@ -112,23 +126,42 @@ export function useCallWebRTC({ onCallEnded }: UseCallWebRTCOptions = {}) {
     };
 
     pc.ontrack = (event) => {
-      if (remoteVideoRef.current) {
+      // Compatibility with old 1-1 UI
+      if (remoteVideoRef.current && !remoteVideoRef.current.srcObject) {
         remoteVideoRef.current.srcObject = event.streams[0];
       }
+      
+      // Update Mesh streams state
+      setRemoteStreams((prev) => {
+        const next = new Map(prev);
+        next.set(targetUserId, event.streams[0]);
+        return next;
+      });
     };
 
     pc.onconnectionstatechange = () => {
-      console.log("[WebRTC] connection state:", pc.connectionState);
-      if (pc.connectionState === "connected" && !durationIntervalRef.current) {
-        setCallState("connected");
-        callStateRef.current = "connected";
-        stopRingbackTone();
-        durationIntervalRef.current = setInterval(() => setDuration((d) => d + 1), 1000);
+      console.log(`[WebRTC] connection state for peer ${targetUserId}:`, pc.connectionState);
+      if (pc.connectionState === "connected") {
+        if (callStateRef.current !== "connected") {
+          setCallState("connected");
+          callStateRef.current = "connected";
+          stopRingbackTone();
+          if (!durationIntervalRef.current) {
+            durationIntervalRef.current = setInterval(() => setDuration((d) => d + 1), 1000);
+          }
+        }
       } else if (
         pc.connectionState === "failed" ||
         pc.connectionState === "disconnected"
       ) {
-        console.warn("[WebRTC] connection lost:", pc.connectionState);
+        console.warn(`[WebRTC] connection lost for peer ${targetUserId}:`, pc.connectionState);
+        setRemoteStreams((prev) => {
+          const next = new Map(prev);
+          next.delete(targetUserId);
+          return next;
+        });
+        peersRef.current.delete(targetUserId);
+        pc.close();
       }
     };
 
@@ -139,7 +172,7 @@ export function useCallWebRTC({ onCallEnded }: UseCallWebRTCOptions = {}) {
       });
     }
 
-    pcRef.current = pc;
+    peersRef.current.set(targetUserId, pc);
     return pc;
   }, [ws]);
 
@@ -209,9 +242,6 @@ export function useCallWebRTC({ onCallEnded }: UseCallWebRTCOptions = {}) {
     try {
       await getUserMedia(isVideo);
 
-      // Create PC before responding so we're ready for the OFFER
-      createPeerConnection(incoming.callId);
-
       // Tell BE we accepted — BE will then tell caller to send OFFER
       ws.respondToCall({ callId: incoming.callId, accepted: true });
 
@@ -230,7 +260,7 @@ export function useCallWebRTC({ onCallEnded }: UseCallWebRTCOptions = {}) {
       setIncomingCall(null);
       incomingCallRef.current = null;
       // State will become "connected" via onconnectionstatechange
-      setCallState("ringing"); // waiting for WebRTC to complete
+      setCallState("ringing"); 
       callStateRef.current = "ringing";
     } catch (err) {
       console.error("[WebRTC] answerCall failed:", err);
@@ -241,7 +271,7 @@ export function useCallWebRTC({ onCallEnded }: UseCallWebRTCOptions = {}) {
       setIncomingCall(null);
       incomingCallRef.current = null;
     }
-  }, [getUserMedia, createPeerConnection, ws, cleanup]);
+  }, [getUserMedia, ws, cleanup]);
 
   // ─── Reject ──────────────────────────────────────────────────────────────────
 
@@ -257,7 +287,7 @@ export function useCallWebRTC({ onCallEnded }: UseCallWebRTCOptions = {}) {
       setIncomingCall(null);
       incomingCallRef.current = null;
     }, 500);
-  }, [ws]);
+  }, [ws, cleanup]);
 
   // ─── Hang up ─────────────────────────────────────────────────────────────────
 
@@ -365,10 +395,10 @@ export function useCallWebRTC({ onCallEnded }: UseCallWebRTCOptions = {}) {
       callStateRef.current = "ringing";
       startRingtone();
     }
-  }, []); // no deps — reads callStateRef
+  }, []); 
 
   const handleCallResponse = useCallback(
-    async (response: { callId: number; status: string }) => {
+    async (response: { callId: number; status: string; responderId: number }) => {
       console.log("[Call] response:", response);
       const call = activeCallRef.current;
       if (!call) return;
@@ -376,23 +406,29 @@ export function useCallWebRTC({ onCallEnded }: UseCallWebRTCOptions = {}) {
       if (response.status === "ACCEPTED") {
         stopRingbackTone();
         // Update callId from BE (was 0 placeholder)
-        const updatedCall = { ...call, callId: response.callId };
-        setActiveCall(updatedCall);
-        activeCallRef.current = updatedCall;
+        if (call.callId === 0) {
+          const updatedCall = { ...call, callId: response.callId };
+          setActiveCall(updatedCall);
+          activeCallRef.current = updatedCall;
+        }
 
-        // Caller creates PeerConnection and sends OFFER
-        const pc = createPeerConnection(response.callId);
-        try {
-          const offer = await pc.createOffer();
-          await pc.setLocalDescription(offer);
-          ws.sendCallSignal({
-            callId: response.callId,
-            type: "OFFER",
-            sdp: offer.sdp,
-          });
-          console.log("[WebRTC] OFFER sent, callId:", response.callId);
-        } catch (err) {
-          console.error("[WebRTC] createOffer failed:", err);
+        const myId = myUserIdRef.current;
+        if (myId && response.responderId !== myId) {
+          // Responder accepted, so we create a PC to connect to them and send OFFER
+          const pc = createPeerConnection(response.callId, response.responderId);
+          try {
+            const offer = await pc.createOffer();
+            await pc.setLocalDescription(offer);
+            ws.sendCallSignal({
+              callId: response.callId,
+              targetUserId: response.responderId,
+              type: "OFFER",
+              sdp: offer.sdp,
+            });
+            console.log("[WebRTC] OFFER sent to", response.responderId);
+          } catch (err) {
+            console.error("[WebRTC] createOffer failed:", err);
+          }
         }
       } else {
         cleanup();
@@ -406,13 +442,26 @@ export function useCallWebRTC({ onCallEnded }: UseCallWebRTCOptions = {}) {
         }, 1500);
       }
     },
-    [createPeerConnection, ws, cleanup] // no activeCall dep — reads activeCallRef
+    [createPeerConnection, ws, cleanup]
   );
 
   const handleCallSignal = useCallback(
     async (signal: CallSignalDTO) => {
-      console.log("[WebRTC] signal:", signal.type, "callId:", signal.callId);
-      const pc = pcRef.current;
+      console.log("[WebRTC] signal:", signal.type, "from:", signal.senderId, "to:", signal.targetUserId);
+      const myId = myUserIdRef.current;
+      
+      // Nếu tín hiệu không dành cho mình thì bỏ qua
+      if (signal.targetUserId && myId && signal.targetUserId !== myId) {
+        return;
+      }
+
+      let pc = peersRef.current.get(signal.senderId);
+
+      // Nếu nhận được OFFER mà chưa có PC thì tạo mới
+      if (!pc && signal.type === "OFFER") {
+        pc = createPeerConnection(signal.callId, signal.senderId);
+      }
+
       if (!pc) {
         console.warn("[WebRTC] no PeerConnection for signal:", signal.type);
         return;
@@ -425,13 +474,14 @@ export function useCallWebRTC({ onCallEnded }: UseCallWebRTCOptions = {}) {
           await pc.setLocalDescription(answer);
           ws.sendCallSignal({
             callId: signal.callId,
+            targetUserId: signal.senderId,
             type: "ANSWER",
             sdp: answer.sdp,
           });
-          console.log("[WebRTC] ANSWER sent");
+          console.log("[WebRTC] ANSWER sent to", signal.senderId);
         } else if (signal.type === "ANSWER" && signal.sdp) {
           await pc.setRemoteDescription({ type: "answer", sdp: signal.sdp });
-          console.log("[WebRTC] remote description set (ANSWER)");
+          console.log("[WebRTC] remote description set (ANSWER) from", signal.senderId);
         } else if (signal.type === "ICE_CANDIDATE" && signal.candidate) {
           const candidate = JSON.parse(signal.candidate) as RTCIceCandidateInit;
           await pc.addIceCandidate(new RTCIceCandidate(candidate));
@@ -440,7 +490,7 @@ export function useCallWebRTC({ onCallEnded }: UseCallWebRTCOptions = {}) {
         console.error("[WebRTC] signal handling error:", err);
       }
     },
-    [ws]
+    [createPeerConnection, ws]
   );
 
   const handleCallEnded = useCallback((ended: CallEndedDTO) => {
@@ -460,7 +510,7 @@ export function useCallWebRTC({ onCallEnded }: UseCallWebRTCOptions = {}) {
       setIncomingCall(null);
       incomingCallRef.current = null;
     }, 1500);
-  }, [cleanup]); // no onCallEnded dep — reads onCallEndedRef
+  }, [cleanup]);
 
   // ─── Subscribe once on mount, never re-subscribe ────────────────────────────
 
@@ -470,7 +520,8 @@ export function useCallWebRTC({ onCallEnded }: UseCallWebRTCOptions = {}) {
     const subscribe = () => {
       ws.subscribeToCallEvents(
         handleIncomingCall,
-        handleCallResponse,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        handleCallResponse as any,
         handleCallSignal,
         handleCallEnded,
         handleCallInitiated
@@ -490,7 +541,19 @@ export function useCallWebRTC({ onCallEnded }: UseCallWebRTCOptions = {}) {
       ws.removeConnectedListener(subscribe);
       ws.unsubscribeFromCallEvents();
     };
-  }, []); // intentionally empty — handlers are stable via refs
+  }, []); 
+
+  // Helpers cho mesh feature: late join & ping
+  const pingCall = useCallback((targetUserId: number) => {
+    const callId = activeCallRef.current?.callId;
+    if (callId) {
+      ws.pingCall({ callId, type: "OFFER", targetUserId });
+    }
+  }, [ws]);
+
+  const joinCall = useCallback((callId: number) => {
+    ws.joinCall({ callId, type: "OFFER" });
+  }, [ws]);
 
   return {
     callState,
@@ -502,6 +565,7 @@ export function useCallWebRTC({ onCallEnded }: UseCallWebRTCOptions = {}) {
     localVideoRef,
     remoteVideoRef,
     localStreamRef,
+    remoteStreams,
     startCall,
     answerCall,
     rejectCall,
@@ -509,10 +573,13 @@ export function useCallWebRTC({ onCallEnded }: UseCallWebRTCOptions = {}) {
     dismissCall,
     toggleMute,
     toggleVideo,
+    pingCall,
+    joinCall,
     resubscribeCallEvents: () => {
       ws.subscribeToCallEvents(
         handleIncomingCall,
-        handleCallResponse,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        handleCallResponse as any,
         handleCallSignal,
         handleCallEnded,
         handleCallInitiated

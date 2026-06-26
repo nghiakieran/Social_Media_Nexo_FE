@@ -251,6 +251,7 @@ export interface CallNotificationDTO {
   callerAvatarUrl: string;
   callType: ECallType;
   startedAt: string;
+  isGroupCall: boolean;
 }
 
 export interface CallResponseDTO {
@@ -258,11 +259,14 @@ export interface CallResponseDTO {
   responderId: number;
   responderUsername: string;
   status: ECallStatus;
+  isGroupCall: boolean;
 }
 
 export interface CallSignalDTO {
   callId: number;
   senderId: number;
+  targetUserId?: number;
+  isGroupCall?: boolean;
   type: "OFFER" | "ANSWER" | "ICE_CANDIDATE";
   sdp?: string;
   candidate?: string;
@@ -288,6 +292,7 @@ export interface CallResponseRequest {
 
 export interface CallSignalRequest {
   callId: number;
+  targetUserId?: number;
   type: "OFFER" | "ANSWER" | "ICE_CANDIDATE";
   sdp?: string;
   candidate?: string;

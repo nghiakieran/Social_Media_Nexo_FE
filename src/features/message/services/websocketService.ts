@@ -461,6 +461,22 @@ export class WebSocketService {
       body: JSON.stringify(request),
     });
   }
+
+  pingCall(request: CallSignalRequest) {
+    if (!this.client?.connected) throw new Error("WebSocket not connected");
+    this.client.publish({
+      destination: "/app/call.ping",
+      body: JSON.stringify(request),
+    });
+  }
+
+  joinCall(request: CallSignalRequest) {
+    if (!this.client?.connected) throw new Error("WebSocket not connected");
+    this.client.publish({
+      destination: "/app/call.join",
+      body: JSON.stringify(request),
+    });
+  }
 }
 
 let wsService: WebSocketService | null = null;
