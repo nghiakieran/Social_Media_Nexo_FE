@@ -34,6 +34,7 @@ export interface ActiveCallInfo {
   remoteUserName: string;
   remoteAvatarUrl: string;
   startedAt?: string;
+  isGroupCall?: boolean;
 }
 
 interface UseCallWebRTCOptions {
@@ -196,7 +197,7 @@ export function useCallWebRTC({ myUserId, onCallEnded }: UseCallWebRTCOptions = 
     async (
       conversationId: number,
       callType: ECallType,
-      remoteUser: { id: number; name: string; avatarUrl: string }
+      remoteUser: { id: number; name: string; avatarUrl: string; isGroupCall?: boolean }
     ) => {
       console.log("[Call] startCall called, state=", callStateRef.current);
       if (callStateRef.current !== "idle") return;
@@ -216,6 +217,7 @@ export function useCallWebRTC({ myUserId, onCallEnded }: UseCallWebRTCOptions = 
           remoteUserId: remoteUser.id,
           remoteUserName: remoteUser.name,
           remoteAvatarUrl: remoteUser.avatarUrl,
+          isGroupCall: remoteUser.isGroupCall,
         };
         setActiveCall(info);
         activeCallRef.current = info;
@@ -251,9 +253,10 @@ export function useCallWebRTC({ myUserId, onCallEnded }: UseCallWebRTCOptions = 
         callType: incoming.callType,
         isIncoming: true,
         remoteUserId: incoming.callerId,
-        remoteUserName: incoming.callerFullName,
+        remoteUserName: incoming.isGroupCall ? `Cuộc gọi nhóm từ ${incoming.callerFullName}` : incoming.callerFullName,
         remoteAvatarUrl: incoming.callerAvatarUrl,
         startedAt: incoming.startedAt,
+        isGroupCall: incoming.isGroupCall,
       };
       setActiveCall(info);
       activeCallRef.current = info;

@@ -166,6 +166,7 @@ export const FloatingChatWindow: React.FC<FloatingChatWindowProps> = ({
         id: chat.id,
         name: chat.groupName || chat.fullname || "Nhóm",
         avatarUrl: chat.groupAvatarUrl || chat.avatarUrl || "",
+        isGroupCall: true,
       };
     } else {
       const other = chat.participants?.find((p) => p.id !== user.id);

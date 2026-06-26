@@ -94,6 +94,7 @@ export const FloatingMessageTab: React.FC<FloatingMessageTabProps> = ({
         id: conv.id,
         name: conv.groupName || conv.fullname || "Nhóm",
         avatarUrl: conv.groupAvatarUrl || conv.avatarUrl || "",
+        isGroupCall: true,
       };
     } else {
       const other = conv.participants?.find((p) => p.id !== user.id);

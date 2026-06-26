@@ -513,6 +513,7 @@ export const InboxPage: React.FC = () => {
           id: currentChat.id,
           name: currentChat.groupName || "Nhóm",
           avatarUrl: currentChat.groupAvatarUrl || "",
+          isGroupCall: true,
         };
       } else {
         if (!otherParticipant) return;
