@@ -33,11 +33,14 @@ import {
   Check,
   X,
   Users,
+  Camera,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { conversationApi } from "../services/messageApi";
 import type { ConversationResponseDTO, UserDTO } from "../types";
 import { useToast } from "@/hooks/use-toast";
+import { useAppSelector } from "@/store";
+import { AddMemberDialog } from "./AddMemberDialog";
 
 interface GroupInfoPanelProps {
   open: boolean;
@@ -62,6 +65,11 @@ export const GroupInfoPanel: React.FC<GroupInfoPanelProps> = ({
   const [isSaving, setIsSaving] = useState(false);
   const [leaveDialogOpen, setLeaveDialogOpen] = useState(false);
   const [removeTarget, setRemoveTarget] = useState<UserDTO | null>(null);
+
+  const [addMemberDialogOpen, setAddMemberDialogOpen] = useState(false);
+  const [changeAvatarDialogOpen, setChangeAvatarDialogOpen] = useState(false);
+  const [newAvatarUrl, setNewAvatarUrl] = useState("");
+  const conversations = useAppSelector((state) => state.message.conversations);
 
   const isAdmin = conversation.isGroupAdmin ?? false;
   const isCreator = conversation.createdByUserId === currentUserId;
@@ -139,12 +147,22 @@ export const GroupInfoPanel: React.FC<GroupInfoPanelProps> = ({
 
           {/* Group avatar + name */}
           <div className="flex flex-col items-center py-6 gap-3">
-            <Avatar className="h-20 w-20">
-              <AvatarImage src={conversation.groupAvatarUrl ?? ""} />
-              <AvatarFallback className="text-2xl bg-primary/10 text-primary">
-                {(conversation.groupName ?? "N").charAt(0)}
-              </AvatarFallback>
-            </Avatar>
+            <div 
+              className={cn("relative group", isAdmin && "cursor-pointer")} 
+              onClick={() => isAdmin && setChangeAvatarDialogOpen(true)}
+            >
+              <Avatar className="h-20 w-20">
+                <AvatarImage src={conversation.groupAvatarUrl ?? ""} />
+                <AvatarFallback className="text-2xl bg-primary/10 text-primary">
+                  {(conversation.groupName ?? "N").charAt(0)}
+                </AvatarFallback>
+              </Avatar>
+              {isAdmin && (
+                <div className="absolute inset-0 bg-black/40 rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                  <Camera className="h-6 w-6 text-white" />
+                </div>
+              )}
+            </div>
 
             {editingName ? (
               <div className="flex items-center gap-2 w-full max-w-[220px]">
@@ -261,7 +279,7 @@ export const GroupInfoPanel: React.FC<GroupInfoPanelProps> = ({
 
           {/* Add members button */}
           {isAdmin && (
-            <Button variant="outline" className="w-full mt-4 gap-2" onClick={onUpdated}>
+            <Button variant="outline" className="w-full mt-4 gap-2" onClick={() => setAddMemberDialogOpen(true)}>
               <UserPlus className="h-4 w-4" />
               Thêm thành viên
             </Button>
@@ -314,6 +332,77 @@ export const GroupInfoPanel: React.FC<GroupInfoPanelProps> = ({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Change Avatar Dialog */}
+      <Dialog open={changeAvatarDialogOpen} onOpenChange={setChangeAvatarDialogOpen}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Đổi ảnh đại diện nhóm</DialogTitle>
+            <DialogDescription>
+              Nhập đường dẫn (URL) của hình ảnh mới.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-2">
+            <Input
+              placeholder="https://example.com/avatar.jpg"
+              value={newAvatarUrl}
+              onChange={(e) => setNewAvatarUrl(e.target.value)}
+              autoFocus
+              onKeyDown={async (e) => {
+                if (e.key === "Enter") {
+                  if (!newAvatarUrl.trim()) return;
+                  setIsSaving(true);
+                  try {
+                    await conversationApi.updateGroup(conversation.id, { groupAvatarUrl: newAvatarUrl.trim() });
+                    onUpdated();
+                    setChangeAvatarDialogOpen(false);
+                    setNewAvatarUrl("");
+                  } catch {
+                    toast({ title: "Lỗi", description: "Không thể cập nhật ảnh đại diện", variant: "destructive" });
+                  } finally {
+                    setIsSaving(false);
+                  }
+                }
+              }}
+            />
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setChangeAvatarDialogOpen(false)} disabled={isSaving}>Hủy</Button>
+            <Button 
+              disabled={isSaving || !newAvatarUrl.trim()}
+              onClick={async () => {
+                setIsSaving(true);
+                try {
+                  await conversationApi.updateGroup(conversation.id, { groupAvatarUrl: newAvatarUrl.trim() });
+                  onUpdated();
+                  setChangeAvatarDialogOpen(false);
+                  setNewAvatarUrl("");
+                } catch {
+                  toast({ title: "Lỗi", description: "Không thể cập nhật ảnh đại diện", variant: "destructive" });
+                } finally {
+                  setIsSaving(false);
+                }
+              }}
+            >
+              {isSaving ? "Đang lưu..." : "Lưu"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Member Dialog */}
+      <AddMemberDialog
+        open={addMemberDialogOpen}
+        onOpenChange={setAddMemberDialogOpen}
+        conversations={conversations}
+        existingParticipants={conversation.participants}
+        currentUserId={currentUserId}
+        onAdd={async (userIds) => {
+          await conversationApi.addMembers(conversation.id, { userIds });
+          toast({ title: "Đã thêm thành viên mới" });
+          onUpdated();
+        }}
+      />
     </>
   );
 };

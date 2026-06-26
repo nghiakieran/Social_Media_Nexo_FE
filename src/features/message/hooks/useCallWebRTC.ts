@@ -50,6 +50,9 @@ export function useCallWebRTC({ myUserId, onCallEnded }: UseCallWebRTCOptions = 
   const [isVideoOff, setIsVideoOff] = useState(false);
   const [duration, setDuration] = useState(0);
 
+  const [isScreenSharing, setIsScreenSharing] = useState(false);
+  const screenStreamRef = useRef<MediaStream | null>(null);
+
   // Mesh Topology states
   const peersRef = useRef<Map<number, RTCPeerConnection>>(new Map());
   const [remoteStreams, setRemoteStreams] = useState<Map<number, MediaStream>>(new Map());
@@ -90,6 +93,11 @@ export function useCallWebRTC({ myUserId, onCallEnded }: UseCallWebRTCOptions = 
       localStreamRef.current.getTracks().forEach((t) => t.stop());
       localStreamRef.current = null;
     }
+    if (screenStreamRef.current) {
+      screenStreamRef.current.getTracks().forEach((t) => t.stop());
+      screenStreamRef.current = null;
+    }
+    setIsScreenSharing(false);
     
     // Close all PeerConnections
     peersRef.current.forEach((pc) => pc.close());
@@ -377,6 +385,76 @@ export function useCallWebRTC({ myUserId, onCallEnded }: UseCallWebRTCOptions = 
     });
   }, []);
 
+  const toggleScreenShare = useCallback(async () => {
+    try {
+      if (isScreenSharing) {
+        // Stop screen share
+        if (screenStreamRef.current) {
+          screenStreamRef.current.getTracks().forEach((t) => t.stop());
+          screenStreamRef.current = null;
+        }
+
+        // Revert to local camera stream
+        const localVideoTrack = localStreamRef.current?.getVideoTracks()[0];
+        if (localVideoTrack) {
+          peersRef.current.forEach((pc) => {
+            const sender = pc.getSenders().find((s) => s.track?.kind === "video");
+            if (sender) {
+              sender.replaceTrack(localVideoTrack);
+            }
+          });
+          if (localVideoRef.current && localStreamRef.current) {
+            localVideoRef.current.srcObject = localStreamRef.current;
+          }
+        }
+        setIsScreenSharing(false);
+      } else {
+        // Start screen share
+        const screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+        screenStreamRef.current = screenStream;
+        
+        const screenTrack = screenStream.getVideoTracks()[0];
+        
+        // Handle stop sharing from browser UI
+        screenTrack.onended = () => {
+          if (screenStreamRef.current) {
+            screenStreamRef.current.getTracks().forEach((t) => t.stop());
+            screenStreamRef.current = null;
+          }
+          const localVideoTrack = localStreamRef.current?.getVideoTracks()[0];
+          if (localVideoTrack) {
+            peersRef.current.forEach((pc) => {
+              const sender = pc.getSenders().find((s) => s.track?.kind === "video");
+              if (sender) {
+                sender.replaceTrack(localVideoTrack);
+              }
+            });
+            if (localVideoRef.current && localStreamRef.current) {
+              localVideoRef.current.srcObject = localStreamRef.current;
+            }
+          }
+          setIsScreenSharing(false);
+        };
+
+        // Replace track on all PeerConnections
+        peersRef.current.forEach((pc) => {
+          const sender = pc.getSenders().find((s) => s.track?.kind === "video");
+          if (sender) {
+            sender.replaceTrack(screenTrack);
+          }
+        });
+
+        // Show screen share on local preview
+        if (localVideoRef.current) {
+          localVideoRef.current.srcObject = screenStream;
+        }
+        setIsScreenSharing(true);
+      }
+    } catch (err) {
+      console.error("[WebRTC] Error toggling screen share:", err);
+    }
+  }, [isScreenSharing]);
+
   // ─── WebSocket event handlers (stable refs — never recreated) ────────────────
 
   const handleCallInitiated = useCallback((notification: CallNotificationDTO) => {
@@ -576,6 +654,8 @@ export function useCallWebRTC({ myUserId, onCallEnded }: UseCallWebRTCOptions = 
     dismissCall,
     toggleMute,
     toggleVideo,
+    isScreenSharing,
+    toggleScreenShare,
     pingCall,
     joinCall,
     resubscribeCallEvents: () => {

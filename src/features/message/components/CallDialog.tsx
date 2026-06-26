@@ -10,6 +10,8 @@ import {
   Mic,
   MicOff,
   Circle,
+  MonitorUp,
+  MonitorOff,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { VideoPlayer } from "./VideoPlayer";
@@ -39,6 +41,9 @@ interface CallDialogProps {
   onHangUp: () => void;
   onToggleMute: () => void;
   onToggleVideo: () => void;
+  
+  isScreenSharing?: boolean;
+  onToggleScreenShare?: () => void;
 }
 
 function formatDuration(seconds: number) {
@@ -69,6 +74,8 @@ export const CallDialog: React.FC<CallDialogProps> = ({
   onHangUp,
   onToggleMute,
   onToggleVideo,
+  isScreenSharing = false,
+  onToggleScreenShare,
 }) => {
   const callType = activeCall?.callType ?? incomingCall?.callType;
   const withVideo = isVideoCall(callType);
