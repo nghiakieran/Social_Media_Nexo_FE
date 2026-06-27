@@ -487,25 +487,25 @@ export default function Users() {
             <Table wrapperClassName="overflow-visible">
               <TableHeader className="bg-muted/50">
                 <TableRow className="hover:bg-transparent border-b border-border/50">
-                  <TableHead className="font-bold py-5 pl-8 text-slate-700 dark:text-slate-300 whitespace-nowrap sticky top-16 bg-muted/50 z-10">
+                  <TableHead className="font-bold py-5 pl-8 text-slate-700 dark:text-slate-300 whitespace-nowrap">
                     Thành viên
                   </TableHead>
-                  <TableHead className="font-bold text-slate-700 dark:text-slate-300 whitespace-nowrap sticky top-16 bg-muted/50 z-10">
+                  <TableHead className="font-bold text-slate-700 dark:text-slate-300 whitespace-nowrap">
                     Ngày gia nhập
                   </TableHead>
-                  <TableHead className="font-bold text-slate-700 dark:text-slate-300 whitespace-nowrap sticky top-16 bg-muted/50 z-10">
+                  <TableHead className="font-bold text-slate-700 dark:text-slate-300 whitespace-nowrap">
                     Vai trò
                   </TableHead>
-                  <TableHead className="font-bold text-slate-700 dark:text-slate-300 whitespace-nowrap sticky top-16 bg-muted/50 z-10">
+                  <TableHead className="font-bold text-slate-700 dark:text-slate-300 whitespace-nowrap">
                     Trạng thái
                   </TableHead>
-                  <TableHead className="font-bold text-slate-700 dark:text-slate-300 whitespace-nowrap sticky top-16 bg-muted/50 z-10">
+                  <TableHead className="font-bold text-slate-700 dark:text-slate-300 whitespace-nowrap">
                     Chỉ số
                   </TableHead>
-                  <TableHead className="font-bold text-slate-700 dark:text-slate-300 text-center whitespace-nowrap sticky top-16 bg-muted/50 z-10">
+                  <TableHead className="font-bold text-slate-700 dark:text-slate-300 text-center whitespace-nowrap">
                     Vi phạm
                   </TableHead>
-                  <TableHead className="pr-8 sticky top-16 bg-muted/50 z-10"></TableHead>
+                  <TableHead className="pr-8"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
