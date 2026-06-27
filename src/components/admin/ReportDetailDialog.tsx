@@ -348,17 +348,6 @@ export function ReportDetailDialog({
                   </div>
                 </div>
 
-                <div className="space-y-3">
-                  <Label className="text-xs font-bold uppercase text-muted-foreground">
-                    Ghi chú điều hành
-                  </Label>
-                  <Textarea
-                    value={adminNote}
-                    onChange={(e) => setAdminNote(e.target.value)}
-                    placeholder="Nhập lý do xử lý..."
-                    className="min-h-[120px] bg-background border-border rounded-xl text-foreground"
-                  />
-                </div>
               </div>
             </ScrollArea>
 
