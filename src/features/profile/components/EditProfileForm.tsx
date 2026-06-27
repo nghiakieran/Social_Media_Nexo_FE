@@ -91,11 +91,11 @@ export const EditProfileForm = ({ onSave, onCancel }: EditProfileFormProps) => {
 
   return (
     <div className="max-w-2xl mx-auto p-4">
-      <Card>
-        <CardHeader>
+      <Card className="border-0 sm:border bg-transparent sm:bg-card shadow-none sm:shadow rounded-2xl">
+        <CardHeader className="hidden sm:block border-b border-border/30 mb-6">
           <CardTitle>Chỉnh sửa trang cá nhân</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-0 sm:p-6">
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Avatar */}
             <div className="flex items-center gap-4">
@@ -197,20 +197,21 @@ export const EditProfileForm = ({ onSave, onCancel }: EditProfileFormProps) => {
             {/* Actions */}
             <div className="flex gap-3 pt-4">
               <Button
+                type="button"
+                variant="outline"
+                onClick={onCancel}
+                disabled={isLoading}
+                className="flex-1"
+              >
+                Hủy
+              </Button>
+              <Button
                 type="submit"
                 variant="default"
                 disabled={isLoading}
                 className="flex-1"
               >
                 {isLoading ? 'Đang lưu...' : 'Lưu thay đổi'}
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={onCancel}
-                disabled={isLoading}
-              >
-                Hủy
               </Button>
             </div>
           </form>

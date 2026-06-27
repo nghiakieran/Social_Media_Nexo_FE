@@ -233,24 +233,28 @@ export const SavedAllPostsContent: React.FC<SavedAllPostsContentProps> = ({
   };
 
   return (
-    <div className="px-4 py-6">
+    <div className="px-4 py-4">
       {/* Header */}
-      <div className="flex items-center gap-3 mb-6">
+      <div className="flex items-center gap-3 mb-5">
         <button
           onClick={onBack}
-          className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+          className="p-2 hover:bg-accent rounded-full transition-colors -ml-2"
         >
           <svg
-            className="w-5 h-5 text-gray-600"
+            className="w-5 h-5 text-foreground"
             viewBox="0 0 24 24"
-            fill="currentColor"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
           >
-            <path d="M21 17.502a.997.997 0 0 1-.707-.293L12 8.913l-8.293 8.296a1 1 0 1 1-1.414-1.414l9-9.004a1.03 1.03 0 0 1 1.414 0l9 9.004A1 1 0 0 1 21 17.502Z" />
+            <path d="M19 12H5M12 5l-7 7 7 7" />
           </svg>
         </button>
-        <div className="flex items-center gap-3">
-          <Bookmark className="w-6 h-6 text-gray-900" />
-          <h1 className="text-xl font-semibold text-gray-900">
+        <div className="flex items-center gap-2">
+          <Bookmark className="w-5 h-5 text-foreground" />
+          <h1 className="text-lg font-semibold text-foreground">
             Tất cả bài viết
           </h1>
         </div>
@@ -341,12 +345,12 @@ export const SavedAllPostsContent: React.FC<SavedAllPostsContentProps> = ({
           }}
         />
       ) : (
-        <div className="text-center py-12">
-          <Bookmark className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">
+        <div className="text-center py-8 sm:py-12 px-4">
+          <Bookmark className="w-12 h-12 sm:w-16 sm:h-16 text-gray-300 dark:text-gray-700 mx-auto mb-3" />
+          <h3 className="text-base sm:text-lg font-medium text-muted-foreground mb-1">
             Chưa có bài viết nào được lưu
           </h3>
-          <p className="text-gray-500 mb-6">
+          <p className="text-xs sm:text-sm text-muted-foreground/80 max-w-xs mx-auto mb-4">
             Bắt đầu lưu các bài viết yêu thích để xem lại sau
           </p>
         </div>

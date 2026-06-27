@@ -44,13 +44,13 @@ export const SavedCollectionsContent: React.FC = () => {
   }
 
   return (
-    <div className="px-4 py-6">
-      {/* Create Collection Button (IG-like pill) */}
-      <div className="mb-6">
+    <div className="px-4 py-4">
+      {/* Create Collection Button */}
+      <div className="mb-5">
         <button
           onClick={() => setIsCreateDialogOpen(true)}
           type="button"
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-200 text-sm font-medium hover:bg-gray-50 active:bg-gray-100"
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-border text-sm font-medium hover:bg-accent transition-colors text-foreground"
         >
           <Plus className="w-4 h-4" />
           Bộ sưu tập mới
@@ -74,11 +74,11 @@ export const SavedCollectionsContent: React.FC = () => {
         </div>
       ) : (
         <div className="text-center py-12">
-          <Bookmark className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">
+          <Bookmark className="w-16 h-16 text-muted-foreground/40 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-foreground mb-2">
             Chưa có bộ sưu tập nào
           </h3>
-          <p className="text-gray-500 mb-6">
+          <p className="text-sm text-muted-foreground mb-6">
             Tạo bộ sưu tập đầu tiên để tổ chức các bài viết đã lưu
           </p>
           <Button
