@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -11,8 +11,10 @@ import { followUser } from "@/features/profile/api/profileApi";
 import type { PageModelResponse } from "@/features/message/types";
 import type { ProfileData } from "@/features/profile/types";
 import { useToast } from "@/components/ui/use-toast";
+import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
+import { Loader2 } from "lucide-react";
 
-type SuggestionUser = ProfileData;
+type SuggestionUser = ProfileData & { isFollowing?: boolean; isLoading?: boolean };
 
 interface AllSuggestionsModalProps {
   isOpen: boolean;
@@ -24,13 +26,108 @@ const AllSuggestionsModal = ({
   isOpen,
   onClose,
   onUserClick,
-  suggestions,
   onFollowSuccess,
 }: AllSuggestionsModalProps & {
-  suggestions: SuggestionUser[];
   onFollowSuccess: () => void;
 }) => {
+  const [modalSuggestions, setModalSuggestions] = useState<SuggestionUser[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [pageNo, setPageNo] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
   const [hoveredUser, setHoveredUser] = useState<string | null>(null);
+  const { toast } = useToast();
+  const isLoadingRef = useRef(false);
+
+  const loadPage = useCallback(async (page: number) => {
+    if (isLoadingRef.current) return;
+    isLoadingRef.current = true;
+    setIsLoading(true);
+    try {
+      const res = await api.get<{ data: PageModelResponse<ProfileData> }>(
+        "/users/suggestions",
+        {
+          params: {
+            pageNo: page,
+            pageSize: 15,
+          },
+        }
+      );
+      const data = res.data.data;
+      const content = data.content || [];
+      const mapped = content.map((u) => ({
+        ...u,
+        isFollowing: false,
+        isLoading: false,
+      }));
+
+      setModalSuggestions((prev) => (page === 0 ? mapped : [...prev, ...mapped]));
+      setHasMore(!data.last);
+      setPageNo(page);
+    } catch (err) {
+      toast({
+        title: "Lỗi",
+        description: "Không thể tải danh sách gợi ý. Vui lòng thử lại!",
+        variant: "destructive",
+      });
+    } finally {
+      isLoadingRef.current = false;
+      setIsLoading(false);
+    }
+  }, [toast]);
+
+  useEffect(() => {
+    if (isOpen) {
+      loadPage(0);
+    } else {
+      setModalSuggestions([]);
+      setPageNo(0);
+      setHasMore(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
+
+  const { lastElementRef } = useInfiniteScroll(() => {
+    if (!isLoading && hasMore) {
+      loadPage(pageNo + 1);
+    }
+  }, {
+    hasMore,
+    isLoading,
+    threshold: 100,
+  });
+
+  const handleFollow = async (user: SuggestionUser, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const uid = user.id.toString();
+
+    setModalSuggestions((prev) =>
+      prev.map((u) => (u.id === user.id ? { ...u, isLoading: true } : u))
+    );
+
+    try {
+      await followUser(user.username);
+      setModalSuggestions((prev) =>
+        prev.map((u) =>
+          u.id === user.id ? { ...u, isFollowing: true, isLoading: false } : u
+        )
+      );
+      toast({
+        title: "Đã gửi yêu cầu theo dõi",
+        description: `Bạn đã gửi yêu cầu theo dõi đến @${user.username}`,
+      });
+      onFollowSuccess();
+    } catch (err) {
+      setModalSuggestions((prev) =>
+        prev.map((u) => (u.id === user.id ? { ...u, isLoading: false } : u))
+      );
+      toast({
+        title: "Lỗi",
+        description: "Không thể gửi yêu cầu theo dõi. Vui lòng thử lại!",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-md max-h-[80vh] p-0 overflow-hidden bg-background border shadow-glow">
@@ -41,66 +138,96 @@ const AllSuggestionsModal = ({
           </div>
           {/* Scrollable User List */}
           <div className="flex-1 overflow-y-auto p-4 scrollbar-thin scrollbar-thumb-border scrollbar-track-muted min-h-0">
-            <div className="space-y-3">
-              {suggestions.map((user) => (
-                <div
-                  key={user.id.toString()}
-                  className="flex items-center justify-between group cursor-pointer p-3 rounded-xl hover:bg-gradient-to-r hover:from-muted/30 hover:to-muted/10 transition-all duration-300 hover:shadow-glow border border-transparent hover:border-border/30"
-                  onMouseEnter={() => setHoveredUser(user.id.toString())}
-                  onMouseLeave={() => setHoveredUser(null)}
-                  onClick={() => {
-                    onUserClick(user);
-                    onClose();
-                  }}
-                >
-                  <div className="flex items-center gap-3 flex-1 min-w-0">
-                    <div className="relative">
-                      <Avatar
-                        className={`h-12 w-12 transition-all duration-300 ${hoveredUser === user.id.toString()
-                          ? "ring-2 ring-primary scale-110"
-                          : ""
-                          }`}
-                      >
-                        <AvatarImage src={getAvatarUrl(user.avatar)} />
-                        <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/40 text-primary font-semibold">
-                          {getAvatarInitials(user.username)}
-                        </AvatarFallback>
-                      </Avatar>
-                      {hoveredUser === user.id.toString() && (
-                        <div className="absolute -top-1 -right-1 h-3 w-3 animate-pulse rounded-full border-2 border-background bg-primary" />
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-bold text-sm text-foreground group-hover:text-primary transition-all duration-300 truncate">
-                        {user.username}
-                      </p>
-                      <p className="text-muted-foreground text-xs truncate">
-                        {user.fullName}
-                      </p>
-                    </div>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className={`font-bold text-sm px-4 py-2 rounded-lg transition-all duration-300 ${hoveredUser === user.id.toString()
-                      ? "bg-primary text-white hover:bg-primary/90 hover:text-white scale-110 shadow-md"
-                      : "text-primary hover:bg-primary/10 hover:text-white dark:hover:bg-primary/20"
-                      }`}
-                    onClick={async (e) => {
-                      e.stopPropagation();
-                      try {
-                        await followUser(user.username);
-                        onFollowSuccess();
-                      } catch (err) {
-                        // Optionally
-                      }
+            {modalSuggestions.length === 0 && isLoading ? (
+              <div className="flex justify-center items-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              </div>
+            ) : modalSuggestions.length === 0 ? (
+              <div className="text-center text-muted-foreground py-8">
+                Không có gợi ý nào
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {modalSuggestions.map((user) => (
+                  <div
+                    key={user.id.toString()}
+                    className="flex items-center justify-between group cursor-pointer p-3 rounded-xl hover:bg-gradient-to-r hover:from-muted/30 hover:to-muted/10 transition-all duration-300 hover:shadow-glow border border-transparent hover:border-border/30"
+                    onMouseEnter={() => setHoveredUser(user.id.toString())}
+                    onMouseLeave={() => setHoveredUser(null)}
+                    onClick={() => {
+                      onUserClick(user);
+                      onClose();
                     }}
                   >
-                    Theo dõi
-                  </Button>
-                </div>
-              ))}
-            </div>
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      <div className="relative">
+                        <Avatar
+                          className={`h-12 w-12 transition-all duration-300 ${
+                            hoveredUser === user.id.toString()
+                              ? "ring-2 ring-primary scale-110"
+                              : ""
+                          }`}
+                        >
+                          <AvatarImage src={getAvatarUrl(user.avatar)} />
+                          <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/40 text-primary font-semibold">
+                            {getAvatarInitials(user.username)}
+                          </AvatarFallback>
+                        </Avatar>
+                        {hoveredUser === user.id.toString() && (
+                          <div className="absolute -top-1 -right-1 h-3 w-3 animate-pulse rounded-full border-2 border-background bg-primary" />
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-bold text-sm text-foreground group-hover:text-primary transition-all duration-300 truncate">
+                          {user.username}
+                        </p>
+                        <p className="text-muted-foreground text-xs truncate">
+                          {user.fullName}
+                        </p>
+                      </div>
+                    </div>
+
+                    {user.isFollowing ? (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled
+                        className="font-bold text-sm px-4 py-2 rounded-lg border-border text-muted-foreground bg-transparent"
+                      >
+                        Đang theo dõi
+                      </Button>
+                    ) : (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        disabled={user.isLoading}
+                        className={`font-bold text-sm px-4 py-2 rounded-lg transition-all duration-300 ${
+                          hoveredUser === user.id.toString()
+                            ? "bg-primary text-white hover:bg-primary/90 hover:text-white scale-110 shadow-md"
+                            : "text-primary hover:bg-primary/10 hover:text-white dark:hover:bg-primary/20"
+                        }`}
+                        onClick={(e) => handleFollow(user, e)}
+                      >
+                        {user.isLoading ? (
+                          <Loader2 className="h-4 w-5 animate-spin" />
+                        ) : (
+                          "Theo dõi"
+                        )}
+                      </Button>
+                    )}
+                  </div>
+                ))}
+
+                {hasMore && (
+                  <div
+                    ref={lastElementRef as unknown as (node: HTMLDivElement | null) => void}
+                    className="flex justify-center items-center py-4"
+                  >
+                    {isLoading && <Loader2 className="h-5 w-5 animate-spin text-primary" />}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </DialogContent>
@@ -338,7 +465,6 @@ export const Suggestions = () => {
         isOpen={showAllSuggestions}
         onClose={() => setShowAllSuggestions(false)}
         onUserClick={handleUserClick}
-        suggestions={suggestions}
         onFollowSuccess={fetchSuggestions}
       />
 
