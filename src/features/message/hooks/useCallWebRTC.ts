@@ -248,10 +248,21 @@ export function useCallWebRTC({ myUserId, onCallEnded }: UseCallWebRTCOptions = 
 
         ws.initiateCall({ conversationId, callType });
       } catch (err) {
-        console.error("[WebRTC] getUserMedia failed:", err);
+        console.error("[WebRTC] startCall failed:", err);
         cleanup();
         setCallState("idle");
         callStateRef.current = "idle";
+        setActiveCall(null);
+        activeCallRef.current = null;
+        // Hiện lỗi cho user biết
+        const errorMessage = err instanceof DOMException 
+          ? (err.name === "NotAllowedError" 
+            ? "Bạn cần cấp quyền truy cập microphone/camera để gọi" 
+            : err.name === "NotFoundError"
+            ? "Không tìm thấy thiết bị microphone/camera"
+            : `Lỗi thiết bị: ${err.message}`)
+          : "Không thể bắt đầu cuộc gọi";
+        alert(errorMessage);
       }
     },
     [getUserMedia, ws, cleanup]
