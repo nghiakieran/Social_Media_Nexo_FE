@@ -155,9 +155,9 @@ export function PostDetailDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[90vh] p-0 overflow-hidden">
-        <DialogHeader className="p-6 border-b bg-muted/30">
-          <DialogTitle className="flex items-center justify-between">
+      <DialogContent className="max-w-3xl max-h-[90vh] p-0 overflow-hidden border border-border/50 bg-card text-card-foreground shadow-2xl rounded-3xl">
+        <DialogHeader className="p-6 border-b border-border/50 bg-muted/30">
+          <DialogTitle className="flex items-center justify-between text-foreground">
             <div className="flex items-center gap-3">
               Chi tiết bài viết
               <Badge variant={getTypeBadge(post.type)} className="shadow-sm">
@@ -193,14 +193,14 @@ export function PostDetailDialog({
             <div className="p-6 space-y-6">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                  <Avatar className="w-14 h-14 border shadow-sm">
+                  <Avatar className="w-14 h-14 border border-border/50 shadow-sm">
                     <AvatarImage src={postDetails?.avatarUrl} />
                     <AvatarFallback className="bg-primary/10 text-primary font-bold text-lg">
                       {postDetails?.userName?.charAt(0)}
                     </AvatarFallback>
                   </Avatar>
                   <div>
-                    <p className="font-bold text-lg leading-tight">
+                    <p className="font-bold text-lg leading-tight text-foreground">
                       {postDetails?.userName}
                     </p>
                     <p className="text-sm text-muted-foreground mt-1 flex items-center gap-2">
@@ -228,8 +228,8 @@ export function PostDetailDialog({
 
               <Separator />
 
-              <div className="bg-muted/20 p-4 rounded-xl border border-muted/50">
-                <p className="text-base leading-relaxed whitespace-pre-wrap">
+              <div className="bg-muted/20 p-4 rounded-xl border border-border/50">
+                <p className="text-base leading-relaxed whitespace-pre-wrap text-foreground">
                   {postDetails?.caption || (
                     <span className="italic text-muted-foreground">
                       Không có nội dung văn bản.
@@ -253,7 +253,7 @@ export function PostDetailDialog({
               </div>
 
               {mediaItems.length > 0 && (
-                <div className="rounded-xl overflow-hidden bg-black/5 border shadow-inner">
+                <div className="rounded-xl overflow-hidden bg-muted/30 border border-border/50 shadow-inner">
                   <MediaSlider
                     media={mediaItems}
                     className="w-full aspect-auto max-h-[500px]"
@@ -297,7 +297,7 @@ export function PostDetailDialog({
                 {postDetails.reports > 0 && (
                   <Button
                     variant="outline"
-                    className="flex-1 bg-amber-50 text-amber-600 border-amber-200 hover:bg-amber-100 hover:text-amber-700"
+                    className="flex-1 bg-amber-500/10 text-amber-600 dark:text-amber-500 border-amber-500/20 hover:bg-amber-500/20 hover:text-amber-700"
                   >
                     <Flag className="w-4 h-4 mr-2" />
                     Xem chi tiết báo cáo

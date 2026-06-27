@@ -167,21 +167,21 @@ export function ReportDetailDialog({
   const getAIStatus = (label: string) => {
     if (label === "negative")
       return {
-        color: "text-red-600",
-        bg: "bg-red-50",
+        color: "text-red-600 dark:text-red-400",
+        bg: "bg-red-500/10 border-red-500/20",
         icon: <AlertTriangle className="w-4 h-4" />,
         text: "Vi phạm (Negative)",
       };
     if (label === "normal")
       return {
-        color: "text-green-600",
-        bg: "bg-green-50",
+        color: "text-emerald-600 dark:text-emerald-400",
+        bg: "bg-emerald-500/10 border-emerald-500/20",
         icon: <ShieldCheck className="w-4 h-4" />,
         text: "An toàn (Normal)",
       };
     return {
-      color: "text-gray-500",
-      bg: "bg-gray-50",
+      color: "text-gray-500 dark:text-gray-400",
+      bg: "bg-gray-500/10 border-gray-500/20",
       icon: <Info className="w-4 h-4" />,
       text: "Chưa phân tích",
     };
@@ -192,10 +192,10 @@ export function ReportDetailDialog({
   if (loading) {
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-md p-10 text-center">
+        <DialogContent className="max-w-md p-10 text-center border border-border/50 bg-card text-card-foreground">
           <div className="flex flex-col items-center gap-4">
-            <div className="w-10 h-10 border-4 border-slate-900 border-t-transparent rounded-full animate-spin"></div>
-            <p className="font-medium text-slate-600">
+            <div className="w-10 h-10 border-4 border-slate-900 dark:border-white border-t-transparent rounded-full animate-spin"></div>
+            <p className="font-medium text-muted-foreground">
               Đang tải dữ liệu báo cáo...
             </p>
           </div>
@@ -206,7 +206,7 @@ export function ReportDetailDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl max-h-[95vh] p-0 overflow-hidden border-none shadow-2xl [&>button]:text-white [&>button]:hover:text-white [&>button]:bg-white/10 hover:[&>button]:bg-white/20 [&>button]:rounded-full">
+      <DialogContent className="max-w-5xl max-h-[95vh] p-0 overflow-hidden border border-border/50 bg-card text-card-foreground shadow-2xl [&>button]:text-white [&>button]:hover:text-white [&>button]:bg-white/10 hover:[&>button]:bg-white/20 [&>button]:rounded-full">
         <DialogHeader className="p-6 bg-gradient-to-r from-slate-900 to-slate-800 text-white relative">
           <div className="flex justify-between items-center pr-10">
             <DialogTitle className="text-2xl font-bold flex items-center gap-2">
@@ -221,14 +221,14 @@ export function ReportDetailDialog({
 
         <div className="flex h-[calc(95vh-100px)]">
           {/* CỘT TRÁI: NỘI DUNG VI PHẠM */}
-          <div className="flex-1 bg-slate-50 overflow-y-auto border-r">
+          <div className="flex-1 bg-muted/20 overflow-y-auto border-r border-border/50">
             <div className="p-6 space-y-6">
               <section>
-                <Label className="text-xs uppercase tracking-wider text-slate-500 font-bold mb-3 block">
+                <Label className="text-xs uppercase tracking-wider text-muted-foreground font-bold mb-3 block">
                   Nội dung hiển thị
                 </Label>
                 {report?.mediaUrls?.length > 0 ? (
-                  <div className="rounded-xl overflow-hidden shadow-lg border-4 border-white">
+                  <div className="rounded-xl overflow-hidden shadow-lg border-4 border-card">
                     <MediaSlider
                       media={report.mediaUrls.map((url: any, i: any) => ({
                         id: i,
@@ -239,14 +239,14 @@ export function ReportDetailDialog({
                     />
                   </div>
                 ) : (
-                  <div className="bg-white p-8 rounded-xl border-2 border-dashed flex flex-col items-center justify-center text-slate-400">
+                  <div className="bg-card p-8 rounded-xl border border-dashed border-border flex flex-col items-center justify-center text-muted-foreground">
                     <FileText className="w-12 h-12 mb-2 opacity-20" />
                     <p>Báo cáo dạng văn bản</p>
                   </div>
                 )}
                 {(report?.caption || report?.content) && (
-                  <div className="mt-4 p-4 bg-white rounded-xl shadow-sm border border-slate-200">
-                    <p className="text-slate-700 leading-relaxed italic">
+                  <div className="mt-4 p-4 bg-card text-card-foreground rounded-xl shadow-sm border border-border/50">
+                    <p className="text-slate-700 dark:text-slate-300 leading-relaxed italic">
                       "{report?.caption || report?.content}"
                     </p>
                   </div>
@@ -254,8 +254,8 @@ export function ReportDetailDialog({
               </section>
 
               <div className="grid grid-cols-2 gap-4">
-                <div className="bg-white p-4 rounded-xl border shadow-sm">
-                  <Label className="text-xs text-slate-400 block mb-2">
+                <div className="bg-card p-4 rounded-xl border border-border/50 shadow-sm">
+                  <Label className="text-xs text-muted-foreground block mb-2">
                     Người báo cáo
                   </Label>
                   <div className="flex items-center gap-3">
@@ -264,18 +264,18 @@ export function ReportDetailDialog({
                       <AvatarFallback>U</AvatarFallback>
                     </Avatar>
                     <div>
-                      <p className="font-bold text-sm">
+                      <p className="font-bold text-sm text-foreground">
                         {report?.reporterName}
                       </p>
-                      <p className="text-[10px] flex items-center gap-1 text-slate-500">
+                      <p className="text-[10px] flex items-center gap-1 text-muted-foreground">
                         <Calendar className="w-3 h-3" />{" "}
                         {formatDate(report?.createdAt)}
                       </p>
                     </div>
                   </div>
                 </div>
-                <div className="bg-white p-4 rounded-xl border shadow-sm">
-                  <Label className="text-xs text-slate-400 block mb-2">
+                <div className="bg-card p-4 rounded-xl border border-border/50 shadow-sm">
+                  <Label className="text-xs text-muted-foreground block mb-2">
                     Người bị báo cáo
                   </Label>
                   <div className="flex items-center gap-3">
@@ -284,7 +284,7 @@ export function ReportDetailDialog({
                       <AvatarFallback>O</AvatarFallback>
                     </Avatar>
                     <div>
-                      <p className="font-bold text-sm text-red-600">
+                      <p className="font-bold text-sm text-rose-500">
                         {report?.ownerPostName || report?.ownerCommentName}
                       </p>
                       <Badge variant="outline" className="text-[10px]">
@@ -295,11 +295,11 @@ export function ReportDetailDialog({
                 </div>
               </div>
 
-              <div className="bg-amber-50 p-4 rounded-xl border border-amber-200">
-                <h4 className="text-amber-800 font-bold flex items-center gap-2 mb-1">
+              <div className="bg-amber-500/10 p-4 rounded-xl border border-amber-500/20">
+                <h4 className="text-amber-600 dark:text-amber-500 font-bold flex items-center gap-2 mb-1">
                   <AlertTriangle className="w-4 h-4" /> Lý do: {report?.reason}
                 </h4>
-                <p className="text-sm text-amber-700">
+                <p className="text-sm text-amber-700 dark:text-amber-400">
                   {report?.detail || "Không có mô tả chi tiết."}
                 </p>
               </div>
@@ -307,16 +307,16 @@ export function ReportDetailDialog({
           </div>
 
           {/* CỘT PHẢI: AI & ACTION */}
-          <div className="w-80 bg-white p-6 flex flex-col shadow-[-10px_0_15px_-3px_rgba(0,0,0,0.05)]">
+          <div className="w-80 bg-card p-6 flex flex-col border-l border-border/50">
             <ScrollArea className="flex-1">
               <div className="space-y-8">
                 {/* AI INSIGHT CARD */}
                 <div
-                  className={`p-5 rounded-2xl border-2 ${aiInfo.bg} ${aiInfo.color.replace("text", "border")}`}
+                  className={`p-5 rounded-2xl border ${aiInfo.bg}`}
                 >
                   <div className="flex items-center gap-2 mb-4">
                     <div
-                      className={`p-2 rounded-lg ${aiInfo.color.replace("text", "bg").replace("600", "100")}`}
+                      className={`p-2 rounded-lg bg-background border border-border/50 ${aiInfo.color}`}
                     >
                       <BrainCircuit className="w-5 h-5" />
                     </div>
@@ -341,7 +341,7 @@ export function ReportDetailDialog({
                         </div>
                         <Progress
                           value={report.confidence * 100}
-                          className={`h-2 ${report.predictAI === "negative" ? "bg-red-100" : "bg-green-100"}`}
+                          className={`h-2 ${report.predictAI === "negative" ? "bg-red-500/20" : "bg-emerald-500/20"}`}
                         />
                       </div>
                     )}
@@ -349,14 +349,14 @@ export function ReportDetailDialog({
                 </div>
 
                 <div className="space-y-3">
-                  <Label className="text-xs font-bold uppercase text-slate-500">
+                  <Label className="text-xs font-bold uppercase text-muted-foreground">
                     Ghi chú điều hành
                   </Label>
                   <Textarea
                     value={adminNote}
                     onChange={(e) => setAdminNote(e.target.value)}
                     placeholder="Nhập lý do xử lý..."
-                    className="min-h-[120px] bg-slate-50 border-slate-200 rounded-xl"
+                    className="min-h-[120px] bg-background border-border rounded-xl text-foreground"
                   />
                 </div>
               </div>
@@ -368,7 +368,7 @@ export function ReportDetailDialog({
                 report?.reportStatus === "IN_REVIEW" ? (
                 <>
                   <Button
-                    className="w-full bg-slate-900 hover:bg-black text-white rounded-xl h-12 shadow-lg transition-all active:scale-95"
+                    className="w-full bg-primary text-primary-foreground hover:bg-primary/90 rounded-xl h-12 shadow-lg transition-all active:scale-95"
                     onClick={() => handleChangeStatus("APPROVED")}
                     disabled={processing}
                   >
@@ -384,7 +384,7 @@ export function ReportDetailDialog({
                   <div className="grid grid-cols-2 gap-2">
                     <Button
                       variant="outline"
-                      className="rounded-xl border-slate-200 hover:bg-red-50 hover:text-red-600 transition-colors"
+                      className="rounded-xl border-border hover:bg-rose-500/10 hover:text-rose-500 transition-colors"
                       onClick={() => handleChangeStatus("REJECTED")}
                       disabled={processing}
                     >
@@ -392,7 +392,7 @@ export function ReportDetailDialog({
                     </Button>
                     <Button
                       variant="outline"
-                      className="rounded-xl border-slate-200 text-blue-600 hover:bg-blue-50"
+                      className="rounded-xl border-border text-blue-500 hover:bg-blue-500/10"
                       onClick={() => handleChangeStatus("IN_REVIEW")}
                       disabled={
                         processing || report?.reportStatus === "IN_REVIEW"
@@ -403,8 +403,8 @@ export function ReportDetailDialog({
                   </div>
                 </>
               ) : (
-                <div className="p-4 bg-slate-100 rounded-xl text-center border border-dashed border-slate-300">
-                  <p className="text-xs font-bold text-slate-500 uppercase tracking-widest flex items-center justify-center gap-2">
+                <div className="p-4 bg-muted/50 rounded-xl text-center border border-dashed border-border">
+                  <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest flex items-center justify-center gap-2">
                     <ShieldCheck className="w-4 h-4" /> Đã hoàn tất xử lý
                   </p>
                 </div>

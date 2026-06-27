@@ -63,45 +63,45 @@ import {
 const STATUS_CONFIG = {
   PENDING: {
     label: "Chờ xử lý",
-    color: "bg-amber-100 text-amber-700 border-amber-200",
+    color: "bg-amber-500/10 text-amber-500 border-amber-500/20",
     icon: <Clock className="w-3 h-3" />,
   },
   IN_REVIEW: {
     label: "Đang xem xét",
-    color: "bg-blue-100 text-blue-700 border-blue-200",
+    color: "bg-blue-500/10 text-blue-500 border-blue-500/20",
     icon: <Search className="w-3 h-3" />,
   },
   APPROVED: {
     label: "Đã duyệt",
-    color: "bg-emerald-100 text-emerald-700 border-emerald-200",
+    color: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20",
     icon: <CheckCircle2 className="w-3 h-3" />,
   },
   REJECTED: {
     label: "Từ chối",
-    color: "bg-rose-100 text-rose-700 border-rose-200",
+    color: "bg-rose-500/10 text-rose-500 border-rose-500/20",
     icon: <XCircle className="w-3 h-3" />,
   },
 };
 
 const ReportTable = ({ data, onSelectReport, reportType = "post" }) => {
   return (
-    <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
+    <div className="rounded-xl border border-border/50 bg-card text-card-foreground shadow-sm overflow-hidden">
       <Table>
-        <TableHeader className="bg-slate-50/50">
-          <TableRow>
-            <TableHead className="font-bold text-slate-700">
+        <TableHeader className="bg-muted/50">
+          <TableRow className="border-b border-border/50 hover:bg-transparent">
+            <TableHead className="font-bold text-slate-700 dark:text-slate-300">
               Người báo cáo
             </TableHead>
-            <TableHead className="font-bold text-slate-700">
+            <TableHead className="font-bold text-slate-700 dark:text-slate-300">
               {reportType === "user"
                 ? "Đối tượng bị tố cáo"
                 : "Chủ sở hữu nội dung"}
             </TableHead>
-            <TableHead className="font-bold text-slate-700">
+            <TableHead className="font-bold text-slate-700 dark:text-slate-300">
               Lý do & AI Phân tích
             </TableHead>
-            <TableHead className="font-bold text-slate-700">Ngày tạo</TableHead>
-            <TableHead className="font-bold text-slate-700">
+            <TableHead className="font-bold text-slate-700 dark:text-slate-300">Ngày tạo</TableHead>
+            <TableHead className="font-bold text-slate-700 dark:text-slate-300">
               Trạng thái
             </TableHead>
             <TableHead></TableHead>
@@ -116,29 +116,29 @@ const ReportTable = ({ data, onSelectReport, reportType = "post" }) => {
               return (
                 <TableRow
                   key={report.id || `${report.reporterId}-${report.reportedId}`}
-                  className="hover:bg-slate-50/80 transition-colors"
+                  className="hover:bg-muted/50 border-b border-border/50 transition-colors"
                 >
                   <TableCell>
                     <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-full bg-indigo-100 border border-indigo-200 flex items-center justify-center text-indigo-700 font-bold shadow-sm">
+                      <div className="w-9 h-9 rounded-full bg-indigo-100 dark:bg-indigo-950/50 border border-indigo-200 dark:border-indigo-900/50 flex items-center justify-center text-indigo-700 dark:text-indigo-400 font-bold shadow-sm">
                         {(report.reporterName || report.reporterUsername)
                           ?.charAt(0)
                           .toUpperCase()}
                       </div>
-                      <span className="font-semibold text-slate-900">
+                      <span className="font-semibold text-slate-900 dark:text-white">
                         {report.reporterName || report.reporterUsername}
                       </span>
                     </div>
                   </TableCell>
 
-                  <TableCell className="font-medium text-slate-600">
+                  <TableCell className="font-medium text-slate-600 dark:text-slate-300">
                     {report.ownerName || "N/A"}
                   </TableCell>
 
                   <TableCell>
                     <div className="flex flex-col gap-1.5">
                       <span
-                        className="text-sm text-slate-700 line-clamp-1"
+                        className="text-sm text-slate-700 dark:text-slate-300 line-clamp-1"
                         title={report.reason}
                       >
                         {report.reason}
@@ -149,7 +149,7 @@ const ReportTable = ({ data, onSelectReport, reportType = "post" }) => {
                           {report.predictAI === "negative" ? (
                             <Badge
                               variant="outline"
-                              className="bg-red-50 text-red-600 border-red-200 text-[10px] h-7 px-1.5 gap-1"
+                              className="bg-rose-500/10 text-rose-500 border-rose-500/20 text-[10px] h-7 px-1.5 gap-1"
                             >
                               <AlertCircle className="w-5 h-5" />
                               Vi phạm ( {(report.confidence * 100).toFixed(0)}%
@@ -158,7 +158,7 @@ const ReportTable = ({ data, onSelectReport, reportType = "post" }) => {
                           ) : (
                             <Badge
                               variant="outline"
-                              className="bg-green-50 text-green-600 border-green-200 text-[10px] h-7 px-1.5 gap-1"
+                              className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20 text-[10px] h-7 px-1.5 gap-1"
                             >
                               <ShieldCheck className="w-5 h-5" />
                               An toàn( {(report.confidence * 100).toFixed(0)}% )
@@ -169,7 +169,7 @@ const ReportTable = ({ data, onSelectReport, reportType = "post" }) => {
                     </div>
                   </TableCell>
 
-                  <TableCell className="text-slate-500 text-sm">
+                  <TableCell className="text-slate-500 dark:text-slate-400 text-sm">
                     {new Date(report.createdAt).toLocaleDateString("vi-VN")}
                   </TableCell>
 
@@ -187,7 +187,7 @@ const ReportTable = ({ data, onSelectReport, reportType = "post" }) => {
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="hover:bg-indigo-50 hover:text-indigo-600 rounded-full"
+                      className="hover:bg-muted hover:text-indigo-500 rounded-full"
                       onClick={() => onSelectReport(report)}
                     >
                       <Eye className="w-4 h-4" />
@@ -200,7 +200,7 @@ const ReportTable = ({ data, onSelectReport, reportType = "post" }) => {
             <TableRow>
               <TableCell
                 colSpan={6}
-                className="h-40 text-center text-slate-400"
+                className="h-40 text-center text-muted-foreground"
               >
                 <div className="flex flex-col items-center gap-2">
                   <Flag className="w-8 h-8 opacity-20" />
@@ -257,19 +257,19 @@ export default function Reports() {
       {/* Header Area */}
       <div className="flex justify-between items-end">
         <div className="space-y-1">
-          <div className="flex items-center gap-2 text-indigo-600 font-bold mb-1">
+          <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 font-bold mb-1">
             <LayoutDashboard className="w-5 h-5" />
             <span className="uppercase tracking-widest text-xs">
               Hệ thống giám sát
             </span>
           </div>
-          <h1 className="text-4xl font-black text-slate-900 tracking-tight">
+          <h1 className="text-4xl font-black text-slate-900 dark:text-white tracking-tight">
             Quản lý{" "}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-violet-600">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-violet-600 dark:from-indigo-400 dark:to-violet-400">
               Vi phạm
             </span>
           </h1>
-          <p className="text-slate-500 font-medium">
+          <p className="text-slate-500 dark:text-slate-400 font-medium">
             Theo dõi và xử lý các báo cáo nội dung từ cộng đồng
           </p>
         </div>
@@ -336,8 +336,8 @@ export default function Reports() {
         onValueChange={(val) => dispatch(setActiveTab(val as any))}
         className="w-full space-y-6"
       >
-        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 bg-white p-4 rounded-2xl border shadow-sm">
-          <TabsList className="bg-slate-100 p-1 h-12 rounded-xl">
+        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 bg-card p-4 rounded-2xl border border-border/50 shadow-sm">
+          <TabsList className="bg-muted p-1 h-12 rounded-xl">
             {[
               { val: "user", icon: <User />, label: "Thành viên" },
               { val: "post", icon: <FileText />, label: "Bài viết" },
@@ -347,7 +347,7 @@ export default function Reports() {
               <TabsTrigger
                 key={t.val}
                 value={t.val}
-                className="rounded-lg px-6 data-[state=active]:bg-white data-[state=active]:shadow-sm gap-2 font-bold transition-all"
+                className="rounded-lg px-6 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm gap-2 font-bold transition-all"
               >
                 {t.icon} {t.label}
               </TabsTrigger>
@@ -361,14 +361,14 @@ export default function Reports() {
                 placeholder="Tìm tên người dùng, lý do..."
                 value={search}
                 onChange={(e) => dispatch(setSearch(e.target.value))}
-                className="pl-10 h-11 bg-slate-50 border-slate-200 rounded-xl focus:ring-indigo-500"
+                className="pl-10 h-11 bg-background border-border text-foreground rounded-xl"
               />
             </div>
             <Select
               value={statusFilter}
               onValueChange={(val) => dispatch(setStatusFilter(val as any))}
             >
-              <SelectTrigger className="w-44 h-11 rounded-xl bg-slate-50">
+              <SelectTrigger className="w-44 h-11 rounded-xl bg-background border-border text-foreground hover:bg-muted">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -389,9 +389,9 @@ export default function Reports() {
             className="mt-0 focus-visible:ring-0"
           >
             {isLoading ? (
-              <div className="flex flex-col items-center justify-center h-64 gap-4 bg-white rounded-3xl border border-dashed">
+              <div className="flex flex-col items-center justify-center h-64 gap-4 bg-card rounded-3xl border border-dashed border-border">
                 <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
-                <p className="text-slate-500 font-medium animate-pulse">
+                <p className="text-muted-foreground font-medium animate-pulse">
                   Đang truy xuất dữ liệu...
                 </p>
               </div>
@@ -403,8 +403,8 @@ export default function Reports() {
                   reportType={tab}
                 />
 
-                <div className="flex items-center justify-between bg-white px-6 py-4 rounded-2xl border shadow-sm">
-                  <span className="text-sm font-medium text-slate-500 italic">
+                <div className="flex items-center justify-between bg-card px-6 py-4 rounded-2xl border border-border/50 shadow-sm">
+                  <span className="text-sm font-medium text-muted-foreground italic">
                     Hiển thị {reports.length} trên tổng số {totalElements} kết
                     quả
                   </span>
