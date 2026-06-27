@@ -37,6 +37,15 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -157,6 +166,27 @@ export default function Posts() {
     loadAdminPostsData();
   }, []);
 
+  const getPagesToShow = () => {
+    const totalPagesValue = totalPages || 1;
+    const current = currentPage; // 1-based for UI
+    
+    if (totalPagesValue <= 7) {
+      return Array.from({ length: totalPagesValue }, (_, i) => i + 1);
+    }
+    
+    const pages: (number | string)[] = [1];
+    if (current > 4) pages.push("...");
+    const start = Math.max(2, current - 1);
+    const end = Math.min(totalPagesValue - 1, current + 1);
+    for (let i = start; i <= end; i++) {
+      if (!pages.includes(i)) pages.push(i);
+    }
+    if (current < totalPagesValue - 3) pages.push("...");
+    if (!pages.includes(totalPagesValue)) pages.push(totalPagesValue);
+    
+    return pages;
+  };
+
   const confirmDelete = async () => {
     if (!postToDelete) return;
 
@@ -238,22 +268,22 @@ export default function Posts() {
   };
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500 p-1">
+    <div className="space-y-6 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
-          <h1 className="text-4xl font-black tracking-tight text-slate-900 dark:text-white">
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight text-slate-900 dark:text-white">
             Quản lý{" "}
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-violet-600 dark:from-indigo-400 dark:to-violet-400">
               Bài viết
             </span>
           </h1>
-          <p className="text-slate-500 dark:text-slate-400 font-medium mt-1">
+          <p className="text-sm text-slate-500 dark:text-slate-400 font-medium mt-1">
             Giám sát và kiểm duyệt toàn bộ nội dung trên nền tảng Nexo
           </p>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-3 gap-3 sm:gap-4 lg:grid-cols-3">
         <Card className="border-none shadow-lg overflow-hidden group hover:shadow-xl transition-all duration-300">
           <CardContent className="p-0 bg-gradient-to-br from-blue-600 to-indigo-600 text-white">
             <div className="p-6 flex justify-between items-start">
@@ -401,7 +431,7 @@ export default function Posts() {
             </div>
           </div>
 
-          <div className="rounded-md border border-border/50">
+          <div className="rounded-md border border-border/50 overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow className="hover:bg-transparent border-b border-border/50">
@@ -527,36 +557,55 @@ export default function Posts() {
             </Table>
           </div>
 
-          <div className="flex items-center justify-between mt-4">
-            <div className="text-sm text-muted-foreground">
-              Hiển thị tổng số {totalElements} bài viết
+          {totalElements > 0 && (
+            <div className="mt-4 p-6 bg-card rounded-2xl border border-border/50 shadow-sm">
+              <Pagination>
+                <PaginationContent>
+                  <PaginationItem>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="rounded-lg gap-1 px-3"
+                      onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                      disabled={currentPage === 1 || loading || totalElements === 0}
+                    >
+                      <ChevronLeft className="h-4 w-4 mr-1" /> Trước
+                    </Button>
+                  </PaginationItem>
+                  
+                  {getPagesToShow().map((page, index) => (
+                    <PaginationItem key={index}>
+                      {page === "..." ? (
+                        <PaginationEllipsis />
+                      ) : (
+                        <Button
+                          variant={page === currentPage ? "default" : "ghost"}
+                          size="sm"
+                          className={`w-9 h-9 p-0 rounded-lg ${page === currentPage ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20 dark:shadow-none" : ""}`}
+                          onClick={() => setCurrentPage(page as number)}
+                          disabled={loading}
+                        >
+                          {page}
+                        </Button>
+                      )}
+                    </PaginationItem>
+                  ))}
+
+                  <PaginationItem>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="rounded-lg gap-1 px-3"
+                      onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages || 1))}
+                      disabled={currentPage >= (totalPages || 1) || loading}
+                    >
+                      Sau <ChevronRight className="h-4 w-4 ml-1" />
+                    </Button>
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
             </div>
-            <div className="flex items-center space-x-2">
-              <div className="text-sm font-medium mr-4">
-                Trang {currentPage} / {totalPages || 1}
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-                disabled={currentPage === 1 || loading}
-              >
-                <ChevronLeft className="h-4 w-4" />
-                Trước
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() =>
-                  setCurrentPage((prev) => Math.min(prev + 1, totalPages))
-                }
-                disabled={currentPage >= totalPages || loading}
-              >
-                Sau
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
+          )}
         </CardContent>
       </Card>
 

@@ -125,14 +125,14 @@ export default function Dashboard() {
   const tickColor = theme === "dark" ? "#94a3b8" : "#64748b";
 
   return (
-    <div className="p-1 space-y-8 animate-in fade-in duration-700">
+    <div className="space-y-6 animate-in fade-in duration-700">
       {/* Header Section */}
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div className="space-y-1">
-          <h1 className="text-4xl font-black tracking-tight text-slate-900 dark:text-white">
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight text-slate-900 dark:text-white">
             Tổng quan <span className="text-indigo-600 dark:text-indigo-400">Hệ thống</span>
           </h1>
-          <p className="font-medium text-slate-500 dark:text-slate-400">
+          <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
             Báo cáo hoạt động chi tiết Nexo Social
           </p>
         </div>
@@ -141,12 +141,14 @@ export default function Dashboard() {
           <PopoverTrigger asChild>
             <Button
               variant="outline"
-              className="justify-start text-left font-normal w-[280px] h-11 rounded-xl shadow-sm bg-background border-border text-foreground hover:bg-muted"
+              className="justify-start text-left font-normal w-full md:w-[280px] h-11 rounded-xl shadow-sm bg-background border-border text-foreground hover:bg-muted"
             >
-              <CalendarIcon className="mr-2 h-4 w-4 text-indigo-500" />
-              {dateRange.from && dateRange.to
-                ? `${format(dateRange.from, "dd MMM, yyyy", { locale: vi })} - ${format(dateRange.to, "dd MMM, yyyy", { locale: vi })}`
-                : "Chọn khoảng thời gian"}
+              <CalendarIcon className="mr-2 h-4 w-4 text-indigo-500 shrink-0" />
+              <span className="truncate text-sm">
+                {dateRange.from && dateRange.to
+                  ? `${format(dateRange.from, "dd MMM, yyyy", { locale: vi })} - ${format(dateRange.to, "dd MMM, yyyy", { locale: vi })}`
+                  : "Chọn khoảng thời gian"}
+              </span>
             </Button>
           </PopoverTrigger>
           <PopoverContent
@@ -157,15 +159,24 @@ export default function Dashboard() {
               mode="range"
               selected={{ from: dateRange.from, to: dateRange.to }}
               onSelect={(range) => setDateRange(range || {})}
+              numberOfMonths={1}
+              locale={vi}
+              className="block sm:hidden"
+            />
+            <Calendar
+              mode="range"
+              selected={{ from: dateRange.from, to: dateRange.to }}
+              onSelect={(range) => setDateRange(range || {})}
               numberOfMonths={2}
               locale={vi}
+              className="hidden sm:block"
             />
           </PopoverContent>
         </Popover>
       </div>
 
       {/* Stats Cards Dashboard */}
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
         <StatsCard
           title="Tổng người dùng"
           value={dashboardDataCard?.totalUser || 0}
@@ -201,7 +212,7 @@ export default function Dashboard() {
       </div>
 
       {/* Charts Grid */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:gap-6 xl:grid-cols-2">
         <ChartContainer
           title="Tăng trưởng người dùng"
           icon={Users}

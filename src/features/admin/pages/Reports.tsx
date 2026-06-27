@@ -47,6 +47,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 import { AppDispatch, useAppSelector } from "@/store";
 import {
   fetchReportsAsync,
@@ -85,7 +94,7 @@ const STATUS_CONFIG = {
 
 const ReportTable = ({ data, onSelectReport, reportType = "post" }) => {
   return (
-    <div className="rounded-xl border border-border/50 bg-card text-card-foreground shadow-sm overflow-hidden">
+    <div className="rounded-xl border border-border/50 bg-card text-card-foreground shadow-sm overflow-x-auto">
       <Table>
         <TableHeader className="bg-muted/50">
           <TableRow className="border-b border-border/50 hover:bg-transparent">
@@ -235,6 +244,27 @@ export default function Reports() {
 
   const [debouncedSearch, setDebouncedSearch] = useState("");
 
+  const getPagesToShow = () => {
+    const totalPagesValue = Math.ceil(totalElements / 10) || 1;
+    const current = currentPage + 1; // 1-based for UI
+    
+    if (totalPagesValue <= 7) {
+      return Array.from({ length: totalPagesValue }, (_, i) => i + 1);
+    }
+    
+    const pages: (number | string)[] = [1];
+    if (current > 4) pages.push("...");
+    const start = Math.max(2, current - 1);
+    const end = Math.min(totalPagesValue - 1, current + 1);
+    for (let i = start; i <= end; i++) {
+      if (!pages.includes(i)) pages.push(i);
+    }
+    if (current < totalPagesValue - 3) pages.push("...");
+    if (!pages.includes(totalPagesValue)) pages.push(totalPagesValue);
+    
+    return pages;
+  };
+
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(search), 500);
     return () => clearTimeout(timer);
@@ -253,30 +283,28 @@ export default function Reports() {
   }, [dispatch, currentPage, debouncedSearch, statusFilter, activeTab]);
 
   return (
-    <div className="space-y-8 p-2">
+    <div className="space-y-6">
       {/* Header Area */}
-      <div className="flex justify-between items-end">
-        <div className="space-y-1">
-          <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 font-bold mb-1">
-            <LayoutDashboard className="w-5 h-5" />
-            <span className="uppercase tracking-widest text-xs">
-              Hệ thống giám sát
-            </span>
-          </div>
-          <h1 className="text-4xl font-black text-slate-900 dark:text-white tracking-tight">
-            Quản lý{" "}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-violet-600 dark:from-indigo-400 dark:to-violet-400">
-              Vi phạm
-            </span>
-          </h1>
-          <p className="text-slate-500 dark:text-slate-400 font-medium">
-            Theo dõi và xử lý các báo cáo nội dung từ cộng đồng
-          </p>
+      <div className="space-y-1">
+        <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 font-bold mb-1">
+          <LayoutDashboard className="w-4 h-4" />
+          <span className="uppercase tracking-widest text-xs">
+            Hệ thống giám sát
+          </span>
         </div>
+        <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-slate-900 dark:text-white tracking-tight">
+          Quản lý{ "" }
+          <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-violet-600 dark:from-indigo-400 dark:to-violet-400">
+            Vi phạm
+          </span>
+        </h1>
+        <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">
+          Theo dõi và xử lý các báo cáo nội dung từ cộng đồng
+        </p>
       </div>
 
       {/* Stats Dashboard */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
         {[
           {
             label: "Tổng báo cáo",
@@ -337,7 +365,7 @@ export default function Reports() {
         className="w-full space-y-6"
       >
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 bg-card p-4 rounded-2xl border border-border/50 shadow-sm">
-          <TabsList className="bg-muted p-1 h-12 rounded-xl">
+          <TabsList className="bg-muted p-1 h-auto rounded-xl flex flex-wrap gap-1">
             {[
               { val: "user", icon: <User />, label: "Thành viên" },
               { val: "post", icon: <FileText />, label: "Bài viết" },
@@ -347,7 +375,7 @@ export default function Reports() {
               <TabsTrigger
                 key={t.val}
                 value={t.val}
-                className="rounded-lg px-6 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm gap-2 font-bold transition-all"
+                className="rounded-lg px-3 sm:px-6 py-2 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm gap-1 sm:gap-2 font-bold transition-all text-xs sm:text-sm"
               >
                 {t.icon} {t.label}
               </TabsTrigger>
@@ -403,55 +431,59 @@ export default function Reports() {
                   reportType={tab}
                 />
 
-                <div className="flex items-center justify-between bg-card px-6 py-4 rounded-2xl border border-border/50 shadow-sm">
-                  <span className="text-sm font-medium text-muted-foreground italic">
-                    Hiển thị {reports.length} trên tổng số {totalElements} kết
-                    quả
-                  </span>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="rounded-lg h-9"
-                      onClick={() =>
-                        dispatch(setCurrentPage(Math.max(currentPage - 1, 0)))
-                      }
-                      disabled={currentPage === 0}
-                    >
-                      <ChevronLeft className="w-4 h-4 mr-1" /> Trước
-                    </Button>
-                    <div className="flex items-center gap-1 mx-2">
-                      {Array.from({ length: Math.min(totalPages, 5) }).map(
-                        (_, i) => (
+                {totalElements > 0 && (
+                  <div className="p-6 bg-card rounded-2xl border border-border/50 shadow-sm">
+                    <Pagination>
+                      <PaginationContent>
+                        <PaginationItem>
                           <Button
-                            key={i}
-                            variant={currentPage === i ? "default" : "ghost"}
+                            variant="ghost"
                             size="sm"
-                            className="w-9 h-9 p-0 rounded-lg"
-                            onClick={() => dispatch(setCurrentPage(i))}
+                            className="rounded-lg gap-1 px-3"
+                            onClick={() =>
+                              dispatch(setCurrentPage(Math.max(currentPage - 1, 0)))
+                            }
+                            disabled={currentPage === 0 || totalElements === 0}
                           >
-                            {i + 1}
+                            <ChevronLeft className="w-4 h-4" /> Trước
                           </Button>
-                        ),
-                      )}
-                    </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="rounded-lg h-9"
-                      onClick={() =>
-                        dispatch(
-                          setCurrentPage(
-                            Math.min(currentPage + 1, totalPages - 1),
-                          ),
-                        )
-                      }
-                      disabled={currentPage >= totalPages - 1}
-                    >
-                      Sau <ChevronRight className="w-4 h-4 ml-1" />
-                    </Button>
+                        </PaginationItem>
+
+                        {getPagesToShow().map((page, index) => (
+                          <PaginationItem key={index}>
+                            {page === "..." ? (
+                              <PaginationEllipsis />
+                            ) : (
+                              <Button
+                                variant={page === currentPage + 1 ? "default" : "ghost"}
+                                size="sm"
+                                className={`w-9 h-9 p-0 rounded-lg ${page === currentPage + 1 ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20 dark:shadow-none" : ""}`}
+                                onClick={() => dispatch(setCurrentPage((page as number) - 1))}
+                              >
+                                {page}
+                              </Button>
+                            )}
+                          </PaginationItem>
+                        ))}
+
+                        <PaginationItem>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="rounded-lg gap-1 px-3"
+                            onClick={() => {
+                              const maxPages = Math.ceil(totalElements / 10) || 1;
+                              dispatch(setCurrentPage(Math.min(currentPage + 1, maxPages - 1)));
+                            }}
+                            disabled={currentPage >= (Math.ceil(totalElements / 10) || 1) - 1}
+                          >
+                            Sau <ChevronRight className="w-4 h-4" />
+                          </Button>
+                        </PaginationItem>
+                      </PaginationContent>
+                    </Pagination>
                   </div>
-                </div>
+                )}
               </div>
             )}
           </TabsContent>
