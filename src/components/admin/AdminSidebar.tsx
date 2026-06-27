@@ -4,8 +4,6 @@ import {
   FileText,
   Flag,
   Settings,
-  ChevronDown,
-  KeyRound,
   LogOut,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
@@ -21,12 +19,10 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { ChangePasswordDialog } from "@/components/admin/ChangePasswordDialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useAppDispatch } from "@/store";
@@ -46,7 +42,7 @@ const menuItems = [
   { title: "Quản lý người dùng", url: "/admin/users", icon: Users },
   { title: "Quản lý bài viết", url: "/admin/posts", icon: FileText },
   { title: "Báo cáo & Vi phạm", url: "/admin/reports", icon: Flag },
-  { title: "Cài đặt hệ thống", url: "/admin/settings", icon: Settings },
+  // { title: "Cài đặt hệ thống", url: "/admin/settings", icon: Settings },
 ];
 
 export function AdminSidebar() {
@@ -155,14 +151,10 @@ export function AdminSidebar() {
 
         {/* User Profile (Bottom) */}
         {user && (
-          <div className="p-4 mt-auto border-t border-border/50">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button
-                  className={`w-full flex items-center gap-3 p-2.5 rounded-lg hover:bg-muted transition-all duration-200 group ${
-                    isCollapsed ? "justify-center" : ""
-                  }`}
-                >
+          <div className="p-4 mt-auto border-t border-border/50 flex flex-col gap-2">
+            {!isCollapsed ? (
+              <div className="flex items-center justify-between p-2.5 rounded-xl bg-muted/40 border border-border/40">
+                <div className="flex items-center gap-3 overflow-hidden">
                   <img
                     src={
                       user.avatarUrl ||
@@ -171,61 +163,63 @@ export function AdminSidebar() {
                     alt={user.username}
                     className="w-9 h-9 rounded-full border border-border object-cover flex-shrink-0"
                   />
-                  {!isCollapsed && (
-                    <>
-                      <div className="flex-1 text-left overflow-hidden">
-                        <p className="text-sm font-semibold text-foreground truncate">
-                          {user.username}
-                        </p>
-                        <p className="text-xs text-muted-foreground truncate">
-                          {user.email}
-                        </p>
-                      </div>
-                      <ChevronDown className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors flex-shrink-0" />
-                    </>
-                  )}
-                </button>
-              </DropdownMenuTrigger>
-
-              <DropdownMenuContent
-                align="end"
-                side="right"
-                sideOffset={isCollapsed ? 10 : 0}
-                className="w-56 rounded-lg shadow-lg border border-border"
-              >
-                <div className="px-3 py-3 border-b border-border/50">
-                  <p className="text-sm font-semibold text-foreground">
-                    {user.username}
-                  </p>
-                  <p className="text-xs text-muted-foreground truncate mt-0.5">
-                    {user.email}
-                  </p>
+                  <div className="flex-1 text-left overflow-hidden">
+                    <p className="text-sm font-semibold text-foreground truncate">
+                      {user.username}
+                    </p>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {user.email}
+                    </p>
+                  </div>
                 </div>
-                <DropdownMenuItem
-                  onClick={() => setShowChangePassword(true)}
-                  className="focus:bg-primary/15 focus:text-primary cursor-pointer rounded-md mx-1 my-1"
-                >
-                  <KeyRound className="w-4 h-4 mr-2 opacity-70" />
-                  <span>Đổi mật khẩu</span>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator className="my-1" />
-                <DropdownMenuItem
+                <button
                   onClick={handleLogout}
-                  className="text-destructive focus:bg-destructive/10 focus:text-destructive cursor-pointer rounded-md mx-1 my-1"
+                  className="flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg shrink-0 w-8 h-8 transition-all duration-200"
+                  title="Đăng xuất"
                 >
-                  <LogOut className="w-4 h-4 mr-2" />
-                  <span>Đăng xuất</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+                  <LogOut className="w-4 h-4" />
+                </button>
+              </div>
+            ) : (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    className="w-full flex items-center justify-center p-2 rounded-lg hover:bg-muted transition-all duration-200"
+                    title={user.username}
+                  >
+                    <img
+                      src={
+                        user.avatarUrl ||
+                        `https://ui-avatars.com/api/?name=${user.username}&background=random`
+                      }
+                      alt={user.username}
+                      className="w-9 h-9 rounded-full border border-border object-cover flex-shrink-0"
+                    />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent
+                  align="end"
+                  side="right"
+                  sideOffset={10}
+                  className="w-48 rounded-lg shadow-lg border border-border"
+                >
+                  <div className="px-3 py-2 border-b border-border/50">
+                    <p className="text-sm font-semibold text-foreground truncate">
+                      {user.username}
+                    </p>
+                  </div>
+                  <DropdownMenuItem
+                    onClick={handleLogout}
+                    className="text-destructive focus:bg-destructive/10 focus:text-destructive cursor-pointer rounded-md mx-1 my-1"
+                  >
+                    <LogOut className="w-4 h-4 mr-2" />
+                    <span>Đăng xuất</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
           </div>
         )}
-
-        {/* Modal đổi mật khẩu */}
-        <ChangePasswordDialog
-          open={showChangePassword}
-          onOpenChange={setShowChangePassword}
-        />
       </SidebarContent>
     </Sidebar>
   );

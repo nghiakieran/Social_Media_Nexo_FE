@@ -115,22 +115,18 @@ export const ArchivePage = () => {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-background border-b">
-        <div className="max-w-4xl mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <button
-                onClick={() => navigate(-1)}
-                className="p-2 hover:bg-accent hover:text-white rounded-full transition-colors"
-                aria-label="Quay lại"
-              >
-                <ArrowLeft className="w-5 h-5" />
-              </button>
-              <div>
-                <h1 className="text-xl font-semibold">Kho lưu trữ</h1>
-              </div>
-            </div>
-          </div>
+      <div className="sticky top-16 lg:top-0 z-30 bg-background border-b border-border">
+        <div className="flex items-center justify-center px-4 py-3 relative min-h-[48px] max-w-4xl mx-auto">
+          <button
+            onClick={() => navigate(-1)}
+            className="absolute left-4 top-1/2 -translate-y-1/2 p-2 hover:bg-accent hover:text-white rounded-full transition-colors"
+            aria-label="Quay lại"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </button>
+          <h1 className="text-lg font-semibold text-foreground text-center">
+            Kho lưu trữ
+          </h1>
         </div>
       </div>
 

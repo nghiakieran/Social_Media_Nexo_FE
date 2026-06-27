@@ -825,7 +825,7 @@ export const ProfilePage = () => {
   };
 
   return (
-    <div className="max-w-4xl mx-auto">
+    <div className="max-w-4xl mx-auto pb-6">
       <ProfileHeader
         profile={currentProfile}
         isCurrentUser={isCurrentUser}

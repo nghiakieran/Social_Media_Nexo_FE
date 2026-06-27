@@ -1,8 +1,6 @@
 import { useEffect } from "react";
 import { useAppDispatch, useAppSelector } from "@/store";
 import { fetchActivityLogsAsync } from "../profileSlice";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { History, FileText, Heart, MessageCircle } from "lucide-react";
 
@@ -49,26 +47,28 @@ export const ActivityLogs = () => {
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <History className="w-5 h-5" />
+    <div>
+      <div className="px-4 pt-5 pb-1">
+        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+          <History className="w-3.5 h-3.5" />
           Lịch sử hoạt động
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-3">
+        </p>
+      </div>
+      <div className="bg-card sm:mx-4 sm:rounded-xl overflow-hidden sm:border border-border">
         {isActivityLogsLoading && activityLogs.length === 0 ? (
-          Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="flex items-center gap-3">
-              <Skeleton className="w-8 h-8 rounded-full" />
-              <div className="flex-1 space-y-1">
-                <Skeleton className="h-4 w-32" />
-                <Skeleton className="h-3 w-24" />
+          <div className="px-4 py-3 space-y-3">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="flex items-center gap-3">
+                <Skeleton className="w-7 h-7 rounded-full shrink-0" />
+                <div className="flex-1 space-y-1">
+                  <Skeleton className="h-3.5 w-32" />
+                  <Skeleton className="h-3 w-20" />
+                </div>
               </div>
-            </div>
-          ))
+            ))}
+          </div>
         ) : activityLogs.length === 0 ? (
-          <p className="text-sm text-muted-foreground text-center py-4">
+          <p className="text-sm text-muted-foreground text-center py-6 px-4">
             Chưa có hoạt động nào được ghi lại.
           </p>
         ) : (
@@ -78,13 +78,13 @@ export const ActivityLogs = () => {
               return (
                 <div
                   key={log.id}
-                  className="flex items-center gap-3 py-2 border-b border-border last:border-0"
+                  className="flex items-center gap-3 px-4 py-3 border-b border-border last:border-0"
                 >
-                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-muted flex items-center justify-center">
-                    {meta?.icon ?? <History className="w-4 h-4" />}
+                  <div className="shrink-0 w-7 h-7 rounded-full bg-muted flex items-center justify-center">
+                    {meta?.icon ?? <History className="w-3.5 h-3.5" />}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium">
+                    <p className="text-sm font-medium text-foreground">
                       {meta?.label ?? log.action}
                     </p>
                     <p className="text-xs text-muted-foreground">
@@ -95,19 +95,17 @@ export const ActivityLogs = () => {
               );
             })}
             {activityLogsHasMore && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full mt-2"
+              <button
+                className="w-full text-sm text-primary py-3 hover:bg-accent/50 transition-colors"
                 onClick={handleLoadMore}
                 disabled={isActivityLogsLoading}
               >
                 {isActivityLogsLoading ? "Đang tải..." : "Xem thêm"}
-              </Button>
+              </button>
             )}
           </>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 };

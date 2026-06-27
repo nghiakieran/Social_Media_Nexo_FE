@@ -404,23 +404,23 @@ export default function Users() {
   ];
 
   return (
-    <div className="space-y-8 p-1">
+    <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
-          <h1 className="text-4xl font-black tracking-tight text-slate-900 dark:text-white">
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight text-slate-900 dark:text-white">
             Quản lý{" "}
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-violet-600 dark:from-indigo-400 dark:to-violet-400">
               Thành viên
             </span>
           </h1>
-          <p className="text-slate-500 dark:text-slate-400 font-medium mt-1">
+          <p className="text-sm text-slate-500 dark:text-slate-400 font-medium mt-1">
             Điều hành và giám sát quyền truy cập hệ thống Nexo
           </p>
         </div>
       </div>
 
       {/* Summary Cards với Gradient */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
         {summaryCards.map((card, i) => (
           <Card
             key={i}
@@ -483,7 +483,7 @@ export default function Users() {
           </div>
         </CardHeader>
         <CardContent className="p-0 bg-card rounded-b-[2rem]">
-          <div className="relative">
+          <div className="relative overflow-x-auto">
             <Table wrapperClassName="overflow-visible">
               <TableHeader className="bg-muted/50">
                 <TableRow className="hover:bg-transparent border-b border-border/50">
