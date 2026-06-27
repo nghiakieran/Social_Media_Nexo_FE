@@ -24,6 +24,7 @@ import {
   updateMessageReactionsFromAggregated,
   addReaction,
   removeReaction,
+  handleNicknameUpdate,
 } from "../messageSlice";
 import {
   MessageDTO,
@@ -35,6 +36,7 @@ import {
   ECallType,
   ReactionWebSocketPayload,
   ReactionUpdateLegacyDTO,
+  NicknameUpdateEvent,
 } from "../types";
 
 export const ChatPage: React.FC = () => {
@@ -94,6 +96,9 @@ export const ChatPage: React.FC = () => {
     },
     onReadAll: (readAllEvent: ReadAllDTO) => {
       dispatch(handleReadAll({ ...readAllEvent, currentUserId: user.id }));
+    },
+    onNicknameUpdate: (event: NicknameUpdateEvent) => {
+      dispatch(handleNicknameUpdate(event));
     },
     onReactionUpdate: (update: ReactionWebSocketPayload) => {
       // Check if it's the new aggregated format (has reactions array)

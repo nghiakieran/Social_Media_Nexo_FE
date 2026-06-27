@@ -13,6 +13,7 @@ import type {
   SendMessageRequest,
   PresenceStatusDTO,
   ReactionWebSocketPayload,
+  NicknameUpdateEvent,
 } from "../types";
 
 interface UseWebSocketOptions {
@@ -21,6 +22,7 @@ interface UseWebSocketOptions {
   onReadReceipt?: (receipt: ReadReceiptDTO) => void;
   onReadAll?: (receipt: ReadAllDTO) => void;
   onReactionUpdate?: (update: ReactionWebSocketPayload) => void;
+  onNicknameUpdate?: (event: NicknameUpdateEvent) => void;
   onError?: (error: WebSocketErrorResponse) => void;
   onPresence?: (presence: PresenceStatusDTO) => void;
   autoConnect?: boolean;
@@ -33,6 +35,7 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
     onReadReceipt,
     onReadAll,
     onReactionUpdate,
+    onNicknameUpdate,
     onError,
     onPresence,
     autoConnect = true,
@@ -122,12 +125,13 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
         (notification) => onTyping?.(notification),
         (receipt) => onReadReceipt?.(receipt),
         (receipt) => onReadAll?.(receipt),
-        (update) => onReactionUpdate?.(update)
+        (update) => onReactionUpdate?.(update),
+        (event) => onNicknameUpdate?.(event)
       );
 
       subscribedConversations.current.add(conversationId);
     },
-    [onMessage, onTyping, onReadReceipt, onReadAll, onReactionUpdate]
+    [onMessage, onTyping, onReadReceipt, onReadAll, onReactionUpdate, onNicknameUpdate]
   );
 
   const unsubscribeFromConversation = useCallback((conversationId: number) => {

@@ -396,9 +396,14 @@ export const GroupInfoPanel: React.FC<GroupInfoPanelProps> = ({
         existingParticipants={conversation.participants}
         currentUserId={currentUserId}
         onAdd={async (userIds) => {
-          await conversationApi.addMembers(conversation.id, { userIds });
-          toast({ title: "Đã thêm thành viên mới" });
-          onUpdated();
+          try {
+            await conversationApi.addMembers(conversation.id, { userIds });
+            toast({ title: "Đã thêm thành viên mới" });
+            onUpdated();
+          } catch {
+            toast({ title: "Lỗi", description: "Không thể thêm thành viên", variant: "destructive" });
+            throw new Error("Không thể thêm thành viên");
+          }
         }}
       />
     </>

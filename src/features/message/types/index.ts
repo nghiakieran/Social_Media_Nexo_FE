@@ -154,6 +154,13 @@ export type ReactionWebSocketPayload =
   | ReactionUpdateDTO
   | ReactionUpdateLegacyDTO;
 
+export interface NicknameUpdateEvent {
+  conversationId: number;
+  targetUserId: number;
+  nickname: string | null;
+  participants: UserDTO[];
+}
+
 export interface TypingNotificationDTO {
   conversationId: number;
   userId?: number;

@@ -13,6 +13,7 @@ import type {
   ReadAllDTO,
   ReactionDTO,
   AggregatedReactionDTO,
+  NicknameUpdateEvent,
 } from "./types";
 
 export interface MessageState {
@@ -678,6 +679,26 @@ const messageSlice = createSlice({
       }
       Object.assign(state.messagesPagination[conversationId], pagination);
     },
+
+    handleNicknameUpdate: (state, action: PayloadAction<NicknameUpdateEvent>) => {
+      const { conversationId, targetUserId, nickname, participants } = action.payload;
+
+      // Cập nhật participants trong conversation
+      const conv = state.conversations.find((c) => c.id === conversationId);
+      if (conv && participants) {
+        conv.participants = participants;
+      }
+
+      // Cập nhật sender.nickname trong tất cả messages của conversation này
+      const messages = state.messages[conversationId];
+      if (messages) {
+        messages.forEach((msg) => {
+          if (msg.sender.id === targetUserId) {
+            msg.sender = { ...msg.sender, nickname: nickname ?? undefined };
+          }
+        });
+      }
+    },
   },
 
   extraReducers: (builder) => {
@@ -880,6 +901,7 @@ export const {
   updateMessagesPagination,
   setReplyingTo,
   clearReplyingTo,
+  handleNicknameUpdate,
 } = messageSlice.actions;
 
 export default messageSlice.reducer;

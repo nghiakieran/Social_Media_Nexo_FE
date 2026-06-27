@@ -13,6 +13,7 @@ import {
   MoreVertical,
   Settings,
   Users,
+  UserPlus,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -37,6 +38,8 @@ import { cn } from "@/lib/utils";
 import { formatLastSeen } from "../hooks/usePresence";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
+import { AddMemberDialog } from "./AddMemberDialog";
+import { useAppSelector } from "@/store";
 
 interface InstagramChatHeaderProps {
   chat?: ConversationResponseDTO;
@@ -72,6 +75,7 @@ export const InstagramChatHeader: React.FC<InstagramChatHeaderProps> = ({
 }) => {
   const [nicknameDialogOpen, setNicknameDialogOpen] = useState(false);
   const [groupInfoOpen, setGroupInfoOpen] = useState(false);
+  const [addMemberDialogOpen, setAddMemberDialogOpen] = useState(false);
   const [participants, setParticipants] = useState<UserDTO[]>([]);
   const [editingUserId, setEditingUserId] = useState<number | null>(null);
   const [nickname, setNickname] = useState("");
@@ -86,6 +90,7 @@ export const InstagramChatHeader: React.FC<InstagramChatHeaderProps> = ({
   const [isLoadingOnlineStatus, setIsLoadingOnlineStatus] = useState(true);
   const { toast } = useToast();
   const navigate = useNavigate();
+  const conversations = useAppSelector((state) => state.message.conversations);
 
   useEffect(() => {
     const loadCurrentUserOnlineStatus = async () => {
@@ -173,7 +178,7 @@ export const InstagramChatHeader: React.FC<InstagramChatHeaderProps> = ({
     setIsUpdating(true);
     try {
       const { conversationApi } = await import("../services/messageApi");
-      await conversationApi.updateNickname(
+      const response = await conversationApi.updateNickname(
         chat.id,
         editingUserId,
         nickname.trim()
@@ -193,6 +198,11 @@ export const InstagramChatHeader: React.FC<InstagramChatHeaderProps> = ({
       }
     } catch (error) {
       console.error("Error updating nickname:", error);
+      toast({
+        title: "Lỗi",
+        description: "Không thể cập nhật biệt danh",
+        variant: "destructive",
+      });
     } finally {
       setIsUpdating(false);
     }
@@ -455,6 +465,20 @@ export const InstagramChatHeader: React.FC<InstagramChatHeaderProps> = ({
                   <Users className="h-4 w-4 mr-2" />
                   Thông tin nhóm
                 </DropdownMenuItem>
+                <DropdownMenuItem
+                  className="cursor-pointer hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground data-[highlighted]:bg-primary data-[highlighted]:text-primary-foreground"
+                  onClick={handleOpenNicknameDialog}
+                >
+                  Biệt danh
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  className="cursor-pointer hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground data-[highlighted]:bg-primary data-[highlighted]:text-primary-foreground"
+                  onClick={() => setAddMemberDialogOpen(true)}
+                >
+                  <UserPlus className="h-4 w-4 mr-2" />
+                  Thêm thành viên
+                </DropdownMenuItem>
               </>
             ) : (
               <>
@@ -626,6 +650,23 @@ export const InstagramChatHeader: React.FC<InstagramChatHeaderProps> = ({
             />
           )}
         </React.Suspense>
+      )}
+
+      {/* Add Member Dialog (từ header dropdown) */}
+      {chat.isGroup && (
+        <AddMemberDialog
+          open={addMemberDialogOpen}
+          onOpenChange={setAddMemberDialogOpen}
+          conversations={conversations}
+          existingParticipants={chat.participants ?? []}
+          currentUserId={currentUserId}
+          onAdd={async (userIds) => {
+            const { conversationApi } = await import("../services/messageApi");
+            await conversationApi.addMembers(chat.id, { userIds });
+            toast({ title: "Đã thêm thành viên mới" });
+            onGroupUpdated?.();
+          }}
+        />
       )}
 
       <Dialog open={blockDialogOpen} onOpenChange={setBlockDialogOpen}>

@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { X, Search, UserPlus } from "lucide-react";
+import { X, Search, UserPlus, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { UserDTO, ConversationResponseDTO } from "../types";
 
@@ -34,6 +34,7 @@ export const AddMemberDialog: React.FC<AddMemberDialogProps> = ({
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<UserDTO[]>([]);
   const [isAdding, setIsAdding] = useState(false);
+  const [addError, setAddError] = useState<string | null>(null);
 
   // Lọc lấy danh sách bạn bè chưa có trong nhóm
   const availableUsers = useMemo(() => {
@@ -74,11 +75,16 @@ export const AddMemberDialog: React.FC<AddMemberDialogProps> = ({
   const handleAdd = async () => {
     if (selected.length === 0) return;
     setIsAdding(true);
+    setAddError(null);
     try {
       await onAdd(selected.map((u) => u.id));
       setSelected([]);
       setSearch("");
       onOpenChange(false);
+    } catch (error) {
+      // Giữ nguyên trạng thái dialog để user thử lại — lỗi được xử lý bởi caller
+      const msg = error instanceof Error ? error.message : "Không thể thêm thành viên. Vui lòng thử lại.";
+      setAddError(msg);
     } finally {
       setIsAdding(false);
     }
@@ -88,6 +94,7 @@ export const AddMemberDialog: React.FC<AddMemberDialogProps> = ({
     if (!open) {
       setSelected([]);
       setSearch("");
+      setAddError(null);
     }
     onOpenChange(open);
   };
@@ -180,6 +187,14 @@ export const AddMemberDialog: React.FC<AddMemberDialogProps> = ({
               ))
             )}
           </div>
+
+          {/* Error message */}
+          {addError && (
+            <div className="flex items-center gap-2 text-sm text-destructive bg-destructive/10 rounded-lg px-3 py-2">
+              <AlertCircle className="h-4 w-4 shrink-0" />
+              <span>{addError}</span>
+            </div>
+          )}
         </div>
 
         <DialogFooter className="gap-2">
