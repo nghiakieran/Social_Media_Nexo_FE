@@ -113,11 +113,17 @@ export const InstagramInboxHeader: React.FC<InstagramInboxHeaderProps> = ({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start">
-              <DropdownMenuItem onClick={() => onViewChange?.("primary")}>
+              <DropdownMenuItem
+                onClick={() => onViewChange?.("primary")}
+                className="cursor-pointer hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground data-[highlighted]:bg-primary data-[highlighted]:text-primary-foreground"
+              >
                 <MessageSquare className="h-4 w-4 mr-2" />
                 Chính
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onViewChange?.("requests")} className="flex items-center justify-between">
+              <DropdownMenuItem
+                onClick={() => onViewChange?.("requests")}
+                className="flex items-center justify-between cursor-pointer hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground data-[highlighted]:bg-primary data-[highlighted]:text-primary-foreground"
+              >
                 <div className="flex items-center">
                   <Archive className="h-4 w-4 mr-2" />
                   Chờ
