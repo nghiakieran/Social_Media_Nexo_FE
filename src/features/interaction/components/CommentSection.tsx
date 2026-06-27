@@ -741,7 +741,7 @@ export const CommentSection = ({ postId, className }: CommentSectionProps) => {
                       e.target.selectionStart,
                     )
                   }
-                  className="resize-none min-h-[80px] max-h-[120px] rounded-2xl border-border/50 focus:border-primary/50 scrollbar-thin scrollbar-thumb-muted-foreground/30 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/50"
+                  className="resize-none min-h-[44px] max-h-[100px] rounded-2xl border-border/50 focus:border-primary/50 scrollbar-thin scrollbar-thumb-muted-foreground/30 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/50"
                 />
 
                 {mentionedUsers.length > 0 && (

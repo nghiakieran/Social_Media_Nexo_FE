@@ -16,7 +16,7 @@ import {
   Share2,
   Users,
 } from "lucide-react";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "@/store";
 import {
@@ -115,6 +115,7 @@ export const PostDetailPage = () => {
   const [showActionMenu, setShowActionMenu] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showCommentDialog, setShowCommentDialog] = useState(false);
+  const commentSectionRef = useRef<HTMLDivElement>(null);
 
   const { comments: reduxComments } = useAppSelector(
     (state) => state.interaction.comments
@@ -523,7 +524,8 @@ export const PostDetailPage = () => {
                     </div>
                   </div>
 
-                  {/* More Options Button */}
+                  {/* More Options Button - only for post owner */}
+                  {post.userId === user?.id.toString() && (
                   <Button
                     variant="ghost"
                     size="sm"
@@ -532,6 +534,7 @@ export const PostDetailPage = () => {
                   >
                     <MoreHorizontal className="w-5 h-5" />
                   </Button>
+                  )}
                 </div>
               </div>
 
@@ -609,21 +612,18 @@ export const PostDetailPage = () => {
                       variant="ghost"
                       size="sm"
                       className="flex items-center gap-2 px-3 py-2 rounded-full hover:text-primary"
-                      onClick={() => setShowCommentDialog(true)}
+                      onClick={() => {
+                        commentSectionRef.current?.scrollIntoView({ behavior: "smooth" });
+                        setTimeout(() => {
+                          const textarea = commentSectionRef.current?.querySelector("textarea");
+                          textarea?.focus();
+                        }, 400);
+                      }}
                     >
                       <MessageCircle className="w-5 h-5" />
                       <span className="hidden sm:inline">Bình luận</span>
                     </Button>
 
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={handleShare}
-                      className="flex items-center gap-2 px-3 py-2 rounded-full hover:text-green-500"
-                    >
-                      <Share2 className="w-5 h-5" />
-                      <span className="hidden sm:inline">Chia sẻ</span>
-                    </Button>
 
                     <Button
                       variant="ghost"
@@ -666,7 +666,9 @@ export const PostDetailPage = () => {
           </Card>
 
           {/* Comments Section */}
-          <CommentSection postId={parseInt(postId!)} />
+          <div ref={commentSectionRef}>
+            <CommentSection postId={parseInt(postId!)} />
+          </div>
         </div>
       </div>
 
