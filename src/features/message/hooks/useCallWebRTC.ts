@@ -1,5 +1,6 @@
 import { useRef, useState, useCallback, useEffect } from "react";
 import { getWebSocketService } from "../services/websocketService";
+import { isScreenCaptureSupported, applyVideoTrackToAllPeers, applyAudioTrackToAllPeers, selectOutgoingVideoTrack } from "../utils/screenShareUtils";
 import { startRingtone, stopRingtone, startRingbackTone, stopRingbackTone } from "@/utils/inAppAlertSounds";
 import type {
   CallNotificationDTO,
@@ -51,7 +52,11 @@ export function useCallWebRTC({ myUserId, onCallEnded }: UseCallWebRTCOptions = 
   const [duration, setDuration] = useState(0);
 
   const [isScreenSharing, setIsScreenSharing] = useState(false);
+  const [screenShareError, setScreenShareError] = useState<string | null>(null);
+  const screenShareSupported = isScreenCaptureSupported();
+  const clearScreenShareError = useCallback(() => setScreenShareError(null), []);
   const screenStreamRef = useRef<MediaStream | null>(null);
+  const isScreenSharingRef = useRef(false);
 
   // Mesh Topology states
   const peersRef = useRef<Map<number, RTCPeerConnection>>(new Map());
@@ -60,8 +65,6 @@ export function useCallWebRTC({ myUserId, onCallEnded }: UseCallWebRTCOptions = 
   const localStreamRef = useRef<MediaStream | null>(null);
   const localVideoRef = useRef<HTMLVideoElement | null>(null);
   
-  // Vẫn giữ remoteVideoRef để code cũ không lỗi ngay lập tức, 
-  // nhưng Mesh UI nên dùng remoteStreams.
   const remoteVideoRef = useRef<HTMLVideoElement | null>(null);
   
   const durationIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -79,6 +82,7 @@ export function useCallWebRTC({ myUserId, onCallEnded }: UseCallWebRTCOptions = 
   useEffect(() => { incomingCallRef.current = incomingCall; }, [incomingCall]);
   useEffect(() => { onCallEndedRef.current = onCallEnded; }, [onCallEnded]);
   useEffect(() => { myUserIdRef.current = myUserId; }, [myUserId]);
+  useEffect(() => { isScreenSharingRef.current = isScreenSharing; }, [isScreenSharing]);
 
   const ws = getWebSocketService();
 
@@ -94,12 +98,14 @@ export function useCallWebRTC({ myUserId, onCallEnded }: UseCallWebRTCOptions = 
       localStreamRef.current = null;
     }
     if (screenStreamRef.current) {
-      screenStreamRef.current.getTracks().forEach((t) => t.stop());
-      screenStreamRef.current = null;
+      try {
+        screenStreamRef.current.getTracks().forEach((t) => t.stop());
+        screenStreamRef.current = null;
+        setIsScreenSharing(false);
+      } catch {
+      }
     }
-    setIsScreenSharing(false);
-    
-    // Close all PeerConnections
+
     peersRef.current.forEach((pc) => pc.close());
     peersRef.current.clear();
     setRemoteStreams(new Map());
@@ -135,12 +141,10 @@ export function useCallWebRTC({ myUserId, onCallEnded }: UseCallWebRTCOptions = 
     };
 
     pc.ontrack = (event) => {
-      // Compatibility with old 1-1 UI
       if (remoteVideoRef.current && !remoteVideoRef.current.srcObject) {
         remoteVideoRef.current.srcObject = event.streams[0];
       }
-      
-      // Update Mesh streams state
+
       setRemoteStreams((prev) => {
         const next = new Map(prev);
         next.set(targetUserId, event.streams[0]);
@@ -174,11 +178,23 @@ export function useCallWebRTC({ myUserId, onCallEnded }: UseCallWebRTCOptions = 
       }
     };
 
-    // Add local tracks
+    const outgoingVideoTrack = selectOutgoingVideoTrack({
+      isScreenSharing: isScreenSharingRef.current,
+      screenStream: screenStreamRef.current,
+      cameraStream: localStreamRef.current,
+    });
+
     if (localStreamRef.current) {
-      localStreamRef.current.getTracks().forEach((track) => {
-        pc.addTrack(track, localStreamRef.current!);
-      });
+      const audioTrack = isScreenSharingRef.current && screenStreamRef.current?.getAudioTracks()[0]
+        ? screenStreamRef.current.getAudioTracks()[0]
+        : localStreamRef.current.getAudioTracks()[0];
+      if (audioTrack) {
+        pc.addTrack(audioTrack, localStreamRef.current);
+      }
+    }
+
+    if (outgoingVideoTrack && localStreamRef.current) {
+      pc.addTrack(outgoingVideoTrack, localStreamRef.current);
     }
 
     peersRef.current.set(targetUserId, pc);
@@ -385,73 +401,76 @@ export function useCallWebRTC({ myUserId, onCallEnded }: UseCallWebRTCOptions = 
     });
   }, []);
 
-  const toggleScreenShare = useCallback(async () => {
+  const stopScreenShareRef = useRef<() => void>(() => {});
+
+  // ─── Start screen share ──────────────────────────────────────────────────────
+
+  const startScreenShare = async (): Promise<void> => {
+    if (!screenShareSupported || isScreenSharing) return;
+
+    let screenStream: MediaStream | undefined;
     try {
-      if (isScreenSharing) {
-        // Stop screen share
-        if (screenStreamRef.current) {
-          screenStreamRef.current.getTracks().forEach((t) => t.stop());
-          screenStreamRef.current = null;
-        }
+      screenStream = await navigator.mediaDevices.getDisplayMedia({
+        video: { frameRate: { ideal: 15, max: 30 } },
+        audio: true,
+      });
 
-        // Revert to local camera stream
-        const localVideoTrack = localStreamRef.current?.getVideoTracks()[0];
-        if (localVideoTrack) {
-          peersRef.current.forEach((pc) => {
-            const sender = pc.getSenders().find((s) => s.track?.kind === "video");
-            if (sender) {
-              sender.replaceTrack(localVideoTrack);
-            }
-          });
-          if (localVideoRef.current && localStreamRef.current) {
-            localVideoRef.current.srcObject = localStreamRef.current;
-          }
-        }
-        setIsScreenSharing(false);
-      } else {
-        // Start screen share
-        const screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
-        screenStreamRef.current = screenStream;
-        
-        const screenTrack = screenStream.getVideoTracks()[0];
-        
-        // Handle stop sharing from browser UI
-        screenTrack.onended = () => {
-          if (screenStreamRef.current) {
-            screenStreamRef.current.getTracks().forEach((t) => t.stop());
-            screenStreamRef.current = null;
-          }
-          const localVideoTrack = localStreamRef.current?.getVideoTracks()[0];
-          if (localVideoTrack) {
-            peersRef.current.forEach((pc) => {
-              const sender = pc.getSenders().find((s) => s.track?.kind === "video");
-              if (sender) {
-                sender.replaceTrack(localVideoTrack);
-              }
-            });
-            if (localVideoRef.current && localStreamRef.current) {
-              localVideoRef.current.srcObject = localStreamRef.current;
-            }
-          }
-          setIsScreenSharing(false);
-        };
+      screenStreamRef.current = screenStream;
 
-        // Replace track on all PeerConnections
-        peersRef.current.forEach((pc) => {
-          const sender = pc.getSenders().find((s) => s.track?.kind === "video");
-          if (sender) {
-            sender.replaceTrack(screenTrack);
-          }
-        });
+      const screenVideoTrack = screenStream.getVideoTracks()[0];
 
-        // Show screen share on local preview
-        if (localVideoRef.current) {
-          localVideoRef.current.srcObject = screenStream;
-        }
-        setIsScreenSharing(true);
+      screenVideoTrack.onended = () => stopScreenShareRef.current();
+
+      applyVideoTrackToAllPeers(peersRef.current, screenVideoTrack);
+
+      if (screenStream.getAudioTracks().length > 0) {
+        applyAudioTrackToAllPeers(peersRef.current, screenStream.getAudioTracks()[0]);
       }
+
+      if (localVideoRef.current) {
+        localVideoRef.current.srcObject = screenStream;
+      }
+
+      setIsScreenSharing(true);
     } catch (err) {
-      console.error("[WebRTC] Error toggling screen share:", err);
+      applyVideoTrackToAllPeers(peersRef.current, localStreamRef.current?.getVideoTracks()[0] ?? null);
+
+      screenStream?.getTracks().forEach((t) => t.stop());
+
+      screenStreamRef.current = null;
+
+      setScreenShareError(err instanceof Error ? err.message : 'Không thể chia sẻ màn hình');
+    }
+  };
+
+  const stopScreenShare = useCallback(() => {
+    if (!screenStreamRef.current) return;
+
+    const cameraVideoTrack = localStreamRef.current?.getVideoTracks()[0] ?? null;
+    const cameraAudioTrack = localStreamRef.current?.getAudioTracks()[0] ?? null;
+
+    applyVideoTrackToAllPeers(peersRef.current, cameraVideoTrack);
+    applyAudioTrackToAllPeers(peersRef.current, cameraAudioTrack);
+
+    screenStreamRef.current.getTracks().forEach((t) => t.stop());
+    screenStreamRef.current = null;
+
+    if (localVideoRef.current) {
+      localVideoRef.current.srcObject = localStreamRef.current;
+    }
+
+    setIsScreenSharing(false);
+  }, []);
+
+  if (typeof stopScreenShareRef !== "undefined") {
+    stopScreenShareRef.current = stopScreenShare;
+  }
+
+  const toggleScreenShare = useCallback(async () => {
+    if (isScreenSharing) {
+      stopScreenShare();
+    } else {
+      await startScreenShare();
     }
   }, [isScreenSharing]);
 
@@ -655,6 +674,9 @@ export function useCallWebRTC({ myUserId, onCallEnded }: UseCallWebRTCOptions = 
     toggleMute,
     toggleVideo,
     isScreenSharing,
+    screenShareSupported,
+    screenShareError,
+    clearScreenShareError,
     toggleScreenShare,
     pingCall,
     joinCall,

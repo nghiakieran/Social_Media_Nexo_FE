@@ -44,6 +44,9 @@ interface CallDialogProps {
   
   isScreenSharing?: boolean;
   onToggleScreenShare?: () => void;
+  screenShareSupported?: boolean;
+  screenShareError?: string | null;
+  onClearScreenShareError?: () => void;
 }
 
 function formatDuration(seconds: number) {
@@ -76,6 +79,9 @@ export const CallDialog: React.FC<CallDialogProps> = ({
   onToggleVideo,
   isScreenSharing = false,
   onToggleScreenShare,
+  screenShareSupported,
+  screenShareError,
+  onClearScreenShareError,
 }) => {
   const callType = activeCall?.callType ?? incomingCall?.callType;
   const withVideo = isVideoCall(callType);
@@ -227,9 +233,31 @@ export const CallDialog: React.FC<CallDialogProps> = ({
             {/* Bottom control dock */}
             <div
               className={cn(
-                "absolute inset-x-0 bottom-0 z-30 flex justify-center bg-gradient-to-t from-black via-black/80 to-transparent px-6 pb-6 pt-16 sm:pb-8 sm:pt-20"
+                "absolute inset-x-0 bottom-0 z-30 flex flex-col justify-center bg-gradient-to-t from-black via-black/80 to-transparent px-6 pb-6 pt-16 sm:pb-8 sm:pt-20"
               )}
             >
+              {isConnected && screenShareError && (
+                <div className="bg-red-500/90 backdrop-blur-sm text-white text-sm px-4 py-2 flex items-center justify-between gap-3 mb-2 rounded-lg mx-4">
+                  <span>{screenShareError}</span>
+                  <div className="flex items-center gap-2 shrink-0">
+                    {screenShareSupported !== false && (
+                      <button
+                        onClick={onToggleScreenShare}
+                        className="text-white underline text-sm hover:no-underline"
+                      >
+                        Thử lại
+                      </button>
+                    )}
+                    <button
+                      onClick={onClearScreenShareError}
+                      className="text-white/80 hover:text-white text-base leading-none"
+                      aria-label="Đóng"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                </div>
+              )}
               <div className="flex flex-wrap items-center justify-center gap-5 sm:gap-8">
                 {isIncoming && (
                   <>
@@ -299,6 +327,29 @@ export const CallDialog: React.FC<CallDialogProps> = ({
                       ) : (
                         <Video className="h-6 w-6" />
                       )}
+                    </Button>
+
+                    <Button
+                      onClick={onToggleScreenShare}
+                      size="lg"
+                      variant="secondary"
+                      disabled={screenShareSupported === false || !onToggleScreenShare}
+                      className={cn(
+                        "h-14 w-14 rounded-full border-0 p-0 shadow-lg",
+                        isScreenSharing
+                          ? "bg-sky-500/90 text-white hover:bg-sky-600"
+                          : "bg-white/20 text-white backdrop-blur-md hover:bg-white/30",
+                        (screenShareSupported === false) && "opacity-50 cursor-not-allowed"
+                      )}
+                      title={
+                        screenShareSupported === false
+                          ? "Chia sẻ màn hình không khả dụng"
+                          : isScreenSharing
+                            ? "Dừng chia sẻ màn hình"
+                            : "Chia sẻ màn hình"
+                      }
+                    >
+                      {isScreenSharing ? <MonitorOff className="h-6 w-6" /> : <MonitorUp className="h-6 w-6" />}
                     </Button>
 
                     <Button

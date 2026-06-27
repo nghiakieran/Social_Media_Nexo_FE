@@ -35,6 +35,9 @@ export const GlobalCallHandler: React.FC<{ children?: React.ReactNode }> = ({ ch
     toggleVideo,
     isScreenSharing,
     toggleScreenShare,
+    screenShareSupported,
+    screenShareError,
+    clearScreenShareError,
   } = useCallWebRTC({
     myUserId,
     onCallEnded: (status, duration, conversationId) => {
@@ -77,6 +80,9 @@ export const GlobalCallHandler: React.FC<{ children?: React.ReactNode }> = ({ ch
         onToggleVideo={toggleVideo}
         isScreenSharing={isScreenSharing}
         onToggleScreenShare={toggleScreenShare}
+        screenShareSupported={screenShareSupported}
+        screenShareError={screenShareError}
+        onClearScreenShareError={clearScreenShareError}
       />
     </CallContextProvider>
   );
