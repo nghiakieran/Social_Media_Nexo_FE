@@ -27,6 +27,7 @@ export interface UserProfile {
   avatar: string;
   bio: string;
   isPrivate: boolean;
+  onlineStatus?: boolean;
   postsCount: number;
   followersCount: number;
   followingCount: number;
@@ -187,6 +188,7 @@ export const transformProfileData = (apiData: ProfileData): UserProfile => ({
   avatar: apiData.avatar || "",
   bio: apiData.bio || "",
   isPrivate: apiData.isPrivate,
+  onlineStatus: apiData.onlineStatus,
   postsCount: 0, // Will be fetched separately
   followersCount: apiData.followers,
   followingCount: apiData.following,
