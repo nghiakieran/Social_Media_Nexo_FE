@@ -564,6 +564,8 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
     }
   };
 
+  const isGroupChat = chat.isGroup || !!chat.groupName || chat.participants.length > 2;
+
   return (
     <>
       <div
@@ -682,6 +684,12 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                         isOwn ? "items-end" : "items-start"
                       )}
                     >
+                      {isGroupChat && !isOwn && (
+                        <span className="text-[11px] font-semibold text-muted-foreground mb-0.5 px-1 truncate max-w-full">
+                          {message.sender.nickname || message.sender.fullName}
+                        </span>
+                      )}
+
                       {repliedMessage && (
                         <div
                           onClick={() => handleScrollToMessage(repliedMessage.id)}

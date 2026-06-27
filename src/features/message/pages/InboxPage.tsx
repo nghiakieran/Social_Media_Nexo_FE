@@ -281,7 +281,8 @@ export const InboxPage: React.FC = () => {
   }, [refetchPresence]);
 
   const filteredChats = conversations.filter((conv) => {
-    if (!conv.lastMessage && conv.id !== targetConversationId && !conv.isGroup) {
+    const isGroup = conv.isGroup || !!conv.groupName || conv.participants.length > 2;
+    if (!conv.lastMessage && conv.id !== targetConversationId && !isGroup) {
       return false;
     }
 

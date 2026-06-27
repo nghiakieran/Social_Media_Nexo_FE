@@ -278,12 +278,10 @@ export const GroupInfoPanel: React.FC<GroupInfoPanelProps> = ({
           </div>
 
           {/* Add members button */}
-          {isAdmin && (
-            <Button variant="outline" className="w-full mt-4 gap-2" onClick={() => setAddMemberDialogOpen(true)}>
-              <UserPlus className="h-4 w-4" />
-              Thêm thành viên
-            </Button>
-          )}
+          <Button variant="outline" className="w-full mt-4 gap-2" onClick={() => setAddMemberDialogOpen(true)}>
+            <UserPlus className="h-4 w-4" />
+            Thêm thành viên
+          </Button>
 
           {/* Leave group */}
           {!isCreator && (
