@@ -585,6 +585,10 @@ export function useCallWebRTC({ myUserId, onCallEnded }: UseCallWebRTCOptions = 
           }
         }
       } else {
+        if (call.isGroupCall) {
+          console.log("[Call] Participant", response.responderId, "rejected or did not accept the group call. Status:", response.status);
+          return; // Do not end the group call for everyone
+        }
         cleanup();
         setCallState("ended");
         callStateRef.current = "ended";
