@@ -320,9 +320,30 @@ export function useCallWebRTC({ myUserId, onCallEnded }: UseCallWebRTCOptions = 
 
   const hangUp = useCallback(() => {
     const callId = activeCallRef.current?.callId;
-    if (callId) {
-      ws.endCall({ callId });
+
+    const doEnd = (id: number) => {
+      ws.endCall({ callId: id });
+    };
+
+    if (callId && callId > 0) {
+      doEnd(callId);
+    } else {
+      // callId chưa nhận từ BE (caller tắt quá nhanh) — đợi tối đa 3s
+      let waited = 0;
+      const interval = setInterval(() => {
+        waited += 100;
+        const currentId = activeCallRef.current?.callId;
+        if (currentId && currentId > 0) {
+          clearInterval(interval);
+          doEnd(currentId);
+        } else if (waited >= 3000) {
+          clearInterval(interval);
+          // Fallback: BE CallTimeoutJob sẽ xử lý sau 30s
+          console.warn("[Call] hangUp: callId not received within 3s, relying on BE timeout");
+        }
+      }, 100);
     }
+
     cleanup();
     setCallState("ended");
     callStateRef.current = "ended";
@@ -369,8 +390,21 @@ export function useCallWebRTC({ myUserId, onCallEnded }: UseCallWebRTCOptions = 
     }
 
     const callId = activeCallRef.current?.callId;
-    if (callId) {
+    if (callId && callId > 0) {
       ws.endCall({ callId });
+    } else {
+      // Tương tự hangUp — chờ callId rồi endCall
+      let waited = 0;
+      const interval = setInterval(() => {
+        waited += 100;
+        const currentId = activeCallRef.current?.callId;
+        if (currentId && currentId > 0) {
+          clearInterval(interval);
+          ws.endCall({ callId: currentId });
+        } else if (waited >= 3000) {
+          clearInterval(interval);
+        }
+      }, 100);
     }
     cleanup();
     setCallState("ended");
