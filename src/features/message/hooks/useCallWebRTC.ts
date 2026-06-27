@@ -308,6 +308,15 @@ export function useCallWebRTC({ myUserId, onCallEnded }: UseCallWebRTCOptions = 
       ws.respondToCall({ callId: incoming.callId, accepted: false });
       setIncomingCall(null);
       incomingCallRef.current = null;
+      
+      const errorMessage = err instanceof DOMException 
+        ? (err.name === "NotAllowedError" 
+          ? "Bạn cần cấp quyền truy cập microphone/camera để nhận cuộc gọi" 
+          : err.name === "NotFoundError"
+          ? "Không tìm thấy thiết bị microphone/camera trên máy này (Hãy cắm Mic/Webcam)"
+          : `Lỗi thiết bị: ${err.message}`)
+        : (err instanceof Error ? err.message : "Không thể kết nối thiết bị âm thanh/hình ảnh");
+      alert("Lỗi khi trả lời cuộc gọi: " + errorMessage);
     }
   }, [getUserMedia, ws, cleanup]);
 
