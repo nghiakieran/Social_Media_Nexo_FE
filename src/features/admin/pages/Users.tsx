@@ -219,11 +219,18 @@ export default function Users() {
         title: "Thành công",
         description: "Quyền đã được gán thành công",
       });
+      setUsers((prev) =>
+        prev.map((u) =>
+          u.username === selectedUser.username ? { ...u, role: selectedRole } : u
+        )
+      );
       setAssignRoleOpen(false);
       setSelectedUser(null);
       setSelectedRole("");
-      fetchUsers();
-      fetchSummaryStats();
+      setTimeout(() => {
+        fetchUsers();
+        fetchSummaryStats();
+      }, 800);
     } catch (err) {
       toast({
         title: "Lỗi",
@@ -236,23 +243,24 @@ export default function Users() {
   const handleBanUserSubmit = async () => {
     if (!selectedUser || !banReason) return;
     try {
-      await banUser(
-        selectedUser.username,
-        //   ,
-        //   {
-        //   reason: banReason,
-        //   durationDays: parseInt(banDuration),
-        // }
-      );
+      await banUser(selectedUser.username);
       toast({
         variant: "success",
         title: "Thành công",
         description: `Tài khoản ${selectedUser.username} đã bị khóa ${banDuration} ngày.`,
       });
+      // Cập nhật state tức thì ở local
+      setUsers((prev) =>
+        prev.map((u) =>
+          u.username === selectedUser.username ? { ...u, status: "locked" } : u
+        )
+      );
       setBanDialogOpen(false);
       setDetailsDialogOpen(false);
-      fetchUsers();
-      fetchSummaryStats();
+      setTimeout(() => {
+        fetchUsers();
+        fetchSummaryStats();
+      }, 800);
     } catch (err) {
       toast({
         title: "Lỗi",
@@ -492,7 +500,7 @@ export default function Users() {
                   <TableSkeleton />
                 ) : error ? (
                   <TableRow>
-                     <TableCell colSpan={7} className="h-40 text-center">
+                    <TableCell colSpan={7} className="h-40 text-center">
                       <div className="flex flex-col items-center gap-2 text-rose-500">
                         <AlertTriangle className="w-8 h-8" />
                         <p className="font-bold">{error}</p>
@@ -885,9 +893,17 @@ export default function Users() {
                             title: "Thành công",
                             description: "Tài khoản đã được mở khóa",
                           });
-                          fetchUsers();
-                          fetchSummaryStats();
+                          // Cập nhật state tức thì ở local
+                          setUsers((prev) =>
+                            prev.map((u) =>
+                              u.username === selectedUser.username ? { ...u, status: "active" } : u
+                            )
+                          );
                           setDetailsDialogOpen(false);
+                          setTimeout(() => {
+                            fetchUsers();
+                            fetchSummaryStats();
+                          }, 800);
                         } catch (err) {
                           toast({
                             title: "Lỗi",
