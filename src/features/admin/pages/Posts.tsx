@@ -376,7 +376,7 @@ export default function Posts() {
               </div>
             </div>
 
-            {/* Row 2: Author & Content */}
+            {/* Row 2: Author & Type */}
             <div className="flex flex-col md:flex-row gap-3">
               <div className="relative flex-1">
                 <Input
@@ -386,20 +386,8 @@ export default function Posts() {
                   className="pl-4 h-11 rounded-xl bg-background shadow-sm border-border text-foreground focus-visible:border-primary focus-visible:ring-0 transition-colors hover:bg-muted/50"
                 />
               </div>
-              <div className="relative flex-1">
-                <Input
-                  placeholder="Nội dung..."
-                  value={contentFilter}
-                  onChange={(e) => setContentFilter(e.target.value)}
-                  className="pl-4 h-11 rounded-xl bg-background shadow-sm border-border text-foreground focus-visible:border-primary focus-visible:ring-0 transition-colors hover:bg-muted/50"
-                />
-              </div>
-            </div>
-
-            {/* Row 3: Type & Date Range */}
-            <div className="flex flex-col md:flex-row gap-3">
               <Select value={typeFilter} onValueChange={setTypeFilter}>
-                <SelectTrigger className="w-full md:w-[180px] h-11 rounded-xl bg-background shadow-sm border-border text-foreground focus:border-primary focus:ring-0 transition-colors hover:bg-muted/50">
+                <SelectTrigger className="w-full md:w-[200px] h-11 rounded-xl bg-background shadow-sm border-border text-foreground focus:border-primary focus:ring-0 transition-colors hover:bg-muted/50">
                   <SelectValue placeholder="Loại nội dung" />
                 </SelectTrigger>
                 <SelectContent>
@@ -408,7 +396,10 @@ export default function Posts() {
                   <SelectItem value="reel" hideIcon className="focus:bg-primary/15 focus:text-primary cursor-pointer">Reels</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
 
+            {/* Row 3: Date Range */}
+            <div className="flex flex-col md:flex-row gap-3">
               <div className="flex-1">
                 <Input
                   type="date"
