@@ -230,11 +230,14 @@ export function ReportDetailDialog({
                 {report?.mediaUrls?.length > 0 ? (
                   <div className="rounded-xl overflow-hidden shadow-lg border-4 border-card">
                     <MediaSlider
-                      media={report.mediaUrls.map((url: any, i: any) => ({
-                        id: i,
-                        type: url.includes(".mp4") ? "video" : "image",
-                        url,
-                      }))}
+                      media={report.mediaUrls.map((url: any, i: any) => {
+                        const isVideo = url.includes(".mp4") || url.includes(".m3u8") || url.includes("/video/");
+                        return {
+                          id: i,
+                          type: isVideo ? "video" : "image",
+                          url,
+                        };
+                      })}
                       className="w-full aspect-video"
                     />
                   </div>
@@ -348,17 +351,6 @@ export function ReportDetailDialog({
                   </div>
                 </div>
 
-                <div className="space-y-3">
-                  <Label className="text-xs font-bold uppercase text-muted-foreground">
-                    Ghi chú điều hành
-                  </Label>
-                  <Textarea
-                    value={adminNote}
-                    onChange={(e) => setAdminNote(e.target.value)}
-                    placeholder="Nhập lý do xử lý..."
-                    className="min-h-[120px] bg-background border-border rounded-xl text-foreground"
-                  />
-                </div>
               </div>
             </ScrollArea>
 

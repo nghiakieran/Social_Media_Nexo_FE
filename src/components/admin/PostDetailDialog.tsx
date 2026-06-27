@@ -143,7 +143,7 @@ export function PostDetailDialog({
       : [postDetails.mediaUrl];
 
     return imageUrls.map((url, index) => {
-      const isVideo = url.includes(".m3u8") || url.endsWith(".mp4");
+      const isVideo = url.includes(".mp4") || url.includes(".m3u8") || url.includes("/video/");
       return {
         id: `post-media-${post.id}-${index}`,
         type: isVideo ? "video" : "image",

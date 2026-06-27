@@ -244,14 +244,6 @@ export function UserReportDetailDialog({
               </div>
             </div>
 
-            <Label className="mt-4 text-foreground">Ghi chú của admin</Label>
-            <Textarea
-              value={adminNote}
-              onChange={(e) => setAdminNote(e.target.value)}
-              placeholder="Nhập ghi chú xử lý..."
-              className="mt-2 bg-background border-border text-foreground"
-            />
-
             {/* Status Actions */}
             {currentStatus === "PENDING" && (
               <>

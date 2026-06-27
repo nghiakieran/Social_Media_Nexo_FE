@@ -217,6 +217,7 @@ export default function Dashboard() {
           title="Tăng trưởng người dùng"
           icon={Users}
           loading={isChartsLoading}
+          isEmpty={charts.user.length === 0}
         >
           <AreaChart data={charts.user}>
             <defs>
@@ -258,6 +259,7 @@ export default function Dashboard() {
           title="Nội dung bài viết"
           icon={FileText}
           loading={isChartsLoading}
+          isEmpty={charts.post.length === 0}
         >
           <BarChart data={charts.post}>
             <CartesianGrid
@@ -291,6 +293,7 @@ export default function Dashboard() {
           title="Lượt tương tác"
           icon={Heart}
           loading={isChartsLoading}
+          isEmpty={charts.interact.length === 0}
         >
           <LineChart data={charts.interact}>
             <CartesianGrid
@@ -325,6 +328,7 @@ export default function Dashboard() {
           title="Khiếu nại & Báo cáo"
           icon={Flag}
           loading={isChartsLoading}
+          isEmpty={charts.report.length === 0}
         >
           <BarChart data={charts.report}>
             <CartesianGrid
@@ -401,7 +405,7 @@ export default function Dashboard() {
   );
 }
 
-const ChartContainer = ({ title, icon: Icon, children, loading }: any) => (
+const ChartContainer = ({ title, icon: Icon, children, loading, isEmpty }: any) => (
   <Card className="border border-border/50 shadow-xl rounded-3xl overflow-hidden bg-card text-card-foreground group">
     <CardHeader className="pb-0">
       <CardTitle className="flex items-center gap-2 text-lg font-bold text-foreground">
@@ -417,9 +421,16 @@ const ChartContainer = ({ title, icon: Icon, children, loading }: any) => (
           <Loader2 className="w-8 h-8 text-indigo-600 dark:text-indigo-400 animate-spin" />
         </div>
       )}
-      <ResponsiveContainer width="100%" height={300}>
-        {children}
-      </ResponsiveContainer>
+      {isEmpty && !loading ? (
+        <div className="flex flex-col items-center justify-center h-[300px] text-muted-foreground/60 border border-dashed border-border/60 rounded-2xl bg-muted/5">
+          <Icon className="w-8 h-8 opacity-20 mb-2" />
+          <p className="text-sm font-semibold text-center px-4">Không có dữ liệu trong khoảng thời gian này</p>
+        </div>
+      ) : (
+        <ResponsiveContainer width="100%" height={300}>
+          {children}
+        </ResponsiveContainer>
+      )}
     </CardContent>
   </Card>
 );

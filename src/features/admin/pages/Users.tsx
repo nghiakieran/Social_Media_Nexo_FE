@@ -219,11 +219,18 @@ export default function Users() {
         title: "Thành công",
         description: "Quyền đã được gán thành công",
       });
+      setUsers((prev) =>
+        prev.map((u) =>
+          u.username === selectedUser.username ? { ...u, role: selectedRole } : u
+        )
+      );
       setAssignRoleOpen(false);
       setSelectedUser(null);
       setSelectedRole("");
-      fetchUsers();
-      fetchSummaryStats();
+      setTimeout(() => {
+        fetchUsers();
+        fetchSummaryStats();
+      }, 800);
     } catch (err) {
       toast({
         title: "Lỗi",
@@ -236,23 +243,24 @@ export default function Users() {
   const handleBanUserSubmit = async () => {
     if (!selectedUser || !banReason) return;
     try {
-      await banUser(
-        selectedUser.username,
-        //   ,
-        //   {
-        //   reason: banReason,
-        //   durationDays: parseInt(banDuration),
-        // }
-      );
+      await banUser(selectedUser.username);
       toast({
         variant: "success",
         title: "Thành công",
         description: `Tài khoản ${selectedUser.username} đã bị khóa ${banDuration} ngày.`,
       });
+      // Cập nhật state tức thì ở local
+      setUsers((prev) =>
+        prev.map((u) =>
+          u.username === selectedUser.username ? { ...u, status: "locked" } : u
+        )
+      );
       setBanDialogOpen(false);
       setDetailsDialogOpen(false);
-      fetchUsers();
-      fetchSummaryStats();
+      setTimeout(() => {
+        fetchUsers();
+        fetchSummaryStats();
+      }, 800);
     } catch (err) {
       toast({
         title: "Lỗi",
@@ -262,27 +270,6 @@ export default function Users() {
     }
   };
 
-  const handleToggleVerify = async (user: UIUser) => {
-    try {
-      toast({
-        variant: "success",
-        title: "Thành công",
-        description: `Đã ${user.isVerified ? "thu hồi" : "cấp"} tick xanh cho ${user.username}`,
-      });
-      fetchUsers();
-    } catch (error) {}
-  };
-
-  const handleDeleteAvatar = async (user: UIUser) => {
-    try {
-      toast({
-        variant: "success",
-        title: "Thành công",
-        description: `Đã xóa avatar của ${user.username}`,
-      });
-      fetchUsers();
-    } catch (error) { /* empty */ }
-  };
 
   const fetchSummaryStats = useCallback(async () => {
     try {
@@ -487,25 +474,25 @@ export default function Users() {
             <Table wrapperClassName="overflow-visible">
               <TableHeader className="bg-muted/50">
                 <TableRow className="hover:bg-transparent border-b border-border/50">
-                  <TableHead className="font-bold py-5 pl-8 text-slate-700 dark:text-slate-300 whitespace-nowrap sticky top-16 bg-muted/50 z-10">
+                  <TableHead className="font-bold py-5 pl-8 text-slate-700 dark:text-slate-300 whitespace-nowrap">
                     Thành viên
                   </TableHead>
-                  <TableHead className="font-bold text-slate-700 dark:text-slate-300 whitespace-nowrap sticky top-16 bg-muted/50 z-10">
+                  <TableHead className="font-bold text-slate-700 dark:text-slate-300 whitespace-nowrap">
                     Ngày gia nhập
                   </TableHead>
-                  <TableHead className="font-bold text-slate-700 dark:text-slate-300 whitespace-nowrap sticky top-16 bg-muted/50 z-10">
+                  <TableHead className="font-bold text-slate-700 dark:text-slate-300 whitespace-nowrap">
                     Vai trò
                   </TableHead>
-                  <TableHead className="font-bold text-slate-700 dark:text-slate-300 whitespace-nowrap sticky top-16 bg-muted/50 z-10">
+                  <TableHead className="font-bold text-slate-700 dark:text-slate-300 whitespace-nowrap">
                     Trạng thái
                   </TableHead>
-                  <TableHead className="font-bold text-slate-700 dark:text-slate-300 whitespace-nowrap sticky top-16 bg-muted/50 z-10">
+                  <TableHead className="font-bold text-slate-700 dark:text-slate-300 whitespace-nowrap">
                     Chỉ số
                   </TableHead>
-                  <TableHead className="font-bold text-slate-700 dark:text-slate-300 text-center whitespace-nowrap sticky top-16 bg-muted/50 z-10">
+                  <TableHead className="font-bold text-slate-700 dark:text-slate-300 text-center whitespace-nowrap">
                     Vi phạm
                   </TableHead>
-                  <TableHead className="pr-8 sticky top-16 bg-muted/50 z-10"></TableHead>
+                  <TableHead className="pr-8"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -513,7 +500,7 @@ export default function Users() {
                   <TableSkeleton />
                 ) : error ? (
                   <TableRow>
-                     <TableCell colSpan={7} className="h-40 text-center">
+                    <TableCell colSpan={7} className="h-40 text-center">
                       <div className="flex flex-col items-center gap-2 text-rose-500">
                         <AlertTriangle className="w-8 h-8" />
                         <p className="font-bold">{error}</p>
@@ -886,21 +873,6 @@ export default function Users() {
                 </div>
 
                 <div className="w-full space-y-3 mt-auto">
-                  <Button
-                    variant="outline"
-                    className="w-full h-11 justify-start border-white/10 bg-white/5 hover:bg-white/10 text-white rounded-xl"
-                    onClick={() => handleToggleVerify(selectedUser)}
-                  >
-                    <BadgeCheck className="w-4 h-4 mr-2 text-blue-400" />{" "}
-                    {selectedUser.isVerified ? "Hủy xác minh" : "Cấp xác minh"}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="w-full h-11 justify-start border-white/10 bg-white/5 hover:bg-white/10 text-rose-400 hover:text-rose-300 rounded-xl"
-                    onClick={() => handleDeleteAvatar(selectedUser)}
-                  >
-                    <Trash2 className="w-4 h-4 mr-2" /> Xóa Avatar vi phạm
-                  </Button>
                   {selectedUser.status !== "locked" ? (
                     <Button
                       variant="destructive"
@@ -921,9 +893,17 @@ export default function Users() {
                             title: "Thành công",
                             description: "Tài khoản đã được mở khóa",
                           });
-                          fetchUsers();
-                          fetchSummaryStats();
+                          // Cập nhật state tức thì ở local
+                          setUsers((prev) =>
+                            prev.map((u) =>
+                              u.username === selectedUser.username ? { ...u, status: "active" } : u
+                            )
+                          );
                           setDetailsDialogOpen(false);
+                          setTimeout(() => {
+                            fetchUsers();
+                            fetchSummaryStats();
+                          }, 800);
                         } catch (err) {
                           toast({
                             title: "Lỗi",
@@ -952,11 +932,6 @@ export default function Users() {
                       id: "reports",
                       label: "Vi phạm",
                       icon: <AlertTriangle className="w-4 h-4" />,
-                    },
-                    {
-                      id: "login",
-                      label: "Bảo mật",
-                      icon: <History className="w-4 h-4" />,
                     },
                   ].map((tab) => (
                     <button
@@ -1039,53 +1014,6 @@ export default function Users() {
                         <p className="text-muted-foreground font-bold italic">
                           Chi tiết các vi phạm đang được tải...
                         </p>
-                      </div>
-                    </div>
-                  )}
-
-                  {activeTab === "login" && (
-                    <div className="space-y-6 animate-in slide-in-from-right-4 duration-500">
-                      <h4 className="font-black text-foreground flex items-center gap-2">
-                        <History className="w-5 h-5 text-indigo-500" /> Phiên
-                        làm việc gần đây
-                      </h4>
-                      <div className="space-y-3">
-                        {[
-                          {
-                            time: "Hôm nay, 10:23 AM",
-                            dev: "Chrome - Windows 11",
-                            ip: "113.190.23.45",
-                            status: "Thành công",
-                          },
-                          {
-                            time: "Hôm qua, 08:15 PM",
-                            dev: "Nexo App - iPhone 15 Pro",
-                            ip: "14.232.11.12",
-                            status: "Thành công",
-                          },
-                        ].map((session, i) => (
-                          <div
-                            key={i}
-                            className="bg-card p-5 rounded-2xl border border-border/50 flex items-center justify-between shadow-sm hover:shadow-md transition-shadow"
-                          >
-                            <div className="flex items-center gap-4">
-                              <div className="w-10 h-10 bg-muted rounded-xl flex items-center justify-center text-muted-foreground">
-                                <CalendarIcon className="w-5 h-5" />
-                              </div>
-                              <div>
-                                <p className="font-bold text-foreground">
-                                  {session.dev}
-                                </p>
-                                <p className="text-xs text-muted-foreground font-medium">
-                                  {session.time} • {session.ip}
-                                </p>
-                              </div>
-                            </div>
-                            <Badge className="bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 hover:bg-emerald-500/20">
-                              {session.status}
-                            </Badge>
-                          </div>
-                        ))}
                       </div>
                     </div>
                   )}

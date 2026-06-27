@@ -353,81 +353,71 @@ export default function Posts() {
           </div>
         </CardHeader>
         <CardContent className="p-6">
-          <div className="flex flex-col space-y-4 mb-6">
-            {/* Row 1: Search & Hashtag */}
-            <div className="flex flex-col md:flex-row gap-3">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                <Input
-                  placeholder="Tìm kiếm nội dung, caption..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="pl-9 h-11 rounded-xl bg-background shadow-sm border-border text-foreground focus-visible:border-primary focus-visible:ring-0 transition-colors hover:bg-muted/50"
-                />
-              </div>
-              <div className="relative flex-1 md:max-w-xs">
-                <Hash className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                <Input
-                  placeholder="Hashtag (VD: #nexo)"
-                  value={hashtagFilter}
-                  onChange={(e) => setHashtagFilter(e.target.value)}
-                  className="pl-9 h-11 rounded-xl bg-background shadow-sm border-border text-foreground focus-visible:border-primary focus-visible:ring-0 transition-colors hover:bg-muted/50"
-                />
-              </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 mb-6">
+            {/* 1. Search */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <Input
+                placeholder="Tìm kiếm nội dung..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-9 h-11 rounded-xl bg-background shadow-sm border-border text-foreground focus-visible:border-primary focus-visible:ring-0 transition-colors hover:bg-muted/50 w-full"
+              />
             </div>
 
-            {/* Row 2: Author & Content */}
-            <div className="flex flex-col md:flex-row gap-3">
-              <div className="relative flex-1">
-                <Input
-                  placeholder="Tên tác giả..."
-                  value={authorFilter}
-                  onChange={(e) => setAuthorFilter(e.target.value)}
-                  className="pl-4 h-11 rounded-xl bg-background shadow-sm border-border text-foreground focus-visible:border-primary focus-visible:ring-0 transition-colors hover:bg-muted/50"
-                />
-              </div>
-              <div className="relative flex-1">
-                <Input
-                  placeholder="Nội dung..."
-                  value={contentFilter}
-                  onChange={(e) => setContentFilter(e.target.value)}
-                  className="pl-4 h-11 rounded-xl bg-background shadow-sm border-border text-foreground focus-visible:border-primary focus-visible:ring-0 transition-colors hover:bg-muted/50"
-                />
-              </div>
+            {/* 2. Hashtag */}
+            <div className="relative">
+              <Hash className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <Input
+                placeholder="Hashtag (VD: #nexo)"
+                value={hashtagFilter}
+                onChange={(e) => setHashtagFilter(e.target.value)}
+                className="pl-9 h-11 rounded-xl bg-background shadow-sm border-border text-foreground focus-visible:border-primary focus-visible:ring-0 transition-colors hover:bg-muted/50 w-full"
+              />
             </div>
 
-            {/* Row 3: Type & Date Range */}
-            <div className="flex flex-col md:flex-row gap-3">
-              <Select value={typeFilter} onValueChange={setTypeFilter}>
-                <SelectTrigger className="w-full md:w-[180px] h-11 rounded-xl bg-background shadow-sm border-border text-foreground focus:border-primary focus:ring-0 transition-colors hover:bg-muted/50">
-                  <SelectValue placeholder="Loại nội dung" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all" hideIcon className="focus:bg-primary/15 focus:text-primary cursor-pointer">Tất cả định dạng</SelectItem>
-                  <SelectItem value="post" hideIcon className="focus:bg-primary/15 focus:text-primary cursor-pointer">Posts</SelectItem>
-                  <SelectItem value="reel" hideIcon className="focus:bg-primary/15 focus:text-primary cursor-pointer">Reels</SelectItem>
-                </SelectContent>
-              </Select>
+            {/* 3. Author */}
+            <div className="relative">
+              <Input
+                placeholder="Tên tác giả..."
+                value={authorFilter}
+                onChange={(e) => setAuthorFilter(e.target.value)}
+                className="pl-4 h-11 rounded-xl bg-background shadow-sm border-border text-foreground focus-visible:border-primary focus-visible:ring-0 transition-colors hover:bg-muted/50 w-full"
+              />
+            </div>
 
-              <div className="flex-1">
-                <Input
-                  type="date"
-                  placeholder="Từ ngày"
-                  value={startDateFilter}
-                  onChange={(e) => setStartDateFilter(e.target.value)}
-                  className="w-full h-11 rounded-xl bg-background shadow-sm border-border text-foreground focus-visible:border-primary focus-visible:ring-0 transition-colors hover:bg-muted/50"
-                />
-              </div>
+            {/* 4. Type */}
+            <Select value={typeFilter} onValueChange={setTypeFilter}>
+              <SelectTrigger className="w-full h-11 rounded-xl bg-background shadow-sm border-border text-foreground focus:border-primary focus:ring-0 transition-colors hover:bg-muted/50">
+                <SelectValue placeholder="Loại nội dung" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all" hideIcon className="focus:bg-primary/15 focus:text-primary cursor-pointer">Tất cả định dạng</SelectItem>
+                <SelectItem value="post" hideIcon className="focus:bg-primary/15 focus:text-primary cursor-pointer">Posts</SelectItem>
+                <SelectItem value="reel" hideIcon className="focus:bg-primary/15 focus:text-primary cursor-pointer">Reels</SelectItem>
+              </SelectContent>
+            </Select>
 
-              <div className="flex-1">
-                <Input
-                  type="date"
-                  placeholder="Đến ngày"
-                  value={endDateFilter}
-                  onChange={(e) => setEndDateFilter(e.target.value)}
-                  className="w-full h-11 rounded-xl bg-background shadow-sm border-border text-foreground focus-visible:border-primary focus-visible:ring-0 transition-colors hover:bg-muted/50"
-                />
-              </div>
+            {/* 5. Start Date */}
+            <div className="relative">
+              <Input
+                type="date"
+                placeholder="Từ ngày"
+                value={startDateFilter}
+                onChange={(e) => setStartDateFilter(e.target.value)}
+                className="w-full h-11 rounded-xl bg-background shadow-sm border-border text-foreground focus-visible:border-primary focus-visible:ring-0 transition-colors hover:bg-muted/50"
+              />
+            </div>
+
+            {/* 6. End Date */}
+            <div className="relative">
+              <Input
+                type="date"
+                placeholder="Đến ngày"
+                value={endDateFilter}
+                onChange={(e) => setEndDateFilter(e.target.value)}
+                className="w-full h-11 rounded-xl bg-background shadow-sm border-border text-foreground focus-visible:border-primary focus-visible:ring-0 transition-colors hover:bg-muted/50"
+              />
             </div>
           </div>
 

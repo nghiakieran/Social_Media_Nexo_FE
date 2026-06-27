@@ -245,7 +245,7 @@ export default function Reports() {
   const [debouncedSearch, setDebouncedSearch] = useState("");
 
   const getPagesToShow = () => {
-    const totalPagesValue = Math.ceil(totalElements / 10) || 1;
+    const totalPagesValue = totalPages || 1;
     const current = currentPage + 1; // 1-based for UI
     
     if (totalPagesValue <= 7) {
@@ -293,7 +293,7 @@ export default function Reports() {
           </span>
         </div>
         <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-slate-900 dark:text-white tracking-tight">
-          Quản lý{ "" }
+          Quản lý{" "}
           <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-violet-600 dark:from-indigo-400 dark:to-violet-400">
             Vi phạm
           </span>
@@ -472,10 +472,10 @@ export default function Reports() {
                             size="sm"
                             className="rounded-lg gap-1 px-3"
                             onClick={() => {
-                              const maxPages = Math.ceil(totalElements / 10) || 1;
+                              const maxPages = totalPages || 1;
                               dispatch(setCurrentPage(Math.min(currentPage + 1, maxPages - 1)));
                             }}
-                            disabled={currentPage >= (Math.ceil(totalElements / 10) || 1) - 1}
+                            disabled={currentPage >= (totalPages || 1) - 1}
                           >
                             Sau <ChevronRight className="w-4 h-4" />
                           </Button>
