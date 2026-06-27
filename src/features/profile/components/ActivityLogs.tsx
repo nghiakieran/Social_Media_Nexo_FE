@@ -54,7 +54,7 @@ export const ActivityLogs = () => {
           Lịch sử hoạt động
         </p>
       </div>
-      <div className="bg-card sm:mx-4 sm:rounded-xl overflow-hidden border-t border-b sm:border border-border">
+      <div className="bg-card sm:mx-4 sm:rounded-xl overflow-hidden sm:border border-border">
         {isActivityLogsLoading && activityLogs.length === 0 ? (
           <div className="px-4 py-3 space-y-3">
             {Array.from({ length: 3 }).map((_, i) => (

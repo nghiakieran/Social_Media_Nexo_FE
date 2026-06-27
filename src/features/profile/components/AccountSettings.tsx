@@ -186,7 +186,7 @@ export const AccountSettings = () => {
   };
 
   return (
-    <div className="max-w-2xl mx-auto pb-8">
+    <div className="max-w-2xl mx-auto pb-2">
       {/* Privacy Settings */}
       <div className="px-4 pt-5 pb-1">
         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
@@ -194,7 +194,7 @@ export const AccountSettings = () => {
           Quyền riêng tư
         </p>
       </div>
-      <div className="bg-card sm:mx-4 sm:rounded-xl overflow-hidden border-t border-b sm:border border-border">
+      <div className="bg-card sm:mx-4 sm:rounded-xl overflow-hidden sm:border border-border">
         {/* Private Account */}
         <div className="flex items-center justify-between px-4 py-3.5">
           <div className="flex-1 min-w-0 pr-4">
@@ -208,7 +208,7 @@ export const AccountSettings = () => {
             onCheckedChange={(checked) => handleSettingChange("isPrivate", checked)}
           />
         </div>
-        <div className="h-px bg-border mx-4" />
+        {/* <div className="h-px bg-border mx-4" /> */}
 
         {/* Message Requests */}
         {/* <div className="flex items-center justify-between px-4 py-3.5">
@@ -223,7 +223,7 @@ export const AccountSettings = () => {
             onCheckedChange={(checked) => handleSettingChange("allowMessageRequests", checked)}
           />
         </div> */}
-        <div className="h-px bg-border mx-4" />
+        {/* <div className="h-px bg-border mx-4" /> */}
 
         {/* Activity Status */}
         {/* <div className="flex items-center justify-between px-4 py-3.5">
@@ -238,7 +238,7 @@ export const AccountSettings = () => {
             onCheckedChange={(checked) => handleSettingChange("showActivity", checked)}
           />
         </div> */}
-        <div className="h-px bg-border mx-4" />
+        {/* <div className="h-px bg-border mx-4" /> */}
 
         {/* Tagging */}
         {/* <div className="flex items-center justify-between px-4 py-3.5">
@@ -255,6 +255,7 @@ export const AccountSettings = () => {
         </div> */}
       </div>
 
+
       {/* Manage Lists */}
       <div className="px-4 pt-5 pb-1">
         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
@@ -262,7 +263,7 @@ export const AccountSettings = () => {
           Quản lý
         </p>
       </div>
-      <div className="bg-card sm:mx-4 sm:rounded-xl overflow-hidden border-t border-b sm:border border-border">
+      <div className="bg-card sm:mx-4 sm:rounded-xl overflow-hidden sm:border border-border">
         {/* Blocked */}
         <button
           onClick={() => navigate("/account/blocked")}
@@ -280,7 +281,7 @@ export const AccountSettings = () => {
         <div className="h-px bg-border mx-4" />
 
         {/* Hidden Posts */}
-        <button
+        {/* <button
           onClick={() => navigate("/account/hidden-posts")}
           className="w-full flex items-center justify-between px-4 py-3.5 hover:bg-accent/50 transition-colors"
         >
@@ -293,7 +294,7 @@ export const AccountSettings = () => {
           </div>
           <Globe className="w-4 h-4 text-muted-foreground" />
         </button>
-        <div className="h-px bg-border mx-4" />
+        <div className="h-px bg-border mx-4" /> */}
 
         {/* Close Friends */}
         <button
@@ -318,8 +319,8 @@ export const AccountSettings = () => {
           Bảo mật
         </p>
       </div>
-      <div className="bg-card sm:mx-4 sm:rounded-xl overflow-hidden border-t border-b sm:border border-border">
-        {/* 2FA */}
+      <div className="bg-card sm:mx-4 sm:rounded-xl overflow-hidden sm:border border-border">
+        {/* 2FA - temporarily hidden
         <div className="flex items-center justify-between px-4 py-3.5">
           <div className="flex-1 min-w-0 pr-4">
             <p className="text-sm font-medium text-foreground">Xác thực hai yếu tố</p>
@@ -333,6 +334,7 @@ export const AccountSettings = () => {
           />
         </div>
         <div className="h-px bg-border mx-4" />
+        */}
 
         {/* Change Password */}
         <Dialog
@@ -468,18 +470,14 @@ export const AccountSettings = () => {
         </Dialog>
       </div>
 
-      {/* Account Management */}
+      {/* Account Management - temporarily hidden
       <div className="px-4 pt-5 pb-1">
         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
           Quản lý tài khoản
         </p>
       </div>
-      <div className="bg-card sm:mx-4 sm:rounded-xl overflow-hidden border-t border-b sm:border border-border">
-        {/* Download Data */}
-        <button
-          onClick={handleDownloadData}
-          className="w-full flex items-center justify-between px-4 py-3.5 hover:bg-accent/50 transition-colors"
-        >
+      <div className="bg-card sm:mx-4 sm:rounded-xl overflow-hidden sm:border border-border">
+        <button onClick={handleDownloadData} className="w-full flex items-center justify-between px-4 py-3.5 hover:bg-accent/50 transition-colors">
           <div className="flex items-center gap-3">
             <Download className="w-4 h-4 text-muted-foreground shrink-0" />
             <p className="text-sm font-medium text-foreground">Tải xuống dữ liệu</p>
@@ -487,40 +485,15 @@ export const AccountSettings = () => {
           <ChevronRight className="w-4 h-4 text-muted-foreground" />
         </button>
         <div className="h-px bg-border mx-4" />
-
-        {/* Deactivate */}
-        <Dialog open={showDeactivateDialog} onOpenChange={setShowDeactivateDialog}>
-          <DialogTrigger asChild>
-            <button className="w-full flex items-center justify-between px-4 py-3.5 hover:bg-destructive/10 transition-colors">
-              <div className="flex items-center gap-3">
-                <Trash2 className="w-4 h-4 text-destructive shrink-0" />
-                <p className="text-sm font-medium text-destructive">Vô hiệu hóa tài khoản</p>
-              </div>
-              <ChevronRight className="w-4 h-4 text-destructive/60" />
-            </button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Vô hiệu hóa tài khoản</DialogTitle>
-              <DialogDescription>
-                Tài khoản của bạn sẽ bị ẩn cho đến khi bạn đăng nhập lại. Bạn
-                có chắc muốn tiếp tục?
-              </DialogDescription>
-            </DialogHeader>
-            <DialogFooter>
-              <Button
-                variant="outline"
-                onClick={() => setShowDeactivateDialog(false)}
-              >
-                Hủy
-              </Button>
-              <Button variant="destructive" onClick={handleDeactivateAccount}>
-                Vô hiệu hóa
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        <button className="w-full flex items-center justify-between px-4 py-3.5 hover:bg-destructive/10 transition-colors" onClick={() => setShowDeactivateDialog(true)}>
+          <div className="flex items-center gap-3">
+            <Trash2 className="w-4 h-4 text-destructive shrink-0" />
+            <p className="text-sm font-medium text-destructive">Vô hiệu hóa tài khoản</p>
+          </div>
+          <ChevronRight className="w-4 h-4 text-destructive/60" />
+        </button>
       </div>
+      */}
 
       {/* Activity Logs */}
       <div className="mt-6">
