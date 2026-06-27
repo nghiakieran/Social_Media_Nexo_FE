@@ -262,27 +262,6 @@ export default function Users() {
     }
   };
 
-  const handleToggleVerify = async (user: UIUser) => {
-    try {
-      toast({
-        variant: "success",
-        title: "Thành công",
-        description: `Đã ${user.isVerified ? "thu hồi" : "cấp"} tick xanh cho ${user.username}`,
-      });
-      fetchUsers();
-    } catch (error) {}
-  };
-
-  const handleDeleteAvatar = async (user: UIUser) => {
-    try {
-      toast({
-        variant: "success",
-        title: "Thành công",
-        description: `Đã xóa avatar của ${user.username}`,
-      });
-      fetchUsers();
-    } catch (error) { /* empty */ }
-  };
 
   const fetchSummaryStats = useCallback(async () => {
     try {
@@ -886,21 +865,6 @@ export default function Users() {
                 </div>
 
                 <div className="w-full space-y-3 mt-auto">
-                  <Button
-                    variant="outline"
-                    className="w-full h-11 justify-start border-white/10 bg-white/5 hover:bg-white/10 text-white rounded-xl"
-                    onClick={() => handleToggleVerify(selectedUser)}
-                  >
-                    <BadgeCheck className="w-4 h-4 mr-2 text-blue-400" />{" "}
-                    {selectedUser.isVerified ? "Hủy xác minh" : "Cấp xác minh"}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="w-full h-11 justify-start border-white/10 bg-white/5 hover:bg-white/10 text-rose-400 hover:text-rose-300 rounded-xl"
-                    onClick={() => handleDeleteAvatar(selectedUser)}
-                  >
-                    <Trash2 className="w-4 h-4 mr-2" /> Xóa Avatar vi phạm
-                  </Button>
                   {selectedUser.status !== "locked" ? (
                     <Button
                       variant="destructive"
@@ -952,11 +916,6 @@ export default function Users() {
                       id: "reports",
                       label: "Vi phạm",
                       icon: <AlertTriangle className="w-4 h-4" />,
-                    },
-                    {
-                      id: "login",
-                      label: "Bảo mật",
-                      icon: <History className="w-4 h-4" />,
                     },
                   ].map((tab) => (
                     <button
@@ -1039,53 +998,6 @@ export default function Users() {
                         <p className="text-muted-foreground font-bold italic">
                           Chi tiết các vi phạm đang được tải...
                         </p>
-                      </div>
-                    </div>
-                  )}
-
-                  {activeTab === "login" && (
-                    <div className="space-y-6 animate-in slide-in-from-right-4 duration-500">
-                      <h4 className="font-black text-foreground flex items-center gap-2">
-                        <History className="w-5 h-5 text-indigo-500" /> Phiên
-                        làm việc gần đây
-                      </h4>
-                      <div className="space-y-3">
-                        {[
-                          {
-                            time: "Hôm nay, 10:23 AM",
-                            dev: "Chrome - Windows 11",
-                            ip: "113.190.23.45",
-                            status: "Thành công",
-                          },
-                          {
-                            time: "Hôm qua, 08:15 PM",
-                            dev: "Nexo App - iPhone 15 Pro",
-                            ip: "14.232.11.12",
-                            status: "Thành công",
-                          },
-                        ].map((session, i) => (
-                          <div
-                            key={i}
-                            className="bg-card p-5 rounded-2xl border border-border/50 flex items-center justify-between shadow-sm hover:shadow-md transition-shadow"
-                          >
-                            <div className="flex items-center gap-4">
-                              <div className="w-10 h-10 bg-muted rounded-xl flex items-center justify-center text-muted-foreground">
-                                <CalendarIcon className="w-5 h-5" />
-                              </div>
-                              <div>
-                                <p className="font-bold text-foreground">
-                                  {session.dev}
-                                </p>
-                                <p className="text-xs text-muted-foreground font-medium">
-                                  {session.time} • {session.ip}
-                                </p>
-                              </div>
-                            </div>
-                            <Badge className="bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 hover:bg-emerald-500/20">
-                              {session.status}
-                            </Badge>
-                          </div>
-                        ))}
                       </div>
                     </div>
                   )}
