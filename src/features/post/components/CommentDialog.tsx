@@ -32,6 +32,7 @@ import {
   createCommentThunk,
   likeCommentThunk,
   deleteCommentThunk,
+  updateCommentThunk,
   clearComments,
   clearCommentError,
 } from "@/features/interaction/interactionSlice";
@@ -176,6 +177,8 @@ export const CommentDialog = ({
   const [expandedReplies, setExpandedReplies] = useState<
     Record<string, boolean>
   >({});
+  const [editingComment, setEditingComment] = useState<string | null>(null);
+  const [editingContent, setEditingContent] = useState("");
   // Track pagination state for replies of each comment
   const [repliesPageNo, setRepliesPageNo] = useState<Record<string, number>>(
     {},
@@ -428,7 +431,10 @@ export const CommentDialog = ({
         onMouseLeave={() => setHoveredItemId(null)}
       >
         <div className="relative">
-          <Avatar className="w-6 h-6">
+          <Avatar 
+            className="w-6 h-6 cursor-pointer hover:opacity-80 transition-opacity"
+            onClick={(e) => handleProfileClick(reply.userName, e)}
+          >
             <AvatarImage
               src={getAvatarUrl(reply.avatarUrl)}
               alt={reply.userName}
@@ -437,53 +443,98 @@ export const CommentDialog = ({
           </Avatar>
         </div>
         <div className="flex-1">
-          <div className="flex items-center gap-2 mb-1">
-            <span className="font-semibold text-sm">{reply.userName}</span>
-          </div>
-          <p className="text-sm leading-relaxed mb-2">
-            {parseMentions(reply.content, (username) => {
-              handleProfileClick(username);
-            })}
-          </p>
-          <div className="flex items-center flex-wrap gap-x-3 gap-y-1 mt-1">
-            <span 
-              className="text-xs text-gray-500"
-              style={{ whiteSpace: "nowrap" }}
-            >
-              {formatTimeAgo(reply.createdAt)}
-            </span>
-            {getLikesCount(reply.id, reply.likesCount) > 0 && (
-              <button
-                type="button"
-                onClick={() => openLikesDialog(reply.id, "reply")}
-                className="text-xs text-gray-500 hover:underline"
-                style={{ whiteSpace: "nowrap" }}
-              >
-                {getLikesCount(reply.id, reply.likesCount)} lượt thích
-              </button>
-            )}
-            <button
-              onClick={() => setReplyingTo(reply.id)}
-              className="text-xs text-gray-500 hover:text-gray-600 transition-colors font-semibold"
-              type="button"
-              style={{ whiteSpace: "nowrap" }}
-            >
-              Trả lời
-            </button>
-            <button
-              onClick={(e) => handleOpenActionMenu(reply.id, e)}
-              className={cn(
-                "inline-flex items-center justify-center w-5 h-5 p-1 transition-opacity",
-                hoveredItemId === reply.id ? "opacity-100" : "opacity-0",
-              )}
-              aria-label="Tùy chọn"
-              type="button"
-              style={{ whiteSpace: "nowrap" }}
-            >
-              <MoreHorizontal className="w-3 h-3 text-gray-500 hover:text-gray-700" />
-            </button>
-          </div>
+          {editingComment === reply.id ? (
+            <div className="space-y-2">
+              <Textarea
+                autoFocus
+                value={editingContent}
+                onChange={(e) => setEditingContent(e.target.value)}
+                className="resize-none min-h-[60px] max-h-[120px] rounded-xl text-sm"
+                onFocus={(e) => {
+                  const temp = e.target.value;
+                  e.target.value = '';
+                  e.target.value = temp;
+                }}
+              />
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 text-xs"
+                  onClick={() => {
+                    setEditingComment(null);
+                    setEditingContent("");
+                  }}
+                >
+                  Hủy
+                </Button>
+                <Button
+                  size="sm"
+                  className="h-8 text-xs"
+                  onClick={handleUpdateComment}
+                  disabled={!editingContent.trim()}
+                >
+                  Lưu
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="flex items-center gap-2 mb-1">
+                <span 
+                  className="font-semibold text-sm cursor-pointer hover:underline"
+                  onClick={(e) => handleProfileClick(reply.userName, e)}
+                >
+                  {reply.userName}
+                </span>
+              </div>
+              <p className="text-sm leading-relaxed mb-2">
+                {parseMentions(reply.content, (username) => {
+                  handleProfileClick(username);
+                })}
+              </p>
+              <div className="flex items-center flex-wrap gap-x-3 gap-y-1 mt-1">
+                <span 
+                  className="text-xs text-gray-500"
+                  style={{ whiteSpace: "nowrap" }}
+                >
+                  {formatTimeAgo(reply.createdAt)}
+                </span>
+                {getLikesCount(reply.id, reply.likesCount) > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => openLikesDialog(reply.id, "reply")}
+                    className="text-xs text-gray-500 hover:underline"
+                    style={{ whiteSpace: "nowrap" }}
+                  >
+                    {getLikesCount(reply.id, reply.likesCount)} lượt thích
+                  </button>
+                )}
+                <button
+                  onClick={() => setReplyingTo(reply.id)}
+                  className="text-xs text-gray-500 hover:text-gray-600 transition-colors font-semibold"
+                  type="button"
+                  style={{ whiteSpace: "nowrap" }}
+                >
+                  Trả lời
+                </button>
+                <button
+                  onClick={(e) => handleOpenActionMenu(reply.id, e)}
+                  className={cn(
+                    "inline-flex items-center justify-center w-5 h-5 p-1 transition-opacity",
+                    hoveredItemId === reply.id ? "opacity-100" : "opacity-0",
+                  )}
+                  aria-label="Tùy chọn"
+                  type="button"
+                  style={{ whiteSpace: "nowrap" }}
+                >
+                  <MoreHorizontal className="w-3 h-3 text-gray-500 hover:text-gray-700" />
+                </button>
+              </div>
+            </>
+          )}
         </div>
+
         <LikeButton
           targetId={parseInt(reply.id)}
           targetType="comment"
@@ -925,19 +976,14 @@ export const CommentDialog = ({
     event.preventDefault();
     event.stopPropagation();
 
-    // Position at center of screen
-    const position = {
-      top: window.innerHeight / 2,
-      left: window.innerWidth / 2,
-    };
-
-    setActionMenuPosition(position);
+    setActionMenuPosition(undefined);
     setCurrentCommentForAction(commentId);
     setShowActionMenu(true);
 
     // Prevent dialog from closing when ActionMenu is open
     event.stopPropagation();
   };
+
 
   const handleCloseActionMenu = () => {
     setShowActionMenu(false);
@@ -1058,6 +1104,57 @@ export const CommentDialog = ({
     }
   };
 
+  const handleUpdateComment = async () => {
+    if (!editingComment || !editingContent.trim() || !user) return;
+
+    // Find parentId (root parent if nested, else 0)
+    let parentId = 0;
+    for (const rootComment of displayComments) {
+      if (rootComment.id === editingComment) {
+        parentId = 0;
+        break;
+      }
+      if (rootComment.replies) {
+        const found = rootComment.replies.some((r) => r.id === editingComment);
+        if (found) {
+          parentId = parseInt(rootComment.id);
+          break;
+        }
+      }
+    }
+
+    try {
+      await dispatch(
+        updateCommentThunk({
+          id: parseInt(editingComment),
+          userId: user.id,
+          postId: parseInt(post.id),
+          reelId: 0,
+          parentId,
+          content: editingContent.trim(),
+          listMentionUserId: [],
+        }),
+      ).unwrap();
+
+      setEditingComment(null);
+      setEditingContent("");
+
+      // Silent refresh
+      dispatch(
+        getPostCommentsThunk({
+          postId: parseInt(post.id),
+          params: { pageNo: 0, pageSize: 6 },
+        }),
+      );
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Lỗi",
+        description: "Không thể chỉnh sửa bình luận. Vui lòng thử lại.",
+      });
+    }
+  };
+
   const handleCommentAction = (action: string) => {
     switch (action) {
       case "report":
@@ -1074,7 +1171,26 @@ export const CommentDialog = ({
         }
         break;
       case "edit":
-        // Handle edit comment
+        if (currentCommentForAction && currentCommentForAction !== "post") {
+          // Find the comment content
+          let comment = displayComments.find((c) => c.id === currentCommentForAction);
+          if (!comment) {
+            for (const rc of displayComments) {
+              if (rc.replies) {
+                const found = rc.replies.find((r) => r.id === currentCommentForAction);
+                if (found) {
+                  comment = found;
+                  break;
+                }
+              }
+            }
+          }
+          if (comment) {
+            setEditingComment(comment.id);
+            setEditingContent(comment.content);
+          }
+        }
+        handleCloseActionMenu();
         break;
       case "goToPost":
         // Navigate to post detail page
@@ -1251,58 +1367,98 @@ export const CommentDialog = ({
                       </Avatar>
                     </div>
                     <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span
-                          className="font-semibold text-sm cursor-pointer hover:underline"
-                          onClick={(e) =>
-                            handleProfileClick(comment.userName, e)
-                          }
-                        >
-                          {comment.userName}
-                        </span>
-                        <span className="text-xs text-gray-500">
-                          {formatTimeAgo(comment.createdAt)}
-                        </span>
-                      </div>
-                      <p className="text-sm leading-relaxed mb-2">
-                        {parseMentions(comment.content, (username) => {
-                          handleProfileClick(username);
-                        })}
-                      </p>
-                      <div className="flex items-center flex-wrap gap-x-3 gap-y-1">
-                        <span 
-                          className="text-xs text-gray-500"
-                          style={{ whiteSpace: "nowrap" }}
-                        >
-                          {formatTimeAgo(comment.createdAt)}
-                        </span>
-                        {getLikesCount(comment.id, comment.likesCount) > 0 && (
-                          <button
-                            type="button"
-                            onClick={() => openLikesDialog(comment.id, "comment")}
-                            className="text-xs text-gray-500 hover:underline"
-                            style={{ whiteSpace: "nowrap" }}
-                          >
-                            {getLikesCount(comment.id, comment.likesCount)} lượt thích
-                          </button>
-                        )}
-                        <button
-                          onClick={() => setReplyingTo(comment.id)}
-                          className="text-xs text-gray-500 hover:text-gray-600 transition-colors font-semibold"
-                          style={{ whiteSpace: "nowrap" }}
-                        >
-                          Trả lời
-                        </button>
-                        <button
-                          onClick={(e) => handleOpenActionMenu(comment.id, e)}
-                          className="text-gray-500 hover:text-gray-700 p-1"
-                          aria-label="Tùy chọn"
-                          style={{ whiteSpace: "nowrap" }}
-                        >
-                          <MoreHorizontal className="w-4 h-4" />
-                        </button>
-                      </div>
+                      {editingComment === comment.id ? (
+                        <div className="space-y-2">
+                          <Textarea
+                            autoFocus
+                            value={editingContent}
+                            onChange={(e) => setEditingContent(e.target.value)}
+                            className="resize-none min-h-[60px] max-h-[120px] rounded-xl text-sm"
+                            onFocus={(e) => {
+                              const temp = e.target.value;
+                              e.target.value = '';
+                              e.target.value = temp;
+                            }}
+                          />
+                          <div className="flex items-center gap-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 text-xs"
+                              onClick={() => {
+                                setEditingComment(null);
+                                setEditingContent("");
+                              }}
+                            >
+                              Hủy
+                            </Button>
+                            <Button
+                              size="sm"
+                              className="h-8 text-xs"
+                              onClick={handleUpdateComment}
+                              disabled={!editingContent.trim()}
+                            >
+                              Lưu
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="flex items-center gap-2 mb-1">
+                            <span
+                              className="font-semibold text-sm cursor-pointer hover:underline"
+                              onClick={(e) =>
+                                handleProfileClick(comment.userName, e)
+                              }
+                            >
+                              {comment.userName}
+                            </span>
+                            <span className="text-xs text-gray-500">
+                              {formatTimeAgo(comment.createdAt)}
+                            </span>
+                          </div>
+                          <p className="text-sm leading-relaxed mb-2">
+                            {parseMentions(comment.content, (username) => {
+                              handleProfileClick(username);
+                            })}
+                          </p>
+                          <div className="flex items-center flex-wrap gap-x-3 gap-y-1">
+                            <span 
+                              className="text-xs text-gray-500"
+                              style={{ whiteSpace: "nowrap" }}
+                            >
+                              {formatTimeAgo(comment.createdAt)}
+                            </span>
+                            {getLikesCount(comment.id, comment.likesCount) > 0 && (
+                              <button
+                                type="button"
+                                onClick={() => openLikesDialog(comment.id, "comment")}
+                                className="text-xs text-gray-500 hover:underline"
+                                style={{ whiteSpace: "nowrap" }}
+                              >
+                                {getLikesCount(comment.id, comment.likesCount)} lượt thích
+                              </button>
+                            )}
+                            <button
+                              onClick={() => setReplyingTo(comment.id)}
+                              className="text-xs text-gray-500 hover:text-gray-600 transition-colors font-semibold"
+                              style={{ whiteSpace: "nowrap" }}
+                            >
+                              Trả lời
+                            </button>
+                            <button
+                              onClick={(e) => handleOpenActionMenu(comment.id, e)}
+                              className="text-gray-500 hover:text-gray-700 p-1"
+                              aria-label="Tùy chọn"
+                              style={{ whiteSpace: "nowrap" }}
+                            >
+                              <MoreHorizontal className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </>
+                      )}
                     </div>
+
                     <div onClick={(e) => e.stopPropagation()}>
                       <LikeButton
                         targetId={parseInt(comment.id)}
@@ -1345,7 +1501,10 @@ export const CommentDialog = ({
                                 key={reply.id}
                                 className="group flex items-start gap-3"
                               >
-                                <Avatar className="w-6 h-6">
+                                <Avatar 
+                                  className="w-6 h-6 cursor-pointer hover:opacity-80 transition-opacity"
+                                  onClick={(e) => handleProfileClick(reply.userName, e)}
+                                >
                                   <AvatarImage
                                     src={reply.avatarUrl}
                                     alt={reply.userName}
@@ -1356,7 +1515,10 @@ export const CommentDialog = ({
                                 </Avatar>
                                 <div className="flex-1">
                                   <div className="flex items-center gap-2 mb-1">
-                                    <span className="font-semibold text-sm">
+                                    <span 
+                                      className="font-semibold text-sm cursor-pointer hover:underline"
+                                      onClick={(e) => handleProfileClick(reply.userName, e)}
+                                    >
                                       {reply.userName}
                                     </span>
                                   </div>
@@ -1477,35 +1639,35 @@ export const CommentDialog = ({
           {replyingTo ? (
             <form onSubmit={handleSubmitReply} className="space-y-2">
               <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-500">Reply to comment</span>
+                <span className="text-sm text-gray-500">Phản hồi bình luận</span>
                 <button
                   type="button"
                   onClick={() => setReplyingTo(null)}
                   className="text-xs text-primary hover:text-primary/90"
                 >
-                  Cancel
+                  Hủy
                 </button>
               </div>
-              <div className="flex gap-2">
+              <div className="flex gap-2 items-end">
                 <Textarea
                   ref={textareaRef}
                   value={replyContent}
                   onChange={(e) => setReplyContent(e.target.value)}
-                  placeholder="Add a reply..."
-                  className="flex-1 resize-none"
-                  rows={2}
+                  placeholder="Viết câu trả lời..."
+                  className="flex-1 resize-none min-h-[40px] py-2.5 max-h-[80px]"
+                  rows={1}
                 />
                 <Button
                   type="submit"
                   disabled={!replyContent.trim()}
-                  className="px-4"
+                  className="px-4 h-10 w-10 p-0 flex items-center justify-center rounded-full"
                 >
                   <Send className="w-4 h-4" />
                 </Button>
               </div>
             </form>
           ) : (
-            <form onSubmit={handleSubmitComment} className="flex gap-2">
+            <form onSubmit={handleSubmitComment} className="flex gap-2 items-end">
               <div className="flex-1 relative">
                 <Textarea
                   ref={textareaRef}
@@ -1516,10 +1678,11 @@ export const CommentDialog = ({
                       e.target.selectionStart,
                     )
                   }
-                  placeholder="Add a comment..."
-                  className="flex-1 resize-none"
-                  rows={2}
+                  placeholder="Viết bình luận..."
+                  className="flex-1 resize-none min-h-[40px] py-2.5 max-h-[80px]"
+                  rows={1}
                 />
+
 
                 {/* MENTION MENU */}
                 {showMentionMenu && mentionCandidates.length > 0 && (
@@ -1585,10 +1748,11 @@ export const CommentDialog = ({
               <Button
                 type="submit"
                 disabled={!newComment.trim()}
-                className="px-4"
+                className="px-4 h-10 w-10 p-0 flex items-center justify-center rounded-full"
               >
                 <Send className="w-4 h-4" />
               </Button>
+
             </form>
           )}
         </div>
@@ -1600,18 +1764,115 @@ export const CommentDialog = ({
           targetType={
             showLikesDialog?.targetType === "post"
               ? "post"
-              : showLikesDialog?.targetType === "comment"
+              : showLikesDialog?.targetType === "comment" ||
+                showLikesDialog?.targetType === "reply"
                 ? "comment"
                 : undefined
           }
           targetId={
             showLikesDialog?.targetType === "post" ||
-              showLikesDialog?.targetType === "comment"
+            showLikesDialog?.targetType === "comment" ||
+            showLikesDialog?.targetType === "reply"
               ? parseInt(showLikesDialog.targetId)
               : undefined
           }
         />
+
+        {/* Action Menu for mobile */}
+        {!showDeleteConfirm && (
+          <ActionMenu
+            isOpen={showActionMenu}
+            onClose={handleCloseActionMenu}
+            position={actionMenuPosition}
+            className="w-[calc(100%-32px)] max-w-sm sm:max-w-md"
+            items={
+              currentCommentForAction === "post"
+                ? actionMenuItems && actionMenuItems.length > 0
+                  ? actionMenuItems
+                    .filter((item) => item.label !== "Chia sẻ lên...")
+                    .map((item) =>
+                      item.label === "Xóa"
+                        ? { ...item, action: handleDeletePostClick }
+                        : item,
+                    )
+                  : [
+                    {
+                      label: "Xóa",
+                      action: handleDeletePostClick,
+                      isDestructive: true,
+                    },
+                    {
+                      label: "Báo cáo",
+                      action: () => handleCommentAction("report"),
+                      isDestructive: true,
+                    },
+                    {
+                      label: "Đi đến bài viết",
+                      action: () => handleCommentAction("goToPost"),
+                    },
+                    {
+                      label: "Sao chép liên kết",
+                      action: () => handleCommentAction("copyLink"),
+                    },
+                    { label: "Hủy", action: handleCloseActionMenu },
+                  ]
+                : (() => {
+                  let comment = displayComments.find(
+                    (c) => c.id === currentCommentForAction,
+                  );
+                  if (!comment) {
+                    for (const rootComment of displayComments) {
+                      if (rootComment.replies) {
+                        const reply = rootComment.replies.find(
+                          (r) => r.id === currentCommentForAction,
+                        );
+                        if (reply) {
+                          comment = reply;
+                          break;
+                        }
+                      }
+                    }
+                  }
+
+                  if (!comment) {
+                    return [{ label: "Hủy", action: handleCloseActionMenu }];
+                  }
+
+                  const isCommentOwner = comment.userId === user?.id.toString();
+                  const isPostOwner = post.userId === user?.id.toString();
+                  const canDelete = isCommentOwner || isPostOwner;
+
+                  const items: ActionMenuItem[] = [];
+
+                  if (isCommentOwner) {
+                    items.push({
+                      label: "Chỉnh sửa",
+                      action: () => handleCommentAction("edit"),
+                    });
+                  }
+
+                  if (canDelete) {
+                    items.push({
+                      label: "Xóa",
+                      action: () => handleCommentAction("delete"),
+                      isDestructive: true,
+                    });
+                  }
+
+                  items.push({
+                    label: "Báo cáo",
+                    action: () => handleCommentAction("report"),
+                    isDestructive: true,
+                  });
+                  items.push({ label: "Hủy", action: handleCloseActionMenu });
+
+                  return items;
+                })()
+            }
+          />
+        )}
       </div>
+
     );
   }
 
@@ -1821,21 +2082,59 @@ export const CommentDialog = ({
                       </Avatar>
                     </div>
                     <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span
-                          className="font-semibold text-sm cursor-pointer hover:underline"
-                          onClick={(e) =>
-                            handleProfileClick(comment.userName, e)
-                          }
-                        >
-                          {comment.userName}
-                        </span>
-                      </div>
-                      <p className="text-sm leading-relaxed mb-2">
-                        {parseMentions(comment.content, (username) => {
-                          handleProfileClick(username);
-                        })}
-                      </p>
+                      {editingComment === comment.id ? (
+                        <div className="space-y-2">
+                          <Textarea
+                            autoFocus
+                            value={editingContent}
+                            onChange={(e) => setEditingContent(e.target.value)}
+                            className="resize-none min-h-[60px] max-h-[120px] rounded-xl text-sm"
+                            onFocus={(e) => {
+                              const temp = e.target.value;
+                              e.target.value = '';
+                              e.target.value = temp;
+                            }}
+                          />
+                          <div className="flex items-center gap-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 text-xs"
+                              onClick={() => {
+                                setEditingComment(null);
+                                setEditingContent("");
+                              }}
+                            >
+                              Hủy
+                            </Button>
+                            <Button
+                              size="sm"
+                              className="h-8 text-xs"
+                              onClick={handleUpdateComment}
+                              disabled={!editingContent.trim()}
+                            >
+                              Lưu
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="flex items-center gap-2 mb-1">
+                            <span
+                              className="font-semibold text-sm cursor-pointer hover:underline"
+                              onClick={(e) =>
+                                handleProfileClick(comment.userName, e)
+                              }
+                            >
+                              {comment.userName}
+                            </span>
+                          </div>
+                          <p className="text-sm leading-relaxed mb-2">
+                            {parseMentions(comment.content, (username) => {
+                              handleProfileClick(username);
+                            })}
+                          </p>
+
                       <div className="flex items-center flex-wrap gap-x-3 gap-y-1">
                         <span 
                           className="text-xs text-gray-500"
@@ -1921,19 +2220,22 @@ export const CommentDialog = ({
                                   {comment.emojiReactions.filter(
                                     (r) => r.count > 0,
                                   ).length > 3 && (
-                                      <span className="text-xs text-gray-500">
-                                        +
-                                        {comment.emojiReactions.filter(
-                                          (r) => r.count > 0,
-                                        ).length - 3}
-                                      </span>
-                                    )}
+                                    <span className="text-xs text-gray-500">
+                                      +
+                                      {comment.emojiReactions.filter(
+                                        (r) => r.count > 0,
+                                      ).length - 3}
+                                    </span>
+                                  )}
                                 </div>
                               )}
                           </div>
                         )}
-                      {/* Replies toggle and list */}
-                      {(comment.replies && comment.replies.length > 0) ||
+                      </>
+                    )}
+
+                    {/* Replies toggle and list */}
+                    {(comment.replies && comment.replies.length > 0) ||
                         comment.hasMoreReplies ? (
                         <div className="mt-2">
                           {!expandedReplies[comment.id] ? (
@@ -2283,6 +2585,7 @@ export const CommentDialog = ({
           isOpen={showActionMenu}
           onClose={handleCloseActionMenu}
           position={actionMenuPosition}
+          className="w-[calc(100%-32px)] max-w-sm sm:max-w-md"
           items={
             currentCommentForAction === "post"
               ? actionMenuItems && actionMenuItems.length > 0
@@ -2352,6 +2655,13 @@ export const CommentDialog = ({
 
                 const items: ActionMenuItem[] = [];
 
+                if (isCommentOwner) {
+                  items.push({
+                    label: "Chỉnh sửa",
+                    action: () => handleCommentAction("edit"),
+                  });
+                }
+
                 if (canDelete) {
                   items.push({
                     label: "Xóa",
@@ -2379,13 +2689,15 @@ export const CommentDialog = ({
         targetType={
           showLikesDialog?.targetType === "post"
             ? "post"
-            : showLikesDialog?.targetType === "comment"
+            : showLikesDialog?.targetType === "comment" ||
+              showLikesDialog?.targetType === "reply"
               ? "comment"
               : undefined
         }
         targetId={
           showLikesDialog?.targetType === "post" ||
-            showLikesDialog?.targetType === "comment"
+          showLikesDialog?.targetType === "comment" ||
+          showLikesDialog?.targetType === "reply"
             ? parseInt(showLikesDialog.targetId)
             : undefined
         }
