@@ -25,6 +25,8 @@ import { ActionMenu, ActionMenuItem } from "@/components/common/ActionMenu";
 import { LikesDialog } from "@/features/post/components/LikesDialog";
 import { ReportPostDialog } from "@/features/post/components/ReportPostDialog";
 import { reportReel } from "@/features/reel/api/reelApi";
+import { reportComment } from "@/features/post/api/postApi";
+
 import { updateReelLikeOptimistic, incrementCommentsCount, decrementCommentsCount } from "@/features/reel/reelSlice";
 import { useToast } from "@/hooks/use-toast";
 import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
@@ -53,7 +55,7 @@ const ReelCommentDrawer = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const user = useAppSelector((state) => state.auth.user);
-  
+
   const { isCommentsDrawerOpen, selectedReelId, reels } = useSelector(
     (state: RootState) => state.reel
   );
@@ -81,7 +83,7 @@ const ReelCommentDrawer = () => {
   const [repliesTotalElements, setRepliesTotalElements] = useState<Record<string, number>>({});
   const [likedById, setLikedById] = useState<Record<string, boolean>>({});
   const [likesCountById, setLikesCountById] = useState<Record<string, number>>({});
-  
+
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [emojiPickerPosition, setEmojiPickerPosition] = useState<{
     top: number;
@@ -102,8 +104,9 @@ const ReelCommentDrawer = () => {
     targetId: string;
     targetType: "reel" | "comment" | "reply";
   }>(null);
-
+  const [reportingCommentId, setReportingCommentId] = useState<string | null>(null);
   const [hoveredItemId, setHoveredItemId] = useState<string | null>(null);
+
   const [isReelLikedLocal, setIsReelLikedLocal] = useState(false);
   const [reelLikesCount, setReelLikesCount] = useState(0);
   const [latestLikeName, setLatestLikeName] = useState<string | null>(null);
@@ -553,22 +556,33 @@ const ReelCommentDrawer = () => {
     }
   };
 
-  const handleReportSubmit = async (reelId: string, reason: string, details: string) => {
+  const handleReportSubmit = async (
+    targetId: string,
+    reason: string,
+    details?: string
+  ) => {
     try {
-      await reportReel(reelId, reason, details);
-      toast({
-        title: "Thành công",
-        description: "Báo cáo của bạn đã được gửi.",
-      });
+      if (reportingCommentId) {
+        await reportComment(reportingCommentId, reason, details);
+      } else {
+        await reportReel(targetId, reason, details);
+      }
       setShowReportDialog(false);
+      setReportingCommentId(null);
+      toast({
+        variant: "success",
+        title: "Đã gửi báo cáo",
+        description: "Cảm ơn bạn đã báo cáo.",
+      });
     } catch (error) {
       toast({
         variant: "destructive",
         title: "Lỗi",
-        description: "Không thể gửi báo cáo. Vui lòng thử lại.",
+        description: "Không thể gửi báo cáo. Vui lòng thử lại sau.",
       });
     }
   };
+
 
   const renderReplyItem = (reply: Comment, parentCommentId: string) => {
     return (
@@ -605,7 +619,7 @@ const ReelCommentDrawer = () => {
             })}
           </p>
           <div className="flex items-center flex-wrap gap-x-3 gap-y-1 mt-1">
-            <span 
+            <span
               className="text-[11px] text-gray-500"
               style={{ whiteSpace: "nowrap" }}
             >
@@ -818,7 +832,7 @@ const ReelCommentDrawer = () => {
                             <MoreHorizontal className="w-4 h-4 text-gray-500 hover:text-gray-700" />
                           </button>
                         </div>
-                        
+
                         {/* Nested Replies Rendering */}
                         {((comment.replies && comment.replies.length > 0) || comment.hasMoreReplies) && (
                           <div className="mt-2">
@@ -828,7 +842,7 @@ const ReelCommentDrawer = () => {
                                 onClick={() => toggleReplies(comment.id)}
                                 className="text-xs text-gray-500 hover:text-gray-700 font-semibold"
                               >
-                                Xem câu trả lời ({getTotalRepliesCount(comment.id)})
+                                Xem câu trả lời
                               </button>
                             ) : (
                               <>
@@ -1072,7 +1086,13 @@ const ReelCommentDrawer = () => {
           }
           items.push({
             label: "Báo cáo",
-            action: () => {},
+            action: () => {
+              if (comment) {
+                setReportingCommentId(comment.id);
+                setShowReportDialog(true);
+              }
+              handleCloseActionMenu();
+            },
             isDestructive: true,
           });
           items.push({ label: "Hủy", action: handleCloseActionMenu });
@@ -1097,12 +1117,13 @@ const ReelCommentDrawer = () => {
       {showReportDialog && (
         <ReportPostDialog
           isOpen={showReportDialog}
-          onClose={() => setShowReportDialog(false)}
-          postId={selectedReelId || ""}
-          onReport={(reelId, reason, details) => {
-            handleReportSubmit(reelId, reason, details);
+          onClose={() => {
+            setShowReportDialog(false);
+            setReportingCommentId(null);
           }}
-          title="Báo cáo Reel"
+          postId={reportingCommentId || currentReel.id}
+          onReport={handleReportSubmit}
+          title={reportingCommentId ? "Báo cáo bình luận" : "Báo cáo thước phim"}
         />
       )}
     </>

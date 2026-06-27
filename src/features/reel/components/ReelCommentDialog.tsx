@@ -37,6 +37,8 @@ import { parseMentions } from "@/utils/mentions";
 import { navigateToProfile } from "@/utils/navigation";
 import { ReportPostDialog } from "@/features/post/components/ReportPostDialog";
 import { reportReel } from "@/features/reel/api/reelApi";
+import { reportComment } from "@/features/post/api/postApi";
+
 import { updateReelLikeOptimistic, incrementCommentsCount, decrementCommentsCount } from "@/features/reel/reelSlice";
 
 interface Comment {
@@ -125,7 +127,10 @@ const ReelCommentDialog = () => {
     targetType: "reel" | "comment" | "reply";
   }>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [reportingCommentId, setReportingCommentId] = useState<string | null>(null);
   const [hoveredItemId, setHoveredItemId] = useState<string | null>(null);
+
+
   const [isReelLikedLocal, setIsReelLikedLocal] = useState(
     currentReel?.isLiked || false
   );
@@ -303,7 +308,8 @@ const ReelCommentDialog = () => {
         showEmojiPicker ||
         showActionMenu ||
         showLikesDialog ||
-        showDeleteConfirm
+        showDeleteConfirm ||
+        showReportDialog
       ) {
         return;
       }
@@ -317,8 +323,15 @@ const ReelCommentDialog = () => {
     };
 
     const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === "Escape") dispatch({ type: "reel/closeCommentsDrawer" });
+      if (e.key === "Escape") {
+        if (showReportDialog) {
+          setShowReportDialog(false);
+          return;
+        }
+        dispatch({ type: "reel/closeCommentsDrawer" });
+      }
     };
+
 
     if (isCommentsDrawerOpen) {
       document.addEventListener("mousedown", handleClickOutside);
@@ -566,14 +579,20 @@ const ReelCommentDialog = () => {
   };
 
   const handleReportSubmit = async (
-    reelId: string,
+    targetId: string,
     reason: string,
     details?: string
   ) => {
     try {
-      await reportReel(reelId, reason, details);
+      if (reportingCommentId) {
+        await reportComment(reportingCommentId, reason, details);
+      } else {
+        await reportReel(targetId, reason, details);
+      }
       setShowReportDialog(false);
+      setReportingCommentId(null);
       toast({
+        variant: "success",
         title: "Đã gửi báo cáo",
         description: "Cảm ơn bạn đã báo cáo.",
       });
@@ -585,6 +604,7 @@ const ReelCommentDialog = () => {
       });
     }
   };
+
 
   const openLikesDialog = (
     targetId: string,
@@ -946,7 +966,7 @@ const ReelCommentDialog = () => {
                           onClick={() => toggleReplies(comment.id)}
                           className="text-xs text-gray-500 hover:text-gray-700"
                         >
-                          Xem câu trả lời ({getTotalRepliesCount(comment.id)})
+                          Xem câu trả lời
                         </button>
                       ) : (
                         <>
@@ -1288,8 +1308,7 @@ const ReelCommentDialog = () => {
                                   onClick={() => toggleReplies(comment.id)}
                                   className="text-xs text-gray-500 hover:text-gray-700"
                                 >
-                                  Xem câu trả lời (
-                                  {getTotalRepliesCount(comment.id)})
+                                  Xem câu trả lời
                                 </button>
                               ) : (
                                 <>
@@ -1594,7 +1613,11 @@ const ReelCommentDialog = () => {
                 items.push({
                   label: "Báo cáo",
                   action: () => {
-                    /* report comment */
+                    if (comment) {
+                      setReportingCommentId(comment.id);
+                      setShowReportDialog(true);
+                    }
+                    handleCloseActionMenu();
                   },
                   isDestructive: true,
                 });
@@ -1617,7 +1640,9 @@ const ReelCommentDialog = () => {
               : undefined
         }
         targetId={
-          showLikesDialog?.targetId
+          showLikesDialog?.targetType === "reel" ||
+          showLikesDialog?.targetType === "comment" ||
+          showLikesDialog?.targetType === "reply"
             ? parseInt(showLikesDialog.targetId)
             : undefined
         }
@@ -1655,9 +1680,13 @@ const ReelCommentDialog = () => {
       {showReportDialog && (
         <ReportPostDialog
           isOpen={showReportDialog}
-          onClose={() => setShowReportDialog(false)}
-          postId={currentReel.id}
+          onClose={() => {
+            setShowReportDialog(false);
+            setReportingCommentId(null);
+          }}
+          postId={reportingCommentId || currentReel.id}
           onReport={handleReportSubmit}
+          title={reportingCommentId ? "Báo cáo bình luận" : "Báo cáo thước phim"}
         />
       )}
     </div>

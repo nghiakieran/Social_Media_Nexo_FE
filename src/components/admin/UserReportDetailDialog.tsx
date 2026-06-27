@@ -140,12 +140,7 @@ export function UserReportDetailDialog({
 
       const statusMsg = getStatusMessage(newStatus);
       toast({
-        title: (
-          <div className="flex items-center gap-2">
-            {statusMsg.icon}
-            <span>Cập nhật thành công</span>
-          </div>
-        ),
+        title: "Cập nhật thành công",
         description: statusMsg.message,
         className:
           "border-l-4 border-emerald-500 bg-gradient-to-r from-emerald-50 to-teal-50 shadow-lg",
@@ -157,12 +152,7 @@ export function UserReportDetailDialog({
     } catch (err) {
       console.error("Lỗi cập nhật trạng thái:", err);
       toast({
-        title: (
-          <div className="flex items-center gap-2">
-            <AlertCircle className="w-5 h-5 text-red-600" />
-            <span>Lỗi xảy ra</span>
-          </div>
-        ),
+        title: "Lỗi xảy ra",
         description:
           err instanceof Error
             ? err.message
@@ -181,29 +171,29 @@ export function UserReportDetailDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh]">
+      <DialogContent className="max-w-4xl max-h-[90vh] border border-border/50 bg-card text-card-foreground shadow-2xl rounded-3xl">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
+          <DialogTitle className="flex items-center gap-2 text-foreground">
             Chi tiết báo cáo người dùng
-            <Badge variant={getStatusBadge(currentStatus)}>
+            <Badge variant={getStatusBadge(currentStatus)} className="capitalize">
               {currentStatus}
             </Badge>
           </DialogTitle>
         </DialogHeader>
 
         <ScrollArea className="max-h-[calc(90vh-120px)]">
-          <div className="space-y-6 pr-4">
+          <div className="space-y-6 pr-4 p-1">
             {/* Reporter */}
             <div>
-              <h4 className="font-semibold mb-3">Người báo cáo</h4>
-              <div className="flex items-center gap-3 p-3 rounded-lg border">
+              <h4 className="font-semibold mb-3 text-foreground">Người báo cáo</h4>
+              <div className="flex items-center gap-3 p-3 rounded-lg border border-border/50 bg-muted/10">
                 <Avatar className="w-10 h-10">
-                  <AvatarFallback>
+                  <AvatarFallback className="bg-muted text-muted-foreground">
                     {report.reporterUsername?.[0]?.toUpperCase() ?? "?"}
                   </AvatarFallback>
                 </Avatar>
                 <div>
-                  <p className="font-medium">{report.reporterUsername}</p>
+                  <p className="font-medium text-foreground">{report.reporterUsername}</p>
                   <p className="text-sm text-muted-foreground">
                     ID: {report.reporterId}
                   </p>
@@ -215,15 +205,15 @@ export function UserReportDetailDialog({
 
             {/* Reported User */}
             <div>
-              <h4 className="font-semibold mb-3">Người bị báo cáo</h4>
-              <div className="flex items-center gap-3 p-3 rounded-lg border">
+              <h4 className="font-semibold mb-3 text-foreground">Người bị báo cáo</h4>
+              <div className="flex items-center gap-3 p-3 rounded-lg border border-border/50 bg-muted/10">
                 <Avatar className="w-10 h-10">
-                  <AvatarFallback>
+                  <AvatarFallback className="bg-rose-500/10 text-rose-500">
                     {report.reportedUsername?.[0]?.toUpperCase() ?? "?"}
                   </AvatarFallback>
                 </Avatar>
                 <div>
-                  <p className="font-medium">{report.reportedUsername}</p>
+                  <p className="font-medium text-foreground">{report.reportedUsername}</p>
                   <p className="text-sm text-muted-foreground">
                     ID: {report.reportedId}
                   </p>
@@ -235,9 +225,9 @@ export function UserReportDetailDialog({
 
             {/* Reason */}
             <div>
-              <h4 className="font-semibold mb-3">Lý do báo cáo</h4>
-              <div className="p-3 rounded-lg border">
-                <p className="text-sm whitespace-pre-wrap">{report.reason}</p>
+              <h4 className="font-semibold mb-3 text-foreground">Lý do báo cáo</h4>
+              <div className="p-3 rounded-lg border border-border/50 bg-muted/10">
+                <p className="text-sm text-foreground whitespace-pre-wrap">{report.reason}</p>
               </div>
             </div>
 
@@ -245,21 +235,21 @@ export function UserReportDetailDialog({
 
             {/* Created Date */}
             <div>
-              <h4 className="font-semibold mb-3">Thông tin</h4>
-              <div className="p-3 rounded-lg border">
-                <p className="text-sm">
-                  <span className="font-medium">Ngày tạo:</span>{" "}
+              <h4 className="font-semibold mb-3 text-foreground">Thông tin</h4>
+              <div className="p-3 rounded-lg border border-border/50 bg-muted/10">
+                <p className="text-sm text-foreground">
+                  <span className="font-medium text-muted-foreground">Ngày tạo:</span>{" "}
                   {formatDate(report.createdAt)}
                 </p>
               </div>
             </div>
 
-            <Label className="mt-4">Ghi chú của admin</Label>
+            <Label className="mt-4 text-foreground">Ghi chú của admin</Label>
             <Textarea
               value={adminNote}
               onChange={(e) => setAdminNote(e.target.value)}
               placeholder="Nhập ghi chú xử lý..."
-              className="mt-2"
+              className="mt-2 bg-background border-border text-foreground"
             />
 
             {/* Status Actions */}
@@ -320,11 +310,11 @@ export function UserReportDetailDialog({
             {currentStatus === "APPROVED" && (
               <>
                 <Separator />
-                <div className="p-4 rounded-lg bg-green-100 border border-green-300">
-                  <p className="text-sm font-semibold text-green-800">
+                <div className="p-4 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+                  <p className="text-sm font-semibold text-emerald-500">
                     Báo cáo đã được duyệt
                   </p>
-                  <p className="text-sm text-green-700 mt-1">
+                  <p className="text-sm text-muted-foreground mt-1">
                     Báo cáo đã được xử lý và chấp nhận.
                   </p>
                 </div>
@@ -334,11 +324,11 @@ export function UserReportDetailDialog({
             {currentStatus === "REJECTED" && (
               <>
                 <Separator />
-                <div className="p-4 rounded-lg bg-red-100 border border-red-300">
-                  <p className="text-sm font-semibold text-red-800">
+                <div className="p-4 rounded-lg bg-rose-500/10 border border-rose-500/20">
+                  <p className="text-sm font-semibold text-rose-500">
                     Báo cáo đã bị từ chối
                   </p>
-                  <p className="text-sm text-red-700 mt-1">
+                  <p className="text-sm text-muted-foreground mt-1">
                     Báo cáo không được chấp nhận.
                   </p>
                 </div>
@@ -348,11 +338,11 @@ export function UserReportDetailDialog({
             {currentStatus === "CLOSED" && (
               <>
                 <Separator />
-                <div className="p-4 rounded-lg bg-gray-100 border border-gray-300">
-                  <p className="text-sm font-semibold text-gray-800">
+                <div className="p-4 rounded-lg bg-muted/50 border border-border/50">
+                  <p className="text-sm font-semibold text-foreground">
                     Báo cáo đã được đóng
                   </p>
-                  <p className="text-sm text-gray-700 mt-1">
+                  <p className="text-sm text-muted-foreground mt-1">
                     Báo cáo đã được đóng và không còn hoạt động.
                   </p>
                 </div>

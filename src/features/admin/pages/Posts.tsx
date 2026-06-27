@@ -241,13 +241,13 @@ export default function Posts() {
     <div className="space-y-8 animate-in fade-in duration-500 p-1">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
-          <h1 className="text-4xl font-black tracking-tight text-slate-900">
+          <h1 className="text-4xl font-black tracking-tight text-slate-900 dark:text-white">
             Quản lý{" "}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-violet-600">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-violet-600 dark:from-indigo-400 dark:to-violet-400">
               Bài viết
             </span>
           </h1>
-          <p className="text-slate-500 font-medium mt-1">
+          <p className="text-slate-500 dark:text-slate-400 font-medium mt-1">
             Giám sát và kiểm duyệt toàn bộ nội dung trên nền tảng Nexo
           </p>
         </div>
@@ -309,14 +309,14 @@ export default function Posts() {
         </Card>
       </div>
 
-      <Card className="border-none shadow-xl rounded-[2rem] overflow-hidden bg-white">
-        <CardHeader className="bg-slate-50/50 border-b p-6">
+      <Card className="border border-border/50 shadow-xl rounded-[2rem] overflow-hidden bg-card text-card-foreground">
+        <CardHeader className="bg-muted/30 border-b border-border/50 p-6">
           <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className="p-2 bg-indigo-100 rounded-lg">
-                <Layers className="w-5 h-5 text-indigo-600" />
+              <div className="p-2 bg-indigo-100 dark:bg-indigo-950/50 rounded-lg">
+                <Layers className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
               </div>
-              <CardTitle className="text-xl font-bold text-slate-800">
+              <CardTitle className="text-xl font-bold text-foreground">
                 Cơ sở dữ liệu bài viết
               </CardTitle>
             </div>
@@ -332,7 +332,7 @@ export default function Posts() {
                   placeholder="Tìm kiếm nội dung, caption..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="pl-9 h-11 rounded-xl bg-white shadow-sm border-slate-200 focus-visible:border-primary focus-visible:ring-0 transition-colors hover:bg-slate-50"
+                  className="pl-9 h-11 rounded-xl bg-background shadow-sm border-border text-foreground focus-visible:border-primary focus-visible:ring-0 transition-colors hover:bg-muted/50"
                 />
               </div>
               <div className="relative flex-1 md:max-w-xs">
@@ -341,7 +341,7 @@ export default function Posts() {
                   placeholder="Hashtag (VD: #nexo)"
                   value={hashtagFilter}
                   onChange={(e) => setHashtagFilter(e.target.value)}
-                  className="pl-9 h-11 rounded-xl bg-white shadow-sm border-slate-200 focus-visible:border-primary focus-visible:ring-0 transition-colors hover:bg-slate-50"
+                  className="pl-9 h-11 rounded-xl bg-background shadow-sm border-border text-foreground focus-visible:border-primary focus-visible:ring-0 transition-colors hover:bg-muted/50"
                 />
               </div>
             </div>
@@ -353,7 +353,7 @@ export default function Posts() {
                   placeholder="Tên tác giả..."
                   value={authorFilter}
                   onChange={(e) => setAuthorFilter(e.target.value)}
-                  className="pl-4 h-11 rounded-xl bg-white shadow-sm border-slate-200 focus-visible:border-primary focus-visible:ring-0 transition-colors hover:bg-slate-50"
+                  className="pl-4 h-11 rounded-xl bg-background shadow-sm border-border text-foreground focus-visible:border-primary focus-visible:ring-0 transition-colors hover:bg-muted/50"
                 />
               </div>
               <div className="relative flex-1">
@@ -361,7 +361,7 @@ export default function Posts() {
                   placeholder="Nội dung..."
                   value={contentFilter}
                   onChange={(e) => setContentFilter(e.target.value)}
-                  className="pl-4 h-11 rounded-xl bg-white shadow-sm border-slate-200 focus-visible:border-primary focus-visible:ring-0 transition-colors hover:bg-slate-50"
+                  className="pl-4 h-11 rounded-xl bg-background shadow-sm border-border text-foreground focus-visible:border-primary focus-visible:ring-0 transition-colors hover:bg-muted/50"
                 />
               </div>
             </div>
@@ -369,7 +369,7 @@ export default function Posts() {
             {/* Row 3: Type & Date Range */}
             <div className="flex flex-col md:flex-row gap-3">
               <Select value={typeFilter} onValueChange={setTypeFilter}>
-                <SelectTrigger className="w-full md:w-[180px] h-11 rounded-xl bg-white shadow-sm border-slate-200 focus:border-primary focus:ring-0 transition-colors hover:bg-slate-50">
+                <SelectTrigger className="w-full md:w-[180px] h-11 rounded-xl bg-background shadow-sm border-border text-foreground focus:border-primary focus:ring-0 transition-colors hover:bg-muted/50">
                   <SelectValue placeholder="Loại nội dung" />
                 </SelectTrigger>
                 <SelectContent>
@@ -385,7 +385,7 @@ export default function Posts() {
                   placeholder="Từ ngày"
                   value={startDateFilter}
                   onChange={(e) => setStartDateFilter(e.target.value)}
-                  className="w-full h-11 rounded-xl bg-white shadow-sm border-slate-200 focus-visible:border-primary focus-visible:ring-0 transition-colors hover:bg-slate-50"
+                  className="w-full h-11 rounded-xl bg-background shadow-sm border-border text-foreground focus-visible:border-primary focus-visible:ring-0 transition-colors hover:bg-muted/50"
                 />
               </div>
 
@@ -395,16 +395,16 @@ export default function Posts() {
                   placeholder="Đến ngày"
                   value={endDateFilter}
                   onChange={(e) => setEndDateFilter(e.target.value)}
-                  className="w-full h-11 rounded-xl bg-white shadow-sm border-slate-200 focus-visible:border-primary focus-visible:ring-0 transition-colors hover:bg-slate-50"
+                  className="w-full h-11 rounded-xl bg-background shadow-sm border-border text-foreground focus-visible:border-primary focus-visible:ring-0 transition-colors hover:bg-muted/50"
                 />
               </div>
             </div>
           </div>
 
-          <div className="rounded-md border">
+          <div className="rounded-md border border-border/50">
             <Table>
               <TableHeader>
-                <TableRow>
+                <TableRow className="hover:bg-transparent border-b border-border/50">
                   <TableHead className="w-[80px]">ID</TableHead>
                   {/* <TableHead className="w-[70px]">Media</TableHead> */}
                   <TableHead>Tác giả</TableHead>
@@ -441,7 +441,7 @@ export default function Posts() {
                     return (
                       <TableRow
                         key={post.id}
-                        className="hover:bg-muted/50 transition-colors"
+                        className="hover:bg-muted/50 border-b border-border/50 transition-colors"
                       >
                         <TableCell className="font-mono text-xs text-muted-foreground">
                           #{post.id}
@@ -485,7 +485,7 @@ export default function Posts() {
                           {post.isActive ? (
                             <Badge
                               variant="outline"
-                              className="text-emerald-600 border-emerald-600 bg-emerald-50"
+                              className="text-emerald-600 dark:text-emerald-500 border-emerald-600/30 dark:border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20"
                             >
                               Công khai
                             </Badge>

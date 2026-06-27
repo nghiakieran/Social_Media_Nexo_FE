@@ -407,13 +407,13 @@ export default function Users() {
     <div className="space-y-8 p-1">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
-          <h1 className="text-4xl font-black tracking-tight text-slate-900">
+          <h1 className="text-4xl font-black tracking-tight text-slate-900 dark:text-white">
             Quản lý{" "}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-violet-600">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-violet-600 dark:from-indigo-400 dark:to-violet-400">
               Thành viên
             </span>
           </h1>
-          <p className="text-slate-500 font-medium mt-1">
+          <p className="text-slate-500 dark:text-slate-400 font-medium mt-1">
             Điều hành và giám sát quyền truy cập hệ thống Nexo
           </p>
         </div>
@@ -447,14 +447,14 @@ export default function Users() {
         ))}
       </div>
 
-      <Card className="border-none shadow-xl rounded-[2rem] bg-white">
-        <CardHeader className="bg-slate-50/50 border-b p-6 rounded-t-[2rem]">
+      <Card className="border border-border/50 shadow-xl rounded-[2rem] bg-card text-card-foreground">
+        <CardHeader className="bg-muted/30 border-b border-border/50 p-6 rounded-t-[2rem]">
           <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className="p-2 bg-indigo-100 rounded-lg">
-                <UserIcon className="w-5 h-5 text-indigo-600" />
+              <div className="p-2 bg-indigo-100 dark:bg-indigo-950/50 rounded-lg">
+                <UserIcon className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
               </div>
-              <CardTitle className="text-xl font-bold text-slate-800">
+              <CardTitle className="text-xl font-bold text-foreground">
                 Cơ sở dữ liệu người dùng
               </CardTitle>
             </div>
@@ -465,11 +465,11 @@ export default function Users() {
                   placeholder="Tìm theo tên, email, username..."
                   value={searchInput}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="pl-10 h-11 bg-white border-slate-200 rounded-xl focus-visible:border-primary focus-visible:ring-0 shadow-sm transition-colors"
+                  className="pl-10 h-11 bg-background border-border text-foreground rounded-xl focus-visible:border-primary focus-visible:ring-0 shadow-sm transition-colors"
                 />
               </div>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-44 h-11 rounded-xl bg-white shadow-sm border-slate-200 focus:border-primary focus:ring-0 transition-colors">
+                <SelectTrigger className="w-44 h-11 rounded-xl bg-background shadow-sm border-border text-foreground hover:bg-muted focus:border-primary focus:ring-0 transition-colors">
                   <SelectValue placeholder="Trạng thái" />
                 </SelectTrigger>
                 <SelectContent>
@@ -482,30 +482,30 @@ export default function Users() {
             </div>
           </div>
         </CardHeader>
-        <CardContent className="p-0 bg-white rounded-b-[2rem]">
+        <CardContent className="p-0 bg-card rounded-b-[2rem]">
           <div className="relative">
             <Table wrapperClassName="overflow-visible">
-              <TableHeader className="bg-slate-50/80">
-                <TableRow className="hover:bg-transparent border-b-slate-100">
-                  <TableHead className="font-bold py-5 pl-8 text-slate-700 whitespace-nowrap sticky top-16 bg-slate-50 z-10">
+              <TableHeader className="bg-muted/50">
+                <TableRow className="hover:bg-transparent border-b border-border/50">
+                  <TableHead className="font-bold py-5 pl-8 text-slate-700 dark:text-slate-300 whitespace-nowrap sticky top-16 bg-muted/50 z-10">
                     Thành viên
                   </TableHead>
-                  <TableHead className="font-bold text-slate-700 whitespace-nowrap sticky top-16 bg-slate-50 z-10">
+                  <TableHead className="font-bold text-slate-700 dark:text-slate-300 whitespace-nowrap sticky top-16 bg-muted/50 z-10">
                     Ngày gia nhập
                   </TableHead>
-                  <TableHead className="font-bold text-slate-700 whitespace-nowrap sticky top-16 bg-slate-50 z-10">
+                  <TableHead className="font-bold text-slate-700 dark:text-slate-300 whitespace-nowrap sticky top-16 bg-muted/50 z-10">
                     Vai trò
                   </TableHead>
-                  <TableHead className="font-bold text-slate-700 whitespace-nowrap sticky top-16 bg-slate-50 z-10">
+                  <TableHead className="font-bold text-slate-700 dark:text-slate-300 whitespace-nowrap sticky top-16 bg-muted/50 z-10">
                     Trạng thái
                   </TableHead>
-                  <TableHead className="font-bold text-slate-700 whitespace-nowrap sticky top-16 bg-slate-50 z-10">
+                  <TableHead className="font-bold text-slate-700 dark:text-slate-300 whitespace-nowrap sticky top-16 bg-muted/50 z-10">
                     Chỉ số
                   </TableHead>
-                  <TableHead className="font-bold text-slate-700 text-center whitespace-nowrap sticky top-16 bg-slate-50 z-10">
+                  <TableHead className="font-bold text-slate-700 dark:text-slate-300 text-center whitespace-nowrap sticky top-16 bg-muted/50 z-10">
                     Vi phạm
                   </TableHead>
-                  <TableHead className="pr-8 sticky top-16 bg-slate-50 z-10"></TableHead>
+                  <TableHead className="pr-8 sticky top-16 bg-muted/50 z-10"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -513,7 +513,7 @@ export default function Users() {
                   <TableSkeleton />
                 ) : error ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="h-40 text-center">
+                     <TableCell colSpan={7} className="h-40 text-center">
                       <div className="flex flex-col items-center gap-2 text-rose-500">
                         <AlertTriangle className="w-8 h-8" />
                         <p className="font-bold">{error}</p>
@@ -524,7 +524,7 @@ export default function Users() {
                   <TableRow>
                     <TableCell
                       colSpan={7}
-                      className="h-40 text-center text-slate-400"
+                      className="h-40 text-center text-muted-foreground"
                     >
                       Không tìm thấy người dùng nào phù hợp
                     </TableCell>
@@ -533,7 +533,7 @@ export default function Users() {
                   users.map((user) => (
                     <TableRow
                       key={user.id}
-                      className="group cursor-pointer hover:bg-indigo-50/30 transition-all border-b-slate-50 h-[88px]"
+                      className="group cursor-pointer hover:bg-muted/50 transition-all border-b border-border/50 h-[88px]"
                       onClick={() => {
                         setSelectedUser(user);
                         setDetailsDialogOpen(true);
@@ -543,7 +543,7 @@ export default function Users() {
                       <TableCell className="pl-8 py-5">
                         <div className="flex items-center gap-4">
                           <div className="relative group-hover:scale-105 transition-transform">
-                            <Avatar className="w-12 h-12 border-2 border-white shadow-sm rounded-2xl">
+                            <Avatar className="w-12 h-12 border-2 border-white dark:border-slate-800 shadow-sm rounded-2xl">
                               <AvatarImage
                                 src={user.avatar}
                                 className="object-cover"
@@ -553,27 +553,27 @@ export default function Users() {
                               </AvatarFallback>
                             </Avatar>
                             <div
-                              className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-white shadow-sm ${user.status === "active" ? "bg-emerald-500" : "bg-slate-300"}`}
+                              className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-white dark:border-slate-800 shadow-sm ${user.status === "active" ? "bg-emerald-500" : "bg-slate-300"}`}
                             />
                           </div>
                           <div className="space-y-0.5">
-                            <div className="font-bold text-slate-900 flex items-center gap-1.5 leading-none max-w-[180px] truncate" title={user.fullName}>
+                            <div className="font-bold text-slate-900 dark:text-white flex items-center gap-1.5 leading-none max-w-[180px] truncate" title={user.fullName}>
                               {user.fullName}
                               {user.isVerified && (
-                                <BadgeCheck className="w-4 h-4 text-blue-500 fill-blue-50 shrink-0" />
+                                <BadgeCheck className="w-4 h-4 text-blue-500 fill-blue-50 dark:fill-blue-950/20 shrink-0" />
                               )}
                             </div>
-                            <div className="text-xs text-slate-500 font-medium max-w-[180px] truncate" title={user.username}>
+                            <div className="text-xs text-slate-500 dark:text-slate-400 font-medium max-w-[180px] truncate" title={user.username}>
                               @{user.username}
                             </div>
-                            <div className="text-[10px] text-slate-400 italic max-w-[180px] truncate" title={user.email}>
+                            <div className="text-[10px] text-slate-400 dark:text-slate-500 italic max-w-[180px] truncate" title={user.email}>
                               {user.email}
                             </div>
                           </div>
                         </div>
                       </TableCell>
                       <TableCell className="whitespace-nowrap">
-                        <div className="flex items-center text-sm font-medium text-slate-600">
+                        <div className="flex items-center text-sm font-medium text-slate-600 dark:text-slate-300">
                           <CalendarIcon className="w-3.5 h-3.5 mr-2 text-slate-400" />
                           {formatDate(user.createdAt)}
                         </div>
@@ -590,14 +590,14 @@ export default function Users() {
                       </TableCell>
                       <TableCell className="whitespace-nowrap">
                         <div className="space-y-1">
-                          <div className="flex items-center gap-1.5 text-xs font-bold text-slate-700 whitespace-nowrap">
+                          <div className="flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-300 whitespace-nowrap">
                             <FileText className="w-3 h-3 text-indigo-500" />{" "}
                             {user.posts}{" "}
                             <span className="font-normal text-slate-400">
                               bài viết
                             </span>
                           </div>
-                          <div className="flex items-center gap-1.5 text-xs font-bold text-slate-700 whitespace-nowrap">
+                          <div className="flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-300 whitespace-nowrap">
                             <TrendingUp className="w-3 h-3 text-emerald-500" />{" "}
                             {user.interactions}{" "}
                             <span className="font-normal text-slate-400">
@@ -608,11 +608,11 @@ export default function Users() {
                       </TableCell>
                       <TableCell className="text-center whitespace-nowrap">
                         {user.violations > 0 ? (
-                          <div className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-rose-50 text-rose-600 font-black text-xs border border-rose-100">
+                          <div className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-rose-500/10 text-rose-500 font-black text-xs border border-rose-500/20">
                             {user.violations}
                           </div>
                         ) : (
-                          <span className="text-slate-300 font-medium">-</span>
+                          <span className="text-muted-foreground/30 font-medium">-</span>
                         )}
                       </TableCell>
                       <TableCell
@@ -624,14 +624,14 @@ export default function Users() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              className="h-8 w-8 p-0 rounded-full hover:bg-slate-200"
+                              className="h-8 w-8 p-0 rounded-full hover:bg-muted"
                             >
                               <MoreHorizontal className="w-4 h-4" />
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent
                             align="end"
-                            className="w-52 rounded-xl p-2 shadow-2xl border-slate-100"
+                            className="w-52 rounded-xl p-2 shadow-2xl border-border"
                           >
                             <DropdownMenuItem
                               className="focus:bg-primary/15 focus:text-primary cursor-pointer"
@@ -665,10 +665,10 @@ export default function Users() {
                               <Shield className="w-4 h-4 mr-2 opacity-70" />{" "}
                               Phân quyền
                             </DropdownMenuItem>
-                            <div className="h-px bg-slate-100 my-1" />
+                            <div className="h-px bg-border my-1" />
                             {user.status === "locked" ? (
                               <DropdownMenuItem
-                                className="text-emerald-600 focus:text-emerald-700 focus:bg-emerald-50 cursor-pointer"
+                                className="text-emerald-600 focus:text-emerald-700 focus:bg-emerald-500/10 cursor-pointer"
                                 onClick={async () => {
                                   try {
                                     await unbanUser(user.username);
@@ -694,7 +694,7 @@ export default function Users() {
                               </DropdownMenuItem>
                             ) : (
                               <DropdownMenuItem
-                                className="text-rose-600 focus:text-rose-700 focus:bg-rose-50 cursor-pointer"
+                                className="text-rose-600 focus:text-rose-700 focus:bg-rose-500/10 cursor-pointer"
                                 onClick={() => {
                                   setSelectedUser(user);
                                   setBanDialogOpen(true);
@@ -714,7 +714,7 @@ export default function Users() {
           </div>
 
           {totalHits > PAGE_SIZE && (
-            <div className="p-6 border-t border-slate-50 bg-slate-50/30 rounded-b-[2rem]">
+            <div className="p-6 border-t border-border/50 bg-muted/20 rounded-b-[2rem]">
               <Pagination>
                 <PaginationContent>
                   <PaginationItem>
@@ -739,7 +739,7 @@ export default function Users() {
                         <Button
                           variant={page === currentPage ? "default" : "ghost"}
                           size="sm"
-                          className={`w-9 h-9 p-0 rounded-lg ${page === currentPage ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20" : ""}`}
+                          className={`w-9 h-9 p-0 rounded-lg ${page === currentPage ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20 dark:shadow-none" : ""}`}
                           onClick={() => setCurrentPage(page as number)}
                         >
                           {page}
@@ -768,17 +768,17 @@ export default function Users() {
 
       {/* MODAL GÁN QUYỀN */}
       <Dialog open={assignRoleOpen} onOpenChange={setAssignRoleOpen}>
-        <DialogContent className="rounded-3xl border-none shadow-2xl">
+        <DialogContent className="rounded-3xl border border-border/50 shadow-2xl bg-card text-card-foreground">
           <DialogHeader>
             <DialogTitle className="text-2xl font-black">
               Phân quyền người dùng
             </DialogTitle>
-            <p className="text-slate-500 text-sm italic">
+            <p className="text-slate-500 dark:text-slate-400 text-sm italic">
               Thiết lập vai trò mới cho {selectedUser?.fullName}
             </p>
           </DialogHeader>
           <div className="py-4 space-y-4">
-            <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 flex items-center gap-4">
+            <div className="p-4 bg-muted rounded-2xl border border-border flex items-center gap-4">
               <Avatar className="w-12 h-12 rounded-xl">
                 <AvatarImage src={selectedUser?.avatar} />
               </Avatar>
@@ -790,11 +790,11 @@ export default function Users() {
               </div>
             </div>
             <div className="space-y-2">
-              <Label className="font-bold text-xs uppercase text-slate-400">
+              <Label className="font-bold text-xs uppercase text-slate-400 dark:text-slate-500">
                 Chọn vai trò mới
               </Label>
               <Select value={selectedRole} onValueChange={setSelectedRole}>
-                <SelectTrigger className="h-12 rounded-xl">
+                <SelectTrigger className="h-12 rounded-xl bg-background border-border">
                   <SelectValue placeholder="Chọn vai trò" />
                 </SelectTrigger>
                 <SelectContent className="rounded-xl">
@@ -822,7 +822,7 @@ export default function Users() {
             <Button
               onClick={handleAssignRole}
               disabled={!selectedRole}
-              className="bg-indigo-600 hover:bg-indigo-700 rounded-xl px-8 shadow-lg shadow-indigo-100"
+              className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl px-8 shadow-lg shadow-indigo-500/20 dark:shadow-none"
             >
               Cập nhật quyền
             </Button>
@@ -832,7 +832,7 @@ export default function Users() {
 
       {/* MODAL CHI TIẾT HỒ SƠ */}
       <Dialog open={detailsDialogOpen} onOpenChange={setDetailsDialogOpen}>
-        <DialogContent className="max-w-5xl h-[85vh] p-0 overflow-hidden border-none shadow-2xl rounded-[2.5rem]">
+        <DialogContent className="max-w-5xl h-[85vh] p-0 overflow-hidden border border-border/50 shadow-2xl rounded-[2.5rem] bg-card text-card-foreground">
           {selectedUser && (
             <div className="flex h-full">
               {/* Sidebar Profile */}
@@ -940,8 +940,8 @@ export default function Users() {
               </div>
 
               {/* Main Content Area */}
-              <div className="flex-1 flex flex-col bg-slate-50">
-                <div className="flex p-6 bg-white border-b gap-8">
+              <div className="flex-1 flex flex-col bg-muted/30">
+                <div className="flex p-6 bg-card border-b border-border/50 gap-8">
                   {[
                     {
                       id: "overview",
@@ -962,7 +962,7 @@ export default function Users() {
                     <button
                       key={tab.id}
                       onClick={() => setActiveTab(tab.id)}
-                      className={`flex items-center gap-2 pb-4 px-2 text-sm font-bold transition-all border-b-2 ${activeTab === tab.id ? "border-indigo-600 text-indigo-600" : "border-transparent text-slate-400 hover:text-slate-600"}`}
+                      className={`flex items-center gap-2 pb-4 px-2 text-sm font-bold transition-all border-b-2 ${activeTab === tab.id ? "border-indigo-600 text-indigo-600" : "border-transparent text-slate-400 hover:text-foreground"}`}
                     >
                       {tab.icon} {tab.label}
                     </button>
@@ -973,43 +973,43 @@ export default function Users() {
                   {activeTab === "overview" && (
                     <div className="space-y-8 animate-in slide-in-from-right-4 duration-500">
                       <div className="grid grid-cols-2 gap-6">
-                        <Card className="rounded-3xl border-none shadow-sm hover:shadow-md transition-shadow">
+                        <Card className="rounded-3xl border border-border/50 bg-card text-card-foreground shadow-sm hover:shadow-md transition-shadow">
                           <CardContent className="p-6">
-                            <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-1">
+                            <p className="text-muted-foreground text-xs font-bold uppercase tracking-widest mb-1">
                               Nội dung đã đăng
                             </p>
-                            <div className="text-4xl font-black text-slate-800">
+                            <div className="text-4xl font-black text-foreground">
                               {selectedUser.posts}
                             </div>
-                            <p className="text-xs text-slate-400 mt-1">
+                            <p className="text-xs text-muted-foreground mt-1">
                               Bài viết & Thước phim
                             </p>
                           </CardContent>
                         </Card>
-                        <Card className="rounded-3xl border-none shadow-sm hover:shadow-md transition-shadow">
+                        <Card className="rounded-3xl border border-border/50 bg-card text-card-foreground shadow-sm hover:shadow-md transition-shadow">
                           <CardContent className="p-6">
-                            <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-1">
+                            <p className="text-muted-foreground text-xs font-bold uppercase tracking-widest mb-1">
                               Tổng lượt tương tác
                             </p>
-                            <div className="text-4xl font-black text-slate-800">
+                            <div className="text-4xl font-black text-foreground">
                               {selectedUser.interactions}
                             </div>
-                            <p className="text-xs text-slate-400 mt-1">
+                            <p className="text-xs text-muted-foreground mt-1">
                               Tim, Bình luận, Chia sẻ
                             </p>
                           </CardContent>
                         </Card>
                       </div>
                       <div className="space-y-4">
-                        <h4 className="font-black text-slate-800 flex items-center gap-2">
+                        <h4 className="font-black text-foreground flex items-center gap-2">
                           <FileText className="w-5 h-5 text-indigo-500" /> Hoạt
                           động mới nhất
                         </h4>
-                        <div className="bg-white rounded-3xl p-10 border border-dashed border-slate-200 text-center">
-                          <div className="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                            <FileText className="w-8 h-8 text-slate-300" />
+                        <div className="bg-card rounded-3xl p-10 border border-dashed border-border text-center">
+                          <div className="w-16 h-16 bg-muted rounded-2xl flex items-center justify-center mx-auto mb-4">
+                            <FileText className="w-8 h-8 text-muted-foreground/30" />
                           </div>
-                          <p className="text-slate-400 font-bold italic">
+                          <p className="text-muted-foreground font-bold italic">
                             Danh sách hoạt động đang được đồng bộ...
                           </p>
                         </div>
@@ -1019,24 +1019,24 @@ export default function Users() {
 
                   {activeTab === "reports" && (
                     <div className="space-y-6 animate-in slide-in-from-right-4 duration-500">
-                      <div className="bg-rose-50 border border-rose-100 p-6 rounded-3xl flex items-center justify-between">
+                      <div className="bg-rose-500/10 border border-rose-500/25 p-6 rounded-3xl flex items-center justify-between">
                         <div className="flex items-center gap-4">
-                          <div className="w-12 h-12 bg-rose-500 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-rose-200">
+                          <div className="w-12 h-12 bg-rose-500 rounded-2xl flex items-center justify-center text-white shadow-lg dark:shadow-none">
                             <AlertTriangle className="w-6 h-6" />
                           </div>
                           <div>
-                            <h4 className="text-xl font-black text-rose-700">
+                            <h4 className="text-xl font-black text-rose-500">
                               Lịch sử vi phạm
                             </h4>
-                            <p className="text-rose-600/70 text-sm font-medium">
+                            <p className="text-rose-500/80 text-sm font-medium">
                               Người dùng này đã có {selectedUser.violations} báo
                               cáo vi phạm.
                             </p>
                           </div>
                         </div>
                       </div>
-                      <div className="bg-white rounded-3xl p-10 border border-dashed border-slate-200 text-center">
-                        <p className="text-slate-400 font-bold italic">
+                      <div className="bg-card rounded-3xl p-10 border border-dashed border-border text-center">
+                        <p className="text-muted-foreground font-bold italic">
                           Chi tiết các vi phạm đang được tải...
                         </p>
                       </div>
@@ -1045,7 +1045,7 @@ export default function Users() {
 
                   {activeTab === "login" && (
                     <div className="space-y-6 animate-in slide-in-from-right-4 duration-500">
-                      <h4 className="font-black text-slate-800 flex items-center gap-2">
+                      <h4 className="font-black text-foreground flex items-center gap-2">
                         <History className="w-5 h-5 text-indigo-500" /> Phiên
                         làm việc gần đây
                       </h4>
@@ -1066,22 +1066,22 @@ export default function Users() {
                         ].map((session, i) => (
                           <div
                             key={i}
-                            className="bg-white p-5 rounded-2xl border border-slate-100 flex items-center justify-between shadow-sm hover:shadow-md transition-shadow"
+                            className="bg-card p-5 rounded-2xl border border-border/50 flex items-center justify-between shadow-sm hover:shadow-md transition-shadow"
                           >
                             <div className="flex items-center gap-4">
-                              <div className="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400">
+                              <div className="w-10 h-10 bg-muted rounded-xl flex items-center justify-center text-muted-foreground">
                                 <CalendarIcon className="w-5 h-5" />
                               </div>
                               <div>
-                                <p className="font-bold text-slate-800">
+                                <p className="font-bold text-foreground">
                                   {session.dev}
                                 </p>
-                                <p className="text-xs text-slate-400 font-medium">
+                                <p className="text-xs text-muted-foreground font-medium">
                                   {session.time} • {session.ip}
                                 </p>
                               </div>
                             </div>
-                            <Badge className="bg-emerald-50 text-emerald-600 border-emerald-100 hover:bg-emerald-50">
+                            <Badge className="bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 hover:bg-emerald-500/20">
                               {session.status}
                             </Badge>
                           </div>
@@ -1098,32 +1098,32 @@ export default function Users() {
 
       {/* MODAL KHÓA TÀI KHOẢN */}
       <Dialog open={banDialogOpen} onOpenChange={setBanDialogOpen}>
-        <DialogContent className="rounded-3xl border-none shadow-2xl">
+        <DialogContent className="rounded-3xl border border-border/50 shadow-2xl bg-card text-card-foreground">
           <DialogHeader>
             <DialogTitle className="text-2xl font-black text-rose-600 flex items-center gap-2">
               <Ban className="w-6 h-6" /> Khóa tài khoản người dùng
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-5 py-4">
-            <div className="flex items-center gap-4 p-4 bg-rose-50 rounded-2xl border border-rose-100">
+            <div className="flex items-center gap-4 p-4 bg-rose-500/10 rounded-2xl border border-rose-500/20">
               <Avatar className="w-12 h-12 rounded-xl">
                 <AvatarImage src={selectedUser?.avatar} />
               </Avatar>
               <div>
-                <p className="font-bold text-rose-700">
+                <p className="font-bold text-rose-500">
                   {selectedUser?.fullName}
                 </p>
-                <p className="text-xs text-rose-600 opacity-70">
+                <p className="text-xs text-rose-500 opacity-70">
                   @{selectedUser?.username}
                 </p>
               </div>
             </div>
             <div className="space-y-2">
-              <Label className="text-xs font-bold uppercase text-slate-400">
+              <Label className="text-xs font-bold uppercase text-slate-400 dark:text-slate-500">
                 Thời gian đình chỉ
               </Label>
               <Select value={banDuration} onValueChange={setBanDuration}>
-                <SelectTrigger className="h-12 rounded-xl">
+                <SelectTrigger className="h-12 rounded-xl bg-background border-border">
                   <SelectValue placeholder="Chọn thời gian" />
                 </SelectTrigger>
                 <SelectContent className="rounded-xl">
@@ -1137,16 +1137,16 @@ export default function Users() {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label className="text-xs font-bold uppercase text-slate-400">
+              <Label className="text-xs font-bold uppercase text-slate-400 dark:text-slate-500">
                 Lý do kỷ luật
               </Label>
               <Input
                 placeholder="Nhập lý do cụ thể..."
                 value={banReason}
                 onChange={(e) => setBanReason(e.target.value)}
-                className="h-12 rounded-xl focus:ring-rose-500"
+                className="h-12 rounded-xl bg-background border-border text-foreground focus:ring-rose-500"
               />
-              <p className="text-[10px] text-slate-400">
+              <p className="text-[10px] text-slate-400 dark:text-slate-500">
                 * Lý do này sẽ được gửi tới email người dùng.
               </p>
             </div>
@@ -1163,7 +1163,7 @@ export default function Users() {
               variant="destructive"
               onClick={handleBanUserSubmit}
               disabled={!banReason}
-              className="bg-rose-600 hover:bg-rose-700 rounded-xl px-8 shadow-lg shadow-rose-200"
+              className="bg-rose-600 hover:bg-rose-700 text-white rounded-xl px-8 shadow-lg shadow-rose-500/20 dark:shadow-none"
             >
               Xác nhận kỷ luật
             </Button>

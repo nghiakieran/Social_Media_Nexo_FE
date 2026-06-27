@@ -16,15 +16,15 @@ export function Toaster() {
   const getIcon = (variant: string | null | undefined) => {
     switch (variant) {
       case "success":
-        return <CheckCircle2 className="h-5 w-5 text-success" />
+        return <CheckCircle2 className="h-5 w-5 max-sm:h-4 max-sm:w-4 text-success" />
       case "destructive":
-        return <XCircle className="h-5 w-5 text-destructive" />
+        return <XCircle className="h-5 w-5 max-sm:h-4 max-sm:w-4 text-destructive" />
       case "warning":
-        return <AlertTriangle className="h-5 w-5 text-warning" />
+        return <AlertTriangle className="h-5 w-5 max-sm:h-4 max-sm:w-4 text-warning" />
       case "info":
-        return <Info className="h-5 w-5 text-primary" />
+        return <Info className="h-5 w-5 max-sm:h-4 max-sm:w-4 text-primary" />
       default:
-        return <Info className="h-5 w-5 text-muted-foreground" />
+        return <Info className="h-5 w-5 max-sm:h-4 max-sm:w-4 text-muted-foreground" />
     }
   }
 
@@ -73,21 +73,22 @@ export function Toaster() {
             {/* 1. Refined Accent strip */}
             <div className={cn("absolute left-0 top-0 h-full w-[3px] opacity-80", styles.bar)} />
 
-            <div className={cn("flex gap-4", title ? "items-start" : "items-center")}>
+            <div className={cn("flex gap-4 max-sm:gap-2", title ? "items-start" : "items-center")}>
               {/* 2. Refined Icon badge with ring/depth */}
-              <div className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition-all duration-300", styles.badge)}>
+              <div className={cn("flex h-9 w-9 max-sm:h-7 max-sm:w-7 shrink-0 items-center justify-center rounded-xl transition-all duration-300", styles.badge)}>
                 {getIcon(variant)}
               </div>
 
               <div className={cn("grid flex-1", title ? "gap-1.5" : "gap-0")}>
-                {title && <ToastTitle className="text-[14px] font-bold tracking-tight">{title}</ToastTitle>}
+                {title && <ToastTitle className="text-[14px] max-sm:text-xs font-bold tracking-tight">{title}</ToastTitle>}
                 {description && (
-                  <ToastDescription className="text-xs text-muted-foreground/90 leading-relaxed font-medium">
+                  <ToastDescription className="text-xs max-sm:text-[11px] text-muted-foreground/90 leading-relaxed font-medium">
                     {description}
                   </ToastDescription>
                 )}
               </div>
             </div>
+
 
             {action}
             <ToastClose />

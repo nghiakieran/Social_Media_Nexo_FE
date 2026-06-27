@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { Button } from "../ui/button";
 
 export interface ActionMenuItem {
@@ -56,11 +57,11 @@ export const ActionMenu: React.FC<ActionMenuProps> = ({
 
   if (!isOpen) return null;
 
-  return (
+  return createPortal(
     <>
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[80]"
+        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9990]"
         onClick={(e) => {
           e.preventDefault();
           e.stopPropagation();
@@ -70,11 +71,12 @@ export const ActionMenu: React.FC<ActionMenuProps> = ({
       {/* Menu */}
       <div
         ref={menuRef}
-        className={`fixed bg-white dark:bg-gray-900 rounded-2xl shadow-2xl overflow-hidden z-[81] w-full max-w-md ${className}`}
+        className={`fixed bg-white dark:bg-gray-900 rounded-2xl shadow-2xl overflow-hidden z-[9991] w-full max-w-md ${className}`}
         onClick={(e) => {
           e.preventDefault();
           e.stopPropagation();
         }}
+
         style={
           position
             ? {
@@ -138,6 +140,8 @@ export const ActionMenu: React.FC<ActionMenuProps> = ({
           ))}
         </div>
       </div>
-    </>
+    </>,
+    document.body
   );
 };
+

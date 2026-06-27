@@ -208,8 +208,9 @@ export const ReportPostDialog = ({
           <Button
             onClick={handleSubmit}
             disabled={isSubmitting || !selectedReason}
-            className="bg-destructive hover:bg-destructive/90"
+            className="bg-red-500 hover:bg-red-600 text-white dark:bg-red-600 dark:hover:bg-red-700 transition-colors border-none"
           >
+
             {isSubmitting ? "Đang gửi..." : "Gửi báo cáo"}
           </Button>
         </DialogFooter>

@@ -65,7 +65,7 @@ export function UserStatsDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl p-0 overflow-hidden border-none shadow-2xl rounded-3xl [&>button]:text-white [&>button]:hover:text-white [&>button]:bg-white/10 hover:[&>button]:bg-white/20 [&>button]:rounded-full">
+      <DialogContent className="max-w-4xl p-0 overflow-hidden border border-border/50 bg-card text-card-foreground shadow-2xl rounded-3xl [&>button]:text-white [&>button]:hover:text-white [&>button]:bg-white/10 hover:[&>button]:bg-white/20 [&>button]:rounded-full">
         <DialogHeader className="p-8 bg-slate-900 text-white relative">
           <div className="flex items-center gap-6">
             <Avatar className="w-20 h-20 border-4 border-white/10 shadow-xl rounded-2xl">
@@ -92,7 +92,7 @@ export function UserStatsDialog({
           </div>
         </DialogHeader>
 
-        <div className="p-8 bg-slate-50">
+        <div className="p-8 bg-muted/30">
           {loading ? (
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               {Array(4)
@@ -110,48 +110,48 @@ export function UserStatsDialog({
                       label: "Bài viết",
                       value: stats.postsCount,
                       icon: FileText,
-                      color: "text-blue-600",
+                      color: "text-blue-600 dark:text-blue-400",
                     },
                     {
                       label: "Tương tác",
                       value: stats.interactionsCount,
                       icon: Heart,
-                      color: "text-rose-600",
+                      color: "text-rose-600 dark:text-rose-400",
                     },
                     {
                       label: "Followers",
                       value: stats.totalFollowersCount,
                       icon: Users,
-                      color: "text-indigo-600",
+                      color: "text-indigo-600 dark:text-indigo-400",
                       trend: stats.followersGrowthPercentage,
                     },
                     {
                       label: "Following",
                       value: stats.totalFollowingCount,
                       icon: UserCheck,
-                      color: "text-slate-600",
+                      color: "text-slate-600 dark:text-slate-400",
                     },
                   ].map((item, i) => (
                     <Card
                       key={i}
-                      className="border-none shadow-sm rounded-3xl group hover:shadow-md transition-all"
+                      className="border border-border/50 bg-card text-card-foreground shadow-sm rounded-3xl group hover:shadow-md transition-all"
                     >
                       <CardContent className="p-6">
                         <div className="flex items-center justify-between mb-2">
                           <item.icon className={`w-5 h-5 ${item.color}`} />
                           {item.trend !== undefined && (
                             <span
-                              className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${item.trend >= 0 ? "bg-emerald-100 text-emerald-600" : "bg-rose-100 text-rose-600"}`}
+                              className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${item.trend >= 0 ? "bg-emerald-500/10 text-emerald-500" : "bg-rose-500/10 text-rose-500"}`}
                             >
                               {item.trend >= 0 ? "+" : ""}
                               {item.trend.toFixed(1)}%
                             </span>
                           )}
                         </div>
-                        <p className="text-2xl font-black text-slate-800">
+                        <p className="text-2xl font-black text-foreground">
                           {item.value.toLocaleString()}
                         </p>
-                        <p className="text-xs font-bold text-slate-400 uppercase tracking-tighter mt-1">
+                        <p className="text-xs font-bold text-muted-foreground uppercase tracking-tighter mt-1">
                           {item.label}
                         </p>
                       </CardContent>

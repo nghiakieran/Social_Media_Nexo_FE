@@ -79,13 +79,7 @@ export const ActionMenuDialog = ({
                 </>
               )}
 
-              <Button
-                variant="ghost"
-                onClick={() => handleAction("aboutAccount")}
-                className="block text-center w-full justify-start h-12"
-              >
-                Giới thiệu về tài khoản này
-              </Button>
+
             </div>
           </>
         ) : (

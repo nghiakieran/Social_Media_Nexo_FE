@@ -98,34 +98,34 @@ export default function Settings() {
     <div className="space-y-8 animate-in fade-in duration-500 p-1">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
-          <h1 className="text-4xl font-black tracking-tight text-slate-900">
+          <h1 className="text-4xl font-black tracking-tight text-slate-900 dark:text-white">
             Cài đặt{" "}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-violet-600">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-violet-600 dark:from-indigo-400 dark:to-violet-400">
               Hệ thống
             </span>
           </h1>
-          <p className="text-slate-500 font-medium mt-1">
+          <p className="text-slate-500 dark:text-slate-400 font-medium mt-1">
             Quản lý cấu hình, bảo mật và dịch vụ AI của Nexo
           </p>
         </div>
       </div>
 
       <Tabs defaultValue="roles" className="space-y-6">
-        <div className="bg-slate-50/80 p-1.5 rounded-2xl border shadow-sm w-max">
+        <div className="bg-muted p-1.5 rounded-2xl border border-border/50 shadow-sm w-max">
           <TabsList className="bg-transparent h-12 w-full justify-start gap-2">
-            <TabsTrigger value="roles" className="rounded-xl px-6 data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-md transition-all font-semibold">
+            <TabsTrigger value="roles" className="rounded-xl px-6 data-[state=active]:bg-background data-[state=active]:text-indigo-600 dark:data-[state=active]:text-indigo-400 data-[state=active]:shadow-md transition-all font-semibold">
               <Shield className="w-4 h-4 mr-2" />
               Vai trò
             </TabsTrigger>
-            <TabsTrigger value="permissions" className="rounded-xl px-6 data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-md transition-all font-semibold">
+            <TabsTrigger value="permissions" className="rounded-xl px-6 data-[state=active]:bg-background data-[state=active]:text-indigo-600 dark:data-[state=active]:text-indigo-400 data-[state=active]:shadow-md transition-all font-semibold">
               <Key className="w-4 h-4 mr-2" />
               Quyền hạn
             </TabsTrigger>
-            <TabsTrigger value="system" className="rounded-xl px-6 data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-md transition-all font-semibold">
+            <TabsTrigger value="system" className="rounded-xl px-6 data-[state=active]:bg-background data-[state=active]:text-indigo-600 dark:data-[state=active]:text-indigo-400 data-[state=active]:shadow-md transition-all font-semibold">
               <SettingsIcon className="w-4 h-4 mr-2" />
               Hệ thống
             </TabsTrigger>
-            <TabsTrigger value="api" className="rounded-xl px-6 data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-md transition-all font-semibold">
+            <TabsTrigger value="api" className="rounded-xl px-6 data-[state=active]:bg-background data-[state=active]:text-indigo-600 dark:data-[state=active]:text-indigo-400 data-[state=active]:shadow-md transition-all font-semibold">
               <Database className="w-4 h-4 mr-2" />
               API & Dịch vụ
             </TabsTrigger>
@@ -134,9 +134,9 @@ export default function Settings() {
 
         {/* ROLES */}
         <TabsContent value="roles" className="space-y-4 focus-visible:outline-none">
-          <Card className="border-none shadow-xl rounded-[2rem] overflow-hidden bg-white">
-            <CardHeader className="bg-slate-50/50 border-b p-6">
-              <CardTitle className="text-xl font-bold text-slate-800">Quản lý vai trò</CardTitle>
+          <Card className="border border-border/50 shadow-xl rounded-[2rem] overflow-hidden bg-card text-card-foreground">
+            <CardHeader className="bg-muted/30 border-b border-border/50 p-6">
+              <CardTitle className="text-xl font-bold text-foreground">Quản lý vai trò</CardTitle>
               <CardDescription>
                 Tạo và quản lý các vai trò người dùng
               </CardDescription>
@@ -145,10 +145,10 @@ export default function Settings() {
               {["Admin", "Moderator", "User"].map((role) => (
                 <div
                   key={role}
-                  className="flex items-center justify-between p-4 border rounded-lg"
+                  className="flex items-center justify-between p-4 border border-border/50 bg-muted/10 rounded-xl"
                 >
                   <div>
-                    <h4 className="font-semibold">{role}</h4>
+                    <h4 className="font-semibold text-foreground">{role}</h4>
                     <p className="text-sm text-muted-foreground">
                       {role === "Admin" && "Toàn quyền quản trị hệ thống"}
                       {role === "Moderator" &&
@@ -162,7 +162,7 @@ export default function Settings() {
                 </div>
               ))}
               <Separator />
-              <Button className="w-full">
+              <Button className="w-full bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-500/10 dark:shadow-none">
                 <Shield className="w-4 h-4 mr-2" />
                 Tạo vai trò mới
               </Button>
@@ -172,9 +172,9 @@ export default function Settings() {
 
         {/* PERMISSIONS */}
         <TabsContent value="permissions" className="space-y-4 focus-visible:outline-none">
-          <Card className="border-none shadow-xl rounded-[2rem] overflow-hidden bg-white">
-            <CardHeader className="bg-slate-50/50 border-b p-6">
-              <CardTitle className="text-xl font-bold text-slate-800">Quản lý quyền hạn</CardTitle>
+          <Card className="border border-border/50 shadow-xl rounded-[2rem] overflow-hidden bg-card text-card-foreground">
+            <CardHeader className="bg-muted/30 border-b border-border/50 p-6">
+              <CardTitle className="text-xl font-bold text-foreground">Quản lý quyền hạn</CardTitle>
               <CardDescription>Cấu hình quyền truy cập</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4 p-6">
@@ -186,7 +186,7 @@ export default function Settings() {
               ].map((label, i) => (
                 <div key={i}>
                   <div className="flex items-center justify-between">
-                    <Label>{label}</Label>
+                    <Label className="text-foreground">{label}</Label>
                     <Switch defaultChecked={i < 3} />
                   </div>
                   <Separator className="my-3" />
@@ -198,9 +198,9 @@ export default function Settings() {
 
         {/* SYSTEM */}
         <TabsContent value="system" className="space-y-4 focus-visible:outline-none">
-          <Card className="border-none shadow-xl rounded-[2rem] overflow-hidden bg-white">
-            <CardHeader className="bg-slate-50/50 border-b p-6">
-              <CardTitle className="text-xl font-bold text-slate-800">Cấu hình hệ thống</CardTitle>
+          <Card className="border border-border/50 shadow-xl rounded-[2rem] overflow-hidden bg-card text-card-foreground">
+            <CardHeader className="bg-muted/30 border-b border-border/50 p-6">
+              <CardTitle className="text-xl font-bold text-foreground">Cấu hình hệ thống</CardTitle>
               <CardDescription>Thiết lập hệ thống</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4 p-6">
@@ -208,23 +208,26 @@ export default function Settings() {
                 type="number"
                 defaultValue="10"
                 placeholder="Max image size"
+                className="bg-background border-border text-foreground"
               />
               <Input
                 type="number"
                 defaultValue="100"
                 placeholder="Max video size"
+                className="bg-background border-border text-foreground"
               />
               <Input
                 type="number"
                 defaultValue="50"
                 placeholder="Max posts/day"
+                className="bg-background border-border text-foreground"
               />
               <Separator />
               <div className="flex justify-between items-center">
-                <Label>Bật kiểm duyệt AI</Label>
+                <Label className="text-foreground">Bật kiểm duyệt AI</Label>
                 <Switch defaultChecked />
               </div>
-              <Button className="w-full">Lưu thay đổi</Button>
+              <Button className="w-full bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-500/10 dark:shadow-none">Lưu thay đổi</Button>
             </CardContent>
           </Card>
         </TabsContent>
@@ -234,10 +237,10 @@ export default function Settings() {
           value="api"
           className="space-y-4 focus-visible:outline-none focus-visible:ring-0"
         >
-          <Card className="border-none shadow-xl rounded-[2rem] overflow-hidden bg-white">
-            <CardHeader className="bg-slate-50/50 border-b p-6">
-              <CardTitle className="flex items-center gap-2 text-xl font-bold text-slate-800">
-                <Server className="w-5 h-5 text-indigo-600" />
+          <Card className="border border-border/50 shadow-xl rounded-[2rem] overflow-hidden bg-card text-card-foreground">
+            <CardHeader className="bg-muted/30 border-b border-border/50 p-6">
+              <CardTitle className="flex items-center gap-2 text-xl font-bold text-foreground">
+                <Server className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
                 API & Dịch vụ
               </CardTitle>
               <CardDescription className="text-sm">
@@ -255,28 +258,28 @@ export default function Settings() {
                 </h3>
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-2 sm:col-span-2">
-                    <Label htmlFor="smtp">SMTP Server</Label>
+                    <Label htmlFor="smtp" className="text-foreground">SMTP Server</Label>
                     <Input
                       id="smtp"
                       placeholder="smtp.example.com"
-                      className="bg-background"
+                      className="bg-background border-border text-foreground"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="client-id">OAuth Client ID</Label>
+                    <Label htmlFor="client-id" className="text-foreground">OAuth Client ID</Label>
                     <Input
                       id="client-id"
                       placeholder="Nhập Client ID..."
-                      className="bg-background"
+                      className="bg-background border-border text-foreground"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="client-secret">OAuth Secret</Label>
+                    <Label htmlFor="client-secret" className="text-foreground">OAuth Secret</Label>
                     <Input
                       id="client-secret"
                       type="password"
                       placeholder="••••••••••••"
-                      className="bg-background"
+                      className="bg-background border-border text-foreground"
                     />
                   </div>
                 </div>
@@ -339,7 +342,7 @@ export default function Settings() {
 
               {/* NÚT LƯU CẤU HÌNH */}
               <div className="flex justify-end pt-2">
-                <Button className="w-full sm:w-auto flex items-center gap-2 px-8">
+                <Button className="w-full sm:w-auto flex items-center gap-2 px-8 bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-500/10 dark:shadow-none">
                   <Save className="w-4 h-4" />
                   Lưu cấu hình
                 </Button>

@@ -32,6 +32,8 @@ import type { Comment } from "../types";
 import { cn } from "@/lib/utils";
 import { LikesDialog } from "@/features/post/components/LikesDialog";
 import { LikeButton } from "./LikeButton";
+import { parseMentions } from "@/utils/mentions";
+import { useNavigate } from "react-router-dom";
 
 interface CommentSectionProps {
   postId: number;
@@ -78,6 +80,10 @@ export const CommentSection = ({ postId, className }: CommentSectionProps) => {
   const [expandedReplies, setExpandedReplies] = useState<
     Record<string, boolean>
   >({});
+  // Track the root parent ID when replying to a reply (for API submission)
+  const [replyRootParentId, setReplyRootParentId] = useState<string | null>(null);
+
+  const navigate = useNavigate();
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -245,6 +251,13 @@ export const CommentSection = ({ postId, className }: CommentSectionProps) => {
   const handleSubmitComment = async () => {
     if (!newComment.trim() || !user) return;
 
+    // If replying to a reply, use the root parent ID; otherwise use replyingTo directly
+    const parentId = replyRootParentId
+      ? parseInt(replyRootParentId)
+      : replyingTo
+        ? parseInt(replyingTo)
+        : 0;
+
     try {
       await dispatch(
         createCommentThunk({
@@ -252,7 +265,7 @@ export const CommentSection = ({ postId, className }: CommentSectionProps) => {
           userId: user.id,
           postId,
           reelId: 0,
-          parentId: replyingTo ? parseInt(replyingTo) : 0,
+          parentId,
           content: newComment.trim(),
           listMentionUserId: mentionedUsers.map((user) => user.id),
         }),
@@ -260,8 +273,16 @@ export const CommentSection = ({ postId, className }: CommentSectionProps) => {
 
       setNewComment("");
       setReplyingTo(null);
+      setReplyRootParentId(null);
       clearMentionState();
-      handleRefresh(); // Refresh to show new comment
+      
+      // Silent refresh - load new comments directly without clearing state to avoid screen flicker
+      dispatch(
+        getPostCommentsThunk({
+          postId,
+          params: { pageNo: 0, pageSize: 10 },
+        }),
+      );
     } catch (error) {
       toast({
         variant: "destructive",
@@ -306,7 +327,14 @@ export const CommentSection = ({ postId, className }: CommentSectionProps) => {
       setEditingComment(null);
       setEditingContent("");
       clearMentionState();
-      handleRefresh();
+      
+      // Silent refresh
+      dispatch(
+        getPostCommentsThunk({
+          postId,
+          params: { pageNo: 0, pageSize: 10 },
+        }),
+      );
     } catch (error) {
       toast({
         variant: "destructive",
@@ -319,7 +347,14 @@ export const CommentSection = ({ postId, className }: CommentSectionProps) => {
   const handleDeleteComment = async (commentId: string) => {
     try {
       await dispatch(deleteCommentThunk(parseInt(commentId))).unwrap();
-      handleRefresh();
+      
+      // Silent refresh
+      dispatch(
+        getPostCommentsThunk({
+          postId,
+          params: { pageNo: 0, pageSize: 10 },
+        }),
+      );
     } catch (error) {
       toast({
         variant: "destructive",
@@ -329,11 +364,34 @@ export const CommentSection = ({ postId, className }: CommentSectionProps) => {
     }
   };
 
-  const handleReply = (commentId: string) => {
+  const handleReply = (commentId: string, rootParentId?: string) => {
+    // Show form under the exact comment clicked
     setReplyingTo(commentId);
-    if (textareaRef.current) {
-      textareaRef.current.focus();
+    // Track root parent for API submission (rootParentId if replying to a reply, otherwise commentId itself)
+    setReplyRootParentId(rootParentId ?? null);
+    // Find @username of the person being replied to (commentId)
+    const findInComments = (list: Comment[]): Comment | null => {
+      for (const c of list) {
+        if (c.id === commentId) return c;
+        if (c.replies?.length) {
+          const found = findInComments(c.replies);
+          if (found) return found;
+        }
+      }
+      return null;
+    };
+    const target = findInComments(comments);
+    if (target) {
+      setNewComment(`@${target.userName} `);
     }
+    setTimeout(() => {
+      if (textareaRef.current) {
+        textareaRef.current.focus();
+        const len = textareaRef.current.value.length;
+        textareaRef.current.setSelectionRange(len, len);
+        textareaRef.current.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      }
+    }, 100);
   };
 
   const handleEdit = (commentId: string, content: string) => {
@@ -402,13 +460,7 @@ export const CommentSection = ({ postId, className }: CommentSectionProps) => {
     event.preventDefault();
     event.stopPropagation();
 
-    const rect = event.currentTarget.getBoundingClientRect();
-    const position = {
-      top: window.innerHeight / 2 - 150,
-      left: window.innerWidth / 2 - 100,
-    };
-
-    setActionMenuPosition(position);
+    setActionMenuPosition(undefined);
     setCurrentCommentForAction(commentId);
     setShowActionMenu(true);
   };
@@ -476,14 +528,19 @@ export const CommentSection = ({ postId, className }: CommentSectionProps) => {
   const renderComment = (
     comment: Comment,
     isReply = false,
-    parentId?: string,
+    rootParentId?: string,
   ) => {
     const isEditing = editingComment === comment.id;
+    // When replying to a reply, we target the root comment (not nested)
+    const replyTargetId = isReply ? (rootParentId ?? comment.id) : comment.id;
 
     return (
-      <div key={comment.id} className={cn("space-y-3", isReply && "ml-12")}>
-        <div className="flex gap-3">
-          <Avatar className="w-8 h-8 flex-shrink-0">
+      <div key={comment.id} className="space-y-1">
+        <div className="flex items-start gap-2">
+          <Avatar 
+            className={cn("flex-shrink-0 mt-0.5 cursor-pointer hover:opacity-80 transition-opacity", isReply ? "w-6 h-6" : "w-8 h-8")}
+            onClick={() => navigate(`/${comment.userName}`)}
+          >
             <AvatarImage src={comment.avatarUrl} alt={comment.userName} />
             <AvatarFallback>{comment.userName.charAt(0)}</AvatarFallback>
           </Avatar>
@@ -492,9 +549,15 @@ export const CommentSection = ({ postId, className }: CommentSectionProps) => {
             {isEditing ? (
               <div className="space-y-2">
                 <Textarea
+                  autoFocus
                   value={editingContent}
                   onChange={(e) => setEditingContent(e.target.value)}
                   className="resize-none min-h-[60px] max-h-[120px] rounded-2xl"
+                  onFocus={(e) => {
+                    const temp = e.target.value;
+                    e.target.value = '';
+                    e.target.value = temp;
+                  }}
                 />
                 <div className="flex items-center gap-2">
                   <Button
@@ -518,72 +581,69 @@ export const CommentSection = ({ postId, className }: CommentSectionProps) => {
               </div>
             ) : (
               <>
-                <div className="bg-muted/50 rounded-2xl p-3">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="font-semibold text-sm">
-                      {comment.userName}
-                    </span>
-                    <span className="text-xs text-muted-foreground">
-                      {formatTimeAgo(comment.createdAt)}
-                    </span>
-                  </div>
-                  <p className="text-sm text-foreground">{comment.content}</p>
+                {/* Name + content */}
+                <div className="flex items-center gap-1.5 mb-0.5">
+                  <span 
+                    className="font-semibold text-sm cursor-pointer hover:underline"
+                    onClick={() => navigate(`/${comment.userName}`)}
+                  >
+                    {comment.userName}
+                  </span>
+                  <span className="text-xs text-muted-foreground">{formatTimeAgo(comment.createdAt)}</span>
                 </div>
+                <p className="text-sm text-foreground leading-snug">
+                  {parseMentions(comment.content, (username) => {
+                    navigate(`/${username}`);
+                  })}
+                </p>
 
-                <div className="flex items-center gap-4 mt-2 ml-3">
+                {/* Action row */}
+                <div className="flex items-center gap-3 mt-1">
                   {comment.likesCount > 0 && (
                     <button
                       type="button"
-                      onClick={() =>
-                        handleOpenLikesDialog(
-                          comment.id,
-                          isReply ? "reply" : "comment",
-                        )
-                      }
-                      className="text-xs text-muted-foreground hover:underline"
+                      onClick={() => handleOpenLikesDialog(comment.id, isReply ? "reply" : "comment")}
+                      className="text-xs text-muted-foreground hover:underline whitespace-nowrap"
                     >
                       {formatNumber(comment.likesCount)} lượt thích
                     </button>
                   )}
-
-                  <LikeButton
-                    targetId={parseInt(comment.id)}
-                    targetType="comment"
-                    isLiked={comment.isLiked}
-                    likesCount={comment.likesCount}
-                    size="sm"
-                    showCount={false}
-                    className="p-0 h-auto w-auto hover:bg-transparent"
+                  <button
+                    onClick={() => handleReply(comment.id, isReply ? (rootParentId ?? comment.id) : undefined)}
+                    className="text-xs text-muted-foreground hover:text-primary transition-colors font-semibold whitespace-nowrap"
                   >
-                    <span className="text-xs ml-1">Thích</span>
-                  </LikeButton>
-
-                  {!isReply && (
-                    <button
-                      onClick={() => handleReply(comment.id)}
-                      className="text-xs text-muted-foreground hover:text-primary transition-colors"
-                    >
-                      Trả lời
-                    </button>
-                  )}
-
+                    Trả lời
+                  </button>
                   <button
                     onClick={(e) => handleOpenActionMenu(comment.id, e)}
                     className="text-xs text-muted-foreground hover:text-foreground transition-colors"
                   >
-                    <MoreHorizontal className="w-3 h-3" />
+                    <MoreHorizontal className="w-3.5 h-3.5" />
                   </button>
                 </div>
               </>
             )}
           </div>
+
+          {/* Like button — far right, matching CommentDialog */}
+          {!isEditing && (
+            <LikeButton
+              targetId={parseInt(comment.id)}
+              targetType="comment"
+              isLiked={comment.isLiked}
+              likesCount={comment.likesCount}
+              size="sm"
+              showCount={false}
+              className="p-1 h-auto w-auto hover:bg-transparent text-muted-foreground hover:text-red-500 transition-colors flex-shrink-0 mt-0.5"
+            />
+          )}
         </div>
 
         {/* Reply Form */}
         {replyingTo === comment.id && (
-          <div className="ml-11 mt-3">
-            <div className="flex gap-3">
-              <Avatar className="w-8 h-8 flex-shrink-0">
+          <div className="ml-10 mt-2">
+            <div className="flex gap-2">
+              <Avatar className="w-7 h-7 flex-shrink-0">
                 <AvatarImage
                   src={user?.avatar}
                   alt={user?.username || "User"}
@@ -645,13 +705,13 @@ export const CommentSection = ({ postId, className }: CommentSectionProps) => {
               <button
                 type="button"
                 onClick={() => toggleReplies(comment.id)}
-                className="text-xs text-muted-foreground hover:text-foreground ml-12"
+                className="text-xs text-muted-foreground hover:text-foreground ml-10"
               >
-                Xem câu trả lời ({comment.replies.length})
+                Xem câu trả lời
               </button>
             ) : (
               <>
-                <div className="mt-2 ml-12 border-l-2 border-border/50 pl-4 space-y-3">
+                <div className="mt-2 ml-10 border-l-2 border-border/50 pl-3 space-y-3">
                   {comment.replies.map((reply) =>
                     renderComment(reply, true, comment.id),
                   )}
@@ -659,7 +719,7 @@ export const CommentSection = ({ postId, className }: CommentSectionProps) => {
                 <button
                   type="button"
                   onClick={() => toggleReplies(comment.id)}
-                  className="text-xs text-muted-foreground hover:text-foreground ml-12 mt-2"
+                  className="text-xs text-muted-foreground hover:text-foreground ml-10 mt-2"
                 >
                   Ẩn câu trả lời
                 </button>
@@ -741,7 +801,7 @@ export const CommentSection = ({ postId, className }: CommentSectionProps) => {
                       e.target.selectionStart,
                     )
                   }
-                  className="resize-none min-h-[80px] max-h-[120px] rounded-2xl border-border/50 focus:border-primary/50 scrollbar-thin scrollbar-thumb-muted-foreground/30 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/50"
+                  className="resize-none min-h-[44px] max-h-[100px] rounded-2xl border-border/50 focus:border-primary/50 scrollbar-thin scrollbar-thumb-muted-foreground/30 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/50"
                 />
 
                 {mentionedUsers.length > 0 && (
@@ -903,6 +963,7 @@ export const CommentSection = ({ postId, className }: CommentSectionProps) => {
         isOpen={showActionMenu}
         onClose={handleCloseActionMenu}
         position={actionMenuPosition}
+        className="w-[calc(100%-32px)] max-w-sm sm:max-w-md"
         items={[
           ...(currentCommentForAction &&
             user &&
