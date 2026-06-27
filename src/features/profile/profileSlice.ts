@@ -159,7 +159,7 @@ export const fetchFollowersByUsernameAsync = createAsyncThunk(
   async (
     {
       username,
-      pageNo = 0,
+      pageNo = 1,
       pageSize = 10,
       search,
     }: {
@@ -195,7 +195,7 @@ export const fetchFollowingByUsernameAsync = createAsyncThunk(
   async (
     {
       username,
-      pageNo = 0,
+      pageNo = 1,
       pageSize = 10,
       search,
     }: {
@@ -618,9 +618,9 @@ const profileSlice = createSlice({
           state.followers.push(...content);
         }
 
-        state.followersPage = pageNo;
+        state.followersPage = pageNo + 1;
         state.followersTotalPages = totalPages;
-        state.followersHasMore = pageNo < totalPages - 1;
+        state.followersHasMore = (pageNo + 1) < totalPages;
         state.error = null;
       })
       .addCase(fetchFollowersByUsernameAsync.rejected, (state, action) => {
@@ -642,9 +642,9 @@ const profileSlice = createSlice({
           state.following.push(...content);
         }
 
-        state.followingPage = pageNo;
+        state.followingPage = pageNo + 1;
         state.followingTotalPages = totalPages;
-        state.followingHasMore = pageNo < totalPages - 1;
+        state.followingHasMore = (pageNo + 1) < totalPages;
         state.error = null;
       })
       .addCase(fetchFollowingByUsernameAsync.rejected, (state, action) => {

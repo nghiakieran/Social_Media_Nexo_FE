@@ -311,10 +311,10 @@ export const ProfilePage = () => {
       // Fetch followers and following only if we have access
       if (canAccessProfile && username) {
         dispatch(
-          fetchFollowersByUsernameAsync({ username, pageNo: 0, pageSize: 10 }),
+          fetchFollowersByUsernameAsync({ username, pageNo: 1, pageSize: 10 }),
         );
         dispatch(
-          fetchFollowingByUsernameAsync({ username, pageNo: 0, pageSize: 10 }),
+          fetchFollowingByUsernameAsync({ username, pageNo: 1, pageSize: 10 }),
         );
       }
     }
