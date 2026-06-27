@@ -154,20 +154,20 @@ const ReelCreatePage = () => {
 
         {/* Loading Overlay with Upload Message */}
         {(isCreating || isSyncingFeed) && (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center">
-            <div className="bg-background/95 backdrop-blur-md rounded-2xl shadow-2xl p-8 max-w-md w-full mx-4">
-              <div className="flex flex-col items-center gap-6">
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-background/95 backdrop-blur-md rounded-2xl shadow-2xl p-6 sm:p-8 max-w-sm sm:max-w-md w-full mx-auto">
+              <div className="flex flex-col items-center gap-4 sm:gap-6">
                 <div className="relative">
-                  <div className="w-20 h-20 border-4 border-primary/30 border-t-primary rounded-full animate-spin"></div>
+                  <div className="w-16 h-16 sm:w-20 sm:h-20 border-4 border-primary/30 border-t-primary rounded-full animate-spin"></div>
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="w-12 h-12 bg-primary/10 rounded-full"></div>
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 bg-primary/10 rounded-full"></div>
                   </div>
                 </div>
-                <div className="text-center space-y-2">
-                  <p className="text-xl font-semibold text-foreground">
+                <div className="text-center space-y-1.5">
+                  <p className="text-lg sm:text-xl font-bold text-foreground">
                     {uploadMessage || "Đang tạo reel..."}
                   </p>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-xs sm:text-sm text-muted-foreground">
                     Vui lòng không tắt trang này
                   </p>
                 </div>
