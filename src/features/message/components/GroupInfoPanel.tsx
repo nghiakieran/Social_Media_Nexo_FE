@@ -223,13 +223,16 @@ export const GroupInfoPanel: React.FC<GroupInfoPanelProps> = ({
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => handlePromote(member.id)}>
+                        <DropdownMenuItem
+                          onClick={() => handlePromote(member.id)}
+                          className="cursor-pointer hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground data-[highlighted]:bg-primary data-[highlighted]:text-primary-foreground"
+                        >
                           <Crown className="h-4 w-4 mr-2" />
                           Thăng admin
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
-                          className="text-destructive"
+                          className="text-destructive cursor-pointer hover:bg-destructive hover:text-destructive-foreground focus:bg-destructive focus:text-destructive-foreground data-[highlighted]:bg-destructive data-[highlighted]:text-destructive-foreground"
                           onClick={() => setRemoveTarget(member)}
                         >
                           <X className="h-4 w-4 mr-2" />
@@ -248,7 +251,10 @@ export const GroupInfoPanel: React.FC<GroupInfoPanelProps> = ({
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => handleDemote(member.id)}>
+                        <DropdownMenuItem
+                          onClick={() => handleDemote(member.id)}
+                          className="cursor-pointer hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground data-[highlighted]:bg-primary data-[highlighted]:text-primary-foreground"
+                        >
                           Từ bỏ quyền admin
                         </DropdownMenuItem>
                       </DropdownMenuContent>

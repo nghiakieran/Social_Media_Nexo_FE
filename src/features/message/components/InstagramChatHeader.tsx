@@ -309,7 +309,7 @@ export const InstagramChatHeader: React.FC<InstagramChatHeaderProps> = ({
   return (
     <div
       className={cn(
-        "flex items-center justify-between border-b border-primary/10 bg-background/95 p-2 backdrop-blur-sm md:p-3",
+        "flex items-center justify-between border-b border-primary/10 bg-background/95 pt-3.5 pb-2 px-2 backdrop-blur-sm md:p-3",
         className
       )}
     >
@@ -435,54 +435,42 @@ export const InstagramChatHeader: React.FC<InstagramChatHeaderProps> = ({
           </Button>
         )}
 
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 hover:bg-primary/10 hover:text-primary md:h-9 md:w-9"
-            >
-              <MoreVertical className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-48">
-            {chat.isGroup ? (
-              <>
-                <DropdownMenuItem
-                  className="cursor-pointer hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground data-[highlighted]:bg-primary data-[highlighted]:text-primary-foreground"
-                  onClick={() => setGroupInfoOpen(true)}
-                >
-                  <Users className="h-4 w-4 mr-2" />
-                  Thông tin nhóm
-                </DropdownMenuItem>
-              </>
-            ) : (
-              <>
-                <DropdownMenuItem
-                  className="cursor-pointer hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground data-[highlighted]:bg-primary data-[highlighted]:text-primary-foreground"
-                  onClick={() => {
-                    if (chat.username) navigate(`/${chat.username}`);
-                  }}
-                >
-                  Xem trang cá nhân
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  className="cursor-pointer hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground data-[highlighted]:bg-primary data-[highlighted]:text-primary-foreground"
-                  onClick={handleOpenNicknameDialog}
-                >
-                  Biệt danh
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  className="cursor-pointer text-destructive hover:bg-destructive hover:text-destructive-foreground focus:bg-destructive focus:text-destructive-foreground data-[highlighted]:bg-destructive data-[highlighted]:text-destructive-foreground"
-                  onClick={handleOpenBlockDialog}
-                >
-                  {chat.blockedByMe ? "Bỏ chặn" : "Chặn"}
-                </DropdownMenuItem>
-              </>
-            )}
-          </DropdownMenuContent>
-        </DropdownMenu>
+        {!chat.isGroup && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 hover:bg-primary/10 hover:text-primary md:h-9 md:w-9"
+              >
+                <MoreVertical className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuItem
+                className="cursor-pointer hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground data-[highlighted]:bg-primary data-[highlighted]:text-primary-foreground"
+                onClick={() => {
+                  if (chat.username) navigate(`/${chat.username}`);
+                }}
+              >
+                Xem trang cá nhân
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                className="cursor-pointer hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground data-[highlighted]:bg-primary data-[highlighted]:text-primary-foreground"
+                onClick={handleOpenNicknameDialog}
+              >
+                Biệt danh
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                className="cursor-pointer text-destructive hover:bg-destructive hover:text-destructive-foreground focus:bg-destructive focus:text-destructive-foreground data-[highlighted]:bg-destructive data-[highlighted]:text-destructive-foreground"
+                onClick={handleOpenBlockDialog}
+              >
+                {chat.blockedByMe ? "Bỏ chặn" : "Chặn"}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
       </div>
 
       {/* Nickname Dialog */}

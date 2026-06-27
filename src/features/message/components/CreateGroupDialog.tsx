@@ -121,8 +121,8 @@ export const CreateGroupDialog: React.FC<CreateGroupDialogProps> = ({
               {selected.map((u) => (
                 <Badge
                   key={u.id}
-                  variant="secondary"
-                  className="flex items-center gap-1 pl-1 pr-1.5 py-1"
+                  variant="outline"
+                  className="flex items-center gap-1 pl-1 pr-1.5 py-1 bg-primary/10 text-primary border-primary/20 hover:bg-primary/20 transition-colors"
                 >
                   <Avatar className="h-5 w-5">
                     <AvatarImage src={u.avatarUrl} />
