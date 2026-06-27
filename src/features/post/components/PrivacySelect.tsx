@@ -73,29 +73,32 @@ export const PrivacySelect = ({
           )}
         </SelectValue>
       </SelectTrigger>
-      <SelectContent className="w-64 p-2">
+      <SelectContent className="w-64 p-1.5 bg-card border border-border/50 text-card-foreground shadow-xl rounded-2xl">
         {privacyOptions.map((option) => (
           <SelectItem
             key={option.value}
             value={option.value}
-            className="rounded-xl p-3 hover:cursor-pointer hover:bg-primary/10 focus:bg-primary/10 data-[highlighted]:bg-primary/10 [&>span>span]:hidden"
+            hideIcon
+            className="rounded-xl p-2.5 my-1 hover:cursor-pointer focus:bg-muted/60 data-[state=checked]:bg-primary/10 border border-transparent data-[state=checked]:border-primary/20 [&>span]:w-full [&>span>span]:hidden"
           >
             <div className="flex items-center gap-3 w-full">
               <div
-                className={`p-2 rounded-lg bg-muted/50 ${getIconColor(
+                className={`p-2 rounded-lg bg-muted/60 ${getIconColor(
                   option.value
                 )}`}
               >
                 <option.icon className="w-4 h-4" />
               </div>
-              <div className="flex flex-col flex-1">
-                <span className="font-medium text-sm">{option.label}</span>
-                <span className="text-xs text-muted-foreground">
+              <div className="flex flex-col flex-1 text-left">
+                <span className="font-semibold text-sm text-foreground">
+                  {option.label}
+                </span>
+                <span className="text-xs text-muted-foreground mt-0.5">
                   {option.description}
                 </span>
               </div>
               {value === option.value && (
-                <div className="w-2 h-2 rounded-full bg-primary"></div>
+                <div className="w-2.5 h-2.5 rounded-full bg-primary shadow-sm shadow-primary/30"></div>
               )}
             </div>
           </SelectItem>

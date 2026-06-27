@@ -112,31 +112,31 @@ const ReelCreatePage = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
-      <div className="container mx-auto max-w-4xl px-4 py-6">
+      <div className="container mx-auto max-w-4xl px-4 py-4 sm:py-6">
         {/* Header */}
         <div className="mb-8 flex justify-center">
           <div className="w-full max-w-2xl">
-            <div className="flex items-center gap-4 lg:gap-40">
+            <div className="flex items-center justify-between relative min-h-[56px] w-full">
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => navigate("/reels")}
-                className="h-10 w-10 p-0 rounded-full transition-colors"
+                className="absolute left-0 h-9 w-9 sm:h-10 sm:w-10 p-0 rounded-full transition-colors z-10"
               >
-                <ArrowLeft className="w-5 h-5" />
+                <ArrowLeft className="w-5 h-5 text-foreground" />
               </Button>
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-xl bg-gradient-to-br from-primary/10 to-accent/10">
-                  <Sparkles className="w-6 h-6 text-primary" />
-                </div>
-                <div>
-                  <h1 className="text-2xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
+              <div className="flex-1 flex flex-col items-center text-center px-10">
+                <div className="flex items-center gap-2 mb-1.5 justify-center">
+                  <div className="p-1.5 rounded-xl bg-gradient-to-br from-primary/10 to-accent/10 flex-shrink-0">
+                    <Sparkles className="w-4.5 h-4.5 sm:w-5 sm:h-5 text-primary" />
+                  </div>
+                  <h1 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
                     Tạo reel mới
                   </h1>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Chia sẻ video ngắn với mọi người
-                  </p>
                 </div>
+                <p className="text-xs sm:text-sm text-muted-foreground">
+                  Chia sẻ video ngắn với mọi người
+                </p>
               </div>
             </div>
           </div>

@@ -62,18 +62,18 @@ export const ExplorePage: React.FC = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
       {/* Header */}
-      <div className="sticky top-0 bg-background/80 backdrop-blur-xl border-b border-border/50 z-10">
-        <div className="max-w-7xl mx-auto px-4 py-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-lg">
-                <Compass className="h-5 w-5 text-white" />
+      <div className="sticky top-16 lg:top-0 bg-background/80 backdrop-blur-xl border-b border-border/50 z-30">
+        <div className="max-w-7xl mx-auto px-4 py-3 sm:py-4">
+          <div className="flex items-center justify-between w-full">
+            <div className="flex items-center space-x-2.5 sm:space-x-3">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-md flex-shrink-0">
+                <Compass className="h-4.5 w-4.5 sm:h-5 sm:w-5 text-white" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-transparent">
+                <h1 className="text-lg sm:text-2xl font-bold bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-transparent leading-none">
                   Khám phá
                 </h1>
-                <p className="text-sm text-muted-foreground">
+                <p className="hidden sm:block text-sm text-muted-foreground mt-1">
                   Khám phá những nội dung thú vị
                 </p>
               </div>
@@ -84,7 +84,7 @@ export const ExplorePage: React.FC = () => {
               size="icon"
               onClick={handleRefresh}
               disabled={isLoading}
-              className="h-10 w-10 rounded-full hover:bg-primary/10 transition-colors"
+              className="h-8 w-8 sm:h-10 sm:w-10 rounded-full hover:bg-primary/10 transition-colors flex-shrink-0"
             >
               <RefreshCw
                 className={cn(

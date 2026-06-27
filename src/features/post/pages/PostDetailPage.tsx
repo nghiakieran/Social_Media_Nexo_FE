@@ -447,7 +447,7 @@ export const PostDetailPage = () => {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <div className="sticky top-0 z-50 bg-background/95 backdrop-blur-md border-b border-border/50 shadow-sm">
-        <div className="max-w-2xl mx-auto px-4 py-3">
+        <div className="max-w-2xl mx-auto px-4 pt-4 pb-3 sm:py-3">
           <div className="flex items-center gap-3">
             <Button
               variant="ghost"
