@@ -434,15 +434,37 @@ export const InstagramChatHeader: React.FC<InstagramChatHeaderProps> = ({
         )}
 
         {chat.isGroup && (
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8 hover:bg-primary/10 hover:text-primary md:h-9 md:w-9"
-            onClick={() => setGroupInfoOpen(true)}
-            title="Thông tin nhóm"
-          >
-            <Info className="h-4 w-4" />
-          </Button>
+          <>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 hover:bg-primary/10 hover:text-primary md:h-9 md:w-9"
+              onClick={() => onCall?.("voice")}
+              title="Gọi thoại nhóm"
+            >
+              <Phone className="h-4 w-4" />
+            </Button>
+
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 hover:bg-primary/10 hover:text-primary md:h-9 md:w-9"
+              onClick={() => onCall?.("video")}
+              title="Gọi video nhóm"
+            >
+              <Video className="h-4 w-4" />
+            </Button>
+
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 hover:bg-primary/10 hover:text-primary md:h-9 md:w-9"
+              onClick={() => setGroupInfoOpen(true)}
+              title="Thông tin nhóm"
+            >
+              <Info className="h-4 w-4" />
+            </Button>
+          </>
         )}
 
         <DropdownMenu>
