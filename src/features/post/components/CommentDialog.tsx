@@ -752,8 +752,8 @@ export const CommentDialog = ({
     try {
       const data = await searchUsers({
         query: query.trim(),
-        limit: 5,
-        offset: 0,
+        pageNo: 0,
+        pageSize: 5,
       });
       setMentionCandidates(data.content || []);
       setShowMentionMenu(data.content.length > 0);
@@ -1263,7 +1263,7 @@ export const CommentDialog = ({
     return (
       <div className="fixed inset-0 bg-white dark:bg-gray-900 z-[40] flex flex-col">
         {/* Mobile Header */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 pt-16">
+        <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 pt-20">
           <Button
             variant="ghost"
             size="sm"

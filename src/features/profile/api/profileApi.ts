@@ -60,7 +60,7 @@ export const getFollowersByUsername = async (
   pageSize: number = 10,
   search?: string
 ): Promise<FollowersResponse> => {
-  const params: Record<string, string | number> = { pageNo, pageSize };
+  const params: Record<string, string | number> = { page: pageNo, size: pageSize };
   if (search) {
     params.search = encodeURIComponent(search);
   }
@@ -88,7 +88,7 @@ export const getFollowingByUsername = async (
   pageSize: number = 10,
   search?: string
 ): Promise<FollowingResponse> => {
-  const params: Record<string, string | number> = { pageNo, pageSize };
+  const params: Record<string, string | number> = { page: pageNo, size: pageSize };
   if (search) {
     params.search = encodeURIComponent(search);
   }

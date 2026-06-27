@@ -244,15 +244,17 @@ export const EditPostDialog = ({
   return (
     <>
       <Dialog open={isOpen} onOpenChange={handleClose}>
-        <DialogContent className="max-w-3xl w-full max-h-[90vh] overflow-y-auto">
-          <DialogTitle className="text-2xl font-bold text-center">
-            Chỉnh sửa bài viết
-          </DialogTitle>
-          <DialogDescription className="text-center">
-            Cập nhật nội dung, media hoặc quyền riêng tư của bài viết
-          </DialogDescription>
+        <DialogContent className="max-w-3xl w-full h-[90vh] md:h-auto md:max-h-[85vh] p-0 flex flex-col border border-border/50 bg-card text-card-foreground shadow-2xl rounded-3xl overflow-hidden">
+          <div className="p-5 sm:p-6 border-b border-border/30 flex-shrink-0">
+            <DialogTitle className="text-xl sm:text-2xl font-bold text-center text-foreground">
+              Chỉnh sửa bài viết
+            </DialogTitle>
+            <DialogDescription className="text-center text-muted-foreground mt-1.5 text-xs sm:text-sm">
+              Cập nhật nội dung, media hoặc quyền riêng tư của bài viết
+            </DialogDescription>
+          </div>
 
-          <div className="space-y-6 py-4">
+          <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-6 scrollbar-thin">
             {/* Privacy Selection */}
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium">Quyền riêng tư:</span>
@@ -270,7 +272,7 @@ export const EditPostDialog = ({
                 value={content}
                 onChange={handleContentChange}
                 placeholder="Viết gì đó..."
-                className="min-h-[150px] max-h-[300px] resize-none text-base focus-visible:ring-0 scrollbar-thin"
+                className="min-h-[120px] sm:min-h-[150px] max-h-[300px] resize-none text-sm sm:text-base focus-visible:ring-0 scrollbar-thin border border-border/50 rounded-xl p-3"
                 maxLength={2000}
               />
               <div className="text-right text-xs text-muted-foreground mt-1">
@@ -282,12 +284,12 @@ export const EditPostDialog = ({
             {taggedFriendNames.length > 0 && (
               <div className="flex items-center gap-2 text-sm p-3 bg-muted/30 rounded-lg">
                 <Users className="w-4 h-4 text-primary" />
-                <span className="text-muted-foreground">Gắn thẻ:</span>
+                <span className="text-muted-foreground font-medium">Gắn thẻ:</span>
                 <div className="flex flex-wrap gap-2">
                   {taggedFriendNames.map((name, idx) => (
                     <span
                       key={idx}
-                      className="font-medium text-foreground px-2 py-1 bg-primary/10 rounded-full text-xs"
+                      className="font-bold text-foreground px-2 py-1 bg-primary/10 rounded-full text-xs"
                     >
                       {name}
                     </span>
@@ -300,24 +302,24 @@ export const EditPostDialog = ({
             {media.length > 0 && (
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <h4 className="font-medium text-foreground">
+                  <h4 className="font-semibold text-xs sm:text-sm text-foreground">
                     Media ({media.length})
                   </h4>
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={() => setMedia([])}
-                    className="text-muted-foreground"
+                    className="text-xs text-muted-foreground hover:text-destructive h-7 px-2"
                     disabled={isSubmitting}
                   >
                     Xóa tất cả
                   </Button>
                 </div>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                <div className="grid grid-cols-3 gap-2 sm:gap-3">
                   {media.map((item) => (
-                    <div key={item.id} className="relative group">
+                    <div key={item.id} className="relative group aspect-square rounded-xl overflow-hidden bg-muted border border-border/50">
                       <div
-                        className="aspect-square rounded-xl overflow-hidden bg-muted shadow-md cursor-pointer"
+                        className="w-full h-full cursor-pointer"
                         onClick={() => setSelectedMedia(item)}
                       >
                         {item.type === "image" ? (
@@ -346,15 +348,15 @@ export const EditPostDialog = ({
                           e.stopPropagation();
                           removeMedia(item.id);
                         }}
-                        className="absolute top-2 right-2 bg-black/70 hover:bg-black/90 text-white rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-lg z-10"
+                        className="absolute top-1.5 right-1.5 bg-black/70 hover:bg-black/90 text-white rounded-full p-1 shadow-md z-10"
                         disabled={isSubmitting}
                       >
-                        <X className="w-4 h-4" />
+                        <X className="w-3.5 h-3.5" />
                       </button>
-                      <div className="absolute bottom-2 left-2 bg-black/70 text-white text-xs px-2 py-1 rounded-full flex items-center gap-1">
+                      <div className="absolute bottom-1.5 left-1.5 bg-black/70 text-white text-[10px] px-1.5 py-0.5 rounded-full flex items-center gap-1">
                         {item.type === "image" ? "📷" : "🎥"}
                         {!item.isExisting && (
-                          <span className="text-green-400">Mới</span>
+                          <span className="text-green-400 font-bold">Mới</span>
                         )}
                       </div>
                     </div>
@@ -365,7 +367,7 @@ export const EditPostDialog = ({
 
             {/* Tag Friends */}
             {showTagFriends && (
-              <div className="border rounded-xl p-4 bg-muted/20">
+              <div className="border border-border/30 rounded-xl p-3 sm:p-4 bg-muted/20">
                 <TagFriends
                   selectedFriends={taggedFriendIds}
                   onSelectionChange={setTaggedFriendIds}
@@ -373,110 +375,115 @@ export const EditPostDialog = ({
                 />
               </div>
             )}
+          </div>
 
-            {/* Action Buttons */}
-            <div className="flex items-center justify-between pt-4 border-t">
-              <div className="flex items-center gap-2">
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  multiple
-                  accept="image/*,video/*"
-                  onChange={handleFileSelect}
-                  className="hidden"
-                  disabled={isSubmitting}
-                />
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="gap-2 hover:bg-primary/10 hover:text-primary"
-                  disabled={isSubmitting || media.length >= 10}
-                >
-                  <Image className="w-5 h-5" />
-                  <span className="hidden sm:inline">Thêm media</span>
-                </Button>
+          {/* Action Buttons (Fixed Footer) */}
+          <div className="p-4 sm:p-6 border-t border-border/30 bg-muted/10 flex items-center justify-between flex-shrink-0">
+            <div className="flex items-center gap-1 sm:gap-2">
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                accept="image/*,video/*"
+                onChange={handleFileSelect}
+                className="hidden"
+                disabled={isSubmitting}
+              />
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => fileInputRef.current?.click()}
+                className="gap-2 hover:bg-primary/10 hover:text-primary px-2.5 sm:px-3 h-9 rounded-xl"
+                disabled={isSubmitting || media.length >= 10}
+              >
+                <Image className="w-4 h-4 sm:w-5 sm:h-5" />
+                <span className="text-xs sm:text-sm font-semibold hidden sm:inline">Thêm media</span>
+              </Button>
 
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setShowTagFriends(!showTagFriends)}
-                  className="gap-2 hover:bg-primary/10 hover:text-primary dark:hover:bg-primary/20"
-                  disabled={isSubmitting}
-                >
-                  <Users className="w-5 h-5" />
-                  <span className="hidden sm:inline">Gắn thẻ</span>
-                </Button>
-              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowTagFriends(!showTagFriends)}
+                className="gap-2 hover:bg-primary/10 hover:text-primary dark:hover:bg-primary/20 px-2.5 sm:px-3 h-9 rounded-xl"
+                disabled={isSubmitting}
+              >
+                <Users className="w-4 h-4 sm:w-5 sm:h-5" />
+                <span className="text-xs sm:text-sm font-semibold hidden sm:inline">Gắn thẻ</span>
+              </Button>
+            </div>
 
-              <div className="flex gap-3">
-                <Button
-                  variant="outline"
-                  onClick={handleClose}
-                  disabled={isSubmitting}
-                >
-                  Hủy
-                </Button>
-                <Button
-                  onClick={handleSave}
-                  disabled={
-                    isSubmitting ||
-                    !content.trim() ||
-                    (content === initialContent &&
-                      visibility ===
-                        (initialVisibility.toLowerCase() as "public" | "private") &&
-                      media.length === initialMediaUrl.length &&
-                      taggedFriendIds.length === 0)
-                  }
-                  className="px-6"
-                >
-                  {isSubmitting ? (
-                    <div className="flex items-center gap-2">
-                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                      Đang lưu...
-                    </div>
-                  ) : (
-                    "Lưu thay đổi"
-                  )}
-                </Button>
-              </div>
+            <div className="flex gap-2 sm:gap-3">
+              <Button
+                variant="outline"
+                onClick={handleClose}
+                disabled={isSubmitting}
+                className="h-9 text-xs sm:text-sm rounded-xl px-3.5 sm:px-5"
+              >
+                Hủy
+              </Button>
+              <Button
+                onClick={handleSave}
+                disabled={
+                  isSubmitting ||
+                  !content.trim() ||
+                  (content === initialContent &&
+                    visibility ===
+                    (initialVisibility.toLowerCase() as "public" | "private") &&
+                    media.length === initialMediaUrl.length &&
+                    taggedFriendIds.length === 0)
+                }
+                className="h-9 text-xs sm:text-sm rounded-xl px-4 sm:px-6 shadow-md hover:shadow-lg"
+              >
+                {isSubmitting ? (
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                    <span>Đang lưu...</span>
+                  </div>
+                ) : (
+                  "Lưu"
+                )}
+              </Button>
             </div>
           </div>
         </DialogContent>
       </Dialog>
 
-      {/* Media Viewer Modal */}
-      {selectedMedia && (
-        <MediaViewer
-          media={selectedMedia}
-          isOpen={!!selectedMedia}
-          onClose={() => setSelectedMedia(null)}
-        />
-      )}
+      {/* Media Viewer Modal */ }
+      {
+        selectedMedia && (
+          <MediaViewer
+            media={selectedMedia}
+            isOpen={!!selectedMedia}
+            onClose={() => setSelectedMedia(null)}
+          />
+        )
+      }
 
-      {/* Loading Overlay with Upload Message */}
-      {isSubmitting && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center">
-          <div className="bg-background/95 backdrop-blur-md rounded-2xl shadow-2xl p-8 max-w-md w-full mx-4">
-            <div className="flex flex-col items-center gap-6">
-              <div className="relative">
-                <div className="w-20 h-20 border-4 border-primary/30 border-t-primary rounded-full animate-spin"></div>
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="w-12 h-12 bg-primary/10 rounded-full"></div>
+      {/* Loading Overlay with Upload Message */ }
+      {
+        isSubmitting && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center">
+            <div className="bg-background/95 backdrop-blur-md rounded-2xl shadow-2xl p-8 max-w-md w-full mx-4">
+              <div className="flex flex-col items-center gap-6">
+                <div className="relative">
+                  <div className="w-20 h-20 border-4 border-primary/30 border-t-primary rounded-full animate-spin"></div>
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="w-12 h-12 bg-primary/10 rounded-full"></div>
+                  </div>
                 </div>
-              </div>
-              <div className="text-center space-y-2">
-                <p className="text-xl font-semibold text-foreground">
-                  {uploadMessage || "Đang cập nhật..."}
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  Vui lòng không tắt trang này
-                </p>
+                <div className="text-center space-y-2">
+                  <p className="text-xl font-semibold text-foreground">
+                    {uploadMessage || "Đang cập nhật..."}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Vui lòng không tắt trang này
+                  </p>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      )}
+        )
+      }
     </>
   );
 };

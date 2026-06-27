@@ -6,6 +6,8 @@ import {
   MoreHorizontal,
   Smile,
   ArrowLeft,
+  Globe,
+  Lock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -833,13 +835,31 @@ const ReelCommentDialog = () => {
                 </Avatar>
               </div>
               <div className="flex-1">
-                <div className="flex items-center gap-2 mb-1">
+                <div className="flex items-center gap-2 mb-1 flex-wrap">
                   <span
-                    className="font-semibold text-sm cursor-pointer hover:underline"
+                    className="font-semibold text-sm cursor-pointer hover:underline text-foreground"
                     onClick={(e) => handleProfileClick(currentReel.userName, e)}
                   >
                     {currentReel.userName}
                   </span>
+                  {currentReel.visibility && (
+                    <span
+                      className={cn(
+                        "inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[9px] font-medium",
+                        currentReel.visibility.toUpperCase() === "PUBLIC"
+                          ? "bg-green-500/10 text-green-600 dark:text-green-400"
+                          : "bg-orange-500/10 text-orange-600 dark:text-orange-400"
+                      )}
+                      title={`Quyền riêng tư: ${currentReel.visibility.toUpperCase() === "PUBLIC" ? "Công khai" : "Riêng tư"}`}
+                    >
+                      {currentReel.visibility.toUpperCase() === "PUBLIC" ? (
+                        <Globe className="h-2.5 w-2.5" />
+                      ) : (
+                        <Lock className="h-2.5 w-2.5" />
+                      )}
+                      {currentReel.visibility.toUpperCase() === "PUBLIC" ? "Công khai" : "Riêng tư"}
+                    </span>
+                  )}
                 </div>
                 <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">
                   {parseMentions(currentReel.caption, (username) => {
@@ -1127,12 +1147,32 @@ const ReelCommentDialog = () => {
                   </AvatarFallback>
                 </Avatar>
               </div>
-              <h3
-                className="font-semibold text-sm cursor-pointer hover:underline"
-                onClick={(e) => handleProfileClick(currentReel.userName, e)}
-              >
-                {currentReel.userName}
-              </h3>
+              <div className="flex items-center gap-2.5 flex-wrap">
+                <h3
+                  className="font-semibold text-sm cursor-pointer hover:underline text-foreground"
+                  onClick={(e) => handleProfileClick(currentReel.userName, e)}
+                >
+                  {currentReel.userName}
+                </h3>
+                {currentReel.visibility && (
+                  <span
+                    className={cn(
+                      "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium",
+                      currentReel.visibility.toUpperCase() === "PUBLIC"
+                        ? "bg-green-500/10 text-green-600 dark:text-green-400"
+                        : "bg-orange-500/10 text-orange-600 dark:text-orange-400"
+                    )}
+                    title={`Quyền riêng tư: ${currentReel.visibility.toUpperCase() === "PUBLIC" ? "Công khai" : "Riêng tư"}`}
+                  >
+                    {currentReel.visibility.toUpperCase() === "PUBLIC" ? (
+                      <Globe className="h-3 w-3" />
+                    ) : (
+                      <Lock className="h-3 w-3" />
+                    )}
+                    {currentReel.visibility.toUpperCase() === "PUBLIC" ? "Công khai" : "Riêng tư"}
+                  </span>
+                )}
+              </div>
             </div>
             <div className="flex items-center gap-2">
               <button
@@ -1468,9 +1508,7 @@ const ReelCommentDialog = () => {
               </div>
             )}
 
-            <div className="mb-4 text-xs text-gray-500">
-              <time>{formatTimeAgo(currentReel.createdAt)}</time>
-            </div>
+
 
             {replyingTo ? (
               <form onSubmit={handleSubmitReply} className="space-y-2">

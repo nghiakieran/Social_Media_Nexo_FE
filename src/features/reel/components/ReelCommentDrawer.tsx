@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { X, Send, MessageCircle, MoreHorizontal, Smile } from "lucide-react";
+import { X, Send, MessageCircle, MoreHorizontal, Smile, Globe, Lock } from "lucide-react";
 import { RootState } from "@/store";
 import { closeCommentsDrawer } from "../reelSlice";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -969,9 +969,7 @@ const ReelCommentDrawer = () => {
             </div>
           )}
 
-          <div className="mb-3 text-[10px] text-gray-400">
-            <time>{formatTimeAgo(currentReel.createdAt)}</time>
-          </div>
+
 
           {replyingTo ? (
             <form onSubmit={handleSubmitReply} className="space-y-2">

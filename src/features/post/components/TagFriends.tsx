@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Check, Users, X } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
 import { useAppDispatch, useAppSelector } from "@/store";
-import { getMutualFollowersThunk } from "../postSlice";
+import { getMutualFollowersThunk, clearMutualFollowers } from "../postSlice";
 import { Loader } from "@/components/common/Loader";
 import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
 import { useDebouncedSearch } from "@/hooks/use-debounce-search";
@@ -39,9 +39,10 @@ export const TagFriends = ({
 
   // Load mutual followers when component mounts or search changes
   useEffect(() => {
+    dispatch(clearMutualFollowers());
     dispatch(
       getMutualFollowersThunk({
-        pageNo: 0,
+        pageNo: 1,
         pageSize: 10,
         search: debouncedValue || undefined,
       })
@@ -51,7 +52,7 @@ export const TagFriends = ({
   // Infinite scroll handler
   const handleLoadMore = useCallback(() => {
     if (!isLoadingMutuals && mutualFollowersHasMore) {
-      const nextPage = mutualFollowersPage + 1;
+      const nextPage = mutualFollowersPage + 2;
       dispatch(
         getMutualFollowersThunk({
           pageNo: nextPage,
@@ -83,16 +84,16 @@ export const TagFriends = ({
   };
 
   return (
-    <div className="space-y-6 p-6 border border-border/50 rounded-2xl bg-card/80 backdrop-blur-sm shadow-lg">
+    <div className="space-y-4 sm:space-y-6 p-0 sm:p-5 border-0 sm:border border-border/50 rounded-none sm:rounded-2xl bg-transparent sm:bg-card/50 backdrop-blur-none sm:backdrop-blur-sm shadow-none sm:shadow-md transition-all duration-300">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="p-2 rounded-xl bg-primary/10">
-            <Users className="w-5 h-5 text-primary" />
+        <div className="flex items-center gap-2.5 sm:gap-3">
+          <div className="p-1.5 sm:p-2 rounded-xl bg-primary/10 flex-shrink-0">
+            <Users className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
           </div>
           <div>
-            <h3 className="font-semibold text-lg">Gắn thẻ bạn bè</h3>
-            <p className="text-sm text-muted-foreground">
-              Chọn bạn bè để gắn thẻ trong bài viết
+            <h3 className="font-bold text-sm sm:text-lg text-foreground">Gắn thẻ bạn bè</h3>
+            <p className="text-xs sm:text-sm text-muted-foreground">
+              Chọn bạn bè để gắn thẻ
             </p>
           </div>
         </div>
@@ -100,9 +101,9 @@ export const TagFriends = ({
           variant="ghost"
           size="sm"
           onClick={onClose}
-          className="h-8 w-8 rounded-full p-0"
+          className="h-7 w-7 sm:h-8 sm:w-8 rounded-full p-0"
         >
-          <X className="w-4 h-4" />
+          <X className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
         </Button>
       </div>
 
@@ -113,7 +114,7 @@ export const TagFriends = ({
         onClear={clearSearch}
         placeholder="Tìm kiếm bạn bè..."
         isDebouncing={isDebouncing}
-        className="h-12"
+        className="h-10 sm:h-12 text-xs sm:text-sm"
       />
 
       {/* Selected Friends */}
@@ -146,7 +147,7 @@ export const TagFriends = ({
                   className="gap-2 px-3 py-2 rounded-full bg-primary/10 text-primary border-primary/20"
                 >
                   <img
-                    src={friend.avatar}
+                    src={friend.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(friend.fullName)}&background=random`}
                     alt={friend.fullName}
                     className="w-5 h-5 rounded-full object-cover"
                   />
@@ -188,32 +189,32 @@ export const TagFriends = ({
                 ref={isLastItem ? lastElementRef : null}
                 onClick={() => toggleFriend(friend.userId)}
                 className={cn(
-                  "group flex cursor-pointer items-center gap-4 rounded-xl p-4 transition-all duration-200",
+                  "group flex cursor-pointer items-center gap-3 sm:gap-4 rounded-xl p-2.5 sm:p-4 transition-all duration-200",
                   isSelected
                     ? "border border-primary/20 bg-primary/10 shadow-sm"
                     : "hover:bg-primary/10 hover:shadow-sm dark:hover:bg-primary/15"
                 )}
               >
-                <div className="relative">
+                <div className="relative flex-shrink-0">
                   <img
-                    src={friend.avatar}
+                    src={friend.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(friend.fullName)}&background=random`}
                     alt={friend.fullName}
-                    className="w-12 h-12 rounded-full object-cover shadow-md"
+                    className="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover shadow-md"
                   />
                   {friend.isFollowing && (
-                    <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-success rounded-full border-2 border-background shadow-sm"></div>
+                    <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-success rounded-full border-2 border-background shadow-sm"></div>
                   )}
                 </div>
 
                 <div className="flex-1 min-w-0">
-                  <p className="font-medium text-foreground truncate">
+                  <p className="font-semibold text-sm sm:text-base text-foreground truncate">
                     {friend.fullName}
                   </p>
-                  <p className="text-sm text-muted-foreground truncate">
+                  <p className="text-xs sm:text-sm text-muted-foreground truncate mt-0.5">
                     @{friend.userName}
                   </p>
                   {friend.closeFriend && (
-                    <span className="mt-1 inline-flex items-center rounded-full bg-primary/15 px-2 py-0.5 text-xs font-medium text-primary dark:bg-primary/25">
+                    <span className="mt-1 inline-flex items-center rounded-full bg-primary/15 px-2 py-0.5 text-[10px] sm:text-xs font-semibold text-primary dark:bg-primary/25">
                       Bạn thân
                     </span>
                   )}

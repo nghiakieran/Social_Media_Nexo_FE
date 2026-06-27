@@ -115,10 +115,10 @@ export const FollowersDialog = ({
     if (!username || !isOpen) return;
 
     if (debouncedValue !== "") {
-      lastRequestedPageRef.current = 0;
+      lastRequestedPageRef.current = 1;
       const params = {
         username,
-        pageNo: 0,
+        pageNo: 1,
         pageSize: 10,
         search: debouncedValue,
       };
@@ -139,7 +139,7 @@ export const FollowersDialog = ({
     if (users.length === 0) {
       const params = {
         username,
-        pageNo: 0,
+        pageNo: 1,
         pageSize: 10,
       };
 

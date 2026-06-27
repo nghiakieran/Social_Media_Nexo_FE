@@ -4,6 +4,8 @@ import {
   MessageCircle,
   MoreHorizontal,
   Smile,
+  Globe,
+  Lock,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Textarea } from "@/components/ui/textarea";
@@ -757,12 +759,32 @@ const ReelCommentSection = ({
               </AvatarFallback>
             </Avatar>
           </div>
-          <h3
-            className="font-semibold text-sm cursor-pointer hover:underline"
-            onClick={(e) => handleProfileClickLocal(reel.userName, e)}
-          >
-            {reel.userName}
-          </h3>
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <h3
+              className="font-semibold text-sm cursor-pointer hover:underline text-foreground"
+              onClick={(e) => handleProfileClickLocal(reel.userName, e)}
+            >
+              {reel.userName}
+            </h3>
+            {reel.visibility && (
+              <span
+                className={cn(
+                  "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium",
+                  reel.visibility.toUpperCase() === "PUBLIC"
+                    ? "bg-green-500/10 text-green-600 dark:text-green-400"
+                    : "bg-orange-500/10 text-orange-600 dark:text-orange-400"
+                )}
+                title={`Quyền riêng tư: ${reel.visibility.toUpperCase() === "PUBLIC" ? "Công khai" : "Riêng tư"}`}
+              >
+                {reel.visibility.toUpperCase() === "PUBLIC" ? (
+                  <Globe className="h-3 w-3" />
+                ) : (
+                  <Lock className="h-3 w-3" />
+                )}
+                {reel.visibility.toUpperCase() === "PUBLIC" ? "Công khai" : "Riêng tư"}
+              </span>
+            )}
+          </div>
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -1055,9 +1077,7 @@ const ReelCommentSection = ({
           </div>
         )}
 
-        <div className="mb-4 text-xs text-gray-500">
-          <time>{formatTimeAgo(reel.createdAt)}</time>
-        </div>
+
 
         {replyingTo ? (
           <form onSubmit={handleSubmitReply} className="space-y-2">
@@ -1148,6 +1168,13 @@ const ReelCommentSection = ({
                   reel.userId === user?.id.toString();
                 const items: ActionMenuItem[] = [];
                 if (isReelOwner) {
+                  items.push({
+                    label: "Chỉnh sửa",
+                    action: () => {
+                      handleCloseActionMenu();
+                      navigate(`/reels/${reel.id}/edit`);
+                    },
+                  });
                   items.push({
                     label: "Xóa",
                     action: handleDeleteReelClick,

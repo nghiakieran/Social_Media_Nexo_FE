@@ -253,6 +253,11 @@ const postSlice = createSlice({
       state.totalPages = 0;
       state.hasMore = true;
     },
+    clearMutualFollowers: (state) => {
+      state.mutualFollowers = [];
+      state.mutualFollowersPage = 0;
+      state.mutualFollowersHasMore = true;
+    },
     updatePostOptimistically: (
       state,
       action: PayloadAction<{ postId: string; updates: Partial<Post> }>,
@@ -522,6 +527,7 @@ export const {
   clearError,
   setCurrentPost,
   clearPosts,
+  clearMutualFollowers,
   updatePostOptimistically,
 } = postSlice.actions;
 
