@@ -647,7 +647,7 @@ export const CommentSection = ({ postId, className }: CommentSectionProps) => {
                 onClick={() => toggleReplies(comment.id)}
                 className="text-xs text-muted-foreground hover:text-foreground ml-12"
               >
-                Xem câu trả lời ({comment.replies.length})
+                Xem câu trả lời
               </button>
             ) : (
               <>

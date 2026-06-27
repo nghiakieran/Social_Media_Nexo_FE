@@ -1335,7 +1335,7 @@ export const CommentDialog = ({
                           onClick={() => toggleReplies(comment.id)}
                           className="text-xs text-gray-500 hover:text-gray-700"
                         >
-                          Xem câu trả lời ({getTotalRepliesCount(comment.id)})
+                          Xem câu trả lời
                         </button>
                       ) : (
                         <>
@@ -1942,8 +1942,7 @@ export const CommentDialog = ({
                               onClick={() => toggleReplies(comment.id)}
                               className="text-xs text-gray-500 hover:text-gray-700"
                             >
-                              Xem câu trả lời (
-                              {getTotalRepliesCount(comment.id)})
+                              Xem câu trả lời
                             </button>
                           ) : (
                             <>

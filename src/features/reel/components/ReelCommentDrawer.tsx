@@ -828,7 +828,7 @@ const ReelCommentDrawer = () => {
                                 onClick={() => toggleReplies(comment.id)}
                                 className="text-xs text-gray-500 hover:text-gray-700 font-semibold"
                               >
-                                Xem câu trả lời ({getTotalRepliesCount(comment.id)})
+                                Xem câu trả lời
                               </button>
                             ) : (
                               <>
