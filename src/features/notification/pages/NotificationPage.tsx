@@ -59,8 +59,11 @@ const NotificationPage: React.FC = () => {
         return safeNotifications.filter(
           (n) =>
             n.notificationType.toLowerCase().includes("follow") ||
-            n.notificationType.toLowerCase().includes("hashtag")
+            n.notificationType.toLowerCase().includes("hashtag") ||
+            n.notificationType.toLowerCase().includes("tag") ||
+            n.notificationType.toLowerCase().includes("friend")
         );
+
       default:
         return safeNotifications;
     }
