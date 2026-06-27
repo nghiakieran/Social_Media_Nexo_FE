@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Shield,
   Key,
@@ -32,10 +32,16 @@ import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { changePassword } from "../api/profileApi";
 import { ActivityLogs } from "./ActivityLogs";
+import { useAppDispatch, useAppSelector } from "@/store";
+import { fetchCurrentUserProfileAsync, updateUserProfileAsync } from "../profileSlice";
 
 export const AccountSettings = () => {
   const navigate = useNavigate();
+  const dispatch = useAppDispatch();
   const { toast } = useToast();
+  
+  const { currentProfile } = useAppSelector((state) => state.profile);
+
   const [settings, setSettings] = useState({
     isPrivate: false,
     allowMessageRequests: true,
@@ -45,6 +51,20 @@ export const AccountSettings = () => {
     hideStoryFrom: false,
     twoFactorEnabled: false,
   });
+
+  useEffect(() => {
+    dispatch(fetchCurrentUserProfileAsync());
+  }, [dispatch]);
+
+  useEffect(() => {
+    if (currentProfile) {
+      setSettings((prev) => ({
+        ...prev,
+        isPrivate: currentProfile.isPrivate,
+      }));
+    }
+  }, [currentProfile]);
+
   const [showPasswordDialog, setShowPasswordDialog] = useState(false);
   const [showDeactivateDialog, setShowDeactivateDialog] = useState(false);
   const [currentPassword, setCurrentPassword] = useState("");
@@ -55,13 +75,37 @@ export const AccountSettings = () => {
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  const handleSettingChange = (key: string, value: boolean) => {
+  const handleSettingChange = async (key: string, value: boolean) => {
     setSettings((prev) => ({ ...prev, [key]: value }));
-    toast({
-      variant: "success",
-      title: "Đã cập nhật cài đặt",
-      description: "Thay đổi của bạn đã được lưu.",
-    });
+    
+    if (key === "isPrivate") {
+      try {
+        await dispatch(
+          updateUserProfileAsync({
+            isPrivate: value,
+          })
+        ).unwrap();
+        
+        toast({
+          variant: "success",
+          title: "Đã cập nhật cài đặt",
+          description: `Tài khoản đã chuyển sang chế độ ${value ? "Riêng tư" : "Công khai"}.`,
+        });
+      } catch (err) {
+        setSettings((prev) => ({ ...prev, [key]: !value }));
+        toast({
+          variant: "destructive",
+          title: "Lỗi",
+          description: "Không thể cập nhật quyền riêng tư tài khoản.",
+        });
+      }
+    } else {
+      toast({
+        variant: "success",
+        title: "Đã cập nhật cài đặt",
+        description: "Thay đổi của bạn đã được lưu.",
+      });
+    }
   };
 
   const handlePasswordChange = async () => {
