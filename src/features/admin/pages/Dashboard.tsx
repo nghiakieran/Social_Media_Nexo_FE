@@ -41,8 +41,10 @@ import {
 } from "../api/dashBoardAPI";
 import { getExploreHashtags } from "@/features/explore/api/exploreApi";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useTheme } from "@/contexts/ThemeContext";
 
 export default function Dashboard() {
+  const { theme } = useTheme();
   const today = new Date();
   const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
 
@@ -118,15 +120,19 @@ export default function Dashboard() {
     loadChartsData();
   }, [loadChartsData]);
 
+  // Chart theme configurations
+  const gridColor = theme === "dark" ? "rgba(255, 255, 255, 0.08)" : "#f1f5f9";
+  const tickColor = theme === "dark" ? "#94a3b8" : "#64748b";
+
   return (
     <div className="p-1 space-y-8 animate-in fade-in duration-700">
       {/* Header Section */}
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div className="space-y-1">
-          <h1 className="text-4xl font-black tracking-tight text-slate-900">
-            Tổng quan <span className="text-indigo-600">Hệ thống</span>
+          <h1 className="text-4xl font-black tracking-tight text-slate-900 dark:text-white">
+            Tổng quan <span className="text-indigo-600 dark:text-indigo-400">Hệ thống</span>
           </h1>
-          <p className="font-medium text-slate-500">
+          <p className="font-medium text-slate-500 dark:text-slate-400">
             Báo cáo hoạt động chi tiết Nexo Social
           </p>
         </div>
@@ -135,7 +141,7 @@ export default function Dashboard() {
           <PopoverTrigger asChild>
             <Button
               variant="outline"
-              className="justify-start text-left font-normal w-[280px] h-11 rounded-xl shadow-sm bg-white border-slate-200"
+              className="justify-start text-left font-normal w-[280px] h-11 rounded-xl shadow-sm bg-background border-border text-foreground hover:bg-muted"
             >
               <CalendarIcon className="mr-2 h-4 w-4 text-indigo-500" />
               {dateRange.from && dateRange.to
@@ -144,7 +150,7 @@ export default function Dashboard() {
             </Button>
           </PopoverTrigger>
           <PopoverContent
-            className="w-auto p-0 rounded-2xl shadow-2xl border-none"
+            className="w-auto p-0 rounded-2xl shadow-2xl border border-border/50"
             align="end"
           >
             <Calendar
@@ -166,7 +172,7 @@ export default function Dashboard() {
           change={dashboardDataCard?.percentUser || 0}
           icon={Users}
           trend={dashboardDataCard?.percentUser >= 0 ? "up" : "down"}
-          gradient="bg-gradient-to-br from-indigo-500 to-purple-600 shadow-indigo-200"
+          gradient="bg-gradient-to-br from-indigo-500 to-purple-600 shadow-lg shadow-indigo-500/15 dark:shadow-none"
         />
         <StatsCard
           title="Bài viết"
@@ -174,7 +180,7 @@ export default function Dashboard() {
           change={dashboardDataCard?.percentPost || 0}
           icon={FileText}
           trend={dashboardDataCard?.percentPost >= 0 ? "up" : "down"}
-          gradient="bg-gradient-to-br from-pink-500 to-rose-600 shadow-rose-200"
+          gradient="bg-gradient-to-br from-pink-500 to-rose-600 shadow-lg shadow-rose-500/15 dark:shadow-none"
         />
         <StatsCard
           title="Tương tác"
@@ -182,7 +188,7 @@ export default function Dashboard() {
           change={dashboardDataCard?.percentInteract || 0}
           icon={Heart}
           trend={dashboardDataCard?.percentInteract >= 0 ? "up" : "down"}
-          gradient="bg-gradient-to-br from-orange-400 to-amber-600 shadow-amber-200"
+          gradient="bg-gradient-to-br from-orange-400 to-amber-600 shadow-lg shadow-amber-500/15 dark:shadow-none"
         />
         <StatsCard
           title="Báo cáo"
@@ -190,7 +196,7 @@ export default function Dashboard() {
           change={dashboardDataCard?.percentReport || 0}
           icon={Flag}
           trend={dashboardDataCard?.percentReport >= 0 ? "up" : "down"}
-          gradient="bg-gradient-to-br from-red-500 to-slate-800 shadow-red-200"
+          gradient="bg-gradient-to-br from-red-500 to-slate-800 shadow-lg shadow-red-500/15 dark:shadow-none"
         />
       </div>
 
@@ -211,19 +217,19 @@ export default function Dashboard() {
             <CartesianGrid
               strokeDasharray="3 3"
               vertical={false}
-              stroke="#f1f5f9"
+              stroke={gridColor}
             />
             <XAxis
               dataKey="date"
               axisLine={false}
               tickLine={false}
-              tick={{ fill: "#64748b", fontSize: 12 }}
+              tick={{ fill: tickColor, fontSize: 12 }}
               dy={10}
             />
             <YAxis
               axisLine={false}
               tickLine={false}
-              tick={{ fill: "#64748b", fontSize: 12 }}
+              tick={{ fill: tickColor, fontSize: 12 }}
             />
             <Tooltip content={<CustomTooltip />} />
             <Area
@@ -246,19 +252,19 @@ export default function Dashboard() {
             <CartesianGrid
               strokeDasharray="3 3"
               vertical={false}
-              stroke="#f1f5f9"
+              stroke={gridColor}
             />
             <XAxis
               dataKey="date"
               axisLine={false}
               tickLine={false}
-              tick={{ fill: "#64748b", fontSize: 12 }}
+              tick={{ fill: tickColor, fontSize: 12 }}
               dy={10}
             />
             <YAxis
               axisLine={false}
               tickLine={false}
-              tick={{ fill: "#64748b", fontSize: 12 }}
+              tick={{ fill: tickColor, fontSize: 12 }}
             />
             <Tooltip content={<CustomTooltip />} />
             <Bar
@@ -279,23 +285,23 @@ export default function Dashboard() {
             <CartesianGrid
               strokeDasharray="3 3"
               vertical={false}
-              stroke="#f1f5f9"
+              stroke={gridColor}
             />
             <XAxis
               dataKey="date"
               axisLine={false}
               tickLine={false}
-              tick={{ fill: "#64748b", fontSize: 12 }}
+              tick={{ fill: tickColor, fontSize: 12 }}
               dy={10}
             />
             <YAxis
               axisLine={false}
               tickLine={false}
-              tick={{ fill: "#64748b", fontSize: 12 }}
+              tick={{ fill: tickColor, fontSize: 12 }}
             />
             <Tooltip content={<CustomTooltip />} />
             <Line
-              type="stepAfter"
+              type="monotone"
               dataKey="interactions"
               stroke="#f59e0b"
               strokeWidth={3}
@@ -313,19 +319,19 @@ export default function Dashboard() {
             <CartesianGrid
               strokeDasharray="3 3"
               vertical={false}
-              stroke="#f1f5f9"
+              stroke={gridColor}
             />
             <XAxis
               dataKey="date"
               axisLine={false}
               tickLine={false}
-              tick={{ fill: "#64748b", fontSize: 12 }}
+              tick={{ fill: tickColor, fontSize: 12 }}
               dy={10}
             />
             <YAxis
               axisLine={false}
               tickLine={false}
-              tick={{ fill: "#64748b", fontSize: 12 }}
+              tick={{ fill: tickColor, fontSize: 12 }}
             />
             <Tooltip content={<CustomTooltip />} />
             <Bar
@@ -339,41 +345,41 @@ export default function Dashboard() {
       </div>
 
       {/* Trending Hashtags Section */}
-      <Card className="overflow-hidden border-none shadow-xl rounded-[2rem] bg-white text-slate-800">
-        <CardHeader className="bg-slate-50/50 border-b border-slate-100 p-6">
+      <Card className="overflow-hidden border border-border/50 shadow-xl rounded-[2rem] bg-card text-card-foreground">
+        <CardHeader className="bg-muted/30 border-b border-border/50 p-6">
           <CardTitle className="flex items-center gap-3 text-xl font-black">
-            <TrendingUp className="w-6 h-6 text-indigo-600" />
+            <TrendingUp className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
             Xu hướng thịnh hành (Top 5)
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
-          <div className="divide-y divide-slate-100">
+          <div className="divide-y divide-border/50">
             {topHashtags.length > 0 ? (
               topHashtags.map((hashtag, index) => (
                 <div
                   key={hashtag.id}
-                  className="flex items-center gap-4 p-5 transition-colors hover:bg-slate-50 group"
+                  className="flex items-center gap-4 p-5 transition-colors hover:bg-muted/50 group"
                 >
-                  <div className="flex items-center justify-center w-10 h-10 font-black rounded-xl bg-slate-100 text-slate-500 group-hover:bg-indigo-600 group-hover:text-white transition-all">
+                  <div className="flex items-center justify-center w-10 h-10 font-black rounded-xl bg-muted text-muted-foreground group-hover:bg-indigo-600 group-hover:text-white transition-all">
                     #{index + 1}
                   </div>
                   <div className="flex-1">
-                    <p className="text-lg font-bold text-slate-800 group-hover:text-indigo-600 transition-colors">
+                    <p className="text-lg font-bold text-foreground group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
                       {hashtag.name}
                     </p>
-                    <p className="text-sm font-medium text-slate-500">
+                    <p className="text-sm font-medium text-muted-foreground">
                       {hashtag.usageCount.toLocaleString()} lượt thảo luận
                     </p>
                   </div>
                   <div className="flex flex-col items-end">
-                    <div className="px-3 py-1 text-xs font-bold rounded-full bg-emerald-500/10 text-emerald-600 border border-emerald-200">
+                    <div className="px-3 py-1 text-xs font-bold rounded-full bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 dark:border-emerald-500/30">
                       HOT
                     </div>
                   </div>
                 </div>
               ))
             ) : (
-              <div className="p-10 text-center text-slate-500">
+              <div className="p-10 text-center text-muted-foreground">
                 Đang cập nhật dữ liệu xu hướng...
               </div>
             )}
@@ -385,19 +391,19 @@ export default function Dashboard() {
 }
 
 const ChartContainer = ({ title, icon: Icon, children, loading }: any) => (
-  <Card className="border-none shadow-xl rounded-3xl overflow-hidden bg-white group">
+  <Card className="border border-border/50 shadow-xl rounded-3xl overflow-hidden bg-card text-card-foreground group">
     <CardHeader className="pb-0">
-      <CardTitle className="flex items-center gap-2 text-lg font-bold text-slate-800">
-        <div className="p-2 rounded-lg bg-slate-50 group-hover:bg-indigo-50 transition-colors">
-          <Icon className="w-5 h-5 text-indigo-600" />
+      <CardTitle className="flex items-center gap-2 text-lg font-bold text-foreground">
+        <div className="p-2 rounded-lg bg-muted group-hover:bg-primary/10 transition-colors">
+          <Icon className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
         </div>
         {title}
       </CardTitle>
     </CardHeader>
     <CardContent className="pt-6 relative min-h-[300px]">
       {loading && (
-        <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/80 backdrop-blur-sm">
-          <Loader2 className="w-8 h-8 text-indigo-600 animate-spin" />
+        <div className="absolute inset-0 z-10 flex items-center justify-center bg-card/85 backdrop-blur-sm">
+          <Loader2 className="w-8 h-8 text-indigo-600 dark:text-indigo-400 animate-spin" />
         </div>
       )}
       <ResponsiveContainer width="100%" height={300}>
@@ -410,7 +416,7 @@ const ChartContainer = ({ title, icon: Icon, children, loading }: any) => (
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
     return (
-      <div className="bg-slate-900 border-none p-3 shadow-2xl rounded-xl">
+      <div className="bg-slate-950 border border-slate-800 p-3 shadow-2xl rounded-xl">
         <p className="text-slate-400 text-xs font-bold uppercase mb-1">
           {label}
         </p>
