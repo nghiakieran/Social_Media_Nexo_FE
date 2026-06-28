@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 import type { ConversationResponseDTO } from "../types";
 import { format, isToday, isYesterday, isThisYear } from "date-fns";
 import { vi } from "date-fns/locale";
-import { MessageCircle, Check, CheckCheck, Users } from "lucide-react";
+import { MessageCircle, Check, CheckCheck, Users, Phone, Video as VideoIcon, PhoneMissed } from "lucide-react";
 
 interface ChatListProps {
   chats: ConversationResponseDTO[];
@@ -199,7 +199,19 @@ export const ChatList: React.FC<ChatListProps> = ({
                           truncateMessage(chat.lastMessage.content, 30)
                         ) : (
                           <span className="flex items-center">
-                            <MessageCircle className="h-3 w-3 mr-1" />
+                            {chat.lastMessage.messageType === "CALL" ? (
+                              (() => {
+                                const parts = chat.lastMessage.content?.split("|") || [];
+                                const type = parts[0]?.toLowerCase() || "";
+                                const status = parts[1] || "";
+                                const isMissed = status === "MISSED" || status === "REJECTED";
+                                if (isMissed) return <PhoneMissed className="h-3 w-3 mr-1 text-destructive" />;
+                                if (type.includes("video")) return <VideoIcon className="h-3 w-3 mr-1" />;
+                                return <Phone className="h-3 w-3 mr-1" />;
+                              })()
+                            ) : (
+                              <MessageCircle className="h-3 w-3 mr-1" />
+                            )}
                             {chat.lastMessage.messageType === "IMAGE" &&
                               "Đã gửi một ảnh"}
                             {chat.lastMessage.messageType === "AUDIO" &&
@@ -208,6 +220,8 @@ export const ChatList: React.FC<ChatListProps> = ({
                               "Đã gửi tệp đính kèm"}
                             {chat.lastMessage.messageType === "STORY" &&
                               "Đã trả lời tin "}
+                            {chat.lastMessage.messageType === "CALL" &&
+                              (chat.lastMessage.content?.split("|")[0] || "Cuộc gọi")}
                           </span>
                         )}
                       </p>
