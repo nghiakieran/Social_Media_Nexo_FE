@@ -828,7 +828,7 @@ export const ProfilePage = () => {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center min-h-[calc(100vh-140px)] md:min-h-[calc(100vh-100px)]">
         <div className="animate-spin rounded-full h-10 w-10 border-2 border-primary border-t-transparent" />
       </div>
     );
@@ -836,13 +836,11 @@ export const ProfilePage = () => {
 
   if (!currentProfile) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold mb-2">Không tìm thấy người dùng</h2>
-          <p className="text-muted-foreground">
-            Tài khoản này có thể đã bị xóa hoặc không tồn tại.
-          </p>
-        </div>
+      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-140px)] md:min-h-[calc(100vh-100px)] px-6 text-center">
+        <h2 className="text-xl md:text-2xl font-bold mb-3">Không tìm thấy người dùng</h2>
+        <p className="text-sm md:text-base text-muted-foreground max-w-sm leading-relaxed">
+          Tài khoản này có thể đã bị xóa hoặc không tồn tại.
+        </p>
       </div>
     );
   }
