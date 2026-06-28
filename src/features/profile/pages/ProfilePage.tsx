@@ -66,7 +66,6 @@ import { upsertProfileStory } from "@/features/story/storySlice";
 import { PrivateAccountMessage } from "../components/PrivateAccountMessage";
 import { SavedAllPostsContent } from "@/features/saved/components/SavedAllPostsContent";
 import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
-import { getSavedPostsThunk } from "@/features/saved/savedSlice";
 
 export const ProfilePage = () => {
   const { username } = useParams<{ username: string }>();
@@ -269,12 +268,7 @@ export const ProfilePage = () => {
     isCurrentUser,
   ]);
 
-  // Load saved posts when saved tab is active
-  useEffect(() => {
-    if (activeTab === "saved" && isCurrentUser) {
-      dispatch(getSavedPostsThunk({ page: 0, size: 20 }));
-    }
-  }, [activeTab, isCurrentUser, dispatch]);
+
 
   useEffect(() => {
     if (username) {

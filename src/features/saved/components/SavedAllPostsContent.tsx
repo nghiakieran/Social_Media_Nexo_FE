@@ -17,7 +17,7 @@ import { getSavedPostsThunk } from "../savedSlice";
 import { useMemo } from "react";
 
 interface SavedAllPostsContentProps {
-  onBack: () => void;
+  onBack?: () => void;
 }
 
 export const SavedAllPostsContent: React.FC<SavedAllPostsContentProps> = ({
@@ -234,32 +234,6 @@ export const SavedAllPostsContent: React.FC<SavedAllPostsContentProps> = ({
 
   return (
     <div className="px-4 py-4">
-      {/* Header */}
-      <div className="flex items-center gap-3 mb-5">
-        <button
-          onClick={onBack}
-          className="p-2 hover:bg-accent rounded-full transition-colors -ml-2"
-        >
-          <svg
-            className="w-5 h-5 text-foreground"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M19 12H5M12 5l-7 7 7 7" />
-          </svg>
-        </button>
-        <div className="flex items-center gap-2">
-          <Bookmark className="w-5 h-5 text-foreground" />
-          <h1 className="text-lg font-semibold text-foreground">
-            Tất cả bài viết
-          </h1>
-        </div>
-      </div>
-
       {/* Content */}
       {loading ? (
         <div className="flex justify-center py-12">
