@@ -14,6 +14,9 @@ import {
   Settings,
   Users,
   UserPlus,
+  User,
+  Pencil,
+  Ban,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -491,6 +494,7 @@ export const InstagramChatHeader: React.FC<InstagramChatHeaderProps> = ({
                   className="cursor-pointer hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground data-[highlighted]:bg-primary data-[highlighted]:text-primary-foreground"
                   onClick={handleOpenNicknameDialog}
                 >
+                  <Pencil className="h-4 w-4 mr-2" />
                   Biệt danh
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
@@ -510,12 +514,14 @@ export const InstagramChatHeader: React.FC<InstagramChatHeaderProps> = ({
                     if (chat.username) navigate(`/${chat.username}`);
                   }}
                 >
+                  <User className="h-4 w-4 mr-2" />
                   Xem trang cá nhân
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   className="cursor-pointer hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground data-[highlighted]:bg-primary data-[highlighted]:text-primary-foreground"
                   onClick={handleOpenNicknameDialog}
                 >
+                  <Pencil className="h-4 w-4 mr-2" />
                   Biệt danh
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
@@ -523,6 +529,7 @@ export const InstagramChatHeader: React.FC<InstagramChatHeaderProps> = ({
                   className="cursor-pointer text-destructive hover:bg-destructive hover:text-destructive-foreground focus:bg-destructive focus:text-destructive-foreground data-[highlighted]:bg-destructive data-[highlighted]:text-destructive-foreground"
                   onClick={handleOpenBlockDialog}
                 >
+                  <Ban className="h-4 w-4 mr-2" />
                   {chat.blockedByMe ? "Bỏ chặn" : "Chặn"}
                 </DropdownMenuItem>
               </>
