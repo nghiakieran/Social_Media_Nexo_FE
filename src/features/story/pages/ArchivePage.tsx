@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Archive as ArchiveIcon } from "lucide-react";
 import { StoryViewer } from "../components/StoryViewer";
 import { cn } from "@/lib/utils";
-import type { Story } from "../types";
+import type { Story, StoryContent } from "../types";
 import { useAppDispatch, useAppSelector } from "@/store";
 import { getAllUserStoriesThunk } from "../storySlice";
 import { Loader } from "@/components/common/Loader";
@@ -75,28 +75,47 @@ export const ArchivePage = () => {
 
   // Group archived stories by date (day level) - memoized to prevent re-compute
   const groupedStories = useMemo(() => {
-    const groups: { [key: string]: Story } = {};
+    const groups: { [key: string]: StoryContent[] } = {};
     
+    // First, collect and group all story content items by day
     archivedStories.forEach(story => {
-      if (!story.content || story.content.length === 0) return;
+      if (!story.content) return;
       
-      // Use first content's date to represent the group
-      const dateStr = story.content[0]?.createdAt || story.timeAgo;
-      const date = new Date(dateStr);
-      const dateKey = `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`;
-      
-      if (!groups[dateKey]) {
-        groups[dateKey] = story;
-      } else {
-        // Merge content from same day
-        groups[dateKey] = {
-          ...groups[dateKey],
-          content: [...groups[dateKey].content, ...story.content]
-        };
-      }
+      story.content.forEach(contentItem => {
+        const dateStr = contentItem.createdAt || story.timeAgo;
+        const date = new Date(dateStr);
+        if (isNaN(date.getTime())) return;
+        
+        const dateKey = `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`;
+        
+        if (!groups[dateKey]) {
+          groups[dateKey] = [];
+        }
+        groups[dateKey].push(contentItem);
+      });
     });
     
-    return Object.values(groups);
+    // Convert the day groups back to Story objects
+    const storyGroups = Object.entries(groups).map(([dateKey, contentItems]) => {
+      const firstItem = contentItems[0];
+      
+      return {
+        id: dateKey, // Use dateKey as the unique ID for this day group
+        username: archivedStories[0]?.username || "User",
+        profileImage: archivedStories[0]?.profileImage || "/placeholder.svg",
+        timeAgo: firstItem?.createdAt || new Date().toISOString(),
+        content: contentItems,
+        isViewed: contentItems.every(item => item.isSeen),
+        isOwnStory: true
+      };
+    });
+
+    // Sort by date descending so the newest day is shown first
+    return storyGroups.sort((a, b) => {
+      const dateA = new Date(a.timeAgo).getTime();
+      const dateB = new Date(b.timeAgo).getTime();
+      return dateB - dateA;
+    });
   }, [archivedStories]);
 
   // Attach/detach observer when ref or conditions change
@@ -253,7 +272,7 @@ export const ArchivePage = () => {
         <StoryViewer
           isOpen={openViewer}
           onClose={() => setOpenViewer(false)}
-          stories={archivedStories}
+          stories={groupedStories}
           initialStoryIndex={initialStoryIndex}
           isArchivePage={true}
         />

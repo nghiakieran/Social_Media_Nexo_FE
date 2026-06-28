@@ -50,12 +50,14 @@ export const StoryViewer = memo(
     const { toast } = useToast();
 
     // Sort stories: Own story first, then unviewed stories, then viewed stories at the end
-    const stories = sortStoriesByViewedStatus(unsortedStories);
+    // Do NOT sort if on the Archive page (keep chronological grouped order)
+    const stories = isArchivePage ? unsortedStories : sortStoriesByViewedStatus(unsortedStories);
 
     // Find the new index of the initially selected story after sorting
     const initialStory = unsortedStories[initialStoryIndex];
-    const sortedInitialIndex =
-      stories.findIndex((s) => s.id === initialStory?.id) ?? initialStoryIndex;
+    const sortedInitialIndex = isArchivePage
+      ? initialStoryIndex
+      : (stories.findIndex((s) => s.id === initialStory?.id) ?? initialStoryIndex);
 
     const [currentStoryIndex, setCurrentStoryIndex] =
       useState(sortedInitialIndex);
