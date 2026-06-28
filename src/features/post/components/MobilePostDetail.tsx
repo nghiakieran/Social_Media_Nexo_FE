@@ -55,6 +55,7 @@ interface MobilePostDetailProps {
   actionMenuItems?: ActionMenuItem[];
   onNavigateToProfile?: (userName: string) => void;
   onNavigateToPost?: (postId: string) => void;
+  onPostLikeChange?: (isLiked: boolean, newCount: number) => void;
 }
 
 export const MobilePostDetail = ({
@@ -70,6 +71,7 @@ export const MobilePostDetail = ({
   actionMenuItems = [],
   onNavigateToProfile,
   onNavigateToPost,
+  onPostLikeChange,
 }: MobilePostDetailProps) => {
   const [newComment, setNewComment] = useState('');
   const [replyingTo, setReplyingTo] = useState<{ id: string; userName: string } | null>(null);
@@ -91,6 +93,7 @@ export const MobilePostDetail = ({
     setIsPostLikedLocal(newIsLiked);
     setPostLikesCount(newCount);
     onLikePost(post.id);
+    onPostLikeChange?.(newIsLiked, newCount);
   };
 
   // Close on back button (mobile)
@@ -214,8 +217,7 @@ export const MobilePostDetail = ({
                 targetType="post"
                 isLiked={isPostLikedLocal}
                 likesCount={postLikesCount}
-                size="default"
-                variant="ghost"
+                size="md"
                 showCount={false}
                 onLikeChange={handlePostLikeChange}
                 className="touch-manipulation h-7 w-7 p-0"
@@ -294,7 +296,6 @@ export const MobilePostDetail = ({
                         isLiked={comment.isLiked}
                         likesCount={comment.likesCount}
                         size="sm"
-                        variant="ghost"
                         showCount={false}
                         onLikeChange={() => onLikeComment(comment.id)}
                         className="h-auto px-0 text-xs text-muted-foreground hover:text-foreground"
@@ -342,7 +343,6 @@ export const MobilePostDetail = ({
                                   isLiked={reply.isLiked}
                                   likesCount={reply.likesCount}
                                   size="sm"
-                                  variant="ghost"
                                   showCount={false}
                                   onLikeChange={() => onLikeComment(reply.id)}
                                   className="h-auto px-0 text-xs text-muted-foreground hover:text-foreground"
