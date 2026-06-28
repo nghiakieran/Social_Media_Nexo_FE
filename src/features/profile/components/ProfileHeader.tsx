@@ -300,18 +300,24 @@ export const ProfileHeader = ({
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48 bg-popover">
-                  <DropdownMenuItem onClick={handleCopyLink}>
+                  <DropdownMenuItem
+                    onClick={handleCopyLink}
+                    className="focus:bg-primary/10 dark:focus:bg-primary/20 focus:text-primary dark:focus:text-primary-foreground cursor-pointer"
+                  >
                     <LinkIcon className="w-4 h-4 mr-2" />
                     Sao chép liên kết
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={onBlock}>
+                  <DropdownMenuItem
+                    onClick={onBlock}
+                    className="focus:bg-primary/10 dark:focus:bg-primary/20 focus:text-primary dark:focus:text-primary-foreground cursor-pointer"
+                  >
                     <UserX className="w-4 h-4 mr-2" />
                     Chặn
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
                     onClick={onReport}
-                    className="text-destructive"
+                    className="text-destructive focus:bg-destructive/10 focus:text-destructive cursor-pointer"
                   >
                     <Flag className="w-4 h-4 mr-2" />
                     Báo cáo
@@ -463,18 +469,24 @@ export const ProfileHeader = ({
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-48 bg-popover">
-                    <DropdownMenuItem onClick={handleCopyLink}>
+                    <DropdownMenuItem
+                      onClick={handleCopyLink}
+                      className="focus:bg-primary/10 dark:focus:bg-primary/20 focus:text-primary dark:focus:text-primary-foreground cursor-pointer"
+                    >
                       <LinkIcon className="w-4 h-4 mr-2" />
                       Sao chép liên kết
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={onBlock}>
+                    <DropdownMenuItem
+                      onClick={onBlock}
+                      className="focus:bg-primary/10 dark:focus:bg-primary/20 focus:text-primary dark:focus:text-primary-foreground cursor-pointer"
+                    >
                       <UserX className="w-4 h-4 mr-2" />
                       Chặn
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem
                       onClick={onReport}
-                      className="text-destructive"
+                      className="text-destructive focus:bg-destructive/10 focus:text-destructive cursor-pointer"
                     >
                       <Flag className="w-4 h-4 mr-2" />
                       Báo cáo
