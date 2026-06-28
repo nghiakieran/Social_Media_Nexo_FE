@@ -16,6 +16,7 @@ export interface StoryContent {
 // Story Types (for viewer)
 export interface Story {
   id: string
+  ownerId?: string
   username: string
   profileImage: string
   isVerified?: boolean

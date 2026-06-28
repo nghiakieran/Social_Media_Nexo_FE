@@ -592,6 +592,7 @@ const profileSlice = createSlice({
       // fetchUserProfileByUsernameAsync
       .addCase(fetchUserProfileByUsernameAsync.pending, (state) => {
         state.isLoading = true;
+        state.currentProfile = null;
         state.error = null;
       })
       .addCase(fetchUserProfileByUsernameAsync.fulfilled, (state, action) => {
@@ -601,6 +602,7 @@ const profileSlice = createSlice({
       })
       .addCase(fetchUserProfileByUsernameAsync.rejected, (state, action) => {
         state.isLoading = false;
+        state.currentProfile = null;
         state.error = action.payload as string;
       })
       // fetchFollowersByUsernameAsync
@@ -615,7 +617,9 @@ const profileSlice = createSlice({
         if (pageNo === 0) {
           state.followers = content;
         } else {
-          state.followers.push(...content);
+          const existingIds = new Set(state.followers.map((u) => u.userId));
+          const uniqueNewUsers = content.filter((u) => !existingIds.has(u.userId));
+          state.followers.push(...uniqueNewUsers);
         }
 
         state.followersPage = pageNo + 1;
@@ -639,7 +643,9 @@ const profileSlice = createSlice({
         if (pageNo === 0) {
           state.following = content;
         } else {
-          state.following.push(...content);
+          const existingIds = new Set(state.following.map((u) => u.userId));
+          const uniqueNewUsers = content.filter((u) => !existingIds.has(u.userId));
+          state.following.push(...uniqueNewUsers);
         }
 
         state.followingPage = pageNo + 1;
@@ -761,7 +767,9 @@ const profileSlice = createSlice({
         if (pageNo === 0) {
           state.blockedUsers = content;
         } else {
-          state.blockedUsers.push(...content);
+          const existingIds = new Set(state.blockedUsers.map((u) => u.id));
+          const uniqueNewUsers = content.filter((u) => !existingIds.has(u.id));
+          state.blockedUsers.push(...uniqueNewUsers);
         }
 
         state.blockedPage = pageNo;

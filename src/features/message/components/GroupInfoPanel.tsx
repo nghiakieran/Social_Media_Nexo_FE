@@ -1,5 +1,4 @@
-import React, { useState, useRef } from "react";
-import { api } from "@/lib/axios";
+import React, { useState } from "react";
 import {
   Sheet,
   SheetContent,
@@ -68,38 +67,9 @@ export const GroupInfoPanel: React.FC<GroupInfoPanelProps> = ({
   const [removeTarget, setRemoveTarget] = useState<UserDTO | null>(null);
 
   const [addMemberDialogOpen, setAddMemberDialogOpen] = useState(false);
+  const [changeAvatarDialogOpen, setChangeAvatarDialogOpen] = useState(false);
+  const [newAvatarUrl, setNewAvatarUrl] = useState("");
   const conversations = useAppSelector((state) => state.message.conversations);
-
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setIsSaving(true);
-    try {
-      const formData = new FormData();
-      formData.append("files", file);
-      
-      const uploadResponse = await api.post("/files/upload", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
-      
-      let mediaUrl = uploadResponse.data.data;
-      if (Array.isArray(mediaUrl)) mediaUrl = mediaUrl[0];
-
-      if (mediaUrl) {
-        await conversationApi.updateGroup(conversation.id, { groupAvatarUrl: mediaUrl });
-        toast({ title: "Đã cập nhật ảnh đại diện" });
-        onUpdated();
-      }
-    } catch {
-      toast({ title: "Lỗi", description: "Không thể tải ảnh lên", variant: "destructive" });
-    } finally {
-      setIsSaving(false);
-      if (e.target) e.target.value = "";
-    }
-  };
 
   const isAdmin = conversation.isGroupAdmin ?? false;
   const isCreator = conversation.createdByUserId === currentUserId;
@@ -167,7 +137,7 @@ export const GroupInfoPanel: React.FC<GroupInfoPanelProps> = ({
   return (
     <>
       <Sheet open={open} onOpenChange={onOpenChange}>
-        <SheetContent side="right" className="w-80 sm:w-96 overflow-y-auto">
+        <SheetContent side="right" className="w-[90vw] sm:w-[384px] h-full flex flex-col p-4 sm:p-6 overflow-hidden">
           <SheetHeader>
             <SheetTitle className="flex items-center gap-2">
               <Users className="h-5 w-5" />
@@ -176,37 +146,23 @@ export const GroupInfoPanel: React.FC<GroupInfoPanelProps> = ({
           </SheetHeader>
 
           {/* Group avatar + name */}
-          <div className="flex flex-col items-center py-6 gap-3">
+          <div className="flex flex-col items-center py-2 sm:py-4 gap-1.5 sm:gap-2">
             <div 
-              className={cn("relative group", isAdmin && "cursor-pointer", isSaving && "opacity-50")} 
-              onClick={() => {
-                if (isAdmin && !isSaving) fileInputRef.current?.click();
-              }}
+              className={cn("relative group", isAdmin && "cursor-pointer")} 
+              onClick={() => isAdmin && setChangeAvatarDialogOpen(true)}
             >
-              <Avatar className="h-20 w-20">
+              <Avatar className="h-14 w-14 sm:h-16 sm:w-16">
                 <AvatarImage src={conversation.groupAvatarUrl ?? ""} />
-                <AvatarFallback className="text-2xl bg-primary/10 text-primary">
+                <AvatarFallback className="text-lg sm:text-xl bg-primary/10 text-primary">
                   {(conversation.groupName ?? "N").charAt(0)}
                 </AvatarFallback>
               </Avatar>
               {isAdmin && (
                 <div className="absolute inset-0 bg-black/40 rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                  {isSaving ? (
-                    <div className="h-6 w-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  ) : (
-                    <Camera className="h-6 w-6 text-white" />
-                  )}
+                  <Camera className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
                 </div>
               )}
             </div>
-            
-            <input
-              type="file"
-              ref={fileInputRef}
-              className="hidden"
-              accept="image/*"
-              onChange={handleAvatarChange}
-            />
 
             {editingName ? (
               <div className="flex items-center gap-2 w-full max-w-[220px]">
@@ -229,7 +185,7 @@ export const GroupInfoPanel: React.FC<GroupInfoPanelProps> = ({
               </div>
             ) : (
               <div className="flex items-center gap-1">
-                <p className="font-semibold text-base">{conversation.groupName}</p>
+                <p className="font-semibold text-sm sm:text-base">{conversation.groupName}</p>
                 {isAdmin && (
                   <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => setEditingName(true)}>
                     <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
@@ -238,13 +194,13 @@ export const GroupInfoPanel: React.FC<GroupInfoPanelProps> = ({
               </div>
             )}
 
-            <p className="text-sm text-muted-foreground">
+            <p className="text-xs sm:text-sm text-muted-foreground">
               {conversation.participants.length} thành viên
             </p>
           </div>
 
           {/* Members list */}
-          <div className="space-y-1">
+          <div className="flex-1 overflow-y-auto space-y-1 my-2 pr-1 scrollbar-thin">
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide px-1 mb-2">
               Thành viên
             </p>
@@ -327,29 +283,32 @@ export const GroupInfoPanel: React.FC<GroupInfoPanelProps> = ({
             })}
           </div>
 
-          {/* Add members button */}
-          <Button variant="outline" className="w-full mt-4 gap-2" onClick={() => setAddMemberDialogOpen(true)}>
-            <UserPlus className="h-4 w-4" />
-            Thêm thành viên
-          </Button>
-
-          {/* Leave group */}
-          {!isCreator && (
-            <Button
-              variant="ghost"
-              className="w-full mt-2 text-destructive hover:text-destructive hover:bg-destructive/10 gap-2"
-              onClick={() => setLeaveDialogOpen(true)}
-            >
-              <LogOut className="h-4 w-4" />
-              Rời nhóm
+          {/* Action buttons (fixed at bottom) */}
+          <div className="mt-auto pt-4 border-t border-border flex-shrink-0">
+            {/* Add members button */}
+            <Button variant="outline" className="w-full gap-2" onClick={() => setAddMemberDialogOpen(true)}>
+              <UserPlus className="h-4 w-4" />
+              Thêm thành viên
             </Button>
-          )}
+
+            {/* Leave group */}
+            {!isCreator && (
+              <Button
+                variant="ghost"
+                className="w-full mt-2 text-destructive hover:text-destructive hover:bg-destructive/10 gap-2"
+                onClick={() => setLeaveDialogOpen(true)}
+              >
+                <LogOut className="h-4 w-4" />
+                Rời nhóm
+              </Button>
+            )}
+          </div>
         </SheetContent>
       </Sheet>
 
       {/* Remove member confirm */}
       <Dialog open={!!removeTarget} onOpenChange={(o) => { if (!o) setRemoveTarget(null); }}>
-        <DialogContent className="sm:max-w-sm">
+        <DialogContent className="max-w-[88vw] sm:max-w-sm rounded-xl p-4 sm:p-6">
           <DialogHeader>
             <DialogTitle>Xóa thành viên?</DialogTitle>
             <DialogDescription>
@@ -367,7 +326,7 @@ export const GroupInfoPanel: React.FC<GroupInfoPanelProps> = ({
 
       {/* Leave group confirm */}
       <Dialog open={leaveDialogOpen} onOpenChange={setLeaveDialogOpen}>
-        <DialogContent className="sm:max-w-sm">
+        <DialogContent className="max-w-[88vw] sm:max-w-sm rounded-xl p-4 sm:p-6">
           <DialogHeader>
             <DialogTitle>Rời nhóm?</DialogTitle>
             <DialogDescription>
@@ -381,7 +340,62 @@ export const GroupInfoPanel: React.FC<GroupInfoPanelProps> = ({
         </DialogContent>
       </Dialog>
 
-
+      {/* Change Avatar Dialog */}
+      <Dialog open={changeAvatarDialogOpen} onOpenChange={setChangeAvatarDialogOpen}>
+        <DialogContent className="max-w-[88vw] sm:max-w-sm rounded-xl p-4 sm:p-6">
+          <DialogHeader>
+            <DialogTitle>Đổi ảnh đại diện nhóm</DialogTitle>
+            <DialogDescription>
+              Nhập đường dẫn (URL) của hình ảnh mới.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-2">
+            <Input
+              placeholder="https://example.com/avatar.jpg"
+              value={newAvatarUrl}
+              onChange={(e) => setNewAvatarUrl(e.target.value)}
+              autoFocus
+              onKeyDown={async (e) => {
+                if (e.key === "Enter") {
+                  if (!newAvatarUrl.trim()) return;
+                  setIsSaving(true);
+                  try {
+                    await conversationApi.updateGroup(conversation.id, { groupAvatarUrl: newAvatarUrl.trim() });
+                    onUpdated();
+                    setChangeAvatarDialogOpen(false);
+                    setNewAvatarUrl("");
+                  } catch {
+                    toast({ title: "Lỗi", description: "Không thể cập nhật ảnh đại diện", variant: "destructive" });
+                  } finally {
+                    setIsSaving(false);
+                  }
+                }
+              }}
+            />
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setChangeAvatarDialogOpen(false)} disabled={isSaving}>Hủy</Button>
+            <Button 
+              disabled={isSaving || !newAvatarUrl.trim()}
+              onClick={async () => {
+                setIsSaving(true);
+                try {
+                  await conversationApi.updateGroup(conversation.id, { groupAvatarUrl: newAvatarUrl.trim() });
+                  onUpdated();
+                  setChangeAvatarDialogOpen(false);
+                  setNewAvatarUrl("");
+                } catch {
+                  toast({ title: "Lỗi", description: "Không thể cập nhật ảnh đại diện", variant: "destructive" });
+                } finally {
+                  setIsSaving(false);
+                }
+              }}
+            >
+              {isSaving ? "Đang lưu..." : "Lưu"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Add Member Dialog */}
       <AddMemberDialog

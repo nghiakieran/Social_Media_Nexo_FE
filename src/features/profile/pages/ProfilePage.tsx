@@ -3,7 +3,7 @@ import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { AppDispatch, useAppSelector } from "@/store";
 import { getPostsThunk } from "@/features/post/postSlice";
-import { getUserReelsThunk } from "@/features/reel/reelSlice";
+import { getUserReelsThunk, openCommentsDrawer } from "@/features/reel/reelSlice";
 import { getMediaType } from "@/utils/mediaUtils";
 import {
   setPosts,
@@ -66,7 +66,7 @@ import { upsertProfileStory } from "@/features/story/storySlice";
 import { PrivateAccountMessage } from "../components/PrivateAccountMessage";
 import { SavedAllPostsContent } from "@/features/saved/components/SavedAllPostsContent";
 import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
-import { getSavedPostsThunk } from "@/features/saved/savedSlice";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 export const ProfilePage = () => {
   const { username } = useParams<{ username: string }>();
@@ -93,9 +93,15 @@ export const ProfilePage = () => {
     showCreateHighlightDialog,
   } = useAppSelector((state) => state.profile);
 
-  const { reels: reelStoreReels } = useAppSelector((state) => state.reel);
+  const {
+    reels: reelStoreReels,
+    isLoading: isLoadingReels,
+    hasMore: hasMoreReels,
+    currentPage: currentReelsPage,
+  } = useAppSelector((state) => state.reel);
 
   const currentUser = useAppSelector((state) => state.auth.user);
+  const isMobile = useIsMobile();
   const isCurrentUser = currentUser && username === currentUser.username;
   const apiPosts = useAppSelector((state) => state.post.posts);
   const isLoadingPosts = useAppSelector((state) => state.post.isLoading);
@@ -269,12 +275,7 @@ export const ProfilePage = () => {
     isCurrentUser,
   ]);
 
-  // Load saved posts when saved tab is active
-  useEffect(() => {
-    if (activeTab === "saved" && isCurrentUser) {
-      dispatch(getSavedPostsThunk({ page: 0, size: 20 }));
-    }
-  }, [activeTab, isCurrentUser, dispatch]);
+
 
   useEffect(() => {
     if (username) {
@@ -305,7 +306,7 @@ export const ProfilePage = () => {
       if (canAccessProfile) {
         const userId = parseInt(currentProfile.id);
         setCurrentPage(0);
-        dispatch(getPostsThunk({ userId, pageNo: 0, pageSize: 10 }));
+        dispatch(getPostsThunk({ userId, pageNo: 0, pageSize: 9 }));
       }
 
       // Fetch followers and following only if we have access
@@ -326,13 +327,34 @@ export const ProfilePage = () => {
       const userId = parseInt(currentProfile.id);
       const nextPage = currentPage + 1;
       setCurrentPage(nextPage);
-      dispatch(getPostsThunk({ userId, pageNo: nextPage, pageSize: 10 }));
+      dispatch(getPostsThunk({ userId, pageNo: nextPage, pageSize: 9 }));
     }
   }, [currentProfile, currentPage, isLoadingPosts, hasMorePosts, dispatch]);
 
   const { lastElementRef } = useInfiniteScroll(handleLoadMore, {
     hasMore: hasMorePosts,
     isLoading: isLoadingPosts,
+    threshold: 100,
+  });
+
+  // Infinite scroll - load more reels
+  const handleLoadMoreReels = useCallback(() => {
+    if (currentProfile && !isLoadingReels && hasMoreReels) {
+      const nextPage = currentReelsPage + 1;
+      const userId = parseInt(currentProfile.id);
+      dispatch(
+        getUserReelsThunk({
+          userId,
+          pageNo: nextPage,
+          pageSize: 9,
+        })
+      );
+    }
+  }, [currentProfile, currentReelsPage, isLoadingReels, hasMoreReels, dispatch]);
+
+  const { lastElementRef: lastReelElementRef } = useInfiniteScroll(handleLoadMoreReels, {
+    hasMore: hasMoreReels,
+    isLoading: isLoadingReels,
     threshold: 100,
   });
 
@@ -347,6 +369,9 @@ export const ProfilePage = () => {
     const tabFromUrl = searchParams.get("tab");
     if (tabFromUrl && ["posts", "reels", "saved"].includes(tabFromUrl)) {
       dispatch(setActiveTab(tabFromUrl as "posts" | "reels" | "saved"));
+      if (tabFromUrl === "reels") {
+        setHasClickedReelsTab(true);
+      }
     }
   }, [searchParams, dispatch]);
 
@@ -362,7 +387,7 @@ export const ProfilePage = () => {
         const userId = parseInt(currentProfile.id);
         // Only load if reels array is empty (first time loading)
         if (reelStoreReels.length === 0) {
-          dispatch(getUserReelsThunk({ userId, pageNo: 0, pageSize: 10 }));
+          dispatch(getUserReelsThunk({ userId, pageNo: 0, pageSize: 9 }));
         }
       }
     }
@@ -761,17 +786,28 @@ export const ProfilePage = () => {
     switch (activeTab) {
       case "reels":
         return (
-          <ReelGrid
-            reels={reelStoreReels}
-            onReelClick={(reel) => {
-              // Navigate to reel detail page
-              navigate(`/reels/${reel.id}`);
-            }}
-          />
+          <>
+            <ReelGrid
+              reels={reelStoreReels}
+              lastElementRef={lastReelElementRef}
+              onReelClick={(reel) => {
+                if (isMobile) {
+                  navigate(`/reels/${reel.id}`);
+                } else {
+                  dispatch(openCommentsDrawer(reel.id));
+                }
+              }}
+            />
+            {isLoadingReels && (
+              <div className="flex justify-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+              </div>
+            )}
+          </>
         );
       case "saved":
         return isCurrentUser ? (
-          <SavedAllPostsContent onBack={() => { }} />
+          <SavedAllPostsContent onBack={() => { }} pageSize={9} />
         ) : null;
       default: {
         // Filter to only show active posts in the posts tab
@@ -792,7 +828,7 @@ export const ProfilePage = () => {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center min-h-[calc(100vh-140px)] md:min-h-[calc(100vh-100px)]">
         <div className="animate-spin rounded-full h-10 w-10 border-2 border-primary border-t-transparent" />
       </div>
     );
@@ -800,13 +836,11 @@ export const ProfilePage = () => {
 
   if (!currentProfile) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold mb-2">Không tìm thấy người dùng</h2>
-          <p className="text-muted-foreground">
-            Tài khoản này có thể đã bị xóa hoặc không tồn tại.
-          </p>
-        </div>
+      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-140px)] md:min-h-[calc(100vh-100px)] px-6 text-center">
+        <h2 className="text-xl md:text-2xl font-bold mb-3">Không tìm thấy người dùng</h2>
+        <p className="text-sm md:text-base text-muted-foreground max-w-sm leading-relaxed">
+          Tài khoản này có thể đã bị xóa hoặc không tồn tại.
+        </p>
       </div>
     );
   }

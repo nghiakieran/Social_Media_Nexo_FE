@@ -124,7 +124,7 @@ export const ActivityLogs = () => {
             })}
             {activityLogsHasMore && (
               <button
-                className="w-full text-sm text-primary py-3 hover:bg-accent/50 transition-colors"
+                className="w-full text-sm text-primary py-3 hover:bg-primary/10 dark:hover:bg-primary/20 transition-colors"
                 onClick={handleLoadMore}
                 disabled={isActivityLogsLoading}
               >

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useAppSelector, useAppDispatch } from "../../../store";
 import { LazyGrid } from "../../../components/common/LazyGrid";
 import { Bookmark } from "lucide-react";
@@ -6,24 +6,31 @@ import { CommentDialog } from "../../post/components/CommentDialog";
 import { ShareDialog } from "../../post/components/ShareDialog";
 import { useBookmark } from "../hooks/useBookmark";
 import { useToast } from "../../../hooks/use-toast";
+import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
+import { useNavigate } from "react-router-dom";
+import { useIsMobile } from "../../../hooks/use-mobile";
 import {
   getPostCommentsThunk,
   createCommentThunk,
   likeCommentThunk,
-  likePostThunk,
   clearComments,
 } from "@/features/interaction/interactionSlice";
 import { getSavedPostsThunk } from "../savedSlice";
+import { likePostThunk } from "@/features/post/postSlice";
 import { useMemo } from "react";
 
 interface SavedAllPostsContentProps {
-  onBack: () => void;
+  onBack?: () => void;
+  pageSize?: number;
 }
 
 export const SavedAllPostsContent: React.FC<SavedAllPostsContentProps> = ({
   onBack,
+  pageSize = 20,
 }) => {
   const dispatch = useAppDispatch();
+  const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const { toast } = useToast();
   const { isBookmarked, toggleBookmark } = useBookmark();
   const { posts, loading, pagination } = useAppSelector((state) => state.saved);
@@ -38,8 +45,21 @@ export const SavedAllPostsContent: React.FC<SavedAllPostsContentProps> = ({
 
   // Load saved posts on mount
   useEffect(() => {
-    dispatch(getSavedPostsThunk({ page: 0, size: 20 }));
-  }, [dispatch]);
+    dispatch(getSavedPostsThunk({ page: 0, size: pageSize }));
+  }, [dispatch, pageSize]);
+
+  // Infinite scroll - load more saved posts
+  const handleLoadMore = useCallback(() => {
+    if (!loading && !pagination.last) {
+      dispatch(getSavedPostsThunk({ page: pagination.pageNo + 1, size: pageSize }));
+    }
+  }, [loading, pagination.pageNo, pagination.last, pageSize, dispatch]);
+
+  const { lastElementRef } = useInfiniteScroll(handleLoadMore, {
+    hasMore: !pagination.last,
+    isLoading: loading,
+    threshold: 100,
+  });
 
   // Get comments from Redux state
   const { comments: reduxComments } = useAppSelector(
@@ -94,8 +114,12 @@ export const SavedAllPostsContent: React.FC<SavedAllPostsContentProps> = ({
   }) => {
     const post = posts.find((p) => p.id === item.id);
     if (post) {
-      setSelectedPost(post.post);
-      setShowCommentDialog(true);
+      if (isMobile) {
+        navigate(`/posts/${post.post.id}`);
+      } else {
+        setSelectedPost(post.post);
+        setShowCommentDialog(true);
+      }
     }
   };
 
@@ -172,9 +196,8 @@ export const SavedAllPostsContent: React.FC<SavedAllPostsContentProps> = ({
 
   const handleLikePost = async (postId: string) => {
     try {
-      await dispatch(likePostThunk(parseInt(postId))).unwrap();
-      const post = allPosts.find((p) => p.id === postId);
-      if (post && selectedPost) {
+      await dispatch(likePostThunk(postId)).unwrap();
+      if (selectedPost) {
         setSelectedPost((prev: any) =>
           prev
             ? {
@@ -234,116 +257,81 @@ export const SavedAllPostsContent: React.FC<SavedAllPostsContentProps> = ({
 
   return (
     <div className="px-4 py-4">
-      {/* Header */}
-      <div className="flex items-center gap-3 mb-5">
-        <button
-          onClick={onBack}
-          className="p-2 hover:bg-accent rounded-full transition-colors -ml-2"
-        >
-          <svg
-            className="w-5 h-5 text-foreground"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M19 12H5M12 5l-7 7 7 7" />
-          </svg>
-        </button>
-        <div className="flex items-center gap-2">
-          <Bookmark className="w-5 h-5 text-foreground" />
-          <h1 className="text-lg font-semibold text-foreground">
-            Tất cả bài viết
-          </h1>
-        </div>
-      </div>
-
       {/* Content */}
-      {loading ? (
+      {posts.length === 0 && loading ? (
         <div className="flex justify-center py-12">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
         </div>
       ) : posts.length > 0 ? (
-        <LazyGrid
-          items={posts.map((post) => ({
-            id: post.id,
-            thumbnail: post.post.media[0]?.url || "/placeholder.svg",
-            type:
-              post.post.media[0]?.type === "image"
-                ? "photo"
-                : post.post.media[0]?.type || "photo",
-            caption: post.post.content,
-            likesCount: post.post.likesCount,
-            commentsCount: post.post.commentsCount,
-          }))}
-          onItemClick={handlePostClick}
-          className="pb-4"
-          columns={3}
-          gap="md"
-          enableProgressiveLoading={true}
-          enableBlurToSharp={false}
-          renderOverlay={(item, isVisible) => {
-            if (!isVisible) return null;
+        <>
+          <LazyGrid
+            items={posts.map((post, index) => ({
+              id: post.id,
+              thumbnail: post.post.media[0]?.url || "/placeholder.svg",
+              type:
+                post.post.media[0]?.type === "image"
+                  ? "photo"
+                  : post.post.media[0]?.type || "photo",
+              caption: post.post.content,
+              likesCount: post.post.likesCount,
+              commentsCount: post.post.commentsCount,
+              ref: index === posts.length - 1 ? lastElementRef : undefined,
+            }))}
+            onItemClick={handlePostClick}
+            className="pb-4"
+            columns={3}
+            gap="md"
+            enableProgressiveLoading={true}
+            enableBlurToSharp={false}
+            renderOverlay={(item, isVisible) => {
+              if (!isVisible) return null;
 
-            const post = posts.find((p) => p.id === item.id);
-            if (!post) return null;
+              const post = posts.find((p) => p.id === item.id);
+              if (!post) return null;
 
-            const isVideo =
-              post.post.media[0]?.type === "video" ||
-              post.post.media[0]?.type === "reel";
-            const isCarousel = post.post.media.length > 1;
+              const isVideo =
+                post.post.media[0]?.type === "video" ||
+                post.post.media[0]?.type === "reel";
+              const isCarousel = post.post.media.length > 1;
 
-            return (
-              <>
-                {/* Video/Reel indicator */}
-                {isVideo && (
-                  <div className="absolute top-2 right-2">
-                    <svg
-                      className="w-4 h-4 text-white fill-current drop-shadow-lg"
-                      viewBox="0 0 24 24"
-                    >
-                      <path d="M8 5v14l11-7z" />
-                    </svg>
-                  </div>
-                )}
-
-                {/* Carousel indicator */}
-                {isCarousel && (
-                  <div className="absolute top-2 left-2">
-                    <svg
-                      className="w-4 h-4 text-white fill-current drop-shadow-lg"
-                      viewBox="0 0 24 24"
-                    >
-                      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
-                    </svg>
-                  </div>
-                )}
-
-                {/* Hover overlay with stats */}
-                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
-                  <div className="flex items-center gap-4 text-white">
-                    <div className="flex items-center gap-1">
-                      <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
-                        <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+              return (
+                <>
+                  {/* Video/Reel indicator */}
+                  {isVideo && (
+                    <div className="absolute top-2 right-2">
+                      <svg
+                        className="w-4 h-4 text-white fill-current drop-shadow-lg"
+                        viewBox="0 0 24 24"
+                      >
+                        <path d="M8 5v14l11-7z" />
                       </svg>
-                      <span className="font-semibold">{item.likesCount}</span>
                     </div>
-                    <div className="flex items-center gap-1">
-                      <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
-                        <path d="M21.99 4c0-1.1-.89-2-2-2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h14l4 4-.01-18zM18 14H6v-2h12v2zm0-3H6V9h12v2zm0-3H6V6h12v2z" />
+                  )}
+
+                  {/* Carousel indicator */}
+                  {isCarousel && (
+                    <div className="absolute top-2 left-2">
+                      <svg
+                        className="w-4 h-4 text-white fill-current drop-shadow-lg"
+                        viewBox="0 0 24 24"
+                      >
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
                       </svg>
-                      <span className="font-semibold">
-                        {item.commentsCount}
-                      </span>
                     </div>
-                  </div>
-                </div>
-              </>
-            );
-          }}
-        />
+                  )}
+
+                  {/* Hover overlay */}
+                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
+                </>
+              );
+            }}
+          />
+          {loading && (
+            <div className="flex justify-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            </div>
+          )}
+        </>
       ) : (
         <div className="text-center py-8 sm:py-12 px-4">
           <Bookmark className="w-12 h-12 sm:w-16 sm:h-16 text-gray-300 dark:text-gray-700 mx-auto mb-3" />

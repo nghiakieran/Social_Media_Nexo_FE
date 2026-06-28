@@ -137,6 +137,7 @@ export const FollowersDialog = ({
     if (debouncedValue !== "") return;
 
     if (users.length === 0) {
+      lastRequestedPageRef.current = 1;
       const params = {
         username,
         pageNo: 1,

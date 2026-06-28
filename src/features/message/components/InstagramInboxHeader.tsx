@@ -93,7 +93,7 @@ export const InstagramInboxHeader: React.FC<InstagramInboxHeaderProps> = ({
   return (
     <div
       className={cn(
-        "border-b border-primary/10 bg-background/95 px-3 py-2 backdrop-blur-sm md:p-4",
+        "border-t border-b border-primary/10 bg-background/95 px-3 pt-4 pb-2 backdrop-blur-sm md:p-4",
         className
       )}
     >
@@ -186,7 +186,7 @@ export const InstagramInboxHeader: React.FC<InstagramInboxHeaderProps> = ({
 
       {/* Settings Dialog */}
       <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="max-w-[88vw] sm:max-w-md rounded-xl p-4 sm:p-6">
           <DialogHeader>
             <DialogTitle>Cài đặt tin nhắn</DialogTitle>
           </DialogHeader>

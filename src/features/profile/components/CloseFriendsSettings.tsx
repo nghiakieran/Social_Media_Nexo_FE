@@ -44,7 +44,7 @@ export const CloseFriendsSettings = () => {
       dispatch(
         fetchFollowingByUsernameAsync({
           username: currentUser.username,
-          pageNo: 0,
+          pageNo: 1,
           pageSize: 10,
           search: debouncedValue || undefined,
         })
@@ -69,7 +69,7 @@ export const CloseFriendsSettings = () => {
           dispatch(
             fetchFollowingByUsernameAsync({
               username: currentUser.username,
-              pageNo: 0,
+              pageNo: 1,
               pageSize: 10,
               search: debouncedValue || undefined,
             })
@@ -203,16 +203,24 @@ export const CloseFriendsSettings = () => {
                   ref={isLastItem ? lastElementRef : null}
                   className="flex items-center justify-between rounded-lg border border-border p-3 transition-colors hover:bg-primary/10 dark:hover:bg-primary/20"
                 >
-                  <div className="flex items-center gap-3">
-                    <Avatar className="w-10 h-10">
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <Avatar 
+                      className="w-10 h-10 cursor-pointer hover:opacity-80 transition-opacity"
+                      onClick={() => navigate(`/${user.userName}`)}
+                    >
                       <AvatarImage src={user.avatar} alt={user.userName} />
                       <AvatarFallback>
                         {user.userName.charAt(0).toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
-                    <div>
-                      <p className="font-medium text-sm">{user.userName}</p>
-                      <p className="text-xs text-muted-foreground">
+                    <div className="flex-1 min-w-0">
+                      <p 
+                        className="font-medium text-sm hover:underline cursor-pointer truncate"
+                        onClick={() => navigate(`/${user.userName}`)}
+                      >
+                        {user.userName}
+                      </p>
+                      <p className="text-xs text-muted-foreground truncate">
                         {user.fullName}
                       </p>
                       {isFriend && (

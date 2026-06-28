@@ -242,8 +242,12 @@ export const PostGrid = ({
   };
 
   const handlePostClick = (post: ProfilePost) => {
-    setSelectedPost(post);
-    onPostClick?.(post);
+    if (isMobile) {
+      navigate(`/posts/${post.id}`);
+    } else {
+      setSelectedPost(post);
+      onPostClick?.(post);
+    }
   };
 
   const handleDeletePost = async (postId: string) => {
@@ -375,19 +379,8 @@ export const PostGrid = ({
                 </div>
               )}
 
-              {/* Hover overlay with stats */}
-              <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
-                <div className="flex items-center gap-4 text-white">
-                  <div className="flex items-center gap-1">
-                    <Heart className="w-5 h-5 fill-current" />
-                    <span className="font-semibold">{item.likesCount}</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <MessageCircle className="w-5 h-5 fill-current" />
-                    <span className="font-semibold">{item.commentsCount}</span>
-                  </div>
-                </div>
-              </div>
+              {/* Hover overlay */}
+              <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
             </>
           );
         }}

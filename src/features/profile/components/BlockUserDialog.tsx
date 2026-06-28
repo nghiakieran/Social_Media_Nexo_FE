@@ -61,46 +61,46 @@ export const BlockUserDialog = ({ isOpen, onClose, user }: BlockUserDialogProps)
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-sm mx-auto">
-        <DialogHeader className="text-center space-y-4">
-          <Avatar className="w-20 h-20 mx-auto">
+      <DialogContent className="max-w-[340px] w-[90%] rounded-2xl p-6 gap-0 mx-auto">
+        <DialogHeader className="text-center space-y-3">
+          <Avatar className="w-20 h-20 mx-auto mb-2">
             <AvatarImage src={user.avatar} alt={user.name} />
             <AvatarFallback>
               {user.name.charAt(0).toUpperCase()}
             </AvatarFallback>
           </Avatar>
-          <DialogTitle>Chặn {user.username}?</DialogTitle>
-          <DialogDescription className="text-justify">
+          <DialogTitle className="text-xl font-bold">Chặn {user.username}?</DialogTitle>
+          <DialogDescription className="text-center text-sm text-muted-foreground leading-normal px-1 pb-4">
             Họ sẽ không thể tìm thấy hồ sơ, bài viết hoặc story của bạn trên Nexo. 
             Nexo sẽ không cho họ biết rằng bạn đã chặn họ.
           </DialogDescription>
         </DialogHeader>
 
-        <DialogFooter>
+        <div className="flex flex-col gap-2.5 w-full mt-2">
+          <Button 
+            variant="outline" 
+            onClick={onClose}
+            className="w-full rounded-full h-11 text-sm font-semibold border-muted-foreground/20 hover:bg-primary/10 hover:text-primary hover:border-primary/30"
+            disabled={isBlocking}
+          >
+            Hủy
+          </Button>
           <Button 
             variant="destructive" 
             onClick={handleBlock}
-            className="w-full gap-2"
+            className="w-full rounded-full h-11 text-sm font-semibold gap-2"
             disabled={isBlocking}
           >
             {isBlocking ? (
               <>
-                <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                <Loader2 className="h-4 w-4 animate-spin text-white" />
                 Đang chặn...
               </>
             ) : (
               'Chặn'
             )}
           </Button>
-          <Button 
-            variant="outline" 
-            onClick={onClose}
-            className="w-full"
-            disabled={isBlocking}
-          >
-            Hủy
-          </Button>
-        </DialogFooter>
+        </div>
       </DialogContent>
     </Dialog>
   );

@@ -543,20 +543,20 @@ export const InstagramChatHeader: React.FC<InstagramChatHeaderProps> = ({
           }
         }}
       >
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="max-w-[90vw] sm:max-w-md rounded-xl p-4 sm:p-6">
           <DialogHeader>
-            <DialogTitle>Biệt danh</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="text-lg sm:text-xl">Biệt danh</DialogTitle>
+            <DialogDescription className="text-xs sm:text-sm">
               Đặt biệt danh cho người trong cuộc trò chuyện
             </DialogDescription>
           </DialogHeader>
-          <div className="py-4">
+          <div className="py-2 sm:py-4">
             {isLoadingParticipants ? (
-              <div className="flex justify-center items-center py-8">
-                <p className="text-sm text-muted-foreground">Đang tải...</p>
+              <div className="flex justify-center items-center py-6 sm:py-8">
+                <p className="text-xs sm:text-sm text-muted-foreground">Đang tải...</p>
               </div>
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-2 sm:space-y-3 max-h-[45vh] overflow-y-auto pr-1">
                 {participants.map((participant) => {
                   const isCurrentUser = participant.id === currentUserId;
                   const isEditing = editingUserId === participant.id;
@@ -567,7 +567,7 @@ export const InstagramChatHeader: React.FC<InstagramChatHeaderProps> = ({
                     <div
                       key={participant.id}
                       className={cn(
-                        "flex items-center gap-3 p-3 rounded-lg border bg-card",
+                        "flex items-center gap-2 sm:gap-3 p-2 sm:p-3 rounded-lg border bg-card",
                         !isEditing &&
                           "cursor-pointer hover:bg-muted/50 transition-colors"
                       )}
@@ -580,12 +580,12 @@ export const InstagramChatHeader: React.FC<InstagramChatHeaderProps> = ({
                         }
                       }}
                     >
-                      <Avatar className="h-12 w-12">
+                      <Avatar className="h-10 w-10 sm:h-12 sm:w-12">
                         <AvatarImage
                           src={participant.avatarUrl}
                           alt={participant.fullName}
                         />
-                        <AvatarFallback>
+                        <AvatarFallback className="text-xs sm:text-sm">
                           {participant.fullName.charAt(0)}
                         </AvatarFallback>
                       </Avatar>

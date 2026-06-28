@@ -63,20 +63,7 @@ export const ReelGrid = ({
         if (!isVisible) return null;
 
         return (
-          <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
-            <div className="flex items-center gap-4 text-white">
-              <div className="flex items-center gap-1">
-                <Heart className="w-4 h-4" />
-                <span className="text-sm font-medium">{item.likesCount}</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <MessageCircle className="w-4 h-4" />
-                <span className="text-sm font-medium">
-                  {item.commentsCount}
-                </span>
-              </div>
-            </div>
-          </div>
+          <div className="absolute inset-0 bg-black/20 opacity-0 hover:opacity-100 transition-opacity" />
         );
       }}
     />
