@@ -403,7 +403,7 @@ export const FollowersDialog = ({
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="fixed bottom-0 top-auto sm:top-[50%] left-0 sm:left-[50%] translate-x-0 translate-y-0 sm:translate-x-[-50%] sm:translate-y-[-50%] w-full sm:w-[90vw] max-w-[560px] rounded-t-[1.5rem] sm:rounded-lg bg-background p-0 overflow-hidden border-x-0 border-b-0 sm:border border-border">
+        <DialogContent className="fixed bottom-0 sm:bottom-auto top-auto sm:top-[50%] left-0 sm:left-[50%] translate-x-0 translate-y-0 sm:translate-x-[-50%] sm:translate-y-[-50%] w-full sm:w-[90vw] max-w-[560px] rounded-t-[1.5rem] sm:rounded-lg bg-background p-0 overflow-hidden border-x-0 border-b-0 sm:border border-border">
           <DialogHeader className="relative border-b border-border p-3">
             <DialogTitle className="text-center text-base font-semibold">
               {title}
