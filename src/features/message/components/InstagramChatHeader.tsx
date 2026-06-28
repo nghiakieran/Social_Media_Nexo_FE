@@ -13,6 +13,7 @@ import {
   MoreVertical,
   Settings,
   Users,
+  UserPlus,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -37,6 +38,8 @@ import { cn } from "@/lib/utils";
 import { formatLastSeen } from "../hooks/usePresence";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
+import { AddMemberDialog } from "./AddMemberDialog";
+import { useAppSelector } from "@/store";
 
 interface InstagramChatHeaderProps {
   chat?: ConversationResponseDTO;
@@ -72,6 +75,7 @@ export const InstagramChatHeader: React.FC<InstagramChatHeaderProps> = ({
 }) => {
   const [nicknameDialogOpen, setNicknameDialogOpen] = useState(false);
   const [groupInfoOpen, setGroupInfoOpen] = useState(false);
+  const [addMemberDialogOpen, setAddMemberDialogOpen] = useState(false);
   const [participants, setParticipants] = useState<UserDTO[]>([]);
   const [editingUserId, setEditingUserId] = useState<number | null>(null);
   const [nickname, setNickname] = useState("");
@@ -86,6 +90,7 @@ export const InstagramChatHeader: React.FC<InstagramChatHeaderProps> = ({
   const [isLoadingOnlineStatus, setIsLoadingOnlineStatus] = useState(true);
   const { toast } = useToast();
   const navigate = useNavigate();
+  const conversations = useAppSelector((state) => state.message.conversations);
 
   useEffect(() => {
     const loadCurrentUserOnlineStatus = async () => {
@@ -173,7 +178,7 @@ export const InstagramChatHeader: React.FC<InstagramChatHeaderProps> = ({
     setIsUpdating(true);
     try {
       const { conversationApi } = await import("../services/messageApi");
-      await conversationApi.updateNickname(
+      const response = await conversationApi.updateNickname(
         chat.id,
         editingUserId,
         nickname.trim()
@@ -193,6 +198,11 @@ export const InstagramChatHeader: React.FC<InstagramChatHeaderProps> = ({
       }
     } catch (error) {
       console.error("Error updating nickname:", error);
+      toast({
+        title: "Lỗi",
+        description: "Không thể cập nhật biệt danh",
+        variant: "destructive",
+      });
     } finally {
       setIsUpdating(false);
     }
@@ -424,53 +434,101 @@ export const InstagramChatHeader: React.FC<InstagramChatHeaderProps> = ({
         )}
 
         {chat.isGroup && (
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8 hover:bg-primary/10 hover:text-primary md:h-9 md:w-9"
-            onClick={() => setGroupInfoOpen(true)}
-            title="Thông tin nhóm"
-          >
-            <Info className="h-4 w-4" />
-          </Button>
+          <>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 hover:bg-primary/10 hover:text-primary md:h-9 md:w-9"
+              onClick={() => onCall?.("voice")}
+              title="Gọi thoại nhóm"
+            >
+              <Phone className="h-4 w-4" />
+            </Button>
+
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 hover:bg-primary/10 hover:text-primary md:h-9 md:w-9"
+              onClick={() => onCall?.("video")}
+              title="Gọi video nhóm"
+            >
+              <Video className="h-4 w-4" />
+            </Button>
+
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 hover:bg-primary/10 hover:text-primary md:h-9 md:w-9"
+              onClick={() => setGroupInfoOpen(true)}
+              title="Thông tin nhóm"
+            >
+              <Info className="h-4 w-4" />
+            </Button>
+          </>
         )}
 
-        {!chat.isGroup && (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 hover:bg-primary/10 hover:text-primary md:h-9 md:w-9"
-              >
-                <MoreVertical className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48">
-              <DropdownMenuItem
-                className="cursor-pointer hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground data-[highlighted]:bg-primary data-[highlighted]:text-primary-foreground"
-                onClick={() => {
-                  if (chat.username) navigate(`/${chat.username}`);
-                }}
-              >
-                Xem trang cá nhân
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                className="cursor-pointer hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground data-[highlighted]:bg-primary data-[highlighted]:text-primary-foreground"
-                onClick={handleOpenNicknameDialog}
-              >
-                Biệt danh
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                className="cursor-pointer text-destructive hover:bg-destructive hover:text-destructive-foreground focus:bg-destructive focus:text-destructive-foreground data-[highlighted]:bg-destructive data-[highlighted]:text-destructive-foreground"
-                onClick={handleOpenBlockDialog}
-              >
-                {chat.blockedByMe ? "Bỏ chặn" : "Chặn"}
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        )}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 hover:bg-primary/10 hover:text-primary md:h-9 md:w-9"
+            >
+              <MoreVertical className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-48">
+            {chat.isGroup ? (
+              <>
+                <DropdownMenuItem
+                  className="cursor-pointer hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground data-[highlighted]:bg-primary data-[highlighted]:text-primary-foreground"
+                  onClick={() => setGroupInfoOpen(true)}
+                >
+                  <Users className="h-4 w-4 mr-2" />
+                  Thông tin nhóm
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  className="cursor-pointer hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground data-[highlighted]:bg-primary data-[highlighted]:text-primary-foreground"
+                  onClick={handleOpenNicknameDialog}
+                >
+                  Biệt danh
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  className="cursor-pointer hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground data-[highlighted]:bg-primary data-[highlighted]:text-primary-foreground"
+                  onClick={() => setAddMemberDialogOpen(true)}
+                >
+                  <UserPlus className="h-4 w-4 mr-2" />
+                  Thêm thành viên
+                </DropdownMenuItem>
+              </>
+            ) : (
+              <>
+                <DropdownMenuItem
+                  className="cursor-pointer hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground data-[highlighted]:bg-primary data-[highlighted]:text-primary-foreground"
+                  onClick={() => {
+                    if (chat.username) navigate(`/${chat.username}`);
+                  }}
+                >
+                  Xem trang cá nhân
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  className="cursor-pointer hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground data-[highlighted]:bg-primary data-[highlighted]:text-primary-foreground"
+                  onClick={handleOpenNicknameDialog}
+                >
+                  Biệt danh
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  className="cursor-pointer text-destructive hover:bg-destructive hover:text-destructive-foreground focus:bg-destructive focus:text-destructive-foreground data-[highlighted]:bg-destructive data-[highlighted]:text-destructive-foreground"
+                  onClick={handleOpenBlockDialog}
+                >
+                  {chat.blockedByMe ? "Bỏ chặn" : "Chặn"}
+                </DropdownMenuItem>
+              </>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       {/* Nickname Dialog */}
@@ -614,6 +672,23 @@ export const InstagramChatHeader: React.FC<InstagramChatHeaderProps> = ({
             />
           )}
         </React.Suspense>
+      )}
+
+      {/* Add Member Dialog (từ header dropdown) */}
+      {chat.isGroup && (
+        <AddMemberDialog
+          open={addMemberDialogOpen}
+          onOpenChange={setAddMemberDialogOpen}
+          conversations={conversations}
+          existingParticipants={chat.participants ?? []}
+          currentUserId={currentUserId}
+          onAdd={async (userIds) => {
+            const { conversationApi } = await import("../services/messageApi");
+            await conversationApi.addMembers(chat.id, { userIds });
+            toast({ title: "Đã thêm thành viên mới" });
+            onGroupUpdated?.();
+          }}
+        />
       )}
 
       <Dialog open={blockDialogOpen} onOpenChange={setBlockDialogOpen}>

@@ -24,6 +24,7 @@ import {
   updateMessageReactionsFromAggregated,
   addReaction,
   removeReaction,
+  handleNicknameUpdate,
 } from "../messageSlice";
 import {
   MessageDTO,
@@ -35,6 +36,7 @@ import {
   ECallType,
   ReactionWebSocketPayload,
   ReactionUpdateLegacyDTO,
+  NicknameUpdateEvent,
 } from "../types";
 
 export const ChatPage: React.FC = () => {
@@ -94,6 +96,9 @@ export const ChatPage: React.FC = () => {
     },
     onReadAll: (readAllEvent: ReadAllDTO) => {
       dispatch(handleReadAll({ ...readAllEvent, currentUserId: user.id }));
+    },
+    onNicknameUpdate: (event: NicknameUpdateEvent) => {
+      dispatch(handleNicknameUpdate(event));
     },
     onReactionUpdate: (update: ReactionWebSocketPayload) => {
       // Check if it's the new aggregated format (has reactions array)
@@ -390,14 +395,28 @@ export const ChatPage: React.FC = () => {
 
   const handleStartCall = useCallback(
     (type: "voice" | "video") => {
-      if (!currentChat || !otherParticipant) return;
+      if (!currentChat) return;
       const callType =
         type === "video" ? ECallType.VIDEO_CALL : ECallType.AUDIO_CALL;
-      startCall(currentChat.id, callType, {
-        id: otherParticipant.id,
-        name: otherParticipant.fullName,
-        avatarUrl: otherParticipant.avatarUrl,
-      });
+        
+      let callTarget;
+      if (currentChat.isGroup) {
+        callTarget = {
+          id: currentChat.id,
+          name: currentChat.groupName || "Nhóm",
+          avatarUrl: currentChat.groupAvatarUrl || "",
+          isGroupCall: true,
+        };
+      } else {
+        if (!otherParticipant) return;
+        callTarget = {
+          id: otherParticipant.id,
+          name: otherParticipant.fullName,
+          avatarUrl: otherParticipant.avatarUrl,
+        };
+      }
+      
+      startCall(currentChat.id, callType, callTarget);
     },
     [currentChat, otherParticipant, startCall]
   );

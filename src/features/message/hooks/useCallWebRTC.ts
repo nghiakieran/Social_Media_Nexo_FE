@@ -1,5 +1,6 @@
 import { useRef, useState, useCallback, useEffect } from "react";
 import { getWebSocketService } from "../services/websocketService";
+import { isScreenCaptureSupported, applyVideoTrackToAllPeers, applyAudioTrackToAllPeers, selectOutgoingVideoTrack } from "../utils/screenShareUtils";
 import { startRingtone, stopRingtone, startRingbackTone, stopRingbackTone } from "@/utils/inAppAlertSounds";
 import type {
   CallNotificationDTO,
@@ -34,6 +35,7 @@ export interface ActiveCallInfo {
   remoteUserName: string;
   remoteAvatarUrl: string;
   startedAt?: string;
+  isGroupCall?: boolean;
 }
 
 interface UseCallWebRTCOptions {
@@ -49,6 +51,13 @@ export function useCallWebRTC({ myUserId, onCallEnded }: UseCallWebRTCOptions = 
   const [isVideoOff, setIsVideoOff] = useState(false);
   const [duration, setDuration] = useState(0);
 
+  const [isScreenSharing, setIsScreenSharing] = useState(false);
+  const [screenShareError, setScreenShareError] = useState<string | null>(null);
+  const screenShareSupported = isScreenCaptureSupported();
+  const clearScreenShareError = useCallback(() => setScreenShareError(null), []);
+  const screenStreamRef = useRef<MediaStream | null>(null);
+  const isScreenSharingRef = useRef(false);
+
   // Mesh Topology states
   const peersRef = useRef<Map<number, RTCPeerConnection>>(new Map());
   const [remoteStreams, setRemoteStreams] = useState<Map<number, MediaStream>>(new Map());
@@ -56,8 +65,6 @@ export function useCallWebRTC({ myUserId, onCallEnded }: UseCallWebRTCOptions = 
   const localStreamRef = useRef<MediaStream | null>(null);
   const localVideoRef = useRef<HTMLVideoElement | null>(null);
   
-  // Vẫn giữ remoteVideoRef để code cũ không lỗi ngay lập tức, 
-  // nhưng Mesh UI nên dùng remoteStreams.
   const remoteVideoRef = useRef<HTMLVideoElement | null>(null);
   
   const durationIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -75,6 +82,7 @@ export function useCallWebRTC({ myUserId, onCallEnded }: UseCallWebRTCOptions = 
   useEffect(() => { incomingCallRef.current = incomingCall; }, [incomingCall]);
   useEffect(() => { onCallEndedRef.current = onCallEnded; }, [onCallEnded]);
   useEffect(() => { myUserIdRef.current = myUserId; }, [myUserId]);
+  useEffect(() => { isScreenSharingRef.current = isScreenSharing; }, [isScreenSharing]);
 
   const ws = getWebSocketService();
 
@@ -89,8 +97,15 @@ export function useCallWebRTC({ myUserId, onCallEnded }: UseCallWebRTCOptions = 
       localStreamRef.current.getTracks().forEach((t) => t.stop());
       localStreamRef.current = null;
     }
-    
-    // Close all PeerConnections
+    if (screenStreamRef.current) {
+      try {
+        screenStreamRef.current.getTracks().forEach((t) => t.stop());
+        screenStreamRef.current = null;
+        setIsScreenSharing(false);
+      } catch {
+      }
+    }
+
     peersRef.current.forEach((pc) => pc.close());
     peersRef.current.clear();
     setRemoteStreams(new Map());
@@ -126,12 +141,10 @@ export function useCallWebRTC({ myUserId, onCallEnded }: UseCallWebRTCOptions = 
     };
 
     pc.ontrack = (event) => {
-      // Compatibility with old 1-1 UI
       if (remoteVideoRef.current && !remoteVideoRef.current.srcObject) {
         remoteVideoRef.current.srcObject = event.streams[0];
       }
-      
-      // Update Mesh streams state
+
       setRemoteStreams((prev) => {
         const next = new Map(prev);
         next.set(targetUserId, event.streams[0]);
@@ -165,11 +178,23 @@ export function useCallWebRTC({ myUserId, onCallEnded }: UseCallWebRTCOptions = 
       }
     };
 
-    // Add local tracks
+    const outgoingVideoTrack = selectOutgoingVideoTrack({
+      isScreenSharing: isScreenSharingRef.current,
+      screenStream: screenStreamRef.current,
+      cameraStream: localStreamRef.current,
+    });
+
     if (localStreamRef.current) {
-      localStreamRef.current.getTracks().forEach((track) => {
-        pc.addTrack(track, localStreamRef.current!);
-      });
+      const audioTrack = isScreenSharingRef.current && screenStreamRef.current?.getAudioTracks()[0]
+        ? screenStreamRef.current.getAudioTracks()[0]
+        : localStreamRef.current.getAudioTracks()[0];
+      if (audioTrack) {
+        pc.addTrack(audioTrack, localStreamRef.current);
+      }
+    }
+
+    if (outgoingVideoTrack && localStreamRef.current) {
+      pc.addTrack(outgoingVideoTrack, localStreamRef.current);
     }
 
     peersRef.current.set(targetUserId, pc);
@@ -196,7 +221,7 @@ export function useCallWebRTC({ myUserId, onCallEnded }: UseCallWebRTCOptions = 
     async (
       conversationId: number,
       callType: ECallType,
-      remoteUser: { id: number; name: string; avatarUrl: string }
+      remoteUser: { id: number; name: string; avatarUrl: string; isGroupCall?: boolean }
     ) => {
       console.log("[Call] startCall called, state=", callStateRef.current);
       if (callStateRef.current !== "idle") return;
@@ -216,16 +241,28 @@ export function useCallWebRTC({ myUserId, onCallEnded }: UseCallWebRTCOptions = 
           remoteUserId: remoteUser.id,
           remoteUserName: remoteUser.name,
           remoteAvatarUrl: remoteUser.avatarUrl,
+          isGroupCall: remoteUser.isGroupCall,
         };
         setActiveCall(info);
         activeCallRef.current = info;
 
         ws.initiateCall({ conversationId, callType });
       } catch (err) {
-        console.error("[WebRTC] getUserMedia failed:", err);
+        console.error("[WebRTC] startCall failed:", err);
         cleanup();
         setCallState("idle");
         callStateRef.current = "idle";
+        setActiveCall(null);
+        activeCallRef.current = null;
+        // Hiện lỗi cho user biết
+        const errorMessage = err instanceof DOMException 
+          ? (err.name === "NotAllowedError" 
+            ? "Bạn cần cấp quyền truy cập microphone/camera để gọi" 
+            : err.name === "NotFoundError"
+            ? "Không tìm thấy thiết bị microphone/camera"
+            : `Lỗi thiết bị: ${err.message}`)
+          : "Không thể bắt đầu cuộc gọi";
+        alert(errorMessage);
       }
     },
     [getUserMedia, ws, cleanup]
@@ -251,9 +288,10 @@ export function useCallWebRTC({ myUserId, onCallEnded }: UseCallWebRTCOptions = 
         callType: incoming.callType,
         isIncoming: true,
         remoteUserId: incoming.callerId,
-        remoteUserName: incoming.callerFullName,
+        remoteUserName: incoming.isGroupCall ? `Cuộc gọi nhóm từ ${incoming.callerFullName}` : incoming.callerFullName,
         remoteAvatarUrl: incoming.callerAvatarUrl,
         startedAt: incoming.startedAt,
+        isGroupCall: incoming.isGroupCall,
       };
       setActiveCall(info);
       activeCallRef.current = info;
@@ -270,6 +308,15 @@ export function useCallWebRTC({ myUserId, onCallEnded }: UseCallWebRTCOptions = 
       ws.respondToCall({ callId: incoming.callId, accepted: false });
       setIncomingCall(null);
       incomingCallRef.current = null;
+      
+      const errorMessage = err instanceof DOMException 
+        ? (err.name === "NotAllowedError" 
+          ? "Bạn cần cấp quyền truy cập microphone/camera để nhận cuộc gọi" 
+          : err.name === "NotFoundError"
+          ? "Không tìm thấy thiết bị microphone/camera trên máy này (Hãy cắm Mic/Webcam)"
+          : `Lỗi thiết bị: ${err.message}`)
+        : (err instanceof Error ? err.message : "Không thể kết nối thiết bị âm thanh/hình ảnh");
+      alert("Lỗi khi trả lời cuộc gọi: " + errorMessage);
     }
   }, [getUserMedia, ws, cleanup]);
 
@@ -293,9 +340,30 @@ export function useCallWebRTC({ myUserId, onCallEnded }: UseCallWebRTCOptions = 
 
   const hangUp = useCallback(() => {
     const callId = activeCallRef.current?.callId;
-    if (callId) {
-      ws.endCall({ callId });
+
+    const doEnd = (id: number) => {
+      ws.endCall({ callId: id });
+    };
+
+    if (callId && callId > 0) {
+      doEnd(callId);
+    } else {
+      // callId chưa nhận từ BE (caller tắt quá nhanh) — đợi tối đa 3s
+      let waited = 0;
+      const interval = setInterval(() => {
+        waited += 100;
+        const currentId = activeCallRef.current?.callId;
+        if (currentId && currentId > 0) {
+          clearInterval(interval);
+          doEnd(currentId);
+        } else if (waited >= 3000) {
+          clearInterval(interval);
+          // Fallback: BE CallTimeoutJob sẽ xử lý sau 30s
+          console.warn("[Call] hangUp: callId not received within 3s, relying on BE timeout");
+        }
+      }, 100);
     }
+
     cleanup();
     setCallState("ended");
     callStateRef.current = "ended";
@@ -342,8 +410,21 @@ export function useCallWebRTC({ myUserId, onCallEnded }: UseCallWebRTCOptions = 
     }
 
     const callId = activeCallRef.current?.callId;
-    if (callId) {
+    if (callId && callId > 0) {
       ws.endCall({ callId });
+    } else {
+      // Tương tự hangUp — chờ callId rồi endCall
+      let waited = 0;
+      const interval = setInterval(() => {
+        waited += 100;
+        const currentId = activeCallRef.current?.callId;
+        if (currentId && currentId > 0) {
+          clearInterval(interval);
+          ws.endCall({ callId: currentId });
+        } else if (waited >= 3000) {
+          clearInterval(interval);
+        }
+      }, 100);
     }
     cleanup();
     setCallState("ended");
@@ -373,6 +454,79 @@ export function useCallWebRTC({ myUserId, onCallEnded }: UseCallWebRTCOptions = 
       return !prev;
     });
   }, []);
+
+  const stopScreenShareRef = useRef<() => void>(() => {});
+
+  // ─── Start screen share ──────────────────────────────────────────────────────
+
+  const startScreenShare = async (): Promise<void> => {
+    if (!screenShareSupported || isScreenSharing) return;
+
+    let screenStream: MediaStream | undefined;
+    try {
+      screenStream = await navigator.mediaDevices.getDisplayMedia({
+        video: { frameRate: { ideal: 15, max: 30 } },
+        audio: true,
+      });
+
+      screenStreamRef.current = screenStream;
+
+      const screenVideoTrack = screenStream.getVideoTracks()[0];
+
+      screenVideoTrack.onended = () => stopScreenShareRef.current();
+
+      applyVideoTrackToAllPeers(peersRef.current, screenVideoTrack);
+
+      if (screenStream.getAudioTracks().length > 0) {
+        applyAudioTrackToAllPeers(peersRef.current, screenStream.getAudioTracks()[0]);
+      }
+
+      if (localVideoRef.current) {
+        localVideoRef.current.srcObject = screenStream;
+      }
+
+      setIsScreenSharing(true);
+    } catch (err) {
+      applyVideoTrackToAllPeers(peersRef.current, localStreamRef.current?.getVideoTracks()[0] ?? null);
+
+      screenStream?.getTracks().forEach((t) => t.stop());
+
+      screenStreamRef.current = null;
+
+      setScreenShareError(err instanceof Error ? err.message : 'Không thể chia sẻ màn hình');
+    }
+  };
+
+  const stopScreenShare = useCallback(() => {
+    if (!screenStreamRef.current) return;
+
+    const cameraVideoTrack = localStreamRef.current?.getVideoTracks()[0] ?? null;
+    const cameraAudioTrack = localStreamRef.current?.getAudioTracks()[0] ?? null;
+
+    applyVideoTrackToAllPeers(peersRef.current, cameraVideoTrack);
+    applyAudioTrackToAllPeers(peersRef.current, cameraAudioTrack);
+
+    screenStreamRef.current.getTracks().forEach((t) => t.stop());
+    screenStreamRef.current = null;
+
+    if (localVideoRef.current) {
+      localVideoRef.current.srcObject = localStreamRef.current;
+    }
+
+    setIsScreenSharing(false);
+  }, []);
+
+  if (typeof stopScreenShareRef !== "undefined") {
+    stopScreenShareRef.current = stopScreenShare;
+  }
+
+  const toggleScreenShare = useCallback(async () => {
+    if (isScreenSharing) {
+      stopScreenShare();
+    } else {
+      await startScreenShare();
+    }
+  }, [isScreenSharing]);
 
   // ─── WebSocket event handlers (stable refs — never recreated) ────────────────
 
@@ -431,6 +585,10 @@ export function useCallWebRTC({ myUserId, onCallEnded }: UseCallWebRTCOptions = 
           }
         }
       } else {
+        if (call.isGroupCall) {
+          console.log("[Call] Participant", response.responderId, "rejected or did not accept the group call. Status:", response.status);
+          return; // Do not end the group call for everyone
+        }
         cleanup();
         setCallState("ended");
         callStateRef.current = "ended";
@@ -573,6 +731,11 @@ export function useCallWebRTC({ myUserId, onCallEnded }: UseCallWebRTCOptions = 
     dismissCall,
     toggleMute,
     toggleVideo,
+    isScreenSharing,
+    screenShareSupported,
+    screenShareError,
+    clearScreenShareError,
+    toggleScreenShare,
     pingCall,
     joinCall,
     resubscribeCallEvents: () => {

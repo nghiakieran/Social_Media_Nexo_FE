@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { useAppDispatch, useAppSelector } from "@/store";
+import { Link } from "react-router-dom";
 import { fetchActivityLogsAsync } from "../profileSlice";
 import { Skeleton } from "@/components/ui/skeleton";
 import { History, FileText, Heart, MessageCircle } from "lucide-react";
@@ -85,7 +86,34 @@ export const ActivityLogs = () => {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-foreground">
-                      {meta?.label ?? log.action}
+                      {(() => {
+                        try {
+                          if (log.detailsJson) {
+                            const details = JSON.parse(log.detailsJson);
+                            // Cố gắng parse metadata nếu nó đang là chuỗi (trường hợp data cũ)
+                            const metadata = typeof details.metadata === 'string' 
+                                ? JSON.parse(details.metadata) 
+                                : details.metadata;
+                                
+                            if (metadata?.authorName) {
+                              return (
+                                <span>
+                                  {meta?.label ?? log.action} của{" "}
+                                  <span className="font-semibold">{metadata.authorName}</span>
+                                  {metadata.url && (
+                                    <Link to={metadata.url} className="ml-2 text-blue-500 hover:underline text-xs">
+                                      (Xem)
+                                    </Link>
+                                  )}
+                                </span>
+                              );
+                            }
+                          }
+                        } catch (e) {
+                          // Ignore JSON parse errors for old or invalid data
+                        }
+                        return meta?.label ?? log.action;
+                      })()}
                     </p>
                     <p className="text-xs text-muted-foreground">
                       {formatDate(log.createdAt)}

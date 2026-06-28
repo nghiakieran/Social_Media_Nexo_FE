@@ -21,6 +21,7 @@ import type {
   CallResponseRequest,
   CallSignalRequest,
   CallEndRequest,
+  NicknameUpdateEvent,
 } from "../types";
 import { ACCESS_TOKEN_STORAGE_KEY } from "@/utils/constants";
 
@@ -31,6 +32,7 @@ type ReadAllCallback = (receipt: ReadAllDTO) => void;
 type ReactionUpdateCallback = (update: ReactionWebSocketPayload) => void;
 type ErrorCallback = (error: WebSocketErrorResponse) => void;
 type PresenceCallback = (presence: PresenceStatusDTO) => void;
+type NicknameUpdateCallback = (event: NicknameUpdateEvent) => void;
 
 export class WebSocketService {
   private client: Client | null = null;
@@ -132,7 +134,8 @@ export class WebSocketService {
     onTyping: TypingCallback,
     onReadReceipt: ReadReceiptCallback,
     onReadAll: ReadAllCallback,
-    onReactionUpdate?: ReactionUpdateCallback
+    onReactionUpdate?: ReactionUpdateCallback,
+    onNicknameUpdate?: NicknameUpdateCallback
   ) {
     if (!this.client?.connected) {
       return;
@@ -189,6 +192,17 @@ export class WebSocketService {
       );
       this.subscriptions.set(`${baseTopic}:reactions`, reactionSub);
     }
+
+    if (onNicknameUpdate) {
+      const nicknameSub = this.client.subscribe(
+        `${baseTopic}/nickname`,
+        (message: IMessage) => {
+          const data: NicknameUpdateEvent = JSON.parse(message.body);
+          onNicknameUpdate(data);
+        }
+      );
+      this.subscriptions.set(`${baseTopic}:nickname`, nicknameSub);
+    }
   }
 
   
@@ -206,7 +220,7 @@ export class WebSocketService {
   unsubscribeFromConversation(conversationId: number) {
     const baseTopic = `/topic/conversation/${conversationId}`;
 
-    ["message", "typing", "read", "read-all", "reactions"].forEach((type) => {
+    ["message", "typing", "read", "read-all", "reactions", "nickname"].forEach((type) => {
       const key = `${baseTopic}:${type}`;
       const sub = this.subscriptions.get(key);
       if (sub) {

@@ -47,11 +47,14 @@ export const ChatList: React.FC<ChatListProps> = ({
   return (
     <div className={cn("space-y-1", className)}>
       {chats.map((chat) => {
-        const isGroup = chat.isGroup ?? false;
+        const isGroup = chat.isGroup || !!chat.groupName || chat.participants.length > 2;
         const otherUser = isGroup
           ? null
           : chat.participants.find((p) => p.id !== currentUserId);
         const isOnline = otherUser ? presenceMap[otherUser.id] || false : false;
+        const displayName = isGroup
+          ? (chat.groupName || chat.fullname || "Nhóm")
+          : (chat.fullname || otherUser?.fullName || "");
 
         return (
           <div
@@ -72,11 +75,44 @@ export const ChatList: React.FC<ChatListProps> = ({
                       <Users className="h-5 w-5" />
                     </AvatarFallback>
                   </Avatar>
-                ) : (
-                  <div className="h-full w-full rounded-full bg-primary/10 flex items-center justify-center">
-                    <Users className="h-5 w-5 text-primary" />
-                  </div>
-                )}
+                ) : (() => {
+                  const members = chat.participants.filter((p) => p.id !== currentUserId).slice(0, 4);
+                  if (members.length === 0) {
+                    return (
+                      <div className="h-full w-full rounded-full bg-primary/10 flex items-center justify-center">
+                        <Users className="h-5 w-5 text-primary" />
+                      </div>
+                    );
+                  }
+                  if (members.length === 1) {
+                    return (
+                      <Avatar className="h-full w-full">
+                        <AvatarImage src={members[0].avatarUrl} alt={members[0].fullName} />
+                        <AvatarFallback className="bg-primary/15 text-primary text-xs">
+                          {members[0].fullName.charAt(0)}
+                        </AvatarFallback>
+                      </Avatar>
+                    );
+                  }
+                  return (
+                    <div className="relative h-full w-full">
+                      {members.slice(0, 2).map((m, i) => (
+                        <Avatar
+                          key={m.id}
+                          className={cn(
+                            "absolute border-2 border-background",
+                            i === 0 ? "h-6 w-6 md:h-7 md:w-7 bottom-0 left-0 z-10" : "h-6 w-6 md:h-7 md:w-7 top-0 right-0 z-20"
+                          )}
+                        >
+                          <AvatarImage src={m.avatarUrl} alt={m.fullName} />
+                          <AvatarFallback className="bg-primary/15 text-primary text-[9px]">
+                            {m.fullName.charAt(0)}
+                          </AvatarFallback>
+                        </Avatar>
+                      ))}
+                    </div>
+                  );
+                })()}
                 {chat.unreadCount > 0 && (
                   <span className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-primary border-2 border-background" />
                 )}
@@ -100,25 +136,35 @@ export const ChatList: React.FC<ChatListProps> = ({
 
             <div className="flex-1 ml-3 min-w-0">
               <div className="flex items-center justify-between mb-0.5">
-                <h3
-                  className={cn(
-                    "font-medium text-sm truncate",
-                    chat.unreadCount > 0 && "font-semibold"
-                  )}
-                >
-                  {isGroup ? (chat.groupName ?? chat.fullname) : chat.fullname}
-                </h3>
-                <div className="flex items-center space-x-1">
+                <div className="flex-1 min-w-0">
+                  <h3
+                    className={cn(
+                      "font-medium text-sm truncate",
+                      chat.unreadCount > 0 && "font-semibold"
+                    )}
+                  >
+                    {displayName}
+                  </h3>
+                  {isGroup && (() => {
+                    const others = chat.participants.filter((p) => p.id !== currentUserId);
+                    const names = others.map((p) => p.nickname || p.fullName.split(" ").pop() || p.fullName);
+                    const preview = names.slice(0, 3).join(", ");
+                    const extra = names.length > 3 ? ` +${names.length - 3}` : "";
+                    return (
+                      <p className="text-[11px] text-muted-foreground truncate">
+                        {preview}{extra}
+                      </p>
+                    );
+                  })()}
+                </div>
+                <div className="flex items-center space-x-1 shrink-0 ml-1">
                   {chat.lastMessage && (
                     <span className="text-xs text-muted-foreground">
-                      {chat.lastMessage && chat.lastMessage.createdAt
-                        ? formatLastMessageTime(
-                            new Date(chat.lastMessage.createdAt)
-                          )
+                      {chat.lastMessage.createdAt
+                        ? formatLastMessageTime(new Date(chat.lastMessage.createdAt))
                         : ""}
                     </span>
                   )}
-                  {}
                 </div>
               </div>
 
