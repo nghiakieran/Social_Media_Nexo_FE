@@ -26,6 +26,8 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
+const STORY_SYNC_DELAY_MS = 1250;
+
 export const StoryCreatePage = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -33,6 +35,18 @@ export const StoryCreatePage = () => {
   const { toast } = useToast();
   const currentUser = useAppSelector((state) => state.auth.user);
   const { isUploading, uploadProgress } = useAppSelector((state) => state.story);
+
+  const [uploadMessage, setUploadMessage] = useState<string>("");
+  const [isSyncingFeed, setIsSyncingFeed] = useState(false);
+  const [isComposing, setIsComposing] = useState(false);
+  const syncCancelledRef = useRef(false);
+
+  useEffect(() => {
+    syncCancelledRef.current = false;
+    return () => {
+      syncCancelledRef.current = true;
+    };
+  }, []);
 
   const [file, setFile] = useState<File | null>(
     location.state?.file || null
@@ -124,7 +138,7 @@ export const StoryCreatePage = () => {
     return new Promise((resolve) => {
       const video = document.createElement("video");
       video.preload = "metadata";
-      
+
       // Set timeout in case metadata never loads
       const timeoutId = setTimeout(() => {
         URL.revokeObjectURL(video.src);
@@ -135,12 +149,12 @@ export const StoryCreatePage = () => {
         });
         resolve(false);
       }, 10000); // 10 second timeout
-      
+
       video.onloadedmetadata = () => {
         clearTimeout(timeoutId);
         const duration = video.duration;
         URL.revokeObjectURL(video.src);
-        
+
         // Check if duration is valid
         if (isNaN(duration) || !isFinite(duration)) {
           toast({
@@ -151,7 +165,7 @@ export const StoryCreatePage = () => {
           resolve(false);
           return;
         }
-        
+
         // Max 60 seconds (1 minute)
         if (duration > 60) {
           toast({
@@ -164,7 +178,7 @@ export const StoryCreatePage = () => {
           resolve(true);
         }
       };
-      
+
       video.onerror = () => {
         clearTimeout(timeoutId);
         URL.revokeObjectURL(video.src);
@@ -175,7 +189,7 @@ export const StoryCreatePage = () => {
         });
         resolve(false);
       };
-      
+
       video.src = URL.createObjectURL(file);
     });
   };
@@ -194,7 +208,7 @@ export const StoryCreatePage = () => {
             return; // Don't proceed if validation fails
           }
         }
-        
+
         setFile(selectedFile);
       }
     };
@@ -371,11 +385,8 @@ export const StoryCreatePage = () => {
 
       // If there are overlays, compose them into the image
       if (!isVideo && (textOverlays.length > 0 || stickers.length > 0)) {
-        toast({
-          variant: "info",
-          title: "Đang xử lý...",
-          description: "Đang tạo story của bạn",
-        });
+        setIsComposing(true);
+        setUploadMessage("🎨 Đang xử lý... Đang tạo story của bạn");
 
         const composedBlob = await composeStoryImage();
         if (composedBlob) {
@@ -384,6 +395,18 @@ export const StoryCreatePage = () => {
             lastModified: Date.now(),
           });
         }
+        setIsComposing(false);
+      }
+
+      const isVideoFile = file.type.startsWith("video/");
+      const sizeMB = file.size / (1024 * 1024);
+
+      if (isVideoFile && sizeMB > 30) {
+        setUploadMessage("📹 Đang chia sẻ tin... Video lớn có thể mất vài phút");
+      } else if (isVideoFile || sizeMB > 10) {
+        setUploadMessage("📤 Đang chia sẻ tin... Vui lòng chờ");
+      } else {
+        setUploadMessage("⏳ Đang chia sẻ tin...");
       }
 
       // Call API to create story
@@ -405,6 +428,18 @@ export const StoryCreatePage = () => {
         description: "Tin của bạn đã được đăng thành công",
       });
 
+      setUploadMessage("Đang đồng bộ với tin của bạn");
+      setIsSyncingFeed(true);
+      await new Promise<void>((resolve) => {
+        setTimeout(resolve, STORY_SYNC_DELAY_MS);
+      });
+
+      if (syncCancelledRef.current) {
+        setUploadMessage("");
+        setIsSyncingFeed(false);
+        return;
+      }
+
       navigate(-1);
     } catch (error) {
       const err = error as { message?: string };
@@ -413,6 +448,9 @@ export const StoryCreatePage = () => {
         description: err.message || "Không thể tạo story",
         variant: "destructive",
       });
+      setUploadMessage("");
+      setIsSyncingFeed(false);
+      setIsComposing(false);
     }
   };
 
@@ -788,6 +826,32 @@ export const StoryCreatePage = () => {
           onClose={() => setShowTextEditor(false)}
           onSave={handleAddText}
         />
+      )}
+
+      {/* Loading Overlay with Upload Message */}
+      {(isUploading || isSyncingFeed || isComposing) && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-background/95 backdrop-blur-md rounded-2xl shadow-2xl p-6 sm:p-8 max-w-sm sm:max-w-md w-full mx-auto">
+            <div className="flex flex-col items-center gap-4 sm:gap-6">
+              <div className="relative">
+                <div className="w-16 h-16 sm:w-20 sm:h-20 border-4 border-primary/30 border-t-primary rounded-full animate-spin"></div>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 bg-primary/10 rounded-full"></div>
+                </div>
+              </div>
+              <div className="text-center space-y-1.5 text-foreground">
+                <p className="text-lg sm:text-xl font-bold">
+                  {uploadProgress > 0 && uploadProgress < 100 && isUploading
+                    ? `Đang tải... ${uploadProgress}%`
+                    : uploadMessage || "Đang chia sẻ tin..."}
+                </p>
+                <p className="text-xs sm:text-sm text-muted-foreground">
+                  Vui lòng không tắt trang này
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
