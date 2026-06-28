@@ -18,6 +18,7 @@ export interface SavedPost {
     likesCount: number;
     commentsCount: number;
     createdAt: string;
+    isLiked?: boolean;
   };
 }
 
@@ -52,6 +53,7 @@ export interface SavedPost {
     likesCount: number;
     commentsCount: number;
     createdAt: string;
+    isLiked?: boolean;
   };
 }
 

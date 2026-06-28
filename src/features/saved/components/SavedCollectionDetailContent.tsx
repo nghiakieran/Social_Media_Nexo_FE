@@ -4,6 +4,8 @@ import { useAppSelector, useAppDispatch } from '../../../store';
 import { LazyGrid } from '../../../components/common/LazyGrid';
 import { Bookmark, MoreHorizontal } from 'lucide-react';
 import { Button } from '../../../components/ui/button';
+import { useNavigate } from 'react-router-dom';
+import { useIsMobile } from '../../../hooks/use-mobile';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -16,12 +18,11 @@ import { CommentDialog } from '../../post/components/CommentDialog';
 import { ShareDialog } from '../../post/components/ShareDialog';
 import { useBookmark } from '../hooks/useBookmark';
 import { useToast } from '../../../hooks/use-toast';
-import { bookmarkPostThunk } from '../../post/postSlice';
+import { bookmarkPostThunk, likePostThunk } from '../../post/postSlice';
 import {
   getPostCommentsThunk,
   createCommentThunk,
   likeCommentThunk,
-  likePostThunk,
   clearComments,
 } from '@/features/interaction/interactionSlice';
 import { useEffect, useMemo } from 'react';
@@ -36,6 +37,8 @@ export const SavedCollectionDetailContent: React.FC<SavedCollectionDetailContent
   onBack
 }) => {
   const dispatch = useAppDispatch();
+  const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const { toast } = useToast();
   const { isBookmarked, toggleBookmark } = useBookmark();
   const { posts, collections } = useAppSelector((state) => state.saved);
@@ -97,8 +100,12 @@ export const SavedCollectionDetailContent: React.FC<SavedCollectionDetailContent
   const handlePostClick = (item: { id: string; thumbnail: string; type?: string; caption?: string; likesCount?: number; commentsCount?: number }) => {
     const post = collectionPosts.find(p => p.id === item.id);
     if (post) {
-      setSelectedPost(post.post);
-      setShowCommentDialog(true);
+      if (isMobile) {
+        navigate(`/posts/${post.post.id}`);
+      } else {
+        setSelectedPost(post.post);
+        setShowCommentDialog(true);
+      }
     }
   };
 
@@ -187,9 +194,8 @@ export const SavedCollectionDetailContent: React.FC<SavedCollectionDetailContent
 
   const handleLikePost = async (postId: string) => {
     try {
-      await dispatch(likePostThunk(parseInt(postId))).unwrap();
-      const post = allPosts.find(p => p.id === postId);
-      if (post && selectedPost) {
+      await dispatch(likePostThunk(postId)).unwrap();
+      if (selectedPost) {
         setSelectedPost((prev: any) => prev ? { ...prev, isLiked: !prev.isLiked, likesCount: prev.likesCount + (prev.isLiked ? -1 : 1) } : prev);
       }
     } catch (error) {

@@ -3,7 +3,7 @@ import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { AppDispatch, useAppSelector } from "@/store";
 import { getPostsThunk } from "@/features/post/postSlice";
-import { getUserReelsThunk } from "@/features/reel/reelSlice";
+import { getUserReelsThunk, openCommentsDrawer } from "@/features/reel/reelSlice";
 import { getMediaType } from "@/utils/mediaUtils";
 import {
   setPosts,
@@ -66,6 +66,7 @@ import { upsertProfileStory } from "@/features/story/storySlice";
 import { PrivateAccountMessage } from "../components/PrivateAccountMessage";
 import { SavedAllPostsContent } from "@/features/saved/components/SavedAllPostsContent";
 import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 export const ProfilePage = () => {
   const { username } = useParams<{ username: string }>();
@@ -100,6 +101,7 @@ export const ProfilePage = () => {
   } = useAppSelector((state) => state.reel);
 
   const currentUser = useAppSelector((state) => state.auth.user);
+  const isMobile = useIsMobile();
   const isCurrentUser = currentUser && username === currentUser.username;
   const apiPosts = useAppSelector((state) => state.post.posts);
   const isLoadingPosts = useAppSelector((state) => state.post.isLoading);
@@ -789,8 +791,11 @@ export const ProfilePage = () => {
               reels={reelStoreReels}
               lastElementRef={lastReelElementRef}
               onReelClick={(reel) => {
-                // Navigate to reel detail page
-                navigate(`/reels/${reel.id}`);
+                if (isMobile) {
+                  navigate(`/reels/${reel.id}`);
+                } else {
+                  dispatch(openCommentsDrawer(reel.id));
+                }
               }}
             />
             {isLoadingReels && (

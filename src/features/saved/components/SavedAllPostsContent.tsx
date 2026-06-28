@@ -7,14 +7,16 @@ import { ShareDialog } from "../../post/components/ShareDialog";
 import { useBookmark } from "../hooks/useBookmark";
 import { useToast } from "../../../hooks/use-toast";
 import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
+import { useNavigate } from "react-router-dom";
+import { useIsMobile } from "../../../hooks/use-mobile";
 import {
   getPostCommentsThunk,
   createCommentThunk,
   likeCommentThunk,
-  likePostThunk,
   clearComments,
 } from "@/features/interaction/interactionSlice";
 import { getSavedPostsThunk } from "../savedSlice";
+import { likePostThunk } from "@/features/post/postSlice";
 import { useMemo } from "react";
 
 interface SavedAllPostsContentProps {
@@ -27,6 +29,8 @@ export const SavedAllPostsContent: React.FC<SavedAllPostsContentProps> = ({
   pageSize = 20,
 }) => {
   const dispatch = useAppDispatch();
+  const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const { toast } = useToast();
   const { isBookmarked, toggleBookmark } = useBookmark();
   const { posts, loading, pagination } = useAppSelector((state) => state.saved);
@@ -110,8 +114,12 @@ export const SavedAllPostsContent: React.FC<SavedAllPostsContentProps> = ({
   }) => {
     const post = posts.find((p) => p.id === item.id);
     if (post) {
-      setSelectedPost(post.post);
-      setShowCommentDialog(true);
+      if (isMobile) {
+        navigate(`/posts/${post.post.id}`);
+      } else {
+        setSelectedPost(post.post);
+        setShowCommentDialog(true);
+      }
     }
   };
 
@@ -188,9 +196,8 @@ export const SavedAllPostsContent: React.FC<SavedAllPostsContentProps> = ({
 
   const handleLikePost = async (postId: string) => {
     try {
-      await dispatch(likePostThunk(parseInt(postId))).unwrap();
-      const post = allPosts.find((p) => p.id === postId);
-      if (post && selectedPost) {
+      await dispatch(likePostThunk(postId)).unwrap();
+      if (selectedPost) {
         setSelectedPost((prev: any) =>
           prev
             ? {

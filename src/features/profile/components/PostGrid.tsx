@@ -242,8 +242,12 @@ export const PostGrid = ({
   };
 
   const handlePostClick = (post: ProfilePost) => {
-    setSelectedPost(post);
-    onPostClick?.(post);
+    if (isMobile) {
+      navigate(`/posts/${post.id}`);
+    } else {
+      setSelectedPost(post);
+      onPostClick?.(post);
+    }
   };
 
   const handleDeletePost = async (postId: string) => {

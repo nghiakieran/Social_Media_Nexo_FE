@@ -231,7 +231,7 @@ export const getBlockedUsers = async (
   limit: number = 10,
   search?: string
 ): Promise<BlockedUsersResponse> => {
-  const params: Record<string, string | number> = { page, limit };
+  const params: Record<string, string | number> = { page, size: limit };
   if (search) {
     params.search = encodeURIComponent(search);
   }

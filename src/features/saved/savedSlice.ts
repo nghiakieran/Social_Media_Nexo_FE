@@ -7,6 +7,7 @@ import {
   checkPostsSavedStatus,
   SavedPostResponseDTO,
 } from "./api/savedApi";
+import { likePostThunk } from "@/features/post/postSlice";
 
 // Async thunks
 export const savePostThunk = createAsyncThunk(
@@ -262,6 +263,15 @@ const savedSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
+      // Like Post
+      .addCase(likePostThunk.fulfilled, (state, action) => {
+        const { postId, isLiked, likesCount } = action.payload;
+        const savedPost = state.posts.find((p) => p.postId === postId);
+        if (savedPost) {
+          savedPost.post.isLiked = isLiked;
+          savedPost.post.likesCount = likesCount;
+        }
+      })
       // Save post
       .addCase(savePostThunk.pending, (state) => {
         state.loading = true;
@@ -396,6 +406,7 @@ const savedSlice = createSlice({
             likesCount: savedPostData.quantityLike,
             commentsCount: savedPostData.quantityComment,
             createdAt: savedPostData.postCreatedAt,
+            isLiked: savedPostData.isLike,
           },
         }));
 
