@@ -238,7 +238,7 @@ export const EditHighlightDialog = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="w-[90vw] max-w-[560px] p-0 overflow-hidden max-h-[90vh]">
+      <DialogContent className="w-[90vw] max-w-[480px] sm:max-w-[560px] p-0 overflow-hidden max-h-[90vh] rounded-xl">
         <DialogHeader className="p-4 border-b border-border">
           <DialogTitle className="text-center">Chỉnh sửa tin nổi bật</DialogTitle>
         </DialogHeader>

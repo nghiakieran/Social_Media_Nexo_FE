@@ -137,7 +137,7 @@ export const GroupInfoPanel: React.FC<GroupInfoPanelProps> = ({
   return (
     <>
       <Sheet open={open} onOpenChange={onOpenChange}>
-        <SheetContent side="right" className="w-80 sm:w-96 overflow-y-auto">
+        <SheetContent side="right" className="w-[90vw] sm:w-[384px] overflow-y-auto">
           <SheetHeader>
             <SheetTitle className="flex items-center gap-2">
               <Users className="h-5 w-5" />
@@ -305,7 +305,7 @@ export const GroupInfoPanel: React.FC<GroupInfoPanelProps> = ({
 
       {/* Remove member confirm */}
       <Dialog open={!!removeTarget} onOpenChange={(o) => { if (!o) setRemoveTarget(null); }}>
-        <DialogContent className="sm:max-w-sm">
+        <DialogContent className="max-w-[88vw] sm:max-w-sm rounded-xl p-4 sm:p-6">
           <DialogHeader>
             <DialogTitle>Xóa thành viên?</DialogTitle>
             <DialogDescription>
@@ -323,7 +323,7 @@ export const GroupInfoPanel: React.FC<GroupInfoPanelProps> = ({
 
       {/* Leave group confirm */}
       <Dialog open={leaveDialogOpen} onOpenChange={setLeaveDialogOpen}>
-        <DialogContent className="sm:max-w-sm">
+        <DialogContent className="max-w-[88vw] sm:max-w-sm rounded-xl p-4 sm:p-6">
           <DialogHeader>
             <DialogTitle>Rời nhóm?</DialogTitle>
             <DialogDescription>
@@ -339,7 +339,7 @@ export const GroupInfoPanel: React.FC<GroupInfoPanelProps> = ({
 
       {/* Change Avatar Dialog */}
       <Dialog open={changeAvatarDialogOpen} onOpenChange={setChangeAvatarDialogOpen}>
-        <DialogContent className="sm:max-w-sm">
+        <DialogContent className="max-w-[88vw] sm:max-w-sm rounded-xl p-4 sm:p-6">
           <DialogHeader>
             <DialogTitle>Đổi ảnh đại diện nhóm</DialogTitle>
             <DialogDescription>

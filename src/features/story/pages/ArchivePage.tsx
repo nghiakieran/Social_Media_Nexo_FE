@@ -68,7 +68,7 @@ export const ArchivePage = () => {
 
   const handleOpenArchive = (story: Story) => {
     // Find the index in the grouped stories
-    const storyIndex = archivedStories.findIndex(s => s.id === story.id);
+    const storyIndex = groupedStories.findIndex(s => s.id === story.id);
     setInitialStoryIndex(storyIndex >= 0 ? storyIndex : 0);
     setOpenViewer(true);
   };
@@ -101,6 +101,7 @@ export const ArchivePage = () => {
       
       return {
         id: dateKey, // Use dateKey as the unique ID for this day group
+        ownerId: archivedStories[0]?.id,
         username: archivedStories[0]?.username || "User",
         profileImage: archivedStories[0]?.profileImage || "/placeholder.svg",
         timeAgo: firstItem?.createdAt || new Date().toISOString(),
@@ -138,7 +139,7 @@ export const ArchivePage = () => {
         <div className="flex items-center justify-center px-4 py-3 relative min-h-[48px] max-w-4xl mx-auto">
           <button
             onClick={() => navigate(-1)}
-            className="absolute left-4 top-1/2 -translate-y-1/2 p-2 hover:bg-accent hover:text-white rounded-full transition-colors"
+            className="absolute left-4 top-1/2 -translate-y-1/2 p-2 hover:bg-primary hover:text-white rounded-full transition-colors"
             aria-label="Quay lại"
           >
             <ArrowLeft className="w-5 h-5" />
@@ -270,6 +271,7 @@ export const ArchivePage = () => {
       {/* Story Viewer */}
       {openViewer && (
         <StoryViewer
+          key={`archive-viewer-${initialStoryIndex}`}
           isOpen={openViewer}
           onClose={() => setOpenViewer(false)}
           stories={groupedStories}

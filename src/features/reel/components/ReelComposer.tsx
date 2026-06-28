@@ -194,11 +194,11 @@ export const ReelComposer = ({
               </div>
             </div>
 
-            {/* Media Upload Area */}
+             {/* Media Upload Area */}
             {!media ? (
               <div
                 className={`
-                  border-2 border-dashed rounded-xl p-8 text-center transition-all duration-300 cursor-pointer group
+                  border-2 border-dashed rounded-xl p-4 sm:p-8 text-center transition-all duration-300 cursor-pointer group
                   ${
                     dragActive
                       ? "border-primary bg-primary/5 scale-[1.02]"
@@ -212,20 +212,20 @@ export const ReelComposer = ({
                 onClick={() => fileInputRef.current?.click()}
               >
                 <Video
-                  className={`mx-auto h-16 w-16 mb-4 transition-colors ${
+                  className={`mx-auto h-10 w-10 sm:h-16 sm:w-16 mb-2 sm:mb-4 transition-colors ${
                     dragActive
                       ? "text-primary"
                       : "text-muted-foreground/60 group-hover:text-muted-foreground"
                   }`}
                 />
-                <div className="space-y-3">
-                  <p className="text-lg font-medium text-foreground">
+                <div className="space-y-1.5 sm:space-y-3">
+                  <p className="text-sm sm:text-lg font-medium text-foreground">
                     {dragActive ? "Thả video vào đây" : "Chọn video cho reel"}
                   </p>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-xs sm:text-sm text-muted-foreground">
                     Kéo thả file vào đây hoặc click để chọn
                   </p>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">
                     Chỉ hỗ trợ file video (MP4, MOV, AVI...) • Tối đa 100MB
                   </p>
                   <input

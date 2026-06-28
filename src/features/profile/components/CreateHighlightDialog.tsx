@@ -223,7 +223,9 @@ export const CreateHighlightDialog = ({ isOpen, onClose, userId, onSuccess }: Cr
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="w-[90vw] max-w-[560px] p-0 overflow-hidden">
+      <DialogContent className={`w-[90vw] p-0 overflow-hidden rounded-xl transition-all duration-300 ${
+        step === 1 ? "max-w-[85vw] sm:max-w-[360px]" : "max-w-[90vw] sm:max-w-[560px]"
+      }`}>
         <DialogHeader className="border-b border-primary/10 p-4">
           <DialogTitle className="text-center">
             {step === 1 ? 'Tin nổi bật mới' : `Chọn tin cho "${name}"`}

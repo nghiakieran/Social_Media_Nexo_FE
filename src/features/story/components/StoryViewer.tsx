@@ -63,6 +63,14 @@ export const StoryViewer = memo(
       useState(sortedInitialIndex);
     const [currentContentIndex, setCurrentContentIndex] =
       useState(initialContentIndex);
+
+    // Reset indices when viewer opens or initial indices change
+    useEffect(() => {
+      if (isOpen) {
+        setCurrentStoryIndex(sortedInitialIndex);
+        setCurrentContentIndex(initialContentIndex);
+      }
+    }, [isOpen, sortedInitialIndex, initialContentIndex]);
     const [isPaused, setIsPaused] = useState(false);
     const [isMuted, setIsMuted] = useState(false);
     const [progress, setProgress] = useState(0);
@@ -131,7 +139,7 @@ export const StoryViewer = memo(
               // Cập nhật state sau khi xem, không cần gọi lại API get list
               dispatch(
                 markStoryAsSeen({
-                  userId: currentStory.id,
+                  userId: currentStory.ownerId || currentStory.id,
                   storyId: currentContent.id,
                 })
               );
@@ -298,7 +306,7 @@ export const StoryViewer = memo(
       if (!replyText.trim() || !currentContent || !currentStory?.id) return;
       try {
         const body = {
-          userId: currentStory.id,
+          userId: currentStory.ownerId || currentStory.id,
           content: replyText,
           messageType: EMessageType.STORY,
           storyId: parseInt(currentContent.id),
@@ -334,7 +342,7 @@ export const StoryViewer = memo(
       // 1. Optimistic update to Redux state
       dispatch(
         toggleStoryLike({
-          userId: currentStory.id,
+          userId: currentStory.ownerId || currentStory.id,
           storyId: contentId,
           isLiked: newLikeState,
         })
@@ -737,7 +745,7 @@ export const StoryViewer = memo(
                       // Update local state - remove story content
                       dispatch(
                         removeStoryContent({
-                          userId: currentStory.id,
+                          userId: currentStory.ownerId || currentStory.id,
                           storyId: currentContent.id,
                           fromArchive: isArchivePage,
                         })
@@ -798,7 +806,7 @@ export const StoryViewer = memo(
                         // Update local state - remove story content from active stories
                         dispatch(
                           removeStoryContent({
-                            userId: currentStory.id,
+                            userId: currentStory.ownerId || currentStory.id,
                             storyId: currentContent.id,
                           })
                         );
