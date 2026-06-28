@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
+import { api } from "@/lib/axios";
 import {
   Sheet,
   SheetContent,
@@ -67,9 +68,38 @@ export const GroupInfoPanel: React.FC<GroupInfoPanelProps> = ({
   const [removeTarget, setRemoveTarget] = useState<UserDTO | null>(null);
 
   const [addMemberDialogOpen, setAddMemberDialogOpen] = useState(false);
-  const [changeAvatarDialogOpen, setChangeAvatarDialogOpen] = useState(false);
-  const [newAvatarUrl, setNewAvatarUrl] = useState("");
   const conversations = useAppSelector((state) => state.message.conversations);
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsSaving(true);
+    try {
+      const formData = new FormData();
+      formData.append("files", file);
+      
+      const uploadResponse = await api.post("/files/upload", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      
+      let mediaUrl = uploadResponse.data.data;
+      if (Array.isArray(mediaUrl)) mediaUrl = mediaUrl[0];
+
+      if (mediaUrl) {
+        await conversationApi.updateGroup(conversation.id, { groupAvatarUrl: mediaUrl });
+        toast({ title: "Đã cập nhật ảnh đại diện" });
+        onUpdated();
+      }
+    } catch {
+      toast({ title: "Lỗi", description: "Không thể tải ảnh lên", variant: "destructive" });
+    } finally {
+      setIsSaving(false);
+      if (e.target) e.target.value = "";
+    }
+  };
 
   const isAdmin = conversation.isGroupAdmin ?? false;
   const isCreator = conversation.createdByUserId === currentUserId;
@@ -148,8 +178,10 @@ export const GroupInfoPanel: React.FC<GroupInfoPanelProps> = ({
           {/* Group avatar + name */}
           <div className="flex flex-col items-center py-6 gap-3">
             <div 
-              className={cn("relative group", isAdmin && "cursor-pointer")} 
-              onClick={() => isAdmin && setChangeAvatarDialogOpen(true)}
+              className={cn("relative group", isAdmin && "cursor-pointer", isSaving && "opacity-50")} 
+              onClick={() => {
+                if (isAdmin && !isSaving) fileInputRef.current?.click();
+              }}
             >
               <Avatar className="h-20 w-20">
                 <AvatarImage src={conversation.groupAvatarUrl ?? ""} />
@@ -159,10 +191,22 @@ export const GroupInfoPanel: React.FC<GroupInfoPanelProps> = ({
               </Avatar>
               {isAdmin && (
                 <div className="absolute inset-0 bg-black/40 rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                  <Camera className="h-6 w-6 text-white" />
+                  {isSaving ? (
+                    <div className="h-6 w-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <Camera className="h-6 w-6 text-white" />
+                  )}
                 </div>
               )}
             </div>
+            
+            <input
+              type="file"
+              ref={fileInputRef}
+              className="hidden"
+              accept="image/*"
+              onChange={handleAvatarChange}
+            />
 
             {editingName ? (
               <div className="flex items-center gap-2 w-full max-w-[220px]">
@@ -337,62 +381,7 @@ export const GroupInfoPanel: React.FC<GroupInfoPanelProps> = ({
         </DialogContent>
       </Dialog>
 
-      {/* Change Avatar Dialog */}
-      <Dialog open={changeAvatarDialogOpen} onOpenChange={setChangeAvatarDialogOpen}>
-        <DialogContent className="sm:max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Đổi ảnh đại diện nhóm</DialogTitle>
-            <DialogDescription>
-              Nhập đường dẫn (URL) của hình ảnh mới.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="py-2">
-            <Input
-              placeholder="https://example.com/avatar.jpg"
-              value={newAvatarUrl}
-              onChange={(e) => setNewAvatarUrl(e.target.value)}
-              autoFocus
-              onKeyDown={async (e) => {
-                if (e.key === "Enter") {
-                  if (!newAvatarUrl.trim()) return;
-                  setIsSaving(true);
-                  try {
-                    await conversationApi.updateGroup(conversation.id, { groupAvatarUrl: newAvatarUrl.trim() });
-                    onUpdated();
-                    setChangeAvatarDialogOpen(false);
-                    setNewAvatarUrl("");
-                  } catch {
-                    toast({ title: "Lỗi", description: "Không thể cập nhật ảnh đại diện", variant: "destructive" });
-                  } finally {
-                    setIsSaving(false);
-                  }
-                }
-              }}
-            />
-          </div>
-          <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setChangeAvatarDialogOpen(false)} disabled={isSaving}>Hủy</Button>
-            <Button 
-              disabled={isSaving || !newAvatarUrl.trim()}
-              onClick={async () => {
-                setIsSaving(true);
-                try {
-                  await conversationApi.updateGroup(conversation.id, { groupAvatarUrl: newAvatarUrl.trim() });
-                  onUpdated();
-                  setChangeAvatarDialogOpen(false);
-                  setNewAvatarUrl("");
-                } catch {
-                  toast({ title: "Lỗi", description: "Không thể cập nhật ảnh đại diện", variant: "destructive" });
-                } finally {
-                  setIsSaving(false);
-                }
-              }}
-            >
-              {isSaving ? "Đang lưu..." : "Lưu"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+
 
       {/* Add Member Dialog */}
       <AddMemberDialog
