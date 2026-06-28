@@ -265,33 +265,36 @@ export const BlockedUsersSettings = () => {
         open={showUnblockConfirm}
         onOpenChange={setShowUnblockConfirm}
       >
-        <AlertDialogContent className="max-w-md mx-auto">
-          <AlertDialogHeader>
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                <ShieldOff className="w-5 h-5 text-primary" />
-              </div>
-              <AlertDialogTitle className="text-lg font-semibold">
-                Bỏ chặn {userToUnblock?.username}?
-              </AlertDialogTitle>
+        <AlertDialogContent className="max-w-[340px] w-[90%] rounded-2xl p-6 gap-0 mx-auto border-none">
+          <AlertDialogHeader className="text-center space-y-3">
+            <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-2">
+              <ShieldOff className="w-8 h-8 text-primary" />
             </div>
-            <AlertDialogDescription className="text-sm text-muted-foreground">
-              {userToUnblock?.fullName} sẽ có thể xem bài viết, tin và tìm thấy
+            <AlertDialogTitle className="text-xl font-bold text-center">
+              Bỏ chặn {userToUnblock?.username}?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-center text-sm text-muted-foreground leading-normal px-1 pb-4">
+              {userToUnblock?.fullName || userToUnblock?.username} sẽ có thể xem bài viết, tin và tìm thấy
               trang cá nhân của bạn trên Nexo. Họ sẽ không nhận được thông báo
               khi bạn bỏ chặn.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter className="flex gap-2">
-            <AlertDialogCancel onClick={cancelUnblock} className="flex-1">
-              Hủy
-            </AlertDialogCancel>
+          <div className="flex flex-col gap-2.5 w-full mt-2">
             <AlertDialogAction
               onClick={confirmUnblock}
-              className="flex-1 bg-primary hover:bg-primary/90"
+              className="w-full rounded-full h-11 text-sm font-semibold bg-primary hover:bg-primary/90 text-primary-foreground"
+              disabled={userToUnblock ? unblockingUsers.has(userToUnblock.username) : false}
             >
-              Bỏ chặn
+              {userToUnblock && unblockingUsers.has(userToUnblock.username) ? "Đang xử lý..." : "Bỏ chặn"}
             </AlertDialogAction>
-          </AlertDialogFooter>
+            <AlertDialogCancel
+              onClick={cancelUnblock}
+              className="w-full rounded-full h-11 text-sm font-semibold border border-muted-foreground/20 hover:bg-primary/10 hover:text-primary hover:border-primary/30"
+              disabled={userToUnblock ? unblockingUsers.has(userToUnblock.username) : false}
+            >
+              Hủy
+            </AlertDialogCancel>
+          </div>
         </AlertDialogContent>
       </AlertDialog>
     </div>
