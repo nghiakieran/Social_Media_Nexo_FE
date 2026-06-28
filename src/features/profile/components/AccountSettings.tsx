@@ -31,23 +31,24 @@ import { changePassword } from "../api/profileApi";
 import { ActivityLogs } from "./ActivityLogs";
 import { useAppDispatch, useAppSelector } from "@/store";
 import { fetchCurrentUserProfileAsync, updateUserProfileAsync } from "../profileSlice";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export const AccountSettings = () => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const { toast } = useToast();
   
-  const { currentProfile } = useAppSelector((state) => state.profile);
+  const { currentProfile, isLoading } = useAppSelector((state) => state.profile);
 
-  const [settings, setSettings] = useState({
-    isPrivate: false,
+  const [settings, setSettings] = useState(() => ({
+    isPrivate: currentProfile?.isPrivate ?? false,
     allowMessageRequests: true,
-    showActivity: true,
+    showActivity: currentProfile?.onlineStatus ?? true,
     allowTagging: true,
     allowMentions: true,
     hideStoryFrom: false,
     twoFactorEnabled: false,
-  });
+  }));
 
   useEffect(() => {
     dispatch(fetchCurrentUserProfileAsync());
@@ -220,35 +221,57 @@ export const AccountSettings = () => {
         </p>
       </div>
       <div className="bg-card sm:mx-4 sm:rounded-xl overflow-hidden sm:border border-border">
-        {/* Private Account */}
-        <div className="flex items-center justify-between px-4 py-3.5">
-          <div className="flex-1 min-w-0 pr-4">
-            <p className="text-sm font-medium text-foreground">Tài khoản riêng tư</p>
-            <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
-              Chỉ người theo dõi mới xem được bài viết
-            </p>
+        {!currentProfile && isLoading ? (
+          <div className="p-4 space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="space-y-1.5 flex-1">
+                <Skeleton className="h-4 w-32" />
+                <Skeleton className="h-3.5 w-48" />
+              </div>
+              <Skeleton className="h-6 w-11 rounded-full shrink-0" />
+            </div>
+            <div className="h-px bg-border -mx-4" />
+            <div className="flex items-center justify-between">
+              <div className="space-y-1.5 flex-1">
+                <Skeleton className="h-4 w-36" />
+                <Skeleton className="h-3.5 w-56" />
+              </div>
+              <Skeleton className="h-6 w-11 rounded-full shrink-0" />
+            </div>
           </div>
-          <Switch
-            checked={settings.isPrivate}
-            onCheckedChange={(checked) => handleSettingChange("isPrivate", checked)}
-          />
-        </div>
-        <div className="h-px bg-border mx-4" />
+        ) : (
+          <>
+            {/* Private Account */}
+            <div className="flex items-center justify-between px-4 py-3.5">
+              <div className="flex-1 min-w-0 pr-4">
+                <p className="text-sm font-medium text-foreground">Tài khoản riêng tư</p>
+                <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
+                  Chỉ người theo dõi mới xem được bài viết
+                </p>
+              </div>
+              <Switch
+                checked={settings.isPrivate}
+                onCheckedChange={(checked) => handleSettingChange("isPrivate", checked)}
+              />
+            </div>
+            <div className="h-px bg-border mx-4" />
 
-        {/* Activity Status */}
-        <div className="flex items-center justify-between px-4 py-3.5">
-          <div className="flex-1 min-w-0 pr-4">
-            <p className="text-sm font-medium text-foreground">Trạng thái hoạt động</p>
-            <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
-              Hiển thị trạng thái hoạt động của bạn
-            </p>
-          </div>
-          <Switch
-            checked={settings.showActivity}
-            onCheckedChange={(checked) => handleSettingChange("showActivity", checked)}
-          />
-        </div>
-        {/* <div className="h-px bg-border mx-4" /> */}
+            {/* Activity Status */}
+            <div className="flex items-center justify-between px-4 py-3.5">
+              <div className="flex-1 min-w-0 pr-4">
+                <p className="text-sm font-medium text-foreground">Trạng thái hoạt động</p>
+                <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
+                  Hiển thị trạng thái hoạt động của bạn
+                </p>
+              </div>
+              <Switch
+                checked={settings.showActivity}
+                onCheckedChange={(checked) => handleSettingChange("showActivity", checked)}
+              />
+            </div>
+          </>
+        )}
+      </div>
 
         {/* Message Requests */}
         {/* <div className="flex items-center justify-between px-4 py-3.5">
@@ -280,7 +303,6 @@ export const AccountSettings = () => {
             onCheckedChange={(checked) => handleSettingChange("allowTagging", checked)}
           />
         </div> */}
-      </div>
 
 
       {/* Manage Lists */}
