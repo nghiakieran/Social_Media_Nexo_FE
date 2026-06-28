@@ -415,7 +415,6 @@ export const HiddenPostsContent = () => {
               action: () => handleRestorePost(selectedPost.id, selectedPost.isActive) 
             },
             { label: 'Đi đến bài viết', action: () => { navigate(`/posts/${selectedPost.id}`); } },
-            { label: 'Giới thiệu về tài khoản này', action: () => {} },
             { label: 'Hủy', action: () => {} },
           ]}
         />
