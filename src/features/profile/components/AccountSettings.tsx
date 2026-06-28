@@ -294,7 +294,7 @@ export const AccountSettings = () => {
         {/* Blocked */}
         <button
           onClick={() => navigate("/account/blocked")}
-          className="w-full flex items-center justify-between px-4 py-3.5 hover:bg-accent/50 transition-colors"
+          className="w-full flex items-center justify-between px-4 py-3.5 hover:bg-primary/10 dark:hover:bg-primary/20 transition-colors"
         >
           <div className="flex items-center gap-3">
             <UserX className="w-4 h-4 text-muted-foreground shrink-0" />
@@ -310,7 +310,7 @@ export const AccountSettings = () => {
         {/* Hidden Posts */}
         {/* <button
           onClick={() => navigate("/account/hidden-posts")}
-          className="w-full flex items-center justify-between px-4 py-3.5 hover:bg-accent/50 transition-colors"
+          className="w-full flex items-center justify-between px-4 py-3.5 hover:bg-primary/10 dark:hover:bg-primary/20 transition-colors"
         >
           <div className="flex items-center gap-3">
             <EyeOff className="w-4 h-4 text-muted-foreground shrink-0" />
@@ -326,7 +326,7 @@ export const AccountSettings = () => {
         {/* Close Friends */}
         <button
           onClick={() => navigate("/account/close-friends")}
-          className="w-full flex items-center justify-between px-4 py-3.5 hover:bg-accent/50 transition-colors"
+          className="w-full flex items-center justify-between px-4 py-3.5 hover:bg-primary/10 dark:hover:bg-primary/20 transition-colors"
         >
           <div className="flex items-center gap-3">
             <Heart className="w-4 h-4 text-muted-foreground shrink-0" />
@@ -379,7 +379,7 @@ export const AccountSettings = () => {
           }}
         >
           <DialogTrigger asChild>
-            <button className="w-full flex items-center justify-between px-4 py-3.5 hover:bg-accent/50 transition-colors">
+            <button className="w-full flex items-center justify-between px-4 py-3.5 hover:bg-primary/10 dark:hover:bg-primary/20 transition-colors">
               <div className="flex items-center gap-3">
                 <Key className="w-4 h-4 text-muted-foreground shrink-0" />
                 <p className="text-sm font-medium text-foreground">Đổi mật khẩu</p>
@@ -504,7 +504,7 @@ export const AccountSettings = () => {
         </p>
       </div>
       <div className="bg-card sm:mx-4 sm:rounded-xl overflow-hidden sm:border border-border">
-        <button onClick={handleDownloadData} className="w-full flex items-center justify-between px-4 py-3.5 hover:bg-accent/50 transition-colors">
+        <button onClick={handleDownloadData} className="w-full flex items-center justify-between px-4 py-3.5 hover:bg-primary/10 dark:hover:bg-primary/20 transition-colors">
           <div className="flex items-center gap-3">
             <Download className="w-4 h-4 text-muted-foreground shrink-0" />
             <p className="text-sm font-medium text-foreground">Tải xuống dữ liệu</p>
