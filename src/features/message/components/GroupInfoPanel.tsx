@@ -137,7 +137,7 @@ export const GroupInfoPanel: React.FC<GroupInfoPanelProps> = ({
   return (
     <>
       <Sheet open={open} onOpenChange={onOpenChange}>
-        <SheetContent side="right" className="w-[90vw] sm:w-[384px] overflow-y-auto">
+        <SheetContent side="right" className="w-[90vw] sm:w-[384px] h-full flex flex-col p-4 sm:p-6 overflow-hidden">
           <SheetHeader>
             <SheetTitle className="flex items-center gap-2">
               <Users className="h-5 w-5" />
@@ -146,20 +146,20 @@ export const GroupInfoPanel: React.FC<GroupInfoPanelProps> = ({
           </SheetHeader>
 
           {/* Group avatar + name */}
-          <div className="flex flex-col items-center py-6 gap-3">
+          <div className="flex flex-col items-center py-2 sm:py-4 gap-1.5 sm:gap-2">
             <div 
               className={cn("relative group", isAdmin && "cursor-pointer")} 
               onClick={() => isAdmin && setChangeAvatarDialogOpen(true)}
             >
-              <Avatar className="h-20 w-20">
+              <Avatar className="h-14 w-14 sm:h-16 sm:w-16">
                 <AvatarImage src={conversation.groupAvatarUrl ?? ""} />
-                <AvatarFallback className="text-2xl bg-primary/10 text-primary">
+                <AvatarFallback className="text-lg sm:text-xl bg-primary/10 text-primary">
                   {(conversation.groupName ?? "N").charAt(0)}
                 </AvatarFallback>
               </Avatar>
               {isAdmin && (
                 <div className="absolute inset-0 bg-black/40 rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                  <Camera className="h-6 w-6 text-white" />
+                  <Camera className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
                 </div>
               )}
             </div>
@@ -185,7 +185,7 @@ export const GroupInfoPanel: React.FC<GroupInfoPanelProps> = ({
               </div>
             ) : (
               <div className="flex items-center gap-1">
-                <p className="font-semibold text-base">{conversation.groupName}</p>
+                <p className="font-semibold text-sm sm:text-base">{conversation.groupName}</p>
                 {isAdmin && (
                   <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => setEditingName(true)}>
                     <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
@@ -194,13 +194,13 @@ export const GroupInfoPanel: React.FC<GroupInfoPanelProps> = ({
               </div>
             )}
 
-            <p className="text-sm text-muted-foreground">
+            <p className="text-xs sm:text-sm text-muted-foreground">
               {conversation.participants.length} thành viên
             </p>
           </div>
 
           {/* Members list */}
-          <div className="space-y-1">
+          <div className="flex-1 overflow-y-auto space-y-1 my-2 pr-1 scrollbar-thin">
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide px-1 mb-2">
               Thành viên
             </p>
@@ -283,23 +283,26 @@ export const GroupInfoPanel: React.FC<GroupInfoPanelProps> = ({
             })}
           </div>
 
-          {/* Add members button */}
-          <Button variant="outline" className="w-full mt-4 gap-2" onClick={() => setAddMemberDialogOpen(true)}>
-            <UserPlus className="h-4 w-4" />
-            Thêm thành viên
-          </Button>
-
-          {/* Leave group */}
-          {!isCreator && (
-            <Button
-              variant="ghost"
-              className="w-full mt-2 text-destructive hover:text-destructive hover:bg-destructive/10 gap-2"
-              onClick={() => setLeaveDialogOpen(true)}
-            >
-              <LogOut className="h-4 w-4" />
-              Rời nhóm
+          {/* Action buttons (fixed at bottom) */}
+          <div className="mt-auto pt-4 border-t border-border flex-shrink-0">
+            {/* Add members button */}
+            <Button variant="outline" className="w-full gap-2" onClick={() => setAddMemberDialogOpen(true)}>
+              <UserPlus className="h-4 w-4" />
+              Thêm thành viên
             </Button>
-          )}
+
+            {/* Leave group */}
+            {!isCreator && (
+              <Button
+                variant="ghost"
+                className="w-full mt-2 text-destructive hover:text-destructive hover:bg-destructive/10 gap-2"
+                onClick={() => setLeaveDialogOpen(true)}
+              >
+                <LogOut className="h-4 w-4" />
+                Rời nhóm
+              </Button>
+            )}
+          </div>
         </SheetContent>
       </Sheet>
 
