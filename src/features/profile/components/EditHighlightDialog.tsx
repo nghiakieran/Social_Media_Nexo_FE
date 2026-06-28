@@ -201,7 +201,7 @@ export const EditHighlightDialog = ({
         observer.unobserve(currentTarget);
       }
     };
-  }, [isOpen, loadStories, toast]); // Setup only once when dialog opens
+  }, [isOpen, isLoading, loadStories, toast]); // Re-setup when loading state changes (so observerTarget is ready)
 
   const handleSave = async () => {
     if (!canSave) return;
