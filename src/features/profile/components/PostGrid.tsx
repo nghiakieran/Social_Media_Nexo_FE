@@ -440,12 +440,6 @@ export const PostGrid = ({
                       navigate(`/posts/${selectedPost.id}`);
                     },
                   },
-                  {
-                    label: "Giới thiệu về tài khoản này",
-                    action: () => {
-                      console.log("Navigating to post:", selectedPost.id);
-                    },
-                  },
                   { label: "Hủy", action: () => {} },
                 ]
               : [
@@ -458,12 +452,6 @@ export const PostGrid = ({
                     label: "Đi đến bài viết",
                     action: () => {
                       navigate(`/posts/${selectedPost.id}`);
-                    },
-                  },
-                  {
-                    label: "Giới thiệu về tài khoản này",
-                    action: () => {
-                      console.log("Navigating to post:", selectedPost.id);
                     },
                   },
                   { label: "Hủy", action: () => {} },
