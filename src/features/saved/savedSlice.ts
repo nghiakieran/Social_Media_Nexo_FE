@@ -27,7 +27,7 @@ export const savePostThunk = createAsyncThunk(
 export const getSavedPostsThunk = createAsyncThunk(
   "saved/getSavedPosts",
   async (
-    params?: { page?: number; size?: number; sort?: string },
+    params: { page?: number; size?: number; sort?: string } = {},
     { rejectWithValue },
   ) => {
     try {
@@ -353,7 +353,17 @@ const savedSlice = createSlice({
       })
       .addCase(getSavedPostsThunk.fulfilled, (state, action) => {
         state.loading = false;
-        const { content, ...pagination } = action.payload.data;
+        
+        const payloadData = (action.payload as any).data || action.payload || {};
+        const content = (payloadData.content as SavedPostResponseDTO[]) || [];
+        
+        const pagination = {
+          pageNo: payloadData.pageNo ?? 0,
+          pageSize: payloadData.pageSize ?? 10,
+          totalElements: payloadData.totalElements ?? 0,
+          totalPages: payloadData.totalPages ?? 0,
+          last: payloadData.last ?? false,
+        };
 
         // Convert API responses to SavedPost format
         const savedPosts: SavedPost[] = content.map((savedPostData) => ({
@@ -389,7 +399,13 @@ const savedSlice = createSlice({
           },
         }));
 
-        state.posts = savedPosts;
+        if (pagination.pageNo === 0) {
+          state.posts = savedPosts;
+        } else {
+          const existingIds = new Set(state.posts.map((p) => p.id));
+          const newPosts = savedPosts.filter((p) => !existingIds.has(p.id));
+          state.posts.push(...newPosts);
+        }
         state.pagination = pagination;
       })
       .addCase(getSavedPostsThunk.rejected, (state, action) => {

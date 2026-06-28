@@ -336,10 +336,17 @@ const reelSlice = createSlice({
       })
       .addCase(getUserReelsThunk.fulfilled, (state, action) => {
         state.isLoading = false;
-        state.reels = action.payload.reels;
-        state.hasMore = action.payload.hasMore;
-        state.currentPage = action.payload.currentPage;
-        state.totalPages = action.payload.totalPages;
+        const { reels, hasMore, currentPage, totalPages } = action.payload;
+        if (currentPage === 0) {
+          state.reels = reels;
+        } else {
+          const existingIds = new Set(state.reels.map((r) => r.id));
+          const newReels = reels.filter((r) => !existingIds.has(r.id));
+          state.reels.push(...newReels);
+        }
+        state.hasMore = hasMore;
+        state.currentPage = currentPage;
+        state.totalPages = totalPages;
       })
       .addCase(getUserReelsThunk.rejected, (state, action) => {
         state.isLoading = false;

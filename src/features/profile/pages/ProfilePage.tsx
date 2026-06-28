@@ -92,7 +92,12 @@ export const ProfilePage = () => {
     showCreateHighlightDialog,
   } = useAppSelector((state) => state.profile);
 
-  const { reels: reelStoreReels } = useAppSelector((state) => state.reel);
+  const {
+    reels: reelStoreReels,
+    isLoading: isLoadingReels,
+    hasMore: hasMoreReels,
+    currentPage: currentReelsPage,
+  } = useAppSelector((state) => state.reel);
 
   const currentUser = useAppSelector((state) => state.auth.user);
   const isCurrentUser = currentUser && username === currentUser.username;
@@ -299,7 +304,7 @@ export const ProfilePage = () => {
       if (canAccessProfile) {
         const userId = parseInt(currentProfile.id);
         setCurrentPage(0);
-        dispatch(getPostsThunk({ userId, pageNo: 0, pageSize: 10 }));
+        dispatch(getPostsThunk({ userId, pageNo: 0, pageSize: 9 }));
       }
 
       // Fetch followers and following only if we have access
@@ -320,13 +325,34 @@ export const ProfilePage = () => {
       const userId = parseInt(currentProfile.id);
       const nextPage = currentPage + 1;
       setCurrentPage(nextPage);
-      dispatch(getPostsThunk({ userId, pageNo: nextPage, pageSize: 10 }));
+      dispatch(getPostsThunk({ userId, pageNo: nextPage, pageSize: 9 }));
     }
   }, [currentProfile, currentPage, isLoadingPosts, hasMorePosts, dispatch]);
 
   const { lastElementRef } = useInfiniteScroll(handleLoadMore, {
     hasMore: hasMorePosts,
     isLoading: isLoadingPosts,
+    threshold: 100,
+  });
+
+  // Infinite scroll - load more reels
+  const handleLoadMoreReels = useCallback(() => {
+    if (currentProfile && !isLoadingReels && hasMoreReels) {
+      const nextPage = currentReelsPage + 1;
+      const userId = parseInt(currentProfile.id);
+      dispatch(
+        getUserReelsThunk({
+          userId,
+          pageNo: nextPage,
+          pageSize: 9,
+        })
+      );
+    }
+  }, [currentProfile, currentReelsPage, isLoadingReels, hasMoreReels, dispatch]);
+
+  const { lastElementRef: lastReelElementRef } = useInfiniteScroll(handleLoadMoreReels, {
+    hasMore: hasMoreReels,
+    isLoading: isLoadingReels,
     threshold: 100,
   });
 
@@ -341,6 +367,9 @@ export const ProfilePage = () => {
     const tabFromUrl = searchParams.get("tab");
     if (tabFromUrl && ["posts", "reels", "saved"].includes(tabFromUrl)) {
       dispatch(setActiveTab(tabFromUrl as "posts" | "reels" | "saved"));
+      if (tabFromUrl === "reels") {
+        setHasClickedReelsTab(true);
+      }
     }
   }, [searchParams, dispatch]);
 
@@ -356,7 +385,7 @@ export const ProfilePage = () => {
         const userId = parseInt(currentProfile.id);
         // Only load if reels array is empty (first time loading)
         if (reelStoreReels.length === 0) {
-          dispatch(getUserReelsThunk({ userId, pageNo: 0, pageSize: 10 }));
+          dispatch(getUserReelsThunk({ userId, pageNo: 0, pageSize: 9 }));
         }
       }
     }
@@ -755,17 +784,25 @@ export const ProfilePage = () => {
     switch (activeTab) {
       case "reels":
         return (
-          <ReelGrid
-            reels={reelStoreReels}
-            onReelClick={(reel) => {
-              // Navigate to reel detail page
-              navigate(`/reels/${reel.id}`);
-            }}
-          />
+          <>
+            <ReelGrid
+              reels={reelStoreReels}
+              lastElementRef={lastReelElementRef}
+              onReelClick={(reel) => {
+                // Navigate to reel detail page
+                navigate(`/reels/${reel.id}`);
+              }}
+            />
+            {isLoadingReels && (
+              <div className="flex justify-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+              </div>
+            )}
+          </>
         );
       case "saved":
         return isCurrentUser ? (
-          <SavedAllPostsContent onBack={() => { }} />
+          <SavedAllPostsContent onBack={() => { }} pageSize={9} />
         ) : null;
       default: {
         // Filter to only show active posts in the posts tab
