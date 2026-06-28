@@ -58,6 +58,7 @@ export const AccountSettings = () => {
       setSettings((prev) => ({
         ...prev,
         isPrivate: currentProfile.isPrivate,
+        showActivity: currentProfile.onlineStatus ?? true,
       }));
     }
   }, [currentProfile]);
@@ -94,6 +95,30 @@ export const AccountSettings = () => {
           variant: "destructive",
           title: "Lỗi",
           description: "Không thể cập nhật quyền riêng tư tài khoản.",
+        });
+      }
+    } else if (key === "showActivity") {
+      try {
+        await dispatch(
+          updateUserProfileAsync({
+            onlineStatus: value,
+          })
+        ).unwrap();
+
+        const api = (await import("@/lib/axios")).default;
+        await api.post("/presence/clear-cache");
+
+        toast({
+          variant: "success",
+          title: "Đã cập nhật cài đặt",
+          description: `Trạng thái hoạt động đã được ${value ? "bật" : "tắt"}.`,
+        });
+      } catch (err) {
+        setSettings((prev) => ({ ...prev, [key]: !value }));
+        toast({
+          variant: "destructive",
+          title: "Lỗi",
+          description: "Không thể cập nhật trạng thái hoạt động.",
         });
       }
     } else {
@@ -208,6 +233,21 @@ export const AccountSettings = () => {
             onCheckedChange={(checked) => handleSettingChange("isPrivate", checked)}
           />
         </div>
+        <div className="h-px bg-border mx-4" />
+
+        {/* Activity Status */}
+        <div className="flex items-center justify-between px-4 py-3.5">
+          <div className="flex-1 min-w-0 pr-4">
+            <p className="text-sm font-medium text-foreground">Trạng thái hoạt động</p>
+            <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
+              Hiển thị trạng thái hoạt động của bạn
+            </p>
+          </div>
+          <Switch
+            checked={settings.showActivity}
+            onCheckedChange={(checked) => handleSettingChange("showActivity", checked)}
+          />
+        </div>
         {/* <div className="h-px bg-border mx-4" /> */}
 
         {/* Message Requests */}
@@ -225,20 +265,7 @@ export const AccountSettings = () => {
         </div> */}
         {/* <div className="h-px bg-border mx-4" /> */}
 
-        {/* Activity Status */}
-        {/* <div className="flex items-center justify-between px-4 py-3.5">
-          <div className="flex-1 min-w-0 pr-4">
-            <p className="text-sm font-medium text-foreground">Trạng thái hoạt động</p>
-            <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
-              Cho người khác biết khi bạn đang online
-            </p>
-          </div>
-          <Switch
-            checked={settings.showActivity}
-            onCheckedChange={(checked) => handleSettingChange("showActivity", checked)}
-          />
-        </div> */}
-        {/* <div className="h-px bg-border mx-4" /> */}
+
 
         {/* Tagging */}
         {/* <div className="flex items-center justify-between px-4 py-3.5">

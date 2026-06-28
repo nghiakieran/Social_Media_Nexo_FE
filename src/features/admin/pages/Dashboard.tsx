@@ -360,10 +360,10 @@ export default function Dashboard() {
       </div>
 
       {/* Trending Hashtags Section */}
-      <Card className="overflow-hidden border border-border/50 shadow-xl rounded-[2rem] bg-card text-card-foreground">
-        <CardHeader className="bg-muted/30 border-b border-border/50 p-6">
-          <CardTitle className="flex items-center gap-3 text-xl font-black">
-            <TrendingUp className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
+      <Card className="overflow-hidden border border-border/50 shadow-xl rounded-2xl sm:rounded-[2rem] bg-card text-card-foreground">
+        <CardHeader className="bg-muted/30 border-b border-border/50 p-4 sm:p-6">
+          <CardTitle className="flex items-center gap-2 sm:gap-3 text-base sm:text-xl font-black">
+            <TrendingUp className="w-5 h-5 sm:w-6 h-6 text-indigo-600 dark:text-indigo-400" />
             Xu hướng thịnh hành (Top 5)
           </CardTitle>
         </CardHeader>
@@ -373,28 +373,28 @@ export default function Dashboard() {
               topHashtags.map((hashtag, index) => (
                 <div
                   key={hashtag.id}
-                  className="flex items-center gap-4 p-5 transition-colors hover:bg-muted/50 group"
+                  className="flex items-center gap-3 sm:gap-4 p-3.5 sm:p-5 transition-colors hover:bg-muted/50 group"
                 >
-                  <div className="flex items-center justify-center w-10 h-10 font-black rounded-xl bg-muted text-muted-foreground group-hover:bg-indigo-600 group-hover:text-white transition-all">
+                  <div className="flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 text-xs sm:text-base font-black rounded-lg sm:rounded-xl bg-muted text-muted-foreground group-hover:bg-indigo-600 group-hover:text-white transition-all shrink-0">
                     #{index + 1}
                   </div>
-                  <div className="flex-1">
-                    <p className="text-lg font-bold text-foreground group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm sm:text-lg font-bold text-foreground group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors truncate">
                       {hashtag.name}
                     </p>
-                    <p className="text-sm font-medium text-muted-foreground">
+                    <p className="text-[11px] sm:text-sm font-medium text-muted-foreground truncate">
                       {hashtag.usageCount.toLocaleString()} lượt thảo luận
                     </p>
                   </div>
-                  <div className="flex flex-col items-end">
-                    <div className="px-3 py-1 text-xs font-bold rounded-full bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 dark:border-emerald-500/30">
+                  <div className="flex flex-col items-end shrink-0">
+                    <div className="px-2 py-0.5 sm:px-3 sm:py-1 text-[10px] sm:text-xs font-bold rounded-full bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 dark:border-emerald-500/30">
                       HOT
                     </div>
                   </div>
                 </div>
               ))
             ) : (
-              <div className="p-10 text-center text-muted-foreground">
+              <div className="p-6 sm:p-10 text-center text-sm text-muted-foreground">
                 Đang cập nhật dữ liệu xu hướng...
               </div>
             )}
@@ -406,30 +406,32 @@ export default function Dashboard() {
 }
 
 const ChartContainer = ({ title, icon: Icon, children, loading, isEmpty }: any) => (
-  <Card className="border border-border/50 shadow-xl rounded-3xl overflow-hidden bg-card text-card-foreground group">
-    <CardHeader className="pb-0">
-      <CardTitle className="flex items-center gap-2 text-lg font-bold text-foreground">
-        <div className="p-2 rounded-lg bg-muted group-hover:bg-primary/10 transition-colors">
-          <Icon className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+  <Card className="border border-border/50 shadow-xl rounded-2xl sm:rounded-3xl overflow-hidden bg-card text-card-foreground group">
+    <CardHeader className="p-4 sm:p-6 pb-0">
+      <CardTitle className="flex items-center gap-2 text-base sm:text-lg font-bold text-foreground">
+        <div className="p-1.5 sm:p-2 rounded-lg bg-muted group-hover:bg-primary/10 transition-colors">
+          <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-600 dark:text-indigo-400" />
         </div>
         {title}
       </CardTitle>
     </CardHeader>
-    <CardContent className="pt-6 relative min-h-[300px]">
+    <CardContent className="p-3 sm:p-6 pt-3 sm:pt-6 relative min-h-[260px] sm:min-h-[320px]">
       {loading && (
         <div className="absolute inset-0 z-10 flex items-center justify-center bg-card/85 backdrop-blur-sm">
-          <Loader2 className="w-8 h-8 text-indigo-600 dark:text-indigo-400 animate-spin" />
+          <Loader2 className="w-6 h-6 sm:w-8 sm:h-8 text-indigo-600 dark:text-indigo-400 animate-spin" />
         </div>
       )}
       {isEmpty && !loading ? (
-        <div className="flex flex-col items-center justify-center h-[300px] text-muted-foreground/60 border border-dashed border-border/60 rounded-2xl bg-muted/5">
-          <Icon className="w-8 h-8 opacity-20 mb-2" />
-          <p className="text-sm font-semibold text-center px-4">Không có dữ liệu trong khoảng thời gian này</p>
+        <div className="flex flex-col items-center justify-center h-[220px] sm:h-[268px] text-muted-foreground/60 border border-dashed border-border/60 rounded-2xl bg-muted/5">
+          <Icon className="w-6 h-6 sm:w-8 sm:h-8 opacity-20 mb-2" />
+          <p className="text-xs sm:text-sm font-semibold text-center px-4">Không có dữ liệu trong khoảng thời gian này</p>
         </div>
       ) : (
-        <ResponsiveContainer width="100%" height={300}>
-          {children}
-        </ResponsiveContainer>
+        <div className="w-full h-[220px] sm:h-[268px]">
+          <ResponsiveContainer width="100%" height="100%">
+            {children}
+          </ResponsiveContainer>
+        </div>
       )}
     </CardContent>
   </Card>

@@ -16,31 +16,35 @@ export function StatsCard({ title, value, change, icon: Icon, trend, gradient }:
 
   return (
     <Card className="overflow-hidden">
-      <CardContent className="p-6">
-        <div className="flex items-start justify-between">
-          <div className="flex-1">
-            <p className="text-sm text-muted-foreground mb-1">{title}</p>
-            <h3 className="text-3xl font-bold mb-2">{value}</h3>
-            <div className="flex items-center gap-1">
-                <span
-                  className={cn(
-                    "text-sm font-medium",
-                    isPositive ? "text-success" : "text-destructive"
-                  )}
-                >
-                  {isPositive ? "+" : ""}
-                  {Number(change).toFixed(1)}%
-                </span>
-              <span className="text-xs text-muted-foreground">so với tháng trước</span>
+      <CardContent className="p-4 sm:p-6">
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex-1 min-w-0">
+            <p className="text-xs sm:text-sm text-muted-foreground truncate mb-0.5">{title}</p>
+            <h3 className="text-xl sm:text-3xl font-black tracking-tight text-foreground my-1 truncate">
+              {value}
+            </h3>
+            <div className="flex flex-col sm:flex-row sm:items-center gap-0.5 sm:gap-1 mt-1.5">
+              <span
+                className={cn(
+                  "text-xs sm:text-sm font-bold",
+                  isPositive ? "text-success" : "text-destructive"
+                )}
+              >
+                {isPositive ? "+" : ""}
+                {Number(change).toFixed(1)}%
+              </span>
+              <span className="text-[10px] sm:text-xs text-muted-foreground whitespace-nowrap">
+                so với tháng trước
+              </span>
             </div>
           </div>
           <div
             className={cn(
-              "w-12 h-12 rounded-xl flex items-center justify-center",
+              "w-9 h-9 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl flex items-center justify-center shrink-0",
               gradient || "bg-gradient-to-br from-primary to-accent"
             )}
           >
-            <Icon className="w-6 h-6 text-white" />
+            <Icon className="w-5 h-5 sm:w-6 h-6 text-white" />
           </div>
         </div>
       </CardContent>

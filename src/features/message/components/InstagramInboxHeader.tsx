@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { useTheme } from "@/contexts/ThemeContext";
 import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
@@ -47,9 +48,9 @@ export const InstagramInboxHeader: React.FC<InstagramInboxHeaderProps> = ({
   onViewChange,
   pendingRequestsCount = 0,
 }) => {
+  const { theme, setTheme } = useTheme();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [activityStatus, setActivityStatus] = useState(true);
-  const [darkMode, setDarkMode] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
@@ -112,11 +113,17 @@ export const InstagramInboxHeader: React.FC<InstagramInboxHeaderProps> = ({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start">
-              <DropdownMenuItem onClick={() => onViewChange?.("primary")}>
+              <DropdownMenuItem
+                onClick={() => onViewChange?.("primary")}
+                className="cursor-pointer hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground data-[highlighted]:bg-primary data-[highlighted]:text-primary-foreground"
+              >
                 <MessageSquare className="h-4 w-4 mr-2" />
                 Chính
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onViewChange?.("requests")} className="flex items-center justify-between">
+              <DropdownMenuItem
+                onClick={() => onViewChange?.("requests")}
+                className="flex items-center justify-between cursor-pointer hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground data-[highlighted]:bg-primary data-[highlighted]:text-primary-foreground"
+              >
                 <div className="flex items-center">
                   <Archive className="h-4 w-4 mr-2" />
                   Chờ
@@ -217,8 +224,8 @@ export const InstagramInboxHeader: React.FC<InstagramInboxHeaderProps> = ({
               </div>
               <Switch
                 id="dark-mode"
-                checked={darkMode}
-                onCheckedChange={setDarkMode}
+                checked={theme === "dark"}
+                onCheckedChange={(checked) => setTheme(checked ? "dark" : "light")}
               />
             </div>
           </div>

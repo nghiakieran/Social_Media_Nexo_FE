@@ -93,7 +93,7 @@ export const StoryHighlights = ({ highlights, onAdd, onOpen, onEdit, onDelete, c
                 <DropdownMenuContent align="end">
                   {onEdit && (
                     <DropdownMenuItem
-                      className="cursor-pointer"
+                      className="cursor-pointer focus:bg-primary/10 focus:text-primary dark:focus:bg-primary/20"
                       onClick={(e) => {
                         e.stopPropagation();
                         onEdit(hl.id);
@@ -105,7 +105,7 @@ export const StoryHighlights = ({ highlights, onAdd, onOpen, onEdit, onDelete, c
                   )}
                   {onDelete && (
                     <DropdownMenuItem
-                      className="text-red-600 focus:text-red-600 cursor-pointer"
+                      className="text-red-600 focus:text-red-600 focus:bg-red-500/10 dark:focus:bg-red-500/20 cursor-pointer"
                       onClick={(e) => {
                         e.stopPropagation();
                         onDelete(hl.id);

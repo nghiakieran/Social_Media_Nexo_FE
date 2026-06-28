@@ -319,7 +319,7 @@ export const InstagramChatHeader: React.FC<InstagramChatHeaderProps> = ({
   return (
     <div
       className={cn(
-        "flex items-center justify-between border-b border-primary/10 bg-background/95 p-2 backdrop-blur-sm md:p-3",
+        "flex items-center justify-between border-b border-primary/10 bg-background/95 pt-3.5 pb-2 px-2 backdrop-blur-sm md:p-3",
         className
       )}
     >
