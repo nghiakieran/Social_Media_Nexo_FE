@@ -718,6 +718,7 @@ export const PostDetailPage = () => {
             handleLikeChange(!interactions.isLiked, post.stats.likes);
           }
         }}
+        onPostLikeChange={handleLikeChange}
         isPostLiked={interactions.isLiked}
         onOpenShareDialog={() => setShowShareDialog(true)}
         isShareDialogOpen={showShareDialog}

@@ -361,6 +361,11 @@ export const SavedAllPostsContent: React.FC<SavedAllPostsContentProps> = ({
           onShare={handleShare}
           onOpenShareDialog={handleOpenShareDialog}
           isPostLiked={selectedPost.isLiked || false}
+          onPostLikeChange={(newIsLiked, newCount) => {
+            setSelectedPost((prev: any) =>
+              prev ? { ...prev, isLiked: newIsLiked, likesCount: newCount } : prev
+            );
+          }}
           isAuthorFollowed={isAuthorFollowed[selectedPost.author?.id] || false}
           onToggleFollowAuthor={handleToggleFollowAuthor}
         />

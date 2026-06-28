@@ -54,6 +54,7 @@ export const PostGrid = ({
   const isMobile = useIsMobile();
   const [isShareOpen, setIsShareOpen] = useState(false);
   const [isPostLiked, setIsPostLiked] = useState<Record<string, boolean>>({});
+  const [postLikesCount, setPostLikesCount] = useState<Record<string, number>>({});
   const [isBookmarkedById, setIsBookmarkedById] = useState<
     Record<string, boolean>
   >({});
@@ -397,7 +398,7 @@ export const PostGrid = ({
             avatarUrl: selectedPost.avatarUrl,
             caption: selectedPost.caption,
             media: selectedPost.media || [],
-            likesCount: selectedPost.likesCount,
+            likesCount: postLikesCount[selectedPost.id] ?? selectedPost.likesCount,
             commentsCount: selectedPost.commentsCount,
             createdAt: selectedPost.createdAt,
             updatedAt: selectedPost.updatedAt,
@@ -411,6 +412,10 @@ export const PostGrid = ({
           isPostLiked={
             isPostLiked[selectedPost.id] ?? selectedPost.isLiked ?? false
           }
+          onPostLikeChange={(newIsLiked, newCount) => {
+            setIsPostLiked((prev) => ({ ...prev, [selectedPost.id]: newIsLiked }));
+            setPostLikesCount((prev) => ({ ...prev, [selectedPost.id]: newCount }));
+          }}
           onOpenShareDialog={() => setIsShareOpen(true)}
           isShareDialogOpen={isShareOpen}
           onNavigateToProfile={(userName) => navigate(`/${userName}`)}
@@ -479,7 +484,7 @@ export const PostGrid = ({
             avatarUrl: selectedPost.avatarUrl,
             caption: selectedPost.caption,
             media: selectedPost.media || [],
-            likesCount: selectedPost.likesCount,
+            likesCount: postLikesCount[selectedPost.id] ?? selectedPost.likesCount,
             commentsCount: selectedPost.commentsCount,
             createdAt: selectedPost.createdAt,
             isActive: selectedPost.isActive,
@@ -492,6 +497,10 @@ export const PostGrid = ({
           isPostLiked={
             isPostLiked[selectedPost.id] ?? selectedPost.isLiked ?? false
           }
+          onPostLikeChange={(newIsLiked, newCount) => {
+            setIsPostLiked((prev) => ({ ...prev, [selectedPost.id]: newIsLiked }));
+            setPostLikesCount((prev) => ({ ...prev, [selectedPost.id]: newCount }));
+          }}
           actionMenuItems={
             currentUser && selectedPost.userId === currentUser.id.toString()
               ? [
