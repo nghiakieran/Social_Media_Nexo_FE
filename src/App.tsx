@@ -33,6 +33,7 @@ import AdminModeration from "./pages/AdminModeration";
 import NotFound from "./pages/NotFound";
 import PeopleSuggestions from "./pages/PeopleSuggestions";
 import About from "./pages/About";
+import CommunityGuidelinesPage from "./pages/CommunityGuidelines";
 
 // Auth Pages
 import ForgotPasswordPage from "./features/auth/pages/ForgotPasswordPage";
@@ -237,6 +238,7 @@ const App = () => (
                     element={<PeopleSuggestions />}
                   />
                   <Route path="about" element={<About />} />
+                  <Route path="community-guidelines" element={<CommunityGuidelinesPage />} />
                 </Route>
 
                 {/* --- ADMIN ROUTES --- */}

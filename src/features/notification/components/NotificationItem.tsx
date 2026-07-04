@@ -7,6 +7,7 @@ import {
   Hash,
   Heart,
   MessageCircle,
+  ShieldAlert,
   ThumbsUp,
   UserPlus,
 } from "lucide-react";
@@ -45,6 +46,9 @@ export const NotificationItem = ({
         return <UserPlus className="h-4 w-4 text-primary" />;
       case "TAG":
         return <Hash className="w-4 h-4 text-green-500" />;
+      case "POST_REMOVED":
+      case "COMMENT_REMOVED":
+        return <ShieldAlert className="w-4 h-4 text-destructive" />;
       case "MESSAGE":
       case "SYSTEM":
       default:
@@ -65,6 +69,14 @@ export const NotificationItem = ({
         } else {
           await dispatch(readNotificationThunk(Number(notification.id))).unwrap();
         }
+      }
+
+      if (
+        notification.notificationType === "POST_REMOVED" ||
+        notification.notificationType === "COMMENT_REMOVED"
+      ) {
+        navigate("/community-guidelines");
+        return;
       }
 
       if (notification.targetUrl) {

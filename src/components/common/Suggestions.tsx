@@ -455,8 +455,15 @@ export const Suggestions = () => {
               </a>
             </div>
           </div> */}
-          <p className="text-xs text-muted-foreground font-medium">
-            © 2025 Nexo
+          <p className="text-xs text-muted-foreground font-medium flex items-center gap-1.5 flex-wrap">
+            © 2026 Nexo
+            <span>·</span>
+            <a
+              href="/community-guidelines"
+              className="hover:underline hover:text-foreground transition-colors"
+            >
+              Chính sách cộng đồng
+            </a>
           </p>
         </div>
       </div>
