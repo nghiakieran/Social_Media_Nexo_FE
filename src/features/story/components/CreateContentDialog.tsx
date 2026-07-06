@@ -121,26 +121,26 @@ export const CreateContentDialog = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle className="text-center text-lg font-semibold">Tạo</DialogTitle>
+      <DialogContent className="max-w-[90vw] sm:max-w-md p-5 sm:p-6 border border-border/50 bg-card/95 backdrop-blur-md text-card-foreground shadow-2xl rounded-3xl gap-4">
+        <DialogHeader className="pb-2 border-b border-border/30">
+          <DialogTitle className="text-center text-lg sm:text-xl font-bold text-foreground">Tạo mới</DialogTitle>
         </DialogHeader>
-        <div className="grid gap-2 py-2">
+        <div className="grid gap-1 py-1">
           {/* Create Post Option */}
           <button
             onClick={handlePostCreate}
             className={cn(
-              "flex items-center gap-4 p-4 rounded-xl",
-              "hover:bg-muted/50 transition-all duration-200",
+              "flex items-center gap-4 p-3.5 sm:p-4 rounded-2xl",
+              "hover:bg-muted/50 active:scale-[0.98] transition-all duration-200",
               "text-left group"
             )}
           >
-            <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
-              <FileText className="w-7 h-7 text-primary" />
+            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-primary/10 dark:bg-primary/15 flex items-center justify-center group-hover:bg-primary/20 transition-colors flex-shrink-0 shadow-sm">
+              <FileText className="w-6.5 h-6.5 sm:w-7 sm:h-7 text-primary" />
             </div>
-            <div className="flex-1">
-              <h3 className="font-semibold text-base">Bài viết</h3>
-              <p className="text-sm text-muted-foreground">
+            <div className="flex-1 min-w-0">
+              <h3 className="font-bold text-sm sm:text-base text-foreground">Bài viết</h3>
+              <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
                 Chia sẻ ảnh, video hoặc văn bản
               </p>
             </div>
@@ -150,17 +150,17 @@ export const CreateContentDialog = ({
           <button
             onClick={handleStoryCreate}
             className={cn(
-              "flex items-center gap-4 p-4 rounded-xl",
-              "hover:bg-muted/50 transition-all duration-200",
+              "flex items-center gap-4 p-3.5 sm:p-4 rounded-2xl",
+              "hover:bg-muted/50 active:scale-[0.98] transition-all duration-200",
               "text-left group"
             )}
           >
-            <div className="w-14 h-14 rounded-full bg-gradient-to-br from-purple-500 via-pink-500 to-orange-500 flex items-center justify-center shadow-md group-hover:shadow-lg transition-shadow">
-              <ImageIcon className="w-7 h-7 text-white" />
+            <div className="flex h-12 w-12 sm:h-14 sm:w-14 items-center justify-center rounded-full bg-gradient-story shadow-md transition-shadow group-hover:shadow-lg flex-shrink-0">
+              <ImageIcon className="w-6.5 h-6.5 sm:w-7 sm:h-7 text-white" />
             </div>
-            <div className="flex-1">
-              <h3 className="font-semibold text-base">Tin</h3>
-              <p className="text-sm text-muted-foreground">
+            <div className="flex-1 min-w-0">
+              <h3 className="font-bold text-sm sm:text-base text-foreground">Tin</h3>
+              <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
                 Chia sẻ ảnh hoặc video (tối đa 60 giây) trong 24 giờ
               </p>
             </div>
@@ -170,17 +170,17 @@ export const CreateContentDialog = ({
           <button
             onClick={handleReelCreate}
             className={cn(
-              "flex items-center gap-4 p-4 rounded-xl",
-              "hover:bg-muted/50 transition-all duration-200",
+              "flex items-center gap-4 p-3.5 sm:p-4 rounded-2xl",
+              "hover:bg-muted/50 active:scale-[0.98] transition-all duration-200",
               "text-left group"
             )}
           >
-            <div className="w-14 h-14 rounded-full bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 flex items-center justify-center shadow-md group-hover:shadow-lg transition-shadow">
-              <Film className="w-7 h-7 text-white" />
+            <div className="flex h-12 w-12 sm:h-14 sm:w-14 items-center justify-center rounded-full bg-gradient-to-br from-primary via-cyan-500 to-teal-600 shadow-md transition-shadow group-hover:shadow-lg flex-shrink-0">
+              <Film className="w-6.5 h-6.5 sm:w-7 sm:h-7 text-white" />
             </div>
-            <div className="flex-1">
-              <h3 className="font-semibold text-base">Reel</h3>
-              <p className="text-sm text-muted-foreground">
+            <div className="flex-1 min-w-0">
+              <h3 className="font-bold text-sm sm:text-base text-foreground">Reel</h3>
+              <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
                 Tạo video ngắn để chia sẻ với mọi người
               </p>
             </div>

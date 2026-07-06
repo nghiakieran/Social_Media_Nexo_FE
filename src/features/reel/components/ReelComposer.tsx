@@ -150,30 +150,30 @@ export const ReelComposer = ({
   return (
     <div className="w-full space-y-6">
       {/* Main Composer Card */}
-      <Card className="border-0 shadow-xl bg-card/80 backdrop-blur-sm w-full">
-        <CardContent className="p-8">
+      <Card className="border border-border/50 shadow-xl bg-card/80 backdrop-blur-sm w-full rounded-[1.5rem] md:rounded-[2rem] overflow-hidden">
+        <CardContent className="p-4 sm:p-6 md:p-8">
           <div className="space-y-6">
             {/* User Avatar & Privacy */}
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="relative">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 p-0.5">
+              <div className="flex items-center gap-3 sm:gap-4">
+                <div className="relative flex-shrink-0">
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 p-0.5">
                     <div className="w-full h-full rounded-full bg-background flex items-center justify-center">
-                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white font-semibold">
-                        <Video className="w-5 h-5" />
+                      <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white font-semibold">
+                        <Video className="w-4 h-4 sm:w-5 sm:h-5" />
                       </div>
                     </div>
                   </div>
-                  <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-success rounded-full border-2 border-background"></div>
+                  <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-success rounded-full border-2 border-background"></div>
                 </div>
-                <div className="space-y-1">
-                  <p className="font-semibold text-lg">Tạo Reel</p>
+                <div className="space-y-0.5">
+                  <p className="font-bold text-base sm:text-lg text-foreground">Tạo reel</p>
                   <PrivacySelect
                     value={privacy}
                     onChange={(value) =>
                       setPrivacy(value as "public" | "private")
                     }
-                    className="w-auto h-auto p-1 pl-0 text-sm focus:outline-none focus:ring-0 focus:ring-offset-0"
+                    className="w-auto h-auto p-0 text-xs sm:text-sm focus:outline-none focus:ring-0 focus:ring-offset-0 bg-transparent text-muted-foreground"
                   />
                 </div>
               </div>
@@ -194,11 +194,11 @@ export const ReelComposer = ({
               </div>
             </div>
 
-            {/* Media Upload Area */}
+             {/* Media Upload Area */}
             {!media ? (
               <div
                 className={`
-                  border-2 border-dashed rounded-xl p-8 text-center transition-all duration-300 cursor-pointer group
+                  border-2 border-dashed rounded-xl p-4 sm:p-8 text-center transition-all duration-300 cursor-pointer group
                   ${
                     dragActive
                       ? "border-primary bg-primary/5 scale-[1.02]"
@@ -212,20 +212,20 @@ export const ReelComposer = ({
                 onClick={() => fileInputRef.current?.click()}
               >
                 <Video
-                  className={`mx-auto h-16 w-16 mb-4 transition-colors ${
+                  className={`mx-auto h-10 w-10 sm:h-16 sm:w-16 mb-2 sm:mb-4 transition-colors ${
                     dragActive
                       ? "text-primary"
                       : "text-muted-foreground/60 group-hover:text-muted-foreground"
                   }`}
                 />
-                <div className="space-y-3">
-                  <p className="text-lg font-medium text-foreground">
+                <div className="space-y-1.5 sm:space-y-3">
+                  <p className="text-sm sm:text-lg font-medium text-foreground">
                     {dragActive ? "Thả video vào đây" : "Chọn video cho reel"}
                   </p>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-xs sm:text-sm text-muted-foreground">
                     Kéo thả file vào đây hoặc click để chọn
                   </p>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">
                     Chỉ hỗ trợ file video (MP4, MOV, AVI...) • Tối đa 100MB
                   </p>
                   <input

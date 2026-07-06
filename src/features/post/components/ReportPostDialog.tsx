@@ -13,6 +13,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
 
 interface ReportPostDialogProps {
   isOpen: boolean;
@@ -136,8 +137,8 @@ export const ReportPostDialog = ({
         {/* Phần nội dung chính có thể cuộn (overflow-y-auto) */}
         <div className="flex-1 overflow-y-auto px-6 py-2">
           <div className="space-y-4">
-            <Alert>
-              <AlertTriangle className="h-4 w-4" />
+            <Alert className="flex items-center gap-3 py-3 [&>svg]:static [&>svg]:text-foreground [&>svg~*]:pl-0 [&>svg+div]:translate-y-0">
+              <AlertTriangle className="h-4 w-4 shrink-0" />
               <AlertDescription className="text-xs">
                 Báo cáo này sẽ được gửi đến đội ngũ kiểm duyệt để xem xét.
               </AlertDescription>
@@ -155,24 +156,26 @@ export const ReportPostDialog = ({
                 {reportReasons.map((reason) => (
                   <div
                     key={reason.id}
-                    className="flex items-start space-x-2 p-2 rounded-md hover:bg-accent/50 transition-colors"
+                    className={cn(
+                      "flex items-center space-x-3 p-2 rounded-md transition-colors cursor-pointer",
+                      selectedReason === reason.id
+                        ? "bg-primary/10 hover:bg-primary/15"
+                        : "hover:bg-primary/5"
+                    )}
+                    onClick={() => setSelectedReason(reason.id)}
                   >
                     <RadioGroupItem
                       value={reason.id}
                       id={reason.id}
-                      className="mt-0.5"
                     />
-                    <div
-                      className="grid gap-1.5 leading-none cursor-pointer w-full"
-                      onClick={() => setSelectedReason(reason.id)}
-                    >
+                    <div className="grid gap-1.5 leading-none w-full">
                       <Label
                         htmlFor={reason.id}
                         className="text-sm font-medium leading-none cursor-pointer"
                       >
                         {reason.label}
                       </Label>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-xs text-muted-foreground cursor-pointer">
                         {reason.description}
                       </p>
                     </div>
@@ -205,8 +208,9 @@ export const ReportPostDialog = ({
           <Button
             onClick={handleSubmit}
             disabled={isSubmitting || !selectedReason}
-            className="bg-destructive hover:bg-destructive/90"
+            className="bg-red-500 hover:bg-red-600 text-white dark:bg-red-600 dark:hover:bg-red-700 transition-colors border-none"
           >
+
             {isSubmitting ? "Đang gửi..." : "Gửi báo cáo"}
           </Button>
         </DialogFooter>

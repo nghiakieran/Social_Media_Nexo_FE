@@ -3,7 +3,7 @@ import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { AppDispatch, useAppSelector } from "@/store";
 import { getPostsThunk } from "@/features/post/postSlice";
-import { getUserReelsThunk } from "@/features/reel/reelSlice";
+import { getUserReelsThunk, openCommentsDrawer } from "@/features/reel/reelSlice";
 import { getMediaType } from "@/utils/mediaUtils";
 import {
   setPosts,
@@ -55,13 +55,18 @@ import {
   deleteCollection,
   getUserStories,
 } from "@/features/story/api/storyApi";
+import {
+  reportUser,
+  toggleCloseFriend,
+} from "../api/profileApi";
+import ReelCommentDrawer from "@/features/reel/components/ReelCommentDrawer";
+import ReelCommentDialog from "@/features/reel/components/ReelCommentDialog";
 import { transformUserStoriesToStory } from "@/features/story/types";
 import { upsertProfileStory } from "@/features/story/storySlice";
 import { PrivateAccountMessage } from "../components/PrivateAccountMessage";
-import { SavedCollectionsContent } from "@/features/saved/components/SavedCollectionsContent";
-import { HiddenPostsContent } from "../components/HiddenPostsContent";
+import { SavedAllPostsContent } from "@/features/saved/components/SavedAllPostsContent";
 import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
-import { reportUser, toggleCloseFriend } from "../api/profileApi";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 export const ProfilePage = () => {
   const { username } = useParams<{ username: string }>();
@@ -88,9 +93,15 @@ export const ProfilePage = () => {
     showCreateHighlightDialog,
   } = useAppSelector((state) => state.profile);
 
-  const { reels: reelStoreReels } = useAppSelector((state) => state.reel);
+  const {
+    reels: reelStoreReels,
+    isLoading: isLoadingReels,
+    hasMore: hasMoreReels,
+    currentPage: currentReelsPage,
+  } = useAppSelector((state) => state.reel);
 
   const currentUser = useAppSelector((state) => state.auth.user);
+  const isMobile = useIsMobile();
   const isCurrentUser = currentUser && username === currentUser.username;
   const apiPosts = useAppSelector((state) => state.post.posts);
   const isLoadingPosts = useAppSelector((state) => state.post.isLoading);
@@ -105,7 +116,7 @@ export const ProfilePage = () => {
   // Get Redux stories to sync like state
   const reduxUserStories = useAppSelector((state) => state.story.userStories);
   const reduxFriendStories = useAppSelector(
-    (state) => state.story.friendStories
+    (state) => state.story.friendStories,
   );
 
   // Collections (Highlights) state
@@ -150,7 +161,7 @@ export const ProfilePage = () => {
       if (userStoriesData && userStoriesData.length > 0) {
         const story = transformUserStoriesToStory(
           userStoriesData[0],
-          currentUser?.id // Pass currentUserId to determine isOwnStory
+          currentUser?.id, // Pass currentUserId to determine isOwnStory
         );
         setProfileUserStory(story);
 
@@ -188,7 +199,7 @@ export const ProfilePage = () => {
     const matchingReduxStory = allReduxStories.find(
       (s) =>
         s.id === currentProfile.id.toString() ||
-        s.username === currentProfile.username
+        s.username === currentProfile.username,
     );
 
     if (matchingReduxStory) {
@@ -244,7 +255,7 @@ export const ProfilePage = () => {
         const response = await getCollections(
           parseInt(currentProfile.id),
           0,
-          10
+          10,
         );
         setCollections(response.data.content);
       } catch (error) {
@@ -263,6 +274,8 @@ export const ProfilePage = () => {
     currentProfile?.isFollowing,
     isCurrentUser,
   ]);
+
+
 
   useEffect(() => {
     if (username) {
@@ -293,16 +306,16 @@ export const ProfilePage = () => {
       if (canAccessProfile) {
         const userId = parseInt(currentProfile.id);
         setCurrentPage(0);
-        dispatch(getPostsThunk({ userId, pageNo: 0, pageSize: 10 }));
+        dispatch(getPostsThunk({ userId, pageNo: 0, pageSize: 9 }));
       }
 
       // Fetch followers and following only if we have access
       if (canAccessProfile && username) {
         dispatch(
-          fetchFollowersByUsernameAsync({ username, pageNo: 0, pageSize: 10 })
+          fetchFollowersByUsernameAsync({ username, pageNo: 1, pageSize: 10 }),
         );
         dispatch(
-          fetchFollowingByUsernameAsync({ username, pageNo: 0, pageSize: 10 })
+          fetchFollowingByUsernameAsync({ username, pageNo: 1, pageSize: 10 }),
         );
       }
     }
@@ -314,13 +327,34 @@ export const ProfilePage = () => {
       const userId = parseInt(currentProfile.id);
       const nextPage = currentPage + 1;
       setCurrentPage(nextPage);
-      dispatch(getPostsThunk({ userId, pageNo: nextPage, pageSize: 10 }));
+      dispatch(getPostsThunk({ userId, pageNo: nextPage, pageSize: 9 }));
     }
   }, [currentProfile, currentPage, isLoadingPosts, hasMorePosts, dispatch]);
 
   const { lastElementRef } = useInfiniteScroll(handleLoadMore, {
     hasMore: hasMorePosts,
     isLoading: isLoadingPosts,
+    threshold: 100,
+  });
+
+  // Infinite scroll - load more reels
+  const handleLoadMoreReels = useCallback(() => {
+    if (currentProfile && !isLoadingReels && hasMoreReels) {
+      const nextPage = currentReelsPage + 1;
+      const userId = parseInt(currentProfile.id);
+      dispatch(
+        getUserReelsThunk({
+          userId,
+          pageNo: nextPage,
+          pageSize: 9,
+        })
+      );
+    }
+  }, [currentProfile, currentReelsPage, isLoadingReels, hasMoreReels, dispatch]);
+
+  const { lastElementRef: lastReelElementRef } = useInfiniteScroll(handleLoadMoreReels, {
+    hasMore: hasMoreReels,
+    isLoading: isLoadingReels,
     threshold: 100,
   });
 
@@ -335,6 +369,9 @@ export const ProfilePage = () => {
     const tabFromUrl = searchParams.get("tab");
     if (tabFromUrl && ["posts", "reels", "saved"].includes(tabFromUrl)) {
       dispatch(setActiveTab(tabFromUrl as "posts" | "reels" | "saved"));
+      if (tabFromUrl === "reels") {
+        setHasClickedReelsTab(true);
+      }
     }
   }, [searchParams, dispatch]);
 
@@ -350,7 +387,7 @@ export const ProfilePage = () => {
         const userId = parseInt(currentProfile.id);
         // Only load if reels array is empty (first time loading)
         if (reelStoreReels.length === 0) {
-          dispatch(getUserReelsThunk({ userId, pageNo: 0, pageSize: 10 }));
+          dispatch(getUserReelsThunk({ userId, pageNo: 0, pageSize: 9 }));
         }
       }
     }
@@ -370,6 +407,7 @@ export const ProfilePage = () => {
       if (currentProfile.isFollowing) {
         dispatch(unfollowUserAsync(currentProfile.username));
         toast({
+          variant: "success",
           title: "Đã bỏ theo dõi",
           description: `Bạn đã bỏ theo dõi ${currentProfile.name}`,
         });
@@ -379,6 +417,7 @@ export const ProfilePage = () => {
           // Send follow request for private account
           dispatch(followUserAsync(currentProfile.username));
           toast({
+            variant: "success",
             title: "Đã gửi yêu cầu theo dõi",
             description: `Đã gửi yêu cầu theo dõi ${currentProfile.name}`,
           });
@@ -386,6 +425,7 @@ export const ProfilePage = () => {
           // Direct follow for public account
           dispatch(followUserAsync(currentProfile.username));
           toast({
+            variant: "success",
             title: "Đã theo dõi",
             description: `Bạn đã theo dõi ${currentProfile.name}`,
           });
@@ -398,17 +438,14 @@ export const ProfilePage = () => {
     if (!currentProfile) return;
 
     try {
-      const { conversationApi } = await import(
-        "@/features/message/services/messageApi"
-      );
-      const { upsertConversation } = await import(
-        "@/features/message/messageSlice"
-      );
+      const { conversationApi } =
+        await import("@/features/message/services/messageApi");
+      const { upsertConversation } =
+        await import("@/features/message/messageSlice");
 
       const recipientId = parseInt(currentProfile.id, 10);
-      const response = await conversationApi.getOrCreateConversation(
-        recipientId
-      );
+      const response =
+        await conversationApi.getOrCreateConversation(recipientId);
 
       if (response?.data) {
         dispatch(upsertConversation(response.data));
@@ -463,12 +500,12 @@ export const ProfilePage = () => {
 
       const isNowCloseFriend = !currentProfile.isCloseFriend;
       toast({
+        variant: "success",
         title: isNowCloseFriend
           ? "Đã thêm vào danh sách bạn thân"
           : "Đã xóa khỏi danh sách bạn thân",
-        description: `${currentProfile.name} ${
-          isNowCloseFriend ? "đã được thêm vào" : "đã được xóa khỏi"
-        } danh sách bạn thân`,
+        description: `${currentProfile.name} ${isNowCloseFriend ? "đã được thêm vào" : "đã được xóa khỏi"
+          } danh sách bạn thân`,
       });
     } catch (error) {
       toast({
@@ -483,7 +520,7 @@ export const ProfilePage = () => {
     if (currentProfile) {
       try {
         const resultAction = await dispatch(
-          unfollowUserAsync(currentProfile.username)
+          unfollowUserAsync(currentProfile.username),
         );
         if (unfollowUserAsync.fulfilled.match(resultAction)) {
           // Refresh profile to update hasRequestedFollow
@@ -493,6 +530,7 @@ export const ProfilePage = () => {
             dispatch(fetchUserProfileByUsernameAsync(username));
           }
           toast({
+            variant: "success",
             title: "Đã hủy yêu cầu",
             description: `Đã hủy yêu cầu theo dõi ${currentProfile.name}`,
           });
@@ -543,6 +581,7 @@ export const ProfilePage = () => {
       }
 
       toast({
+        variant: "success",
         title: "Đã cập nhật ảnh đại diện",
         description: "Ảnh đại diện đã được thay đổi thành công",
       });
@@ -569,6 +608,7 @@ export const ProfilePage = () => {
       }
 
       toast({
+        variant: "success",
         title: "Đã gỡ ảnh đại diện",
         description: "Ảnh đại diện đã được gỡ bỏ thành công",
       });
@@ -594,7 +634,7 @@ export const ProfilePage = () => {
         const response = await getCollections(
           parseInt(currentProfile.id),
           0,
-          10
+          10,
         );
         setCollections(response.data.content);
       } catch (error) {
@@ -605,6 +645,7 @@ export const ProfilePage = () => {
     dispatch(setShowCreateHighlightDialog(false));
 
     toast({
+      variant: "success",
       title: "Đã tạo tin nổi bật!",
       description: "Tin nổi bật đã được tạo thành công",
     });
@@ -685,7 +726,7 @@ export const ProfilePage = () => {
         const response = await getCollections(
           parseInt(currentProfile.id),
           0,
-          10
+          10,
         );
         setCollections(response.data.content);
       } catch (error) {
@@ -710,12 +751,13 @@ export const ProfilePage = () => {
         const response = await getCollections(
           parseInt(currentProfile.id),
           0,
-          10
+          10,
         );
         setCollections(response.data.content);
       }
 
       toast({
+        variant: "success",
         title: "Đã xóa!",
         description: "Tin nổi bật đã được xóa thành công",
       });
@@ -744,18 +786,29 @@ export const ProfilePage = () => {
     switch (activeTab) {
       case "reels":
         return (
-          <ReelGrid
-            reels={reelStoreReels}
-            onReelClick={(reel) => {
-              // Navigate to reel detail page
-              navigate(`/reels/${reel.id}`);
-            }}
-          />
+          <>
+            <ReelGrid
+              reels={reelStoreReels}
+              lastElementRef={lastReelElementRef}
+              onReelClick={(reel) => {
+                if (isMobile) {
+                  navigate(`/reels/${reel.id}`);
+                } else {
+                  dispatch(openCommentsDrawer(reel.id));
+                }
+              }}
+            />
+            {isLoadingReels && (
+              <div className="flex justify-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+              </div>
+            )}
+          </>
         );
       case "saved":
-        return isCurrentUser ? <SavedCollectionsContent /> : null;
-      case "hidden":
-        return isCurrentUser ? <HiddenPostsContent /> : null;
+        return isCurrentUser ? (
+          <SavedAllPostsContent onBack={() => { }} pageSize={9} />
+        ) : null;
       default: {
         // Filter to only show active posts in the posts tab
         const activePosts = apiPosts.filter((post) => post.isActive);
@@ -775,7 +828,7 @@ export const ProfilePage = () => {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center min-h-[calc(100vh-140px)] md:min-h-[calc(100vh-100px)]">
         <div className="animate-spin rounded-full h-10 w-10 border-2 border-primary border-t-transparent" />
       </div>
     );
@@ -783,13 +836,11 @@ export const ProfilePage = () => {
 
   if (!currentProfile) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold mb-2">Không tìm thấy người dùng</h2>
-          <p className="text-muted-foreground">
-            Tài khoản này có thể đã bị xóa hoặc không tồn tại.
-          </p>
-        </div>
+      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-140px)] md:min-h-[calc(100vh-100px)] px-6 text-center">
+        <h2 className="text-xl md:text-2xl font-bold mb-3">Không tìm thấy người dùng</h2>
+        <p className="text-sm md:text-base text-muted-foreground max-w-sm leading-relaxed">
+          Tài khoản này có thể đã bị xóa hoặc không tồn tại.
+        </p>
       </div>
     );
   }
@@ -808,7 +859,7 @@ export const ProfilePage = () => {
   };
 
   return (
-    <div className="max-w-4xl mx-auto">
+    <div className="max-w-4xl mx-auto pb-6">
       <ProfileHeader
         profile={currentProfile}
         isCurrentUser={isCurrentUser}
@@ -836,20 +887,20 @@ export const ProfilePage = () => {
       {(isCurrentUser ||
         !currentProfile.isPrivate ||
         currentProfile.isFollowing) && (
-        <StoryHighlights
-          highlights={collections.map((col) => ({
-            id: col.id.toString(),
-            title: col.collectionName,
-            cover: col.mediaUrl,
-            postIds: [], // Not needed anymore as we fetch from API
-          }))}
-          onAdd={isCurrentUser ? handleOpenCreateHighlight : undefined}
-          onOpen={handleOpenHighlight}
-          onEdit={isCurrentUser ? handleEditHighlight : undefined}
-          onDelete={isCurrentUser ? handleDeleteHighlight : undefined}
-          canManage={isCurrentUser}
-        />
-      )}
+          <StoryHighlights
+            highlights={collections.map((col) => ({
+              id: col.id.toString(),
+              title: col.collectionName,
+              cover: col.mediaUrl,
+              postIds: [], // Not needed anymore as we fetch from API
+            }))}
+            onAdd={isCurrentUser ? handleOpenCreateHighlight : undefined}
+            onOpen={handleOpenHighlight}
+            onEdit={isCurrentUser ? handleEditHighlight : undefined}
+            onDelete={isCurrentUser ? handleDeleteHighlight : undefined}
+            canManage={isCurrentUser}
+          />
+        )}
 
       <ProfileTabs
         activeTab={activeTab}
@@ -868,9 +919,8 @@ export const ProfilePage = () => {
           } else {
             newSearchParams.set("tab", tab);
           }
-          const newUrl = `${window.location.pathname}${
-            newSearchParams.toString() ? `?${newSearchParams.toString()}` : ""
-          }`;
+          const newUrl = `${window.location.pathname}${newSearchParams.toString() ? `?${newSearchParams.toString()}` : ""
+            }`;
           navigate(newUrl, { replace: true });
         }}
         isCurrentUser={isCurrentUser}
@@ -977,6 +1027,10 @@ export const ProfilePage = () => {
           initialStoryIndex={viewerData.index}
         />
       )}
+
+      {/* Global Reel Components */}
+      <ReelCommentDrawer />
+      <ReelCommentDialog />
     </div>
   );
 };

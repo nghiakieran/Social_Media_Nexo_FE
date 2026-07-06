@@ -15,13 +15,13 @@ interface StoryContentProps {
   onVideoReady?: () => void // Callback when content (image/video) is ready
 }
 
-export const StoryContent = memo(({ 
-  content, 
+export const StoryContent = memo(({
+  content,
   username,
   isMuted,
   isPaused,
-  onStoryClick, 
-  onTouchStart, 
+  onStoryClick,
+  onTouchStart,
   onTouchEnd,
   onVideoDurationDetected,
   onVideoReady
@@ -47,13 +47,13 @@ export const StoryContent = memo(({
   useEffect(() => {
     if (content.type === "video" && videoRef.current) {
       const video = videoRef.current;
-      
+
       const handleLoadedMetadata = () => {
         // Detect duration
         if (onVideoDurationDetected && video.duration && !isNaN(video.duration) && isFinite(video.duration)) {
           onVideoDurationDetected(video.duration);
         }
-        
+
         // Detect aspect ratio
         if (video.videoWidth && video.videoHeight) {
           // Portrait (height > width) → fill (stretch to fill)
@@ -62,28 +62,28 @@ export const StoryContent = memo(({
           setVideoObjectFit(isPortrait ? "fill" : "contain");
         }
       };
-      
+
       const handleCanPlay = () => {
         // Video ready to play
         if (onVideoReady) {
           onVideoReady();
         }
       };
-      
+
       if (video.readyState >= 1) {
         // Metadata already loaded
         handleLoadedMetadata();
       } else {
         video.addEventListener('loadedmetadata', handleLoadedMetadata);
       }
-      
+
       if (video.readyState >= 3) {
         // Video already ready
         handleCanPlay();
       } else {
         video.addEventListener('canplay', handleCanPlay);
       }
-      
+
       return () => {
         video.removeEventListener('loadedmetadata', handleLoadedMetadata);
         video.removeEventListener('canplay', handleCanPlay);
@@ -95,14 +95,14 @@ export const StoryContent = memo(({
   useEffect(() => {
     if (content.type === "image" && imageRef.current) {
       const img = imageRef.current;
-      
+
       const handleImageLoad = () => {
         // Image ready to display
         if (onVideoReady) {
           onVideoReady();
         }
       };
-      
+
       if (img.complete && img.naturalWidth > 0) {
         // Image already loaded
         handleImageLoad();
@@ -126,7 +126,7 @@ export const StoryContent = memo(({
             ref={imageRef}
             src={content.url || "/placeholder.svg"}
             alt={`${username}'s story content`}
-            className="w-full h-full object-cover pointer-events-none"
+            className="w-full h-full object-contain pointer-events-none"
             crossOrigin="anonymous"
             loading="lazy"
           />

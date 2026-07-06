@@ -4,28 +4,21 @@
 
 @layer base {
   :root {
-    /* Instagram-inspired color palette */
-    --background: 0 0% 100%;
-    --foreground: 0 0% 0%;
+    /* Digital Horizon color palette */
+    --background: 222 55% 97%;
+    --foreground: 222 55% 10%;
 
-    /* Instagram gradients and brand colors */
-    --instagram-purple: 262 82% 42%;
-    --instagram-pink: 320 85% 60%;
-    --instagram-orange: 25 95% 53%;
-    --instagram-yellow: 45 93% 47%;
+    --primary: 190 100% 40%;
+    --primary-foreground: 190 100% 97%;
 
-    /* Core theme colors */
-    --primary: 262 82% 42%;
-    --primary-foreground: 0 0% 100%;
+    --secondary: 272 100% 60%;
+    --secondary-foreground: 272 100% 97%;
 
-    --secondary: 0 0% 96%;
-    --secondary-foreground: 0 0% 10%;
+    --muted: 222 55% 92%;
+    --muted-foreground: 222 55% 40%;
 
-    --muted: 0 0% 96%;
-    --muted-foreground: 0 0% 45%;
-
-    --accent: 320 85% 60%;
-    --accent-foreground: 0 0% 100%;
+    --accent: 272 100% 86%;
+    --accent-foreground: 272 100% 20%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 98%;
@@ -38,76 +31,74 @@
 
     /* UI elements */
     --card: 0 0% 100%;
-    --card-foreground: 0 0% 4%;
+    --card-foreground: 222 55% 10%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 4%;
+    --popover-foreground: 222 55% 10%;
 
-    --border: 0 0% 90%;
-    --input: 0 0% 96%;
-    --ring: 262 82% 42%;
+    --border: 222 55% 85%;
+    --input: 222 55% 95%;
+    --ring: 190 100% 40%;
 
-    --radius: 0.75rem;
+    --radius: 1rem;
 
-    /* Instagram gradients */
-    --gradient-instagram: linear-gradient(
-      135deg,
-      hsl(var(--instagram-purple)),
-      hsl(var(--instagram-pink)),
-      hsl(var(--instagram-orange))
-    );
+    /* Gradients */
+    --gradient-primary: linear-gradient(135deg, #8aebff, #ddb7ff);
+    --gradient-nebula: radial-gradient(circle at 30% 30%, #8aebff 0%, transparent 50%),
+      radial-gradient(circle at 70% 70%, #006573 0%, transparent 60%),
+      radial-gradient(circle at 50% 50%, #ffffff 0%, transparent 40%);
+
+    /* Shadows */
+    --shadow-soft: 0 2px 8px hsl(222 55% 10% / 0.04);
+    --shadow-medium: 0 4px 24px hsl(222 55% 10% / 0.08);
+    --shadow-strong: 0 8px 32px hsl(222 55% 10% / 0.12);
+    --shadow-glow: 0 0 24px hsl(var(--primary) / 0.2);
+
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-bounce: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+
+    /* Accent gradient (cyan ↔ violet) */
     --gradient-story: linear-gradient(
-      45deg,
-      hsl(var(--instagram-yellow)),
-      hsl(var(--instagram-orange)),
-      hsl(var(--instagram-pink))
+      135deg,
+      hsl(272 100% 60%),
+      hsl(190 100% 40%)
     );
     --gradient-subtle: linear-gradient(
       135deg,
       hsl(var(--muted)),
       hsl(var(--background))
     );
-
-    /* Shadows */
-    --shadow-soft: 0 2px 8px hsl(0 0% 0% / 0.04);
-    --shadow-medium: 0 4px 24px hsl(0 0% 0% / 0.08);
-    --shadow-strong: 0 8px 32px hsl(0 0% 0% / 0.12);
-    --shadow-glow: 0 0 24px hsl(var(--primary) / 0.2);
-
-    /* Animations */
-    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    --transition-bounce: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
   }
 
   .dark {
-    --background: 220 13% 9%;
-    --foreground: 0 0% 95%;
+    --background: 222 55% 10%;
+    --foreground: 222 55% 95%;
 
-    --card: 220 13% 12%;
-    --card-foreground: 0 0% 95%;
+    --card: 222 55% 13%;
+    --card-foreground: 222 55% 95%;
 
-    --popover: 220 13% 12%;
-    --popover-foreground: 0 0% 95%;
+    --popover: 222 55% 13%;
+    --popover-foreground: 222 55% 95%;
 
-    --primary: 262 82% 60%;
-    --primary-foreground: 0 0% 98%;
+    --primary: 190 100% 77%;
+    --primary-foreground: 222 55% 10%;
 
-    --secondary: 220 13% 16%;
-    --secondary-foreground: 0 0% 90%;
+    --secondary: 272 100% 86%;
+    --secondary-foreground: 222 55% 10%;
 
-    --muted: 220 13% 16%;
-    --muted-foreground: 0 0% 60%;
+    --muted: 222 55% 18%;
+    --muted-foreground: 222 55% 70%;
 
-    --accent: 320 85% 70%;
-    --accent-foreground: 0 0% 98%;
+    --accent: 272 100% 86%;
+    --accent-foreground: 222 55% 10%;
 
-    --border: 220 13% 20%;
-    --input: 220 13% 16%;
-    --ring: 262 82% 60%;
+    --border: 222 55% 20%;
+    --input: 222 55% 15%;
+    --ring: 190 100% 77%;
 
-    --shadow-soft: 0 2px 8px hsl(220 13% 0% / 0.3);
-    --shadow-medium: 0 4px 24px hsl(220 13% 0% / 0.4);
-    --shadow-strong: 0 8px 32px hsl(220 13% 0% / 0.5);
+    --shadow-soft: 0 2px 8px hsl(222 55% 0% / 0.4);
+    --shadow-medium: 0 4px 24px hsl(222 55% 0% / 0.5);
+    --shadow-strong: 0 8px 32px hsl(222 55% 0% / 0.6);
     --shadow-glow: 0 0 24px hsl(var(--primary) / 0.3);
 
     --destructive: 0 84% 65%;
@@ -118,6 +109,17 @@
 
     --success: 142 71% 50%;
     --success-foreground: 0 0% 98%;
+
+    --gradient-story: linear-gradient(
+      135deg,
+      hsl(272 100% 86%),
+      hsl(190 100% 77%)
+    );
+    --gradient-subtle: linear-gradient(
+      135deg,
+      hsl(var(--muted)),
+      hsl(var(--background))
+    );
   }
 }
 
@@ -149,13 +151,43 @@
 }
 
 @layer components {
-  /* Instagram-style components */
-  .instagram-gradient {
-    background: var(--gradient-instagram);
+  .nebula-gradient {
+    background:
+      radial-gradient(
+        circle at 20% 30%,
+        hsl(190 100% 77% / 0.15) 0%,
+        transparent 40%
+      ),
+      radial-gradient(
+        circle at 80% 70%,
+        hsl(272 100% 86% / 0.15) 0%,
+        transparent 40%
+      ),
+      radial-gradient(
+        circle at 50% 50%,
+        hsl(190 100% 40% / 0.05) 0%,
+        transparent 60%
+      ),
+      hsl(var(--background));
   }
 
-  .story-gradient {
-    background: var(--gradient-story);
+  .glass-card {
+    @apply bg-background/40 backdrop-blur-[20px] border border-foreground/5 shadow-strong;
+  }
+
+  .material-symbols-outlined {
+    font-variation-settings:
+      "FILL" 0,
+      "wght" 400,
+      "GRAD" 0,
+      "opsz" 24;
+    display: inline-block;
+    line-height: 1;
+    text-transform: none;
+    letter-spacing: normal;
+    word-wrap: normal;
+    white-space: nowrap;
+    direction: ltr;
   }
 
   .glass-effect {
@@ -282,5 +314,20 @@
     video[data-reel-mode]::-webkit-media-controls-fullscreen-button {
       display: none !important;
     }
+  }
+}
+
+@layer utilities {
+  @keyframes progress {
+    from {
+      width: 100%;
+    }
+    to {
+      width: 0%;
+    }
+  }
+
+  .animate-progress {
+    animation: progress 5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
   }
 }

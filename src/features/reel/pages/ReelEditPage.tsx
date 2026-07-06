@@ -18,6 +18,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { SimpleVideoPreview } from "@/components/common/SimpleVideoPreview";
 import { MediaViewer } from "@/features/post/components/MediaViewer";
 import { useToast } from "@/hooks/use-toast";
+import { PrivacySelect } from "@/features/post/components/PrivacySelect";
 
 const ReelEditPage = () => {
   const dispatch = useAppDispatch();
@@ -164,11 +165,12 @@ const ReelEditPage = () => {
       await dispatch(updateReelThunk({ files: mediaFiles, reelData })).unwrap();
 
       toast({
+        variant: "success",
         title: "Thành công",
         description: "Reel đã được cập nhật thành công!",
       });
 
-      navigate(`/reels/${reelId}`);
+      navigate(`/reels/${reelId}`, { replace: true });
     } catch (error) {
       console.error("Error updating reel:", error);
       toast({
@@ -185,7 +187,7 @@ const ReelEditPage = () => {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-b-2 border-primary" />
           <p className="text-lg font-medium mb-2">Đang tạo reel... Vui lòng chờ</p>
           <p className="text-sm text-gray-600 dark:text-gray-400">
             Vui lòng không tắt trang này
@@ -207,41 +209,40 @@ const ReelEditPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      {/* Header */}
-      <div className="sticky top-0 z-10 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-        <div className="max-w-4xl mx-auto px-4 py-4">
-          <div className="flex items-center gap-4">
+    <div className="min-h-screen bg-background">
+      <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-md border-b border-border/50 shadow-sm">
+        <div className="max-w-4xl mx-auto px-4 pt-4 pb-3 sm:py-4">
+          <div className="flex items-center gap-3">
             <Button
               variant="ghost"
               size="sm"
               onClick={() => navigate(-1)}
-              className="h-10 w-10 p-0"
+              className="h-9 w-9 p-0 rounded-full hover:bg-muted/80 flex-shrink-0"
             >
               <ArrowLeft className="w-5 h-5" />
             </Button>
-            <h1 className="text-xl font-semibold">Chỉnh sửa Reel</h1>
+            <h1 className="text-base sm:text-xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">Chỉnh sửa Reel</h1>
           </div>
         </div>
       </div>
 
       {/* Content */}
-      <div className="max-w-4xl mx-auto px-4 py-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Chỉnh sửa Reel</CardTitle>
+      <div className="max-w-4xl mx-auto px-4 py-4 sm:py-6">
+        <Card className="border-0 sm:border bg-transparent sm:bg-card shadow-none sm:shadow rounded-2xl">
+          <CardHeader className="hidden sm:block border-b border-border/30">
+            <CardTitle className="text-xl font-bold">Chỉnh sửa Reel</CardTitle>
           </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-6">
+          <CardContent className="p-0 sm:p-6 sm:pt-6">
+            <form onSubmit={handleSubmit} className="space-y-5">
               {/* Current Media */}
               {mediaUrls.length > 0 && (
                 <div className="space-y-2">
-                  <Label>Video hiện tại</Label>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Label className="text-sm font-semibold">Video hiện tại</Label>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {mediaUrls.map((url, index) => (
                       <div key={index} className="relative">
                         <div
-                          className="w-full h-48 rounded-lg overflow-hidden cursor-pointer hover:opacity-90 transition-opacity"
+                          className="w-full h-40 sm:h-48 rounded-xl overflow-hidden cursor-pointer hover:opacity-90 transition-opacity border border-border/50 shadow-sm"
                           onClick={() =>
                             setSelectedMedia({ url, type: "video" })
                           }
@@ -256,7 +257,7 @@ const ReelEditPage = () => {
                           variant="destructive"
                           size="sm"
                           onClick={() => removeMedia(index)}
-                          className="absolute top-2 right-2"
+                          className="absolute top-2 right-2 h-7 w-7 p-0 rounded-full shadow-md"
                         >
                           <X className="w-4 h-4" />
                         </Button>
@@ -268,12 +269,12 @@ const ReelEditPage = () => {
 
               {/* Media Upload */}
               <div className="space-y-2">
-                <Label htmlFor="media">Thay thế video</Label>
+                <Label htmlFor="media" className="text-sm font-semibold">Thay thế video</Label>
                 <div
-                  className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
+                  className={`border-2 border-dashed rounded-xl p-5 sm:p-6 text-center transition-colors cursor-pointer ${
                     dragActive
-                      ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
-                      : "border-gray-300 dark:border-gray-600"
+                      ? "border-primary bg-primary/10 dark:bg-primary/25"
+                      : "border-border hover:border-primary/50 bg-muted/20"
                   }`}
                   onDragEnter={handleDrag}
                   onDragLeave={handleDrag}
@@ -287,15 +288,15 @@ const ReelEditPage = () => {
                     onChange={handleFileUpload}
                     className="hidden"
                   />
-                  <label htmlFor="media" className="cursor-pointer">
-                    <Upload className="w-8 h-8 mx-auto mb-2 text-gray-400" />
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                      Nhấp để chọn video mới hoặc kéo thả vào đây
+                  <label htmlFor="media" className="cursor-pointer block">
+                    <Upload className="w-7 h-7 mx-auto mb-2 text-muted-foreground" />
+                    <p className="text-xs sm:text-sm text-muted-foreground font-medium">
+                      Nhấp để chọn video mới <span className="hidden sm:inline">hoặc kéo thả vào đây</span>
                     </p>
                   </label>
                 </div>
                 {errors.media && (
-                  <p className="text-sm text-red-500">{errors.media}</p>
+                  <p className="text-xs text-destructive font-medium">{errors.media}</p>
                 )}
 
                 {/* Selected Files */}
@@ -363,21 +364,15 @@ const ReelEditPage = () => {
 
               {/* Visibility */}
               <div className="space-y-2">
-                <Label htmlFor="visibility">Quyền riêng tư</Label>
-                <Select
-                  value={formData.visibility}
-                  onValueChange={(value) =>
-                    handleInputChange("visibility", value)
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="PUBLIC">Công khai</SelectItem>
-                    <SelectItem value="PRIVATE">Riêng tư</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Label htmlFor="visibility" className="text-sm font-semibold">Quyền riêng tư</Label>
+                <div className="border border-border/50 rounded-xl p-3 bg-muted/5 flex items-center justify-between">
+                  <span className="text-xs text-muted-foreground">Ai có thể xem Reel này?</span>
+                  <PrivacySelect
+                    value={formData.visibility.toLowerCase()}
+                    onChange={(value) => handleInputChange("visibility", value.toUpperCase())}
+                    className="w-auto"
+                  />
+                </div>
               </div>
 
               {/* Submit Button */}

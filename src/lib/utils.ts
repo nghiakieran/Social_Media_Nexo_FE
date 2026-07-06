@@ -21,7 +21,7 @@ export function hasAdminRole(token: string | null): boolean {
     const authServiceClient = resourceAccess?.["auth-service-client"];
     const roles = authServiceClient?.roles || [];
 
-    return roles.includes("ADMIN");
+    return roles.includes("ADMIN") || roles.includes("MODERATOR");
   } catch (error) {
     console.error("Error decoding JWT token:", error);
     return false;

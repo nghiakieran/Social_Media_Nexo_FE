@@ -1,40 +1,69 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useState } from 'react';
-import { useAppSelector, useAppDispatch } from '../../../store';
-import { LazyGrid } from '../../../components/common/LazyGrid';
-import { Bookmark } from 'lucide-react';
-import { CommentDialog } from '../../post/components/CommentDialog';
-import { ShareDialog } from '../../post/components/ShareDialog';
-import { useBookmark } from '../hooks/useBookmark';
-import { useToast } from '../../../hooks/use-toast';
+import React, { useState, useEffect, useCallback } from "react";
+import { useAppSelector, useAppDispatch } from "../../../store";
+import { LazyGrid } from "../../../components/common/LazyGrid";
+import { Bookmark } from "lucide-react";
+import { CommentDialog } from "../../post/components/CommentDialog";
+import { ShareDialog } from "../../post/components/ShareDialog";
+import { useBookmark } from "../hooks/useBookmark";
+import { useToast } from "../../../hooks/use-toast";
+import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
+import { useNavigate } from "react-router-dom";
+import { useIsMobile } from "../../../hooks/use-mobile";
 import {
   getPostCommentsThunk,
   createCommentThunk,
   likeCommentThunk,
-  likePostThunk,
   clearComments,
-} from '@/features/interaction/interactionSlice';
-import { useEffect, useMemo } from 'react';
+} from "@/features/interaction/interactionSlice";
+import { getSavedPostsThunk } from "../savedSlice";
+import { likePostThunk } from "@/features/post/postSlice";
+import { useMemo } from "react";
 
 interface SavedAllPostsContentProps {
-  onBack: () => void;
+  onBack?: () => void;
+  pageSize?: number;
 }
 
-export const SavedAllPostsContent: React.FC<SavedAllPostsContentProps> = ({ onBack }) => {
+export const SavedAllPostsContent: React.FC<SavedAllPostsContentProps> = ({
+  onBack,
+  pageSize = 20,
+}) => {
   const dispatch = useAppDispatch();
+  const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const { toast } = useToast();
   const { isBookmarked, toggleBookmark } = useBookmark();
-  const { posts } = useAppSelector((state) => state.saved);
+  const { posts, loading, pagination } = useAppSelector((state) => state.saved);
   const { posts: allPosts } = useAppSelector((state) => state.post);
   const [selectedPost, setSelectedPost] = useState<any>(null);
   const [showCommentDialog, setShowCommentDialog] = useState(false);
   const [showShareDialog, setShowShareDialog] = useState(false);
-  const [isAuthorFollowed, setIsAuthorFollowed] = useState<Record<string, boolean>>({});
+  const [isAuthorFollowed, setIsAuthorFollowed] = useState<
+    Record<string, boolean>
+  >({});
   const user = useAppSelector((state) => state.auth.user);
+
+  // Load saved posts on mount
+  useEffect(() => {
+    dispatch(getSavedPostsThunk({ page: 0, size: pageSize }));
+  }, [dispatch, pageSize]);
+
+  // Infinite scroll - load more saved posts
+  const handleLoadMore = useCallback(() => {
+    if (!loading && !pagination.last) {
+      dispatch(getSavedPostsThunk({ page: pagination.pageNo + 1, size: pageSize }));
+    }
+  }, [loading, pagination.pageNo, pagination.last, pageSize, dispatch]);
+
+  const { lastElementRef } = useInfiniteScroll(handleLoadMore, {
+    hasMore: !pagination.last,
+    isLoading: loading,
+    threshold: 100,
+  });
 
   // Get comments from Redux state
   const { comments: reduxComments } = useAppSelector(
-    (state) => state.interaction.comments
+    (state) => state.interaction.comments,
   );
 
   // Load comments when post is selected
@@ -45,7 +74,7 @@ export const SavedAllPostsContent: React.FC<SavedAllPostsContentProps> = ({ onBa
         getPostCommentsThunk({
           postId: parseInt(selectedPost.id),
           params: { pageNo: 0, pageSize: 50 },
-        })
+        }),
       );
     }
   }, [dispatch, selectedPost]);
@@ -74,12 +103,23 @@ export const SavedAllPostsContent: React.FC<SavedAllPostsContentProps> = ({ onBa
       })),
     }));
   }, [selectedPost, reduxComments]);
-  
-  const handlePostClick = (item: { id: string; thumbnail: string; type?: string; caption?: string; likesCount?: number; commentsCount?: number }) => {
-    const post = posts.find(p => p.id === item.id);
+
+  const handlePostClick = (item: {
+    id: string;
+    thumbnail: string;
+    type?: string;
+    caption?: string;
+    likesCount?: number;
+    commentsCount?: number;
+  }) => {
+    const post = posts.find((p) => p.id === item.id);
     if (post) {
-      setSelectedPost(post.post);
-      setShowCommentDialog(true);
+      if (isMobile) {
+        navigate(`/posts/${post.post.id}`);
+      } else {
+        setSelectedPost(post.post);
+        setShowCommentDialog(true);
+      }
     }
   };
 
@@ -96,13 +136,13 @@ export const SavedAllPostsContent: React.FC<SavedAllPostsContentProps> = ({ onBa
           parentId: 0,
           content,
           listMentionUserId: [],
-        })
+        }),
       ).unwrap();
       dispatch(
         getPostCommentsThunk({
           postId: parseInt(selectedPost.id),
           params: { pageNo: 0, pageSize: 50 },
-        })
+        }),
       );
     } catch (error) {
       toast({
@@ -137,13 +177,13 @@ export const SavedAllPostsContent: React.FC<SavedAllPostsContentProps> = ({ onBa
           parentId: parseInt(parentId),
           content,
           listMentionUserId: [],
-        })
+        }),
       ).unwrap();
       dispatch(
         getPostCommentsThunk({
           postId: parseInt(selectedPost.id),
           params: { pageNo: 0, pageSize: 50 },
-        })
+        }),
       );
     } catch (error) {
       toast({
@@ -156,10 +196,17 @@ export const SavedAllPostsContent: React.FC<SavedAllPostsContentProps> = ({ onBa
 
   const handleLikePost = async (postId: string) => {
     try {
-      await dispatch(likePostThunk(parseInt(postId))).unwrap();
-      const post = allPosts.find(p => p.id === postId);
-      if (post && selectedPost) {
-        setSelectedPost((prev: any) => prev ? { ...prev, isLiked: !prev.isLiked, likesCount: prev.likesCount + (prev.isLiked ? -1 : 1) } : prev);
+      await dispatch(likePostThunk(postId)).unwrap();
+      if (selectedPost) {
+        setSelectedPost((prev: any) =>
+          prev
+            ? {
+                ...prev,
+                isLiked: !prev.isLiked,
+                likesCount: prev.likesCount + (prev.isLiked ? -1 : 1),
+              }
+            : prev,
+        );
       }
     } catch (error) {
       toast({
@@ -176,7 +223,14 @@ export const SavedAllPostsContent: React.FC<SavedAllPostsContentProps> = ({ onBa
       description: `Chia sẻ với ${userIds.length} người dùng.`,
       duration: 2000,
     });
-    console.log('Sharing post:', postId, 'To users:', userIds, 'Message:', message);
+    console.log(
+      "Sharing post:",
+      postId,
+      "To users:",
+      userIds,
+      "Message:",
+      message,
+    );
     // TODO: Implement actual share API call
     setShowShareDialog(false);
   };
@@ -185,113 +239,106 @@ export const SavedAllPostsContent: React.FC<SavedAllPostsContentProps> = ({ onBa
     setShowShareDialog(true);
   };
 
-  const handleToggleFollowAuthor = (userId: string, nextIsFollowing: boolean) => {
-    setIsAuthorFollowed(prev => ({
+  const handleToggleFollowAuthor = (
+    userId: string,
+    nextIsFollowing: boolean,
+  ) => {
+    setIsAuthorFollowed((prev) => ({
       ...prev,
-      [userId]: nextIsFollowing
+      [userId]: nextIsFollowing,
     }));
     toast({
       title: nextIsFollowing ? "Đã theo dõi!" : "Đã bỏ theo dõi!",
       duration: 1500,
     });
-    console.log('Toggle follow author:', userId, 'Following:', nextIsFollowing);
+    console.log("Toggle follow author:", userId, "Following:", nextIsFollowing);
     // TODO: Implement actual follow/unfollow API call
   };
 
   return (
-    <div className="px-4 py-6">
-      {/* Header */}
-      <div className="flex items-center gap-3 mb-6">
-        <button
-          onClick={onBack}
-          className="p-1 hover:bg-gray-100 rounded-full transition-colors"
-        >
-          <svg className="w-5 h-5 text-gray-600" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M21 17.502a.997.997 0 0 1-.707-.293L12 8.913l-8.293 8.296a1 1 0 1 1-1.414-1.414l9-9.004a1.03 1.03 0 0 1 1.414 0l9 9.004A1 1 0 0 1 21 17.502Z"/>
-          </svg>
-        </button>
-        <div className="flex items-center gap-3">
-          <Bookmark className="w-6 h-6 text-gray-900" />
-          <h1 className="text-xl font-semibold text-gray-900">
-            Tất cả bài viết
-          </h1>
-        </div>
-      </div>
-
+    <div className="px-4 py-4">
       {/* Content */}
-      {posts.length > 0 ? (
-        <LazyGrid
-          items={posts.map(post => ({
-            id: post.id,
-            thumbnail: post.post.media[0]?.url || '/placeholder.svg',
-            type: post.post.media[0]?.type === 'image' ? 'photo' : (post.post.media[0]?.type || 'photo'),
-            caption: post.post.content,
-            likesCount: post.post.likesCount,
-            commentsCount: post.post.commentsCount
-          }))}
-          onItemClick={handlePostClick}
-          className="pb-4"
-          columns={3}
-          gap="md"
-          enableProgressiveLoading={true}
-          enableBlurToSharp={false}
-          renderOverlay={(item, isVisible) => {
-            if (!isVisible) return null;
-            
-            const post = posts.find(p => p.id === item.id);
-            if (!post) return null;
-            
-            const isVideo = post.post.media[0]?.type === 'video' || post.post.media[0]?.type === 'reel';
-            const isCarousel = post.post.media.length > 1;
-            
-            return (
-              <>
-                {/* Video/Reel indicator */}
-                {isVideo && (
-                  <div className="absolute top-2 right-2">
-                    <svg className="w-4 h-4 text-white fill-current drop-shadow-lg" viewBox="0 0 24 24">
-                      <path d="M8 5v14l11-7z"/>
-                    </svg>
-                  </div>
-                )}
-                
-                {/* Carousel indicator */}
-                {isCarousel && (
-                  <div className="absolute top-2 left-2">
-                    <svg className="w-4 h-4 text-white fill-current drop-shadow-lg" viewBox="0 0 24 24">
-                      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
-                    </svg>
-                  </div>
-                )}
-                
-                {/* Hover overlay with stats */}
-                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
-                  <div className="flex items-center gap-4 text-white">
-                    <div className="flex items-center gap-1">
-                      <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
-                        <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+      {posts.length === 0 && loading ? (
+        <div className="flex justify-center py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </div>
+      ) : posts.length > 0 ? (
+        <>
+          <LazyGrid
+            items={posts.map((post, index) => ({
+              id: post.id,
+              thumbnail: post.post.media[0]?.url || "/placeholder.svg",
+              type:
+                post.post.media[0]?.type === "image"
+                  ? "photo"
+                  : post.post.media[0]?.type || "photo",
+              caption: post.post.content,
+              likesCount: post.post.likesCount,
+              commentsCount: post.post.commentsCount,
+              ref: index === posts.length - 1 ? lastElementRef : undefined,
+            }))}
+            onItemClick={handlePostClick}
+            className="pb-4"
+            columns={3}
+            gap="md"
+            enableProgressiveLoading={true}
+            enableBlurToSharp={false}
+            renderOverlay={(item, isVisible) => {
+              if (!isVisible) return null;
+
+              const post = posts.find((p) => p.id === item.id);
+              if (!post) return null;
+
+              const isVideo =
+                post.post.media[0]?.type === "video" ||
+                post.post.media[0]?.type === "reel";
+              const isCarousel = post.post.media.length > 1;
+
+              return (
+                <>
+                  {/* Video/Reel indicator */}
+                  {isVideo && (
+                    <div className="absolute top-2 right-2">
+                      <svg
+                        className="w-4 h-4 text-white fill-current drop-shadow-lg"
+                        viewBox="0 0 24 24"
+                      >
+                        <path d="M8 5v14l11-7z" />
                       </svg>
-                      <span className="font-semibold">{item.likesCount}</span>
                     </div>
-                    <div className="flex items-center gap-1">
-                      <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
-                        <path d="M21.99 4c0-1.1-.89-2-2-2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h14l4 4-.01-18zM18 14H6v-2h12v2zm0-3H6V9h12v2zm0-3H6V6h12v2z"/>
+                  )}
+
+                  {/* Carousel indicator */}
+                  {isCarousel && (
+                    <div className="absolute top-2 left-2">
+                      <svg
+                        className="w-4 h-4 text-white fill-current drop-shadow-lg"
+                        viewBox="0 0 24 24"
+                      >
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
                       </svg>
-                      <span className="font-semibold">{item.commentsCount}</span>
                     </div>
-                  </div>
-                </div>
-              </>
-            );
-          }}
-        />
+                  )}
+
+                  {/* Hover overlay */}
+                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
+                </>
+              );
+            }}
+          />
+          {loading && (
+            <div className="flex justify-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            </div>
+          )}
+        </>
       ) : (
-        <div className="text-center py-12">
-          <Bookmark className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">
+        <div className="text-center py-8 sm:py-12 px-4">
+          <Bookmark className="w-12 h-12 sm:w-16 sm:h-16 text-gray-300 dark:text-gray-700 mx-auto mb-3" />
+          <h3 className="text-base sm:text-lg font-medium text-muted-foreground mb-1">
             Chưa có bài viết nào được lưu
           </h3>
-          <p className="text-gray-500 mb-6">
+          <p className="text-xs sm:text-sm text-muted-foreground/80 max-w-xs mx-auto mb-4">
             Bắt đầu lưu các bài viết yêu thích để xem lại sau
           </p>
         </div>
@@ -314,6 +361,11 @@ export const SavedAllPostsContent: React.FC<SavedAllPostsContentProps> = ({ onBa
           onShare={handleShare}
           onOpenShareDialog={handleOpenShareDialog}
           isPostLiked={selectedPost.isLiked || false}
+          onPostLikeChange={(newIsLiked, newCount) => {
+            setSelectedPost((prev: any) =>
+              prev ? { ...prev, isLiked: newIsLiked, likesCount: newCount } : prev
+            );
+          }}
           isAuthorFollowed={isAuthorFollowed[selectedPost.author?.id] || false}
           onToggleFollowAuthor={handleToggleFollowAuthor}
         />

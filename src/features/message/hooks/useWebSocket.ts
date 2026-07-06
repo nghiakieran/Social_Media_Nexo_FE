@@ -12,7 +12,8 @@ import type {
   WebSocketErrorResponse,
   SendMessageRequest,
   PresenceStatusDTO,
-  ReactionUpdateDTO,
+  ReactionWebSocketPayload,
+  NicknameUpdateEvent,
 } from "../types";
 
 interface UseWebSocketOptions {
@@ -20,7 +21,8 @@ interface UseWebSocketOptions {
   onTyping?: (notification: TypingNotificationDTO) => void;
   onReadReceipt?: (receipt: ReadReceiptDTO) => void;
   onReadAll?: (receipt: ReadAllDTO) => void;
-  onReactionUpdate?: (update: ReactionUpdateDTO) => void;
+  onReactionUpdate?: (update: ReactionWebSocketPayload) => void;
+  onNicknameUpdate?: (event: NicknameUpdateEvent) => void;
   onError?: (error: WebSocketErrorResponse) => void;
   onPresence?: (presence: PresenceStatusDTO) => void;
   autoConnect?: boolean;
@@ -33,6 +35,7 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
     onReadReceipt,
     onReadAll,
     onReactionUpdate,
+    onNicknameUpdate,
     onError,
     onPresence,
     autoConnect = true,
@@ -42,15 +45,23 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
   const [isConnected, setIsConnected] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
   const subscribedConversations = useRef<Set<number>>(new Set());
+  const ownsConnectionRef = useRef(false);
+  const hasPresenceSubscriptionRef = useRef(false);
+  const hasErrorSubscriptionRef = useRef(false);
+  const errorSubscriptionUsernameRef = useRef<string | undefined>(undefined);
 
   const connect = useCallback(() => {
-    if (wsRef.current?.isConnected()) {
+    const ws = getWebSocketService();
+    wsRef.current = ws;
+
+    if (ws.isConnected()) {
+      setIsConnected(true);
+      ownsConnectionRef.current = false;
       return;
     }
 
+    ownsConnectionRef.current = true;
     setIsConnecting(true);
-    const ws = getWebSocketService();
-    wsRef.current = ws;
 
     ws.connect(
       () => {
@@ -69,10 +80,30 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
 
   const disconnect = useCallback(() => {
     if (wsRef.current) {
-      wsRef.current.disconnect();
-      wsRef.current = null;
-      setIsConnected(false);
+      subscribedConversations.current.forEach((conversationId) => {
+        wsRef.current?.unsubscribeFromConversation(conversationId);
+      });
       subscribedConversations.current.clear();
+
+      if (hasPresenceSubscriptionRef.current) {
+        wsRef.current.unsubscribeFromPresence();
+        hasPresenceSubscriptionRef.current = false;
+      }
+
+      if (hasErrorSubscriptionRef.current) {
+        wsRef.current.unsubscribeFromErrors(errorSubscriptionUsernameRef.current);
+        hasErrorSubscriptionRef.current = false;
+        errorSubscriptionUsernameRef.current = undefined;
+      }
+
+      if (ownsConnectionRef.current) {
+        wsRef.current.disconnect();
+      }
+
+      wsRef.current = null;
+      ownsConnectionRef.current = false;
+      setIsConnected(false);
+      setIsConnecting(false);
     }
   }, []);
 
@@ -94,12 +125,13 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
         (notification) => onTyping?.(notification),
         (receipt) => onReadReceipt?.(receipt),
         (receipt) => onReadAll?.(receipt),
-        (update) => onReactionUpdate?.(update)
+        (update) => onReactionUpdate?.(update),
+        (event) => onNicknameUpdate?.(event)
       );
 
       subscribedConversations.current.add(conversationId);
     },
-    [onMessage, onTyping, onReadReceipt, onReadAll, onReactionUpdate]
+    [onMessage, onTyping, onReadReceipt, onReadAll, onReactionUpdate, onNicknameUpdate]
   );
 
   const unsubscribeFromConversation = useCallback((conversationId: number) => {
@@ -115,11 +147,13 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
     }
 
     wsRef.current.subscribeToPresence(onPresence);
+    hasPresenceSubscriptionRef.current = true;
   }, [onPresence]);
 
   const unsubscribeFromPresence = useCallback(() => {
     if (wsRef.current) {
       wsRef.current.unsubscribeFromPresence();
+      hasPresenceSubscriptionRef.current = false;
     }
   }, []);
 
@@ -130,6 +164,8 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
       }
 
       wsRef.current.subscribeToErrors(onError, username);
+      hasErrorSubscriptionRef.current = true;
+      errorSubscriptionUsernameRef.current = username;
     },
     [onError]
   );
@@ -180,6 +216,15 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
     }
   }, []);
 
+  const subscribeToMessageOnly = useCallback(
+    (conversationId: number, onMessage: (msg: MessageDTO) => void) => {
+      if (wsRef.current?.isConnected()) {
+        wsRef.current.subscribeToMessageOnly(conversationId, onMessage);
+      }
+    },
+    []
+  );
+
   // Send reaction via WebSocket
   const sendReaction = useCallback(
     (messageId: number, reactionType: EReactionType) => {
@@ -225,6 +270,7 @@ export const useWebSocket = (options: UseWebSocketOptions = {}) => {
     disconnect,
     subscribeToConversation,
     unsubscribeFromConversation,
+    subscribeToMessageOnly,
     subscribeToPresence,
     unsubscribeFromPresence,
     subscribeToErrors,

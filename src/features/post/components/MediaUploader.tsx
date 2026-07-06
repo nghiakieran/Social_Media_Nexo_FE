@@ -140,14 +140,14 @@ export const MediaUploader = ({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Upload Area */}
       <div
         className={`
-          border-2 border-dashed rounded-2xl p-12 text-center transition-all duration-300
+          border-2 border-dashed rounded-2xl p-6 sm:p-12 text-center transition-all duration-300
           ${
             dragActive
-              ? "border-primary bg-primary/5 scale-[1.02]"
+              ? "border-primary bg-primary/5 scale-[1.01]"
               : "border-border/50 hover:border-primary/50 hover:bg-muted/20"
           }
           ${uploading ? "pointer-events-none opacity-50" : "cursor-pointer"}
@@ -168,45 +168,46 @@ export const MediaUploader = ({
           disabled={uploading}
         />
 
-        <div className="space-y-6">
-          <div className="w-20 h-20 mx-auto rounded-2xl bg-gradient-to-br from-primary/10 to-accent/10 flex items-center justify-center shadow-lg">
+        <div className="space-y-4 sm:space-y-6">
+          <div className="w-14 h-14 sm:w-20 sm:h-20 mx-auto rounded-2xl bg-gradient-to-br from-primary/10 to-accent/10 flex items-center justify-center shadow-lg">
             {uploading ? (
-              <div className="animate-spin rounded-full h-10 w-10 border-3 border-primary/30 border-t-primary"></div>
+              <div className="h-7 w-7 sm:h-10 sm:w-10 animate-spin rounded-full border-3 border-primary/30 border-t-primary" />
             ) : (
-              <Upload className="w-10 h-10 text-primary" />
+              <Upload className="w-7 h-7 sm:w-10 sm:h-10 text-primary" />
             )}
           </div>
 
           {uploading ? (
-            <div className="space-y-4">
-              <p className="text-lg font-semibold">Đang tải lên...</p>
+            <div className="space-y-3">
+              <p className="text-base sm:text-lg font-bold text-foreground">Đang tải lên...</p>
               <Progress
                 value={uploadProgress}
-                className="w-full max-w-md mx-auto h-2"
+                className="w-full max-w-xs sm:max-w-md mx-auto h-1.5 sm:h-2"
               />
-              <p className="text-sm text-muted-foreground">
+              <p className="text-xs sm:text-sm text-muted-foreground">
                 {Math.round(uploadProgress)}% hoàn thành
               </p>
             </div>
           ) : (
             <>
-              <div className="space-y-2">
-                <p className="text-lg font-semibold text-foreground">
-                  Kéo thả file vào đây hoặc click để chọn
+              <div className="space-y-1.5">
+                <p className="text-sm sm:text-lg font-bold text-foreground leading-snug">
+                  <span className="hidden sm:inline">Kéo thả file vào đây hoặc </span>
+                  <span>Nhấp để chọn ảnh/video</span>
                 </p>
-                <p className="text-muted-foreground">
-                  Hỗ trợ ảnh và video, tối đa {maxFiles} file, mỗi file ≤ 50MB
+                <p className="text-xs sm:text-sm text-muted-foreground">
+                  Tối đa {maxFiles} file, mỗi file ≤ 50MB
                 </p>
               </div>
 
-              <div className="flex items-center justify-center gap-6 text-sm text-muted-foreground">
-                <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-muted/50">
-                  <Image className="w-5 h-5" />
-                  <span className="font-medium">JPG, PNG, GIF</span>
+              <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-4 text-xs sm:text-sm text-muted-foreground pt-1">
+                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-muted/40 border border-border/20">
+                  <Image className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary" />
+                  <span className="font-semibold text-foreground text-[10px] sm:text-xs">JPG, PNG, GIF</span>
                 </div>
-                <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-muted/50">
-                  <Video className="w-5 h-5" />
-                  <span className="font-medium">MP4, MOV, AVI</span>
+                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-muted/40 border border-border/20">
+                  <Video className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary" />
+                  <span className="font-semibold text-foreground text-[10px] sm:text-xs">MP4, MOV, AVI</span>
                 </div>
               </div>
             </>
@@ -218,24 +219,24 @@ export const MediaUploader = ({
       {existingMedia.length > 0 && (
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <p className="text-sm font-semibold text-foreground">
+            <p className="text-xs sm:text-sm font-semibold text-foreground">
               Media đã chọn ({existingMedia.length})
             </p>
             <Button
               variant="ghost"
               size="sm"
               onClick={() => onUpload([])}
-              className="text-xs text-muted-foreground hover:text-destructive"
+              className="text-xs text-muted-foreground hover:text-destructive h-7 px-2"
               disabled={uploading}
             >
               Xóa tất cả
             </Button>
           </div>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-3 gap-2 sm:gap-3">
             {existingMedia.map((item) => (
-              <div key={item.id} className="relative group">
+              <div key={item.id} className="relative group aspect-square rounded-xl overflow-hidden bg-muted border border-border/50">
                 <div
-                  className="aspect-square rounded-xl overflow-hidden bg-muted shadow-md cursor-pointer"
+                  className="w-full h-full cursor-pointer"
                   onClick={() => setSelectedMedia(item)}
                 >
                   {item.type === "image" ? (
@@ -259,12 +260,12 @@ export const MediaUploader = ({
                     );
                     onUpload(updatedMedia);
                   }}
-                  className="absolute top-2 right-2 bg-black/70 hover:bg-black/90 text-white rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-lg z-10"
+                  className="absolute top-1.5 right-1.5 bg-black/70 hover:bg-black/90 text-white rounded-full p-1 shadow-md z-10"
                   disabled={uploading}
                 >
-                  <X className="w-4 h-4" />
+                  <X className="w-3.5 h-3.5" />
                 </button>
-                <div className="absolute bottom-2 left-2 bg-black/70 text-white text-xs px-2 py-1 rounded-full">
+                <div className="absolute bottom-1.5 left-1.5 bg-black/70 text-white text-[10px] px-1.5 py-0.5 rounded-full">
                   {item.type === "image" ? "📷" : "🎥"}
                 </div>
               </div>
@@ -274,19 +275,19 @@ export const MediaUploader = ({
       )}
 
       {/* Actions */}
-      <div className="flex justify-end gap-3 pt-4 border-t border-border/50">
+      <div className="flex justify-end gap-3 pt-3 border-t border-border/50">
         <Button
           variant="outline"
           onClick={onClose}
           disabled={uploading}
-          className="rounded-xl"
+          className="rounded-xl h-9 text-xs sm:text-sm px-4"
         >
           Hủy
         </Button>
         <Button
           onClick={onClose}
           disabled={uploading}
-          className="rounded-xl bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90"
+          className="rounded-xl h-9 text-xs sm:text-sm px-5 bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 shadow-md hover:shadow-lg"
         >
           Xong
         </Button>

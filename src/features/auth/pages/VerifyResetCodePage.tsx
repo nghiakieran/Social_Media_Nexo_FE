@@ -163,8 +163,8 @@ export const VerifyResetCodePage = () => {
       <div className="flex items-center justify-center p-4 min-h-[calc(100vh-80px)]">
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
-            <div className="w-16 h-16 bg-gradient-to-r from-orange-400 via-pink-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Mail className="w-8 h-8 text-white" />
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-md">
+              <Mail className="h-8 w-8" />
             </div>
             <CardTitle>Nhập mã xác thực</CardTitle>
             <p className="text-sm text-muted-foreground">
@@ -197,7 +197,8 @@ export const VerifyResetCodePage = () => {
               {/* Submit Button */}
               <Button
                 type="submit"
-                className="w-full h-10 bg-gradient-to-r from-orange-400 via-pink-500 to-purple-600 hover:from-orange-500 hover:via-pink-600 hover:to-purple-700"
+                variant="default"
+                className="h-11 w-full rounded-full font-semibold shadow-md hover:shadow-lg"
                 disabled={isLoading || code.length !== 6}
               >
                 {isLoading ? 'Đang xác thực...' : 'Xác thực mã'}

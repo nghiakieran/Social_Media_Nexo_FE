@@ -13,6 +13,7 @@ import type {
   ReadAllDTO,
   ReactionDTO,
   AggregatedReactionDTO,
+  NicknameUpdateEvent,
 } from "./types";
 
 export interface MessageState {
@@ -30,6 +31,7 @@ export interface MessageState {
     page: number;
     size: number;
     totalPages: number;
+    totalElements: number;
     hasMore: boolean;
   };
   messagesPagination: {
@@ -41,6 +43,7 @@ export interface MessageState {
       hasMore: boolean;
     };
   };
+  pendingRequestsCount: number;
 }
 
 const initialState: MessageState = {
@@ -58,9 +61,11 @@ const initialState: MessageState = {
     page: 0,
     size: 20,
     totalPages: 0,
+    totalElements: 0,
     hasMore: true,
   },
   messagesPagination: {},
+  pendingRequestsCount: 0,
 };
 
 export const fetchConversations = createAsyncThunk(
@@ -76,6 +81,14 @@ export const fetchConversationRequests = createAsyncThunk(
   async (params: { search?: string; page?: number; size?: number } = {}) => {
     const response = await conversationApi.getConversationRequests(params);
     return response.data;
+  }
+);
+
+export const fetchPendingRequestsCountThunk = createAsyncThunk(
+  "message/fetchPendingRequestsCount",
+  async () => {
+    const response = await conversationApi.getConversationRequests({ size: 1 });
+    return response.data?.totalElements ?? 0;
   }
 );
 
@@ -186,6 +199,9 @@ const messageSlice = createSlice({
   name: "message",
   initialState,
   reducers: {
+    setPendingRequestsCount: (state, action: PayloadAction<number>) => {
+      state.pendingRequestsCount = action.payload;
+    },
     setConversations: (
       state,
       action: PayloadAction<ConversationResponseDTO[]>
@@ -663,6 +679,26 @@ const messageSlice = createSlice({
       }
       Object.assign(state.messagesPagination[conversationId], pagination);
     },
+
+    handleNicknameUpdate: (state, action: PayloadAction<NicknameUpdateEvent>) => {
+      const { conversationId, targetUserId, nickname, participants } = action.payload;
+
+      // Cập nhật participants trong conversation
+      const conv = state.conversations.find((c) => c.id === conversationId);
+      if (conv && participants) {
+        conv.participants = participants;
+      }
+
+      // Cập nhật sender.nickname trong tất cả messages của conversation này
+      const messages = state.messages[conversationId];
+      if (messages) {
+        messages.forEach((msg) => {
+          if (msg.sender.id === targetUserId) {
+            msg.sender = { ...msg.sender, nickname: nickname ?? undefined };
+          }
+        });
+      }
+    },
   },
 
   extraReducers: (builder) => {
@@ -673,7 +709,8 @@ const messageSlice = createSlice({
       })
       .addCase(fetchConversations.fulfilled, (state, action) => {
         state.loading = false;
-        const { content, totalPages, number, last } = action.payload;
+        const { content, totalPages, totalElements, number, last } =
+          action.payload;
 
         if (number === 0) {
           state.conversations = content.map((conv) => ({
@@ -697,6 +734,7 @@ const messageSlice = createSlice({
           page: number,
           size: content.length,
           totalPages,
+          totalElements: totalElements ?? 0,
           hasMore: !last,
         };
       })
@@ -827,10 +865,15 @@ const messageSlice = createSlice({
         conv.status = EConversationStatus.DECLINED;
       }
     });
+
+    builder.addCase(fetchPendingRequestsCountThunk.fulfilled, (state, action) => {
+      state.pendingRequestsCount = action.payload;
+    });
   },
 });
 
 export const {
+  setPendingRequestsCount,
   setConversations,
   upsertConversation,
   setMessages,
@@ -858,6 +901,7 @@ export const {
   updateMessagesPagination,
   setReplyingTo,
   clearReplyingTo,
+  handleNicknameUpdate,
 } = messageSlice.actions;
 
 export default messageSlice.reducer;

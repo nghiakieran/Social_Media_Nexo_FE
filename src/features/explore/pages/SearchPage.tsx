@@ -1,21 +1,16 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "@/store";
 import { useDebouncedSearch } from "@/hooks/use-debounce-search";
 import { SearchBar } from "../components/SearchBar";
 import { SearchResultList } from "../components/SearchResultList";
-import { TrendingSection } from "../components/TrendingSection";
+import { SuggestedUsersSection } from "../components/SuggestedUsersSection";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { navigateToProfile } from "@/utils/navigation";
 import {
   Clock,
   X,
-  TrendingUp,
-  Users,
-  Hash,
-  Grid3X3,
   Search as SearchIcon,
 } from "lucide-react";
 import {
@@ -25,10 +20,9 @@ import {
   removeRecentSearch,
   clearRecentSearches,
   followHashtag,
-  setTrendingHashtags,
   searchUsersThunk,
 } from "../exploreSlice";
-import { getExploreHashtags } from "../api/exploreApi";
+import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
 
 export const SearchPage: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -38,10 +32,19 @@ export const SearchPage: React.FC = () => {
     isSearching,
     activeFilter,
     recentSearches,
-    trendingHashtags,
+    searchPage,
+    searchHasMore,
+    searchTotalElements,
+    error,
   } = useAppSelector((state) => state.explore);
 
   const [hasSearched, setHasSearched] = useState(false);
+  const lastLoadedPageRef = useRef(0);
+
+  // Sync lastLoadedPageRef with Redux searchPage
+  useEffect(() => {
+    lastLoadedPageRef.current = searchPage;
+  }, [searchPage]);
 
   // Use debounced search hook with 500ms delay
   const { searchValue, debouncedValue, setSearchValue } = useDebouncedSearch(
@@ -49,21 +52,12 @@ export const SearchPage: React.FC = () => {
     500
   );
 
-  // Initialize data
-  useEffect(() => {
-    const fetchHashtags = async () => {
-      const data = await getExploreHashtags();
-      dispatch(setTrendingHashtags(data));
-    };
-    fetchHashtags();
-  }, [dispatch]);
-
   // Auto search when debounced value changes
   useEffect(() => {
     if (debouncedValue.trim()) {
       setHasSearched(true);
-      // Call search users API
-      dispatch(searchUsersThunk({ query: debouncedValue }))
+      // Call search users API starting with pageNo 0 and pageSize 10
+      dispatch(searchUsersThunk({ query: debouncedValue, pageNo: 0, pageSize: 10 }))
         .unwrap()
         .catch((error) => {
           console.error("Search error:", error);
@@ -84,11 +78,32 @@ export const SearchPage: React.FC = () => {
     setHasSearched(true);
 
     try {
-      await dispatch(searchUsersThunk({ query })).unwrap();
+      await dispatch(searchUsersThunk({ query, pageNo: 0, pageSize: 10 })).unwrap();
     } catch (error) {
       console.error("Search error:", error);
     }
   };
+
+  const handleLoadMore = () => {
+    const nextPage = searchPage + 1;
+    if (searchHasMore && !isSearching && debouncedValue.trim() && nextPage > lastLoadedPageRef.current) {
+      lastLoadedPageRef.current = nextPage;
+      dispatch(
+        searchUsersThunk({
+          query: debouncedValue,
+          pageNo: nextPage,
+          pageSize: 10,
+        })
+      );
+    }
+  };
+
+  const { lastElementRef } = useInfiniteScroll(handleLoadMore, {
+    hasMore: searchHasMore,
+    isLoading: isSearching,
+    error,
+    threshold: 200,
+  });
 
   const handleQueryChange = (query: string) => {
     setSearchValue(query);
@@ -97,14 +112,6 @@ export const SearchPage: React.FC = () => {
       setHasSearched(false);
     }
   };
-
-  const trendingSearches = [
-    "du lịch",
-    "ẩm thực",
-    "thời trang",
-    "nhiếp ảnh",
-    "nghệ thuật",
-  ];
 
   const getTotalResults = () => {
     return (
@@ -132,14 +139,13 @@ export const SearchPage: React.FC = () => {
     <div className="min-h-screen bg-background">
       <div className="max-w-2xl mx-auto p-4">
         {/* Search Bar */}
-        <div className="sticky top-0 bg-background z-10 pb-4">
+        <div className="sticky top-16 lg:top-0 bg-background z-10 pt-3 pb-4">
           <SearchBar
             value={searchValue}
             onChange={handleQueryChange}
             onSubmit={handleSearch}
-            placeholder="Tìm kiếm tài khoản, hashtag và nhiều hơn nữa..."
+            placeholder="Tìm kiếm tài khoản"
             recentSearches={recentSearches}
-            trendingSearches={trendingSearches}
             onRecentSelect={(search) => {
               setSearchValue(search);
               dispatch(setSearchQuery(search));
@@ -149,23 +155,11 @@ export const SearchPage: React.FC = () => {
             className="mb-4"
           />
 
-          {/* Clear Recent Searches */}
-          {!hasSearched && recentSearches.length > 0 && (
-            <div className="flex justify-end">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => dispatch(clearRecentSearches())}
-                className="text-primary hover:text-primary/80"
-              >
-                Xóa tất cả
-              </Button>
-            </div>
-          )}
+
         </div>
 
         {/* Loading State */}
-        {isSearching && (
+        {isSearching && searchResults.users.length === 0 && (
           <div className="space-y-4">
             {Array.from({ length: 5 }).map((_, index) => (
               <div key={index} className="flex items-center space-x-3 p-3">
@@ -180,10 +174,10 @@ export const SearchPage: React.FC = () => {
         )}
 
         {/* Search Results */}
-        {hasSearched && !isSearching && (
+        {hasSearched && (searchResults.users.length > 0 || !isSearching) && (
           <div className="space-y-6">
             {/* No Results Message */}
-            {getTotalResults() === 0 && (
+            {!isSearching && searchTotalElements === 0 && (
               <div className="text-center py-12">
                 <div className="w-16 h-16 mx-auto rounded-full bg-muted flex items-center justify-center mb-4">
                   <SearchIcon className="h-8 w-8 text-muted-foreground" />
@@ -192,106 +186,97 @@ export const SearchPage: React.FC = () => {
                   Không tìm thấy kết quả
                 </h3>
                 <p className="text-muted-foreground text-sm">
-                  Hãy thử tìm kiếm người dùng, hashtag hoặc từ khóa khác.
+                  Hãy thử tìm kiếm tài khoản khác.
                 </p>
               </div>
             )}
 
             {/* Results Header */}
-            {getTotalResults() > 0 && (
+            {searchTotalElements > 0 && (
               <>
                 <div className="flex items-center justify-between">
                   <h2 className="text-lg font-semibold">
-                    {getTotalResults()} kết quả cho "{searchValue}"
+                    {searchTotalElements} kết quả cho "{searchValue}"
                   </h2>
                 </div>
 
-                {/* Filter Tabs */}
-                <Tabs
-                  value={activeFilter}
-                  onValueChange={(value) =>
-                    dispatch(
-                      setActiveFilter(
-                        value as "all" | "users" | "hashtags" | "posts"
-                      )
-                    )
-                  }
-                >
-                  <TabsList className="grid w-full grid-cols-4">
-                    {/* <TabsTrigger value="all" className="text-xs">
-                      Tất cả ({getTotalResults()})
-                    </TabsTrigger> */}
-                    <TabsTrigger value="users" className="text-xs">
-                      <Users className="h-3 w-3 mr-1" />
-                      Người dùng ({getFilteredCount("users")})
-                    </TabsTrigger>
-                    {/* <TabsTrigger value="hashtags" className="text-xs">
-                      <Hash className="h-3 w-3 mr-1" />
-                      Hashtag ({getFilteredCount("hashtags")})
-                    </TabsTrigger>
-                    <TabsTrigger value="posts" className="text-xs">
-                      <Grid3X3 className="h-3 w-3 mr-1" />
-                      Bài viết ({getFilteredCount("posts")})
-                    </TabsTrigger> */}
-                  </TabsList>
+                <div className="mt-4">
+                  <SearchResultList
+                    results={searchResults}
+                    activeFilter={activeFilter}
+                    onUserClick={(userId) => {
+                      // Find user by id to get username
+                      const user = searchResults.users.find(
+                        (u) => u.id === userId
+                      );
+                      if (user) {
+                        navigateToProfile(navigate, user.username);
+                      }
+                    }}
+                    onHashtagClick={(hashtagId) =>
+                      console.log("Hashtag clicked:", hashtagId)
+                    }
+                    onPostClick={(postId) =>
+                      console.log("Post clicked:", postId)
+                    }
+                    onFollowHashtag={(hashtagId) =>
+                      dispatch(followHashtag(hashtagId))
+                    }
+                  />
 
-                  <TabsContent value={activeFilter} className="mt-6">
-                    <SearchResultList
-                      results={searchResults}
-                      activeFilter={activeFilter}
-                      onUserClick={(userId) => {
-                        // Find user by id to get username
-                        const user = searchResults.users.find(
-                          (u) => u.id === userId
-                        );
-                        if (user) {
-                          navigateToProfile(navigate, user.username);
-                        }
-                      }}
-                      onHashtagClick={(hashtagId) =>
-                        console.log("Hashtag clicked:", hashtagId)
-                      }
-                      onPostClick={(postId) =>
-                        console.log("Post clicked:", postId)
-                      }
-                      onFollowUser={(userId) =>
-                        console.log("Follow user:", userId)
-                      }
-                      onFollowHashtag={(hashtagId) =>
-                        dispatch(followHashtag(hashtagId))
-                      }
-                    />
-                  </TabsContent>
-                </Tabs>
+                  {/* Infinite Scroll Anchor & Loader */}
+                  {searchHasMore && (
+                    <div
+                      ref={lastElementRef as unknown as (node: HTMLDivElement | null) => void}
+                      className="flex justify-center py-4 min-h-[40px]"
+                    >
+                      {isSearching && (
+                        <div className="text-center text-muted-foreground text-xs animate-pulse">
+                          Đang tải kết quả...
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
               </>
             )}
           </div>
         )}
 
-        {/* Default State - Trending */}
+        {/* Default State */}
         {!hasSearched && !isSearching && (
-          <div className="space-y-8">
+          <div className="space-y-6">
             {/* Recent Searches */}
             {recentSearches.length > 0 && (
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold flex items-center">
-                  <Clock className="h-5 w-5 mr-2 text-muted-foreground" />
-                  Gần đây
-                </h3>
-                <div className="space-y-2">
+              <div className="space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-semibold text-muted-foreground flex items-center">
+                    <Clock className="h-4 w-4 mr-1.5 text-muted-foreground/70" />
+                    Gần đây
+                  </h3>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => dispatch(clearRecentSearches())}
+                    className="text-xs text-primary hover:text-primary/80 h-auto p-0 hover:bg-transparent"
+                  >
+                    Xóa tất cả
+                  </Button>
+                </div>
+                <div className="space-y-1">
                   {recentSearches.slice(0, 5).map((search, index) => (
                     <div
                       key={index}
-                      className="flex items-center justify-between p-3 hover:bg-muted/50 rounded-lg cursor-pointer group"
+                      className="flex items-center justify-between py-1.5 px-2.5 hover:bg-muted/50 rounded-lg cursor-pointer group"
                       onClick={() => {
                         setSearchValue(search);
                         dispatch(setSearchQuery(search));
                         handleSearch(search);
                       }}
                     >
-                      <div className="flex items-center space-x-3">
-                        <SearchIcon className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm">{search}</span>
+                      <div className="flex items-center space-x-2.5">
+                        <SearchIcon className="h-3.5 w-3.5 text-muted-foreground/60" />
+                        <span className="text-sm text-foreground/90">{search}</span>
                       </div>
                       <Button
                         variant="ghost"
@@ -302,52 +287,16 @@ export const SearchPage: React.FC = () => {
                           dispatch(removeRecentSearch(search));
                         }}
                       >
-                        <X className="h-3 w-3" />
+                        <X className="h-3.5 w-3.5" />
                       </Button>
                     </div>
                   ))}
                 </div>
               </div>
             )}
-            Trending Hashtags
-            <TrendingSection
-              hashtags={trendingHashtags}
-              onHashtagClick={(hashtag) => {
-                navigate(
-                  `/explore?hashtag=${encodeURIComponent(
-                    hashtag.name.replace(/^#/, "")
-                  )}`
-                );
-              }}
-              onFollowHashtag={(hashtagId) =>
-                dispatch(followHashtag(hashtagId))
-              }
-              onViewAll={() => console.log("View all trending")}
-            />
-            {/* Suggested Searches */}
-            {/* <div className="space-y-4">
-              <h3 className="text-lg font-semibold flex items-center">
-                <TrendingUp className="h-5 w-5 mr-2 text-muted-foreground" />
-                Tìm kiếm thịnh hành
-              </h3>
-              <div className="flex flex-wrap gap-2">
-                {trendingSearches.map((search, index) => (
-                  <Button
-                    key={index}
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setSearchValue(search);
-                      dispatch(setSearchQuery(search));
-                      handleSearch(search);
-                    }}
-                    className="rounded-full"
-                  >
-                    {search}
-                  </Button>
-                ))}
-              </div> */}
-            {/* </div> */}
+
+            {/* Suggested Users */}
+            <SuggestedUsersSection />
           </div>
         )}
       </div>

@@ -1,26 +1,34 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useForm } from "react-hook-form";
-import { Eye, EyeOff, Mail, Lock } from "lucide-react";
+import { Eye, EyeOff, Mail, Lock, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { OAuthButton } from "./OAuthButton";
 import { useAppDispatch, useAppSelector } from "@/store";
 import { loginAsync } from "../authSlice";
-import { mockAuthDelay } from "../__mocks__/users";
 import type { LoginFormData } from "../types";
-import { AUTH_REGISTER_ENDPOINT, ACCESS_TOKEN_STORAGE_KEY } from "@/utils/constants";
-import { hasAdminRole } from "@/lib/utils";
+import {
+  AUTH_REGISTER_ENDPOINT,
+  ACCESS_TOKEN_STORAGE_KEY,
+  OAUTH_AUTH_BASE_URL,
+} from "@/utils/constants";
+import { cn, hasAdminRole } from "@/lib/utils";
+
+const fieldClass =
+  "h-12 rounded-full border border-input/80 bg-background/80 pl-11 pr-4 text-sm shadow-[inset_0_1px_0_rgba(0,0,0,0.03)] transition-all placeholder:text-muted-foreground/70 focus-visible:border-primary/50 focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:ring-offset-0";
 
 export const LoginForm = () => {
   const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
   const location = useLocation();
   const dispatch = useAppDispatch();
-  const { isLoading, error } = useAppSelector((state) => state.auth);
+  const { isLoading } = useAppSelector((state) => state.auth);
 
   const {
     register,
@@ -33,11 +41,11 @@ export const LoginForm = () => {
       await dispatch(loginAsync(data)).unwrap();
 
       toast({
+        variant: "success",
         title: "Đăng nhập thành công!",
         description: "Chào mừng trở lại!",
       });
 
-      // Check if user has ADMIN role and redirect accordingly
       const accessToken = localStorage.getItem(ACCESS_TOKEN_STORAGE_KEY);
       if (hasAdminRole(accessToken)) {
         navigate("/admin");
@@ -72,7 +80,6 @@ export const LoginForm = () => {
     }
   };
 
-  // Show session expired message based on query param
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     if (params.get("reason") === "session_expired") {
@@ -83,13 +90,14 @@ export const LoginForm = () => {
       });
     }
   }, [location.search, toast]);
-
+  
   const handleOAuth = async (provider: string) => {
-    const baseUrl =
-      "http://localhost:9090/realms/nexo-network/protocol/openid-connect/auth";
+    const baseUrl = OAUTH_AUTH_BASE_URL ;
     const params = new URLSearchParams({
       client_id: "auth-service-client",
-      redirect_uri: "http://localhost:3000/auth/oauth/callback",
+      redirect_uri:
+        import.meta.env.VITE_OAUTH_REDIRECT_URI ||
+        "http://localhost:3000/auth/oauth/callback",
       response_type: "code",
       kc_idp_hint: provider,
     });
@@ -97,27 +105,33 @@ export const LoginForm = () => {
     window.location.href = authUrl;
   };
 
-
   return (
-    <div className="w-full max-w-sm mx-auto">
-      <div className="text-center mb-8">
-        <h1 className="text-3xl font-bold bg-gradient-instagram bg-clip-text text-transparent mb-2">
-          Nexo
+    <div className="mx-auto w-full max-w-md">
+      <div className="mb-4 space-y-1">
+        <h1 className="text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
+          Đăng nhập
         </h1>
-        <p className="text-muted-foreground">Đăng nhập vào tài khoản của bạn</p>
+        <p className="text-xs leading-relaxed text-muted-foreground sm:text-sm">
+          Chào mừng trở lại. Nhập email và mật khẩu để tiếp tục.
+        </p>
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-        {/* Email */}
         <div className="space-y-2">
-          <Label htmlFor="email">Email</Label>
+          <Label
+            htmlFor="email"
+            className="text-xs font-semibold uppercase tracking-wide text-muted-foreground"
+          >
+            Email
+          </Label>
           <div className="relative">
-            <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Mail className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               id="email"
               type="email"
-              placeholder="your@email.com"
-              className="pl-10"
+              placeholder="ten@nexo.com"
+              className={cn(fieldClass, "pl-11")}
+              autoComplete="email"
               {...register("email", {
                 required: "Email là bắt buộc",
                 pattern: {
@@ -132,30 +146,42 @@ export const LoginForm = () => {
           )}
         </div>
 
-        {/* Password */}
         <div className="space-y-2">
-          <Label htmlFor="password">Mật khẩu</Label>
+          <div className="flex items-center justify-between gap-3">
+            <Label
+              htmlFor="password"
+              className="text-xs font-semibold uppercase tracking-wide text-muted-foreground"
+            >
+              Mật khẩu
+            </Label>
+            <Link
+              to="/auth/forgot-password"
+              className="text-xs font-medium text-primary transition-colors hover:text-primary/90 hover:underline"
+            >
+              Quên mật khẩu?
+            </Link>
+          </div>
           <div className="relative">
-            <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Lock className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               id="password"
               type={showPassword ? "text" : "password"}
               placeholder="••••••••"
-              className="pl-10 pr-10"
+              className={cn(fieldClass, "pl-11 pr-12")}
+              autoComplete="current-password"
               {...register("password", {
                 required: "Mật khẩu là bắt buộc",
                 minLength: {
                   value: 5,
-                  message: "Mật khẩu phải có ít nhất 8 ký tự",
+                  message: "Mật khẩu phải có ít nhất 5 ký tự",
                 },
               })}
             />
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              tabIndex={-1}
-              aria-hidden="true"
-              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+              className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1.5 text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground"
+              aria-label={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
             >
               {showPassword ? (
                 <EyeOff className="h-4 w-4" />
@@ -171,51 +197,59 @@ export const LoginForm = () => {
           )}
         </div>
 
-        {/* Forgot Password */}
-        <div className="text-right">
-          <Link
-            to="/auth/forgot-password"
-            className="text-sm text-primary hover:underline"
-            tabIndex={-1}
+        <div className="flex items-center gap-2 pt-0.5">
+          <Checkbox
+            id="remember"
+            checked={rememberMe}
+            onCheckedChange={(v) => setRememberMe(v === true)}
+            className="h-[1.125rem] w-[1.125rem] rounded border-2 border-primary/50 data-[state=unchecked]:bg-background/80 data-[state=checked]:border-primary"
+          />
+          <Label
+            htmlFor="remember"
+            className="cursor-pointer text-sm font-normal leading-none text-foreground/90"
           >
-            Quên mật khẩu?
-          </Link>
+            Duy trì đăng nhập
+          </Label>
         </div>
 
-        {/* Submit Button */}
         <Button
           type="submit"
-          variant="instagram"
-          className="w-full h-11"
+          variant="default"
+          className="group mt-1 h-11 w-full rounded-full text-sm font-semibold shadow-md hover:shadow-lg sm:h-12 sm:text-base"
           disabled={isLoading}
         >
-          {isLoading ? "Đang đăng nhập..." : "Đăng nhập"}
+          {isLoading ? (
+            "Đang đăng nhập..."
+          ) : (
+            <>
+              Đăng nhập
+              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+            </>
+          )}
         </Button>
       </form>
 
-      {/* Divider */}
-      <div className="flex items-center gap-4 my-6">
-        <div className="flex-1 h-px bg-border"></div>
-        <span className="text-sm text-muted-foreground">hoặc</span>
-        <div className="flex-1 h-px bg-border"></div>
+      <div className="my-5 flex items-center gap-3 sm:my-6">
+        <div className="h-px flex-1 bg-gradient-to-r from-transparent via-border to-transparent" />
+        <span className="whitespace-nowrap text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground/90">
+          Hoặc tiếp tục với
+        </span>
+        <div className="h-px flex-1 bg-gradient-to-r from-transparent via-border to-transparent" />
       </div>
 
-      {/* OAuth Buttons */}
-      <div className="space-y-3">
-        <OAuthButton
-          provider="google"
-          onAuth={handleOAuth}
-          disabled={isLoading}
-        />
-      </div>
+      <OAuthButton
+        provider="google"
+        onAuth={handleOAuth}
+        disabled={isLoading}
+        className="h-11 rounded-full text-sm shadow-sm sm:h-12"
+      />
 
-      {/* Register Link */}
-      <div className="text-center mt-6 pt-6 border-t border-border">
+      <div className="mt-5 border-t border-border/60 pt-5 text-center sm:mt-6 sm:pt-6">
         <p className="text-sm text-muted-foreground">
           Chưa có tài khoản?{" "}
           <Link
             to={AUTH_REGISTER_ENDPOINT}
-            className="text-primary hover:underline font-medium"
+            className="font-semibold text-primary transition-colors hover:text-primary/90 hover:underline"
           >
             Đăng ký ngay
           </Link>

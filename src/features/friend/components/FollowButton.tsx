@@ -27,6 +27,7 @@ export const FollowButton = ({
 }: FollowButtonProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
+  const [justFollowed, setJustFollowed] = useState(false);
   const { toast } = useToast();
 
   const handleClick = async () => {
@@ -40,6 +41,8 @@ export const FollowButton = ({
         });
       } else {
         await onFollow?.(userId);
+        setJustFollowed(true);
+        setIsHovered(false);
         toast({
           description: 'Đã theo dõi',
         });
@@ -95,9 +98,9 @@ export const FollowButton = ({
 
   const getButtonVariant = () => {
     if (isFollowing) {
-      return isHovered ? 'destructive' : 'outline';
+      return 'outline';
     }
-    return variant === 'outline' ? 'outline' : 'instagram';
+    return variant === "outline" ? "outline" : "default";
   };
 
   return (
@@ -105,12 +108,20 @@ export const FollowButton = ({
       size={size}
       variant={getButtonVariant()}
       onClick={handleClick}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      onMouseEnter={() => {
+        if (!justFollowed) {
+          setIsHovered(true);
+        }
+      }}
+      onMouseLeave={() => {
+        setIsHovered(false);
+        setJustFollowed(false);
+      }}
       disabled={isLoading}
       className={cn(
-        'transition-all duration-200 min-w-[100px] sm:min-w-[120px]',
-        isFollowing && 'hover:border-destructive hover:text-destructive',
+        'transition-all duration-300 min-w-[100px] sm:min-w-[120px] shrink-0 rounded-full',
+        isFollowing && 'text-muted-foreground border-border bg-transparent',
+        isFollowing && isHovered && 'hover:border-destructive/30 hover:text-destructive hover:bg-destructive/10',
         className
       )}
     >

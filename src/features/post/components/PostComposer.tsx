@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
+import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { Image, Users, X, FileText } from "lucide-react";
 import { useRef, useState } from "react";
@@ -9,6 +10,7 @@ import { MediaViewer } from "./MediaViewer";
 import { PrivacySelect } from "./PrivacySelect";
 import { VideoThumbnail } from "@/components/common/VideoThumbnail";
 import { TagFriends } from "./TagFriends";
+import { cn } from "@/lib/utils";
 import { useAppSelector } from "@/store";
 
 interface MediaItem {
@@ -91,136 +93,134 @@ export const PostComposer = ({
   };
 
   return (
-    <div className="w-full space-y-6">
-      {/* Main Composer Card */}
-      <Card className="border-0 shadow-xl bg-card/80 backdrop-blur-sm w-full">
-        <CardContent className="p-8">
-          <div className="space-y-6">
-            {/* User Avatar & Privacy */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="relative">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 p-0.5">
-                    <div className="w-full h-full rounded-full bg-background flex items-center justify-center">
-                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white font-semibold">
-                        <FileText className="w-5 h-5" />
-                      </div>
+    <div className="w-full">
+      {/* Main Unified Composer Card */}
+      <Card className="border border-border/50 shadow-xl bg-card/80 backdrop-blur-sm w-full rounded-[1.5rem] md:rounded-[2rem] overflow-hidden">
+        <CardContent className="p-4 sm:p-6 md:p-8 space-y-6">
+          {/* User Avatar & Privacy */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3 sm:gap-4">
+              <div className="relative flex-shrink-0">
+                <div className="w-10 h-10 sm:w-12 h-12 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 p-0.5">
+                  <div className="w-full h-full rounded-full bg-background flex items-center justify-center">
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white font-semibold">
+                      <FileText className="w-4 h-4 sm:w-5 sm:h-5" />
                     </div>
                   </div>
-                  <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-success rounded-full border-2 border-background"></div>
                 </div>
-                <div className="space-y-1">
-                  <p className="font-semibold text-lg">Tạo bài viết</p>
-                  <PrivacySelect
-                    value={privacy}
-                    onChange={setPrivacy}
-                    className="w-auto h-auto p-1 pl-0 text-sm focus:outline-none focus:ring-0 focus:ring-offset-0"
-                  />
-                </div>
+                <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-success rounded-full border-2 border-background"></div>
+              </div>
+              <div className="space-y-0.5">
+                <p className="font-bold text-base sm:text-lg text-foreground">Tạo bài viết</p>
+                <PrivacySelect
+                  value={privacy}
+                  onChange={setPrivacy}
+                  className="w-auto h-auto p-0 text-xs sm:text-sm focus:outline-none focus:ring-0 focus:ring-offset-0 bg-transparent text-muted-foreground"
+                />
               </div>
             </div>
+          </div>
 
-            {/* Content Input */}
-            <div>
-              <Textarea
-                ref={textareaRef}
-                placeholder="Bạn đang nghĩ gì?..."
-                value={content}
-                onChange={handleContentChange}
-                className="resize-none text-base p-1 min-h-[120px] max-h-[300px] focus-visible:ring-0 bg-transparent placeholder:text-muted-foreground/60 scrollbar-thin scrollbar-thumb-muted-foreground/30 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/50"
-              />
-              <div className="text-right text-xs text-muted-foreground mt-1">
-                {content.length}/2000
-              </div>
+          {/* Content Input */}
+          <div className="relative">
+            <Textarea
+              ref={textareaRef}
+              placeholder="Bạn đang nghĩ gì?..."
+              value={content}
+              onChange={handleContentChange}
+              className="resize-none text-sm sm:text-base p-0 min-h-[100px] sm:min-h-[120px] max-h-[300px] border-0 focus-visible:ring-0 bg-transparent placeholder:text-muted-foreground/50 scrollbar-thin scrollbar-thumb-muted-foreground/30 scrollbar-track-transparent"
+            />
+            <div className="text-right text-[10px] sm:text-xs text-muted-foreground mt-1 select-none">
+              {content.length}/2000
             </div>
+          </div>
 
-            {/* Tags and Mentions Display */}
-            <div className="space-y-3">
-              {/* Tagged Friends */}
-              {taggedFriends.length > 0 && (
-                <div className="flex items-center gap-2 text-sm flex-wrap">
-                  <Users className="w-4 h-4 text-primary flex-shrink-0" />
-                  <span className="text-muted-foreground flex-shrink-0">
-                    Gắn thẻ:
-                  </span>
-                  <div className="flex flex-wrap gap-1">
-                    {taggedFriends.map((friend) => (
-                      <span
-                        key={friend.id}
-                        className="font-medium text-foreground"
-                      >
-                        {friend.username}
-                        {taggedFriends.indexOf(friend) <
-                          taggedFriends.length - 1 && ","}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Media Preview */}
-            {media.length > 0 && (
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <h4 className="font-medium text-foreground">
-                    Media đã chọn ({media.length})
-                  </h4>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setMedia([])}
-                    className="text-muted-foreground hover:text-accent-foreground"
+          {/* Tags Display */}
+          {taggedFriends.length > 0 && (
+            <div className="flex items-center gap-2 text-xs sm:text-sm flex-wrap bg-muted/30 p-2.5 sm:p-3 rounded-xl border border-border/30">
+              <Users className="w-4 h-4 text-primary flex-shrink-0" />
+              <span className="text-muted-foreground flex-shrink-0 font-medium">
+                Gắn thẻ:
+              </span>
+              <div className="flex flex-wrap gap-1">
+                {taggedFriends.map((friend, idx) => (
+                  <span
+                    key={friend.id}
+                    className="font-bold text-foreground text-xs sm:text-sm"
                   >
-                    Xóa tất cả
-                  </Button>
-                </div>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                  {media.map((item) => (
-                    <div key={item.id} className="relative group">
-                      <div
-                        className="aspect-square rounded-xl overflow-hidden bg-muted shadow-md cursor-pointer"
-                        onClick={() => setSelectedMedia(item)}
-                      >
-                        {item.type === "image" ? (
-                          <img
-                            src={item.url}
-                            alt="Upload preview"
-                            className="w-full h-full object-cover hover:scale-105 transition-transform duration-200"
-                          />
-                        ) : (
-                          <VideoThumbnail
-                            videoUrl={item.url}
-                            className="hover:scale-105 transition-transform duration-200"
-                          />
-                        )}
-                      </div>
-                      <button
-                        onClick={() => removeMedia(item.id)}
-                        className="absolute top-2 right-2 bg-black/70 hover:bg-black/90 text-white rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-lg z-10"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                      <div className="absolute bottom-2 left-2 bg-black/70 text-white text-xs px-2 py-1 rounded-full">
-                        {item.type === "image" ? "📷" : "🎥"}
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                    {friend.username}
+                    {idx < taggedFriends.length - 1 && ","}
+                  </span>
+                ))}
               </div>
-            )}
+            </div>
+          )}
 
-            {/* Media Uploader */}
-            {showMediaUploader && (
+          {/* Media Preview */}
+          {media.length > 0 && (
+            <div className="space-y-3 pt-2">
+              <div className="flex items-center justify-between">
+                <h4 className="font-semibold text-xs sm:text-sm text-foreground">
+                  Media đã chọn ({media.length})
+                </h4>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setMedia([])}
+                  className="text-xs text-muted-foreground hover:text-destructive h-7 px-2"
+                >
+                  Xóa tất cả
+                </Button>
+              </div>
+              <div className="grid grid-cols-3 gap-2 sm:gap-3">
+                {media.map((item) => (
+                  <div key={item.id} className="relative group aspect-square rounded-xl overflow-hidden bg-muted border border-border/50">
+                    <div
+                      className="w-full h-full cursor-pointer"
+                      onClick={() => setSelectedMedia(item)}
+                    >
+                      {item.type === "image" ? (
+                        <img
+                          src={item.url}
+                          alt="Upload preview"
+                          className="w-full h-full object-cover hover:scale-105 transition-transform duration-200"
+                        />
+                      ) : (
+                        <VideoThumbnail
+                          videoUrl={item.url}
+                          className="hover:scale-105 transition-transform duration-200"
+                        />
+                      )}
+                    </div>
+                    <button
+                      onClick={() => removeMedia(item.id)}
+                      className="absolute top-1.5 right-1.5 bg-black/70 hover:bg-black/90 text-white rounded-full p-1 transition-all duration-200 shadow-md z-10"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                    <div className="absolute bottom-1.5 left-1.5 bg-black/70 text-white text-[10px] px-1.5 py-0.5 rounded-full">
+                      {item.type === "image" ? "📷" : "🎥"}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Media Uploader */}
+          {showMediaUploader && (
+            <div className="pt-2">
               <MediaUploader
                 onUpload={setMedia}
                 onClose={() => setShowMediaUploader(false)}
                 existingMedia={media}
               />
-            )}
+            </div>
+          )}
 
-            {/* Tag Friends */}
-            {showTagFriends && (
+          {/* Tag Friends section inline inside Card */}
+          {showTagFriends && (
+            <div className="pt-2">
               <TagFriends
                 selectedFriends={taggedFriends.map((f) => f.id)}
                 onSelectionChange={(ids) => {
@@ -235,7 +235,61 @@ export const PostComposer = ({
                 }}
                 onClose={() => setShowTagFriends(false)}
               />
-            )}
+            </div>
+          )}
+
+          <Separator className="bg-border/50" />
+
+          {/* Integrated Action Buttons */}
+          <div className="flex items-center justify-between pt-1">
+            <div className="flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setShowMediaUploader(!showMediaUploader);
+                  setShowTagFriends(false);
+                }}
+                className={cn(
+                  "gap-2 hover:bg-primary/10 hover:text-primary transition-colors px-2.5 sm:px-3 h-9 rounded-xl",
+                  showMediaUploader && "bg-primary/10 text-primary"
+                )}
+              >
+                <Image className="w-4 h-4 sm:w-5 sm:h-5" />
+                <span className="text-xs sm:text-sm font-medium">Ảnh/Video</span>
+              </Button>
+
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setShowTagFriends(!showTagFriends);
+                  setShowMediaUploader(false);
+                }}
+                className={cn(
+                  "gap-2 transition-colors hover:bg-primary/10 hover:text-primary px-2.5 sm:px-3 h-9 rounded-xl",
+                  showTagFriends && "bg-primary/10 text-primary"
+                )}
+              >
+                <Users className="w-4 h-4 sm:w-5 sm:h-5" />
+                <span className="text-xs sm:text-sm font-medium">Gắn thẻ</span>
+              </Button>
+            </div>
+
+            <Button
+              onClick={handleSubmit}
+              disabled={isLoading || (!content.trim() && media.length === 0)}
+              className="rounded-xl px-5 sm:px-8 h-9 sm:h-10 text-xs sm:text-sm font-semibold shadow-md transition-all duration-200 hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {isLoading ? (
+                <div className="flex items-center gap-1.5">
+                  <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                  <span>Đăng...</span>
+                </div>
+              ) : (
+                "Đăng bài"
+              )}
+            </Button>
           </div>
         </CardContent>
       </Card>
@@ -248,51 +302,6 @@ export const PostComposer = ({
           onClose={() => setSelectedMedia(null)}
         />
       )}
-
-      {/* Action Bar */}
-      <Card className="border-0 shadow-lg bg-card/80 backdrop-blur-sm">
-        <CardContent className="p-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-1">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowMediaUploader(!showMediaUploader)}
-                className="gap-2 hover:bg-primary/10 hover:text-primary transition-colors"
-              >
-                <Image className="w-5 h-5" />
-                <span className="hidden sm:inline">Ảnh/Video</span>
-              </Button>
-
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowTagFriends(!showTagFriends)}
-                className="gap-2 hover:bg-accent/10 hover:text-accent transition-colors"
-              >
-                <Users className="w-5 h-5" />
-                <span className="hidden sm:inline">Gắn thẻ</span>
-              </Button>
-            </div>
-
-            <Button
-              onClick={handleSubmit}
-              disabled={isLoading || (!content.trim() && media.length === 0)}
-              className="px-8 py-2 bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-              size="lg"
-            >
-              {isLoading ? (
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                  Đang đăng...
-                </div>
-              ) : (
-                "Đăng bài"
-              )}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 };

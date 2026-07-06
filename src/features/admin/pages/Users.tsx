@@ -7,6 +7,17 @@ import {
   Unlock,
   Shield,
   TrendingUp,
+  BadgeCheck,
+  Calendar as CalendarIcon,
+  Ban,
+  Trash2,
+  History,
+  AlertTriangle,
+  FileText,
+  Users as UsersIcon,
+  ChevronLeft,
+  ChevronRight,
+  User as UserIcon,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -47,12 +58,16 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
 } from "@/components/ui/dialog";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { UserStatsDialog } from "@/components/admin/UserStatsDialog";
 import axios from "@/lib/axios";
 import { useDebouncedSearch } from "@/hooks/use-debounce-search";
 import { useToast } from "@/hooks/use-toast";
 import { banUser, unbanUser } from "../api/userManagementAPI";
+import { Skeleton } from "@/components/ui/skeleton";
+import { ScrollArea } from "@radix-ui/react-scroll-area";
 
 interface UserResponseAdmin {
   id: number;
@@ -64,6 +79,9 @@ interface UserResponseAdmin {
   violation_count: number | null;
   posts_count: number;
   interactions_count: number;
+  is_verified: boolean;
+  created_at: string;
+  avatar_url: string | null;
 }
 
 interface UserSearchResponseAdmin {
@@ -83,7 +101,8 @@ interface ResponseData<T> {
 
 interface UIUser {
   id: string;
-  name: string;
+  username: string;
+  fullName: string;
   email: string;
   role: string;
   status: string;
@@ -91,15 +110,26 @@ interface UIUser {
   interactions: number;
   violations: number;
   avatar: string;
+  isVerified: boolean;
+  createdAt: string;
+}
+
+interface InfoDashboardUser {
+  totalUsers: number;
+  totalUsersActive: number;
+  totalUsersLocked: number;
+  totalUsersPending: number;
 }
 
 export default function Users() {
+  const PAGE_SIZE = 10;
   const {
     searchValue: searchInput,
     debouncedValue: search,
     setSearchValue: setSearch,
-  } = useDebouncedSearch("", 200);
+  } = useDebouncedSearch("", 800);
   const { toast } = useToast();
+
   const [statusFilter, setStatusFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [totalHits, setTotalHits] = useState(0);
@@ -107,143 +137,101 @@ export default function Users() {
   const [activeUsers, setActiveUsers] = useState(0);
   const [lockedUsers, setLockedUsers] = useState(0);
   const [pendingUsers, setPendingUsers] = useState(0);
-  const [allUsers, setAllUsers] = useState<UIUser[]>([]);
+
   const [users, setUsers] = useState<UIUser[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
   const [assignRoleOpen, setAssignRoleOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UIUser | null>(null);
   const [selectedRole, setSelectedRole] = useState("");
+
   const [statsDialogOpen, setStatsDialogOpen] = useState(false);
   const [selectedUserForStats, setSelectedUserForStats] =
     useState<UIUser | null>(null);
+
+  const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState("overview");
+
+  const [banDialogOpen, setBanDialogOpen] = useState(false);
+  const [banReason, setBanReason] = useState("");
+  const [banDuration, setBanDuration] = useState("7");
 
   const fetchUsers = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
       const params: Record<string, string | number> = {
-        limit: 1000,
-        offset: 0,
+        pageNo: currentPage - 1,
+        pageSize: PAGE_SIZE,
       };
       if (search) params.query = search;
       if (statusFilter !== "all")
         params.filter = `account_status = '${statusFilter.toUpperCase()}'`;
 
-      const response = await axios.get<ResponseData<UserSearchResponseAdmin>>(
+      const response = await axios.get<ResponseData<any>>(
         "/users",
-        { params }
+        { params },
       );
-      const apiUsers = response.data.data.users;
+      const responseData = response.data?.data;
+      const apiUsers = Array.isArray(responseData)
+        ? responseData
+        : (responseData?.users || responseData?.content || []);
 
-      const mappedUsers: UIUser[] = apiUsers.map((apiUser) => {
-        return {
-          id: apiUser.id.toString(),
-          name: apiUser.username,
-          email: apiUser.email,
-          role: apiUser.role,
-          status: apiUser.account_status.toLowerCase(),
-          posts: apiUser.posts_count || 0,
-          interactions: apiUser.interactions_count || 0,
-          violations: apiUser.violation_count || 0,
-          avatar: "https://via.placeholder.com/40",
-        };
-      });
+      const mappedUsers: UIUser[] = apiUsers.map((apiUser: any) => ({
+        id: apiUser.id?.toString() || "",
+        username: apiUser.username || "",
+        fullName: apiUser.fullName || apiUser.username || "",
+        email: apiUser.email || "",
+        role: apiUser.role || "USER",
+        status: (apiUser.account_status || "active").toLowerCase(),
+        posts: apiUser.posts_count || 0,
+        interactions: apiUser.interactions_count || 0,
+        violations: apiUser.violation_count || 0,
+        avatar:
+          apiUser.avatar ||
+          apiUser.avatar_url ||
+          "https://ui-avatars.com/api/?name=" + (apiUser.username || "user"),
+        isVerified: apiUser.is_verified || false,
+        createdAt: apiUser.created_at || new Date().toISOString(),
+      }));
 
-      setAllUsers(mappedUsers);
-      setTotalHits(mappedUsers.length);
+      setUsers(mappedUsers);
+      const totalElements = responseData?.totalElements ?? responseData?.totalHits ?? mappedUsers.length;
+      setTotalHits(totalElements);
     } catch (err: unknown) {
       const errorMessage =
         err instanceof Error ? err.message : "Failed to fetch users";
       setError(errorMessage);
-      // No fallback data
     } finally {
       setLoading(false);
     }
-  }, [search, statusFilter]);
-
-  const fetchTotalUsers = useCallback(async () => {
-    try {
-      const response = await axios.get<ResponseData<UserSearchResponseAdmin>>(
-        "/users",
-        { params: { limit: 1000, offset: 0 } }
-      );
-      setTotalUsers(response.data.data.totalHits);
-    } catch (err) {
-      // ignore
-    }
-  }, []);
-
-  const fetchActiveUsers = useCallback(async () => {
-    try {
-      const response = await axios.get<ResponseData<UserSearchResponseAdmin>>(
-        "/users",
-        {
-          params: {
-            filter: "account_status = 'ACTIVE'",
-            limit: 1000,
-            offset: 0,
-          },
-        }
-      );
-      setActiveUsers(response.data.data.totalHits);
-    } catch (err) {
-      // ignore
-    }
-  }, []);
-
-  const fetchLockedUsers = useCallback(async () => {
-    try {
-      const response = await axios.get<ResponseData<UserSearchResponseAdmin>>(
-        "/users",
-        {
-          params: {
-            filter: "account_status = 'LOCKED'",
-            limit: 1000,
-            offset: 0,
-          },
-        }
-      );
-      setLockedUsers(response.data.data.totalHits);
-    } catch (err) {
-      // ignore
-    }
-  }, []);
-
-  const fetchPendingUsers = useCallback(async () => {
-    try {
-      const response = await axios.get<ResponseData<UserSearchResponseAdmin>>(
-        "/users",
-        {
-          params: {
-            filter: "account_status = 'PENDING'",
-            limit: 1000,
-            offset: 0,
-          },
-        }
-      );
-      setPendingUsers(response.data.data.totalHits);
-    } catch (err) {
-      // ignore
-    }
-  }, []);
+  }, [search, statusFilter, currentPage]);
 
   const handleAssignRole = async () => {
     if (!selectedUser || !selectedRole) return;
     try {
       await axios.post(
-        `/users/assign-role/${selectedUser.name}?role=${selectedRole}`
+        `/users/assign-role/${selectedUser.username}?role=${selectedRole}`,
       );
       toast({
+        variant: "success",
         title: "Thành công",
         description: "Quyền đã được gán thành công",
       });
+      setUsers((prev) =>
+        prev.map((u) =>
+          u.username === selectedUser.username ? { ...u, role: selectedRole } : u
+        )
+      );
       setAssignRoleOpen(false);
       setSelectedUser(null);
       setSelectedRole("");
-      fetchUsers();
+      setTimeout(() => {
+        fetchUsers();
+        fetchSummaryStats();
+      }, 800);
     } catch (err) {
-      console.error("Failed to assign role:", err);
       toast({
         title: "Lỗi",
         description: "Không thể gán quyền. Vui lòng thử lại.",
@@ -252,32 +240,62 @@ export default function Users() {
     }
   };
 
+  const handleBanUserSubmit = async () => {
+    if (!selectedUser || !banReason) return;
+    try {
+      await banUser(selectedUser.username);
+      toast({
+        variant: "success",
+        title: "Thành công",
+        description: `Tài khoản ${selectedUser.username} đã bị khóa ${banDuration} ngày.`,
+      });
+      // Cập nhật state tức thì ở local
+      setUsers((prev) =>
+        prev.map((u) =>
+          u.username === selectedUser.username ? { ...u, status: "locked" } : u
+        )
+      );
+      setBanDialogOpen(false);
+      setDetailsDialogOpen(false);
+      setTimeout(() => {
+        fetchUsers();
+        fetchSummaryStats();
+      }, 800);
+    } catch (err) {
+      toast({
+        title: "Lỗi",
+        description: "Không thể khóa tài khoản.",
+        variant: "destructive",
+      });
+    }
+  };
+
+
+  const fetchSummaryStats = useCallback(async () => {
+    try {
+      const response =
+        await axios.get<ResponseData<InfoDashboardUser>>("users/dashboard");
+      const data = response.data?.data;
+      if (data) {
+        setTotalUsers(data.totalUsers || 0);
+        setActiveUsers(data.totalUsersActive || 0);
+        setLockedUsers(data.totalUsersLocked || 0);
+        setPendingUsers(data.totalUsersPending || 0);
+      }
+    } catch (err) {
+      console.error("Failed to load summary stats");
+    }
+  }, []);
+
   useEffect(() => {
     fetchUsers();
   }, [fetchUsers]);
 
   useEffect(() => {
-    const start = (currentPage - 1) * 20;
-    const end = start + 20;
-    const pageUsers = allUsers.slice(start, end);
-    setUsers(pageUsers);
-  }, [currentPage, allUsers]);
+    fetchSummaryStats();
+  }, [fetchSummaryStats]);
 
-  useEffect(() => {
-    fetchTotalUsers();
-  }, [fetchTotalUsers]);
-
-  useEffect(() => {
-    fetchActiveUsers();
-  }, [fetchActiveUsers]);
-
-  useEffect(() => {
-    fetchLockedUsers();
-  }, [fetchLockedUsers]);
-
-  useEffect(() => {
-    fetchPendingUsers();
-  }, [fetchPendingUsers]);
+  // Slicing useEffect removed for server-side pagination
 
   useEffect(() => {
     setCurrentPage(1);
@@ -285,20 +303,29 @@ export default function Users() {
 
   const getRoleBadge = (role: string) => {
     const variants = {
-      ADMIN: "destructive",
-      MODERATOR: "default",
-      USER: "secondary",
+      ADMIN: "bg-rose-500 hover:bg-rose-600 border-none shadow-sm",
+      MODERATOR: "bg-indigo-500 hover:bg-indigo-600 border-none shadow-sm",
+      USER: "bg-slate-500 hover:bg-slate-600 border-none shadow-sm",
     } as const;
-    return variants[role as keyof typeof variants] || "secondary";
+    switch (role) {
+      case "ADMIN":
+        return "bg-rose-500 hover:bg-rose-600 border-none shadow-sm text-white";
+      case "MODERATOR":
+        return "bg-indigo-500 hover:bg-indigo-600 border-none shadow-sm text-white";
+      default:
+        return "bg-slate-500 hover:bg-slate-600 border-none shadow-sm text-white";
+    }
   };
 
   const getStatusBadge = (status: string) => {
-    const variants = {
-      active: "default",
-      locked: "destructive",
-      pending: "outline",
-    } as const;
-    return variants[status as keyof typeof variants] || "secondary";
+    switch (status) {
+      case "active":
+        return "bg-emerald-500 hover:bg-emerald-600 border-none shadow-sm text-white";
+      case "locked":
+        return "bg-rose-500 hover:bg-rose-600 border-none shadow-sm text-white";
+      default:
+        return "bg-amber-500 hover:bg-amber-600 border-none shadow-sm text-white";
+    }
   };
 
   const getStatusText = (status: string) => {
@@ -310,8 +337,17 @@ export default function Users() {
     return texts[status as keyof typeof texts] || status;
   };
 
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return new Intl.DateTimeFormat("vi-VN", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    }).format(date);
+  };
+
   const getPagesToShow = () => {
-    const totalPages = Math.ceil(totalHits / 20);
+    const totalPages = Math.ceil(totalHits / PAGE_SIZE);
     if (totalPages <= 7) {
       return Array.from({ length: totalPages }, (_, i) => i + 1);
     }
@@ -327,310 +363,807 @@ export default function Users() {
     return pages;
   };
 
+  const summaryCards = [
+    {
+      label: "Tổng người dùng",
+      value: totalUsers,
+      icon: UsersIcon,
+      color: "from-blue-600 to-indigo-600",
+    },
+    {
+      label: "Đang hoạt động",
+      value: activeUsers,
+      icon: BadgeCheck,
+      color: "from-emerald-500 to-teal-600",
+    },
+    {
+      label: "Bị khóa",
+      value: lockedUsers,
+      icon: Ban,
+      color: "from-rose-500 to-red-600",
+    },
+    {
+      label: "Chờ xác thực",
+      value: pendingUsers,
+      icon: History,
+      color: "from-amber-400 to-orange-500",
+    },
+  ];
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-          Quản lý người dùng
-        </h1>
-        <p className="text-muted-foreground">
-          Quản lý và theo dõi người dùng trong hệ thống
-        </p>
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+        <div>
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight text-slate-900 dark:text-white">
+            Quản lý{" "}
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-violet-600 dark:from-indigo-400 dark:to-violet-400">
+              Thành viên
+            </span>
+          </h1>
+          <p className="text-sm text-slate-500 dark:text-slate-400 font-medium mt-1">
+            Điều hành và giám sát quyền truy cập hệ thống Nexo
+          </p>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="text-2xl font-bold">{totalUsers}</div>
-            <div className="text-sm text-muted-foreground">Tổng người dùng</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="text-2xl font-bold">{activeUsers}</div>
-            <div className="text-sm text-muted-foreground">Đang hoạt động</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="text-2xl font-bold">{lockedUsers}</div>
-            <div className="text-sm text-muted-foreground">Bị khóa</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="text-2xl font-bold">{pendingUsers}</div>
-            <div className="text-sm text-muted-foreground">Chờ xác thực</div>
-          </CardContent>
-        </Card>
+      {/* Summary Cards với Gradient */}
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+        {summaryCards.map((card, i) => (
+          <Card
+            key={i}
+            className={`border-none shadow-lg overflow-hidden group hover:shadow-xl transition-all duration-300 bg-gradient-to-br ${card.color} text-white`}
+          >
+            <CardContent
+              className="p-0 text-white"
+            >
+              <div className="p-6 flex justify-between items-start">
+                <div>
+                  <p className="text-white/70 text-xs font-bold uppercase mb-1 tracking-widest">
+                    {card.label}
+                  </p>
+                  <h3 className="text-3xl font-black tracking-tighter">
+                    {card.value.toLocaleString()}
+                  </h3>
+                </div>
+                <div className="bg-white/20 p-3 rounded-2xl backdrop-blur-md group-hover:scale-110 group-hover:rotate-12 transition-transform">
+                  <card.icon className="w-6 h-6" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
       </div>
 
-      <Card>
-        <CardHeader>
+      <Card className="border border-border/50 shadow-xl rounded-[2rem] bg-card text-card-foreground">
+        <CardHeader className="bg-muted/30 border-b border-border/50 p-6 rounded-t-[2rem]">
           <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
-            <CardTitle>Danh sách người dùng</CardTitle>
-            <div className="flex gap-2 w-full md:w-auto">
-              <div className="relative flex-1 md:w-64">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <div className="flex items-center gap-2">
+              <div className="p-2 bg-indigo-100 dark:bg-indigo-950/50 rounded-lg">
+                <UserIcon className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+              </div>
+              <CardTitle className="text-xl font-bold text-foreground">
+                Cơ sở dữ liệu người dùng
+              </CardTitle>
+            </div>
+            <div className="flex gap-3 w-full md:w-auto">
+              <div className="relative flex-1 md:w-80">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                 <Input
-                  placeholder="Tìm kiếm..."
+                  placeholder="Tìm theo tên, email, username..."
                   value={searchInput}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="pl-9"
+                  className="pl-10 h-11 bg-background border-border text-foreground rounded-xl focus-visible:border-primary focus-visible:ring-0 shadow-sm transition-colors"
                 />
               </div>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-40">
-                  <Filter className="w-4 h-4 mr-2" />
-                  <SelectValue />
+                <SelectTrigger className="w-44 h-11 rounded-xl bg-background shadow-sm border-border text-foreground hover:bg-muted focus:border-primary focus:ring-0 transition-colors">
+                  <SelectValue placeholder="Trạng thái" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Tất cả</SelectItem>
-                  <SelectItem value="active">Hoạt động</SelectItem>
-                  <SelectItem value="locked">Bị khóa</SelectItem>
-                  <SelectItem value="pending">Chờ xác thực</SelectItem>
+                  <SelectItem value="all" hideIcon className="focus:bg-primary/15 focus:text-primary cursor-pointer">Tất cả trạng thái</SelectItem>
+                  <SelectItem value="active" hideIcon className="focus:bg-primary/15 focus:text-primary cursor-pointer">Hoạt động</SelectItem>
+                  <SelectItem value="locked" hideIcon className="focus:bg-primary/15 focus:text-primary cursor-pointer">Bị khóa</SelectItem>
+                  <SelectItem value="pending" hideIcon className="focus:bg-primary/15 focus:text-primary cursor-pointer">Chờ xác thực</SelectItem>
                 </SelectContent>
               </Select>
             </div>
           </div>
         </CardHeader>
-        <CardContent>
-          {loading && <div className="text-center py-4">Đang tải...</div>}
-          {error && (
-            <div className="text-center py-4 text-destructive">{error}</div>
-          )}
-          {!loading && !error && (
-            <>
-              <Table>
-                <TableHeader>
+        <CardContent className="p-0 bg-card rounded-b-[2rem]">
+          <div className="relative overflow-x-auto">
+            <Table wrapperClassName="overflow-visible">
+              <TableHeader className="bg-muted/50">
+                <TableRow className="hover:bg-transparent border-b border-border/50">
+                  <TableHead className="font-bold py-5 pl-8 text-slate-700 dark:text-slate-300 whitespace-nowrap">
+                    Thành viên
+                  </TableHead>
+                  <TableHead className="font-bold text-slate-700 dark:text-slate-300 whitespace-nowrap">
+                    Ngày gia nhập
+                  </TableHead>
+                  <TableHead className="font-bold text-slate-700 dark:text-slate-300 whitespace-nowrap">
+                    Vai trò
+                  </TableHead>
+                  <TableHead className="font-bold text-slate-700 dark:text-slate-300 whitespace-nowrap">
+                    Trạng thái
+                  </TableHead>
+                  <TableHead className="font-bold text-slate-700 dark:text-slate-300 whitespace-nowrap">
+                    Chỉ số
+                  </TableHead>
+                  <TableHead className="font-bold text-slate-700 dark:text-slate-300 text-center whitespace-nowrap">
+                    Vi phạm
+                  </TableHead>
+                  <TableHead className="pr-8"></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {loading ? (
+                  <TableSkeleton />
+                ) : error ? (
                   <TableRow>
-                    <TableHead>Người dùng</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Vai trò</TableHead>
-                    <TableHead>Trạng thái</TableHead>
-                    <TableHead>Hoạt động</TableHead>
-                    <TableHead>Vi phạm</TableHead>
-                    <TableHead></TableHead>
+                    <TableCell colSpan={7} className="h-40 text-center">
+                      <div className="flex flex-col items-center gap-2 text-rose-500">
+                        <AlertTriangle className="w-8 h-8" />
+                        <p className="font-bold">{error}</p>
+                      </div>
+                    </TableCell>
                   </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {users.map((user) => {
-                    return (
-                      <TableRow key={user.id}>
-                        <TableCell>
-                          <div className="flex items-center gap-3">
-                            <span className="font-medium">{user.name}</span>
+                ) : users.length === 0 ? (
+                  <TableRow>
+                    <TableCell
+                      colSpan={7}
+                      className="h-40 text-center text-muted-foreground"
+                    >
+                      Không tìm thấy người dùng nào phù hợp
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  users.map((user) => (
+                    <TableRow
+                      key={user.id}
+                      className="group cursor-pointer hover:bg-muted/50 transition-all border-b border-border/50 h-[88px]"
+                      onClick={() => {
+                        setSelectedUser(user);
+                        setDetailsDialogOpen(true);
+                        setActiveTab("overview");
+                      }}
+                    >
+                      <TableCell className="pl-8 py-5">
+                        <div className="flex items-center gap-4">
+                          <div className="relative group-hover:scale-105 transition-transform">
+                            <Avatar className="w-12 h-12 border-2 border-white dark:border-slate-800 shadow-sm rounded-2xl">
+                              <AvatarImage
+                                src={user.avatar}
+                                className="object-cover"
+                              />
+                              <AvatarFallback>
+                                {user.username[0].toUpperCase()}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div
+                              className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-white dark:border-slate-800 shadow-sm ${user.status === "active" ? "bg-emerald-500" : "bg-slate-300"}`}
+                            />
                           </div>
-                        </TableCell>
-                        <TableCell>{user.email}</TableCell>
-                        <TableCell>
-                          <Badge variant={getRoleBadge(user.role)}>
-                            {user.role}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant={getStatusBadge(user.status)}>
-                            {getStatusText(user.status)}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <div className="text-sm">
-                            <div>{user.posts} bài viết</div>
-                            <div className="text-muted-foreground">
-                              {user.interactions > 0
-                                ? `${user.interactions} tương tác`
-                                : "Chưa có tương tác"}
+                          <div className="space-y-0.5">
+                            <div className="font-bold text-slate-900 dark:text-white flex items-center gap-1.5 leading-none max-w-[180px] truncate" title={user.fullName}>
+                              {user.fullName}
+                              {user.isVerified && (
+                                <BadgeCheck className="w-4 h-4 text-blue-500 fill-blue-50 dark:fill-blue-950/20 shrink-0" />
+                              )}
+                            </div>
+                            <div className="text-xs text-slate-500 dark:text-slate-400 font-medium max-w-[180px] truncate" title={user.username}>
+                              @{user.username}
+                            </div>
+                            <div className="text-[10px] text-slate-400 dark:text-slate-500 italic max-w-[180px] truncate" title={user.email}>
+                              {user.email}
                             </div>
                           </div>
-                        </TableCell>
-                        <TableCell>
-                          {user.violations > 0 ? (
-                            <Badge variant="destructive">
-                              {user.violations}
-                            </Badge>
-                          ) : (
-                            <span className="text-muted-foreground">0</span>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="sm">
-                                <MoreHorizontal className="w-4 h-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
+                        </div>
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap">
+                        <div className="flex items-center text-sm font-medium text-slate-600 dark:text-slate-300">
+                          <CalendarIcon className="w-3.5 h-3.5 mr-2 text-slate-400" />
+                          {formatDate(user.createdAt)}
+                        </div>
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap">
+                        <Badge className={getRoleBadge(user.role)}>
+                          {user.role}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap">
+                        <Badge className={getStatusBadge(user.status)}>
+                          {getStatusText(user.status)}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-300 whitespace-nowrap">
+                            <FileText className="w-3 h-3 text-indigo-500" />{" "}
+                            {user.posts}{" "}
+                            <span className="font-normal text-slate-400">
+                              bài viết
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-300 whitespace-nowrap">
+                            <TrendingUp className="w-3 h-3 text-emerald-500" />{" "}
+                            {user.interactions}{" "}
+                            <span className="font-normal text-slate-400">
+                              tương tác
+                            </span>
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-center whitespace-nowrap">
+                        {user.violations > 0 ? (
+                          <div className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-rose-500/10 text-rose-500 font-black text-xs border border-rose-500/20">
+                            {user.violations}
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground/30 font-medium">-</span>
+                        )}
+                      </TableCell>
+                      <TableCell
+                        className="pr-8 text-right"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 w-8 p-0 rounded-full hover:bg-muted"
+                            >
+                              <MoreHorizontal className="w-4 h-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent
+                            align="end"
+                            className="w-52 rounded-xl p-2 shadow-2xl border-border"
+                          >
+                            <DropdownMenuItem
+                              className="focus:bg-primary/15 focus:text-primary cursor-pointer"
+                              onClick={() => {
+                                setSelectedUser(user);
+                                setDetailsDialogOpen(true);
+                                setActiveTab("overview");
+                              }}
+                            >
+                              <FileText className="w-4 h-4 mr-2 opacity-70" />{" "}
+                              Chi tiết hồ sơ
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              className="focus:bg-primary/15 focus:text-primary cursor-pointer"
+                              onClick={() => {
+                                setSelectedUserForStats(user);
+                                setStatsDialogOpen(true);
+                              }}
+                            >
+                              <TrendingUp className="w-4 h-4 mr-2 opacity-70" />{" "}
+                              Thống kê tăng trưởng
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              className="focus:bg-primary/15 focus:text-primary cursor-pointer"
+                              onClick={() => {
+                                setSelectedUser(user);
+                                setSelectedRole(user.role);
+                                setAssignRoleOpen(true);
+                              }}
+                            >
+                              <Shield className="w-4 h-4 mr-2 opacity-70" />{" "}
+                              Phân quyền
+                            </DropdownMenuItem>
+                            <div className="h-px bg-border my-1" />
+                            {user.status === "locked" ? (
                               <DropdownMenuItem
-                                onClick={() => {
-                                  setSelectedUserForStats(user);
-                                  setStatsDialogOpen(true);
+                                className="text-emerald-600 focus:text-emerald-700 focus:bg-emerald-500/10 cursor-pointer"
+                                onClick={async () => {
+                                  try {
+                                    await unbanUser(user.username);
+                                    toast({
+                                      variant: "success",
+                                      title: "Thành công",
+                                      description: "Tài khoản đã được mở khóa",
+                                    });
+                                    setTimeout(() => {
+                                      fetchUsers();
+                                      fetchSummaryStats();
+                                    }, 1000);
+                                  } catch (error) {
+                                    toast({
+                                      title: "Lỗi",
+                                      description: "Không thể mở khóa",
+                                      variant: "destructive",
+                                    });
+                                  }
                                 }}
                               >
-                                <TrendingUp className="w-4 h-4 mr-2" />
-                                Xem thống kê
+                                <Unlock className="w-4 h-4 mr-2" /> Mở khóa tài khoản
                               </DropdownMenuItem>
-                              {user.status === "locked" ? (
-                                <DropdownMenuItem
-                                  onClick={async () => {
-                                    try {
-                                      await unbanUser(user.name);
-                                      toast({
-                                        title: "Thành công",
-                                        description:
-                                          "Tài khoản đã được mở khóa",
-                                      });
-                                      setTimeout(() => {
-                                        fetchUsers();
-                                      }, 1000);
-                                    } catch (error) {
-                                      toast({
-                                        title: "Lỗi",
-                                        description:
-                                          "Không thể mở khóa tài khoản",
-                                        variant: "destructive",
-                                      });
-                                    }
-                                  }}
-                                >
-                                  <Unlock className="w-4 h-4 mr-2" />
-                                  Mở khóa tài khoản
-                                </DropdownMenuItem>
-                              ) : (
-                                <DropdownMenuItem
-                                  className="text-destructive"
-                                  onClick={async () => {
-                                    try {
-                                      await banUser(user.name);
-                                      toast({
-                                        title: "Thành công",
-                                        description: "Tài khoản đã được khóa",
-                                      });
-                                      setTimeout(() => {
-                                        fetchUsers();
-                                      }, 1000);
-                                    } catch (error) {
-                                      toast({
-                                        title: "Lỗi",
-                                        description: "Không thể khóa tài khoản",
-                                        variant: "destructive",
-                                      });
-                                    }
-                                  }}
-                                >
-                                  <Lock className="w-4 h-4 mr-2" />
-                                  Khóa tài khoản
-                                </DropdownMenuItem>
-                              )}
+                            ) : (
                               <DropdownMenuItem
+                                className="text-rose-600 focus:text-rose-700 focus:bg-rose-500/10 cursor-pointer"
                                 onClick={() => {
                                   setSelectedUser(user);
-                                  setSelectedRole(user.role);
-                                  setAssignRoleOpen(true);
+                                  setBanDialogOpen(true);
                                 }}
                               >
-                                <Shield className="w-4 h-4 mr-2" />
-                                Gán quyền
+                                <Lock className="w-4 h-4 mr-2" /> Khóa tài khoản
                               </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-              {totalHits > 20 && (
-                <div className="mt-4 flex justify-center">
-                  <Pagination>
-                    <PaginationContent>
-                      {currentPage > 1 && (
-                        <PaginationItem>
-                          <PaginationPrevious
-                            onClick={() => setCurrentPage(currentPage - 1)}
-                          />
-                        </PaginationItem>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+
+          {totalHits > PAGE_SIZE && (
+            <div className="p-6 border-t border-border/50 bg-muted/20 rounded-b-[2rem]">
+              <Pagination>
+                <PaginationContent>
+                  <PaginationItem>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="rounded-lg gap-1 px-3"
+                      onClick={() =>
+                        setCurrentPage((prev) => Math.max(prev - 1, 1))
+                      }
+                      disabled={currentPage === 1}
+                    >
+                      <ChevronLeft className="w-4 h-4" /> Trước
+                    </Button>
+                  </PaginationItem>
+
+                  {getPagesToShow().map((page, index) => (
+                    <PaginationItem key={index}>
+                      {page === "..." ? (
+                        <PaginationEllipsis />
+                      ) : (
+                        <Button
+                          variant={page === currentPage ? "default" : "ghost"}
+                          size="sm"
+                          className={`w-9 h-9 p-0 rounded-lg ${page === currentPage ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20 dark:shadow-none" : ""}`}
+                          onClick={() => setCurrentPage(page as number)}
+                        >
+                          {page}
+                        </Button>
                       )}
-                      {getPagesToShow().map((page, index) => (
-                        <PaginationItem key={index}>
-                          {page === "..." ? (
-                            <PaginationEllipsis />
-                          ) : (
-                            <PaginationLink
-                              onClick={() => setCurrentPage(page as number)}
-                              isActive={page === currentPage}
-                              className={
-                                page === currentPage
-                                  ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                                  : ""
-                              }
-                            >
-                              {page}
-                            </PaginationLink>
-                          )}
-                        </PaginationItem>
-                      ))}
-                      {Math.ceil(totalHits / 20) > 7 && (
-                        <PaginationItem>
-                          <PaginationLink
-                            onClick={() =>
-                              setCurrentPage(Math.ceil(totalHits / 20))
-                            }
-                          >
-                            Cuối
-                          </PaginationLink>
-                        </PaginationItem>
-                      )}
-                      {currentPage < Math.ceil(totalHits / 20) && (
-                        <PaginationItem>
-                          <PaginationNext
-                            onClick={() => setCurrentPage(currentPage + 1)}
-                          />
-                        </PaginationItem>
-                      )}
-                    </PaginationContent>
-                  </Pagination>
-                </div>
-              )}
-            </>
+                    </PaginationItem>
+                  ))}
+
+                  <PaginationItem>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="rounded-lg gap-1 px-3"
+                      onClick={() => setCurrentPage((prev) => prev + 1)}
+                      disabled={currentPage >= Math.ceil(totalHits / PAGE_SIZE)}
+                    >
+                      Sau <ChevronRight className="w-4 h-4" />
+                    </Button>
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
+            </div>
           )}
         </CardContent>
       </Card>
 
+      {/* MODAL GÁN QUYỀN */}
       <Dialog open={assignRoleOpen} onOpenChange={setAssignRoleOpen}>
-        <DialogContent>
+        <DialogContent className="rounded-3xl border border-border/50 shadow-2xl bg-card text-card-foreground">
           <DialogHeader>
-            <DialogTitle>Gán quyền cho {selectedUser?.name}</DialogTitle>
+            <DialogTitle className="text-2xl font-black">
+              Phân quyền người dùng
+            </DialogTitle>
+            <p className="text-slate-500 dark:text-slate-400 text-sm italic">
+              Thiết lập vai trò mới cho {selectedUser?.fullName}
+            </p>
           </DialogHeader>
-          <div className="space-y-4">
-            <Select value={selectedRole} onValueChange={setSelectedRole}>
-              <SelectTrigger>
-                <SelectValue placeholder="Chọn vai trò" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="USER">USER</SelectItem>
-                <SelectItem value="MODERATOR">MODERATOR</SelectItem>
-                <SelectItem value="ADMIN">ADMIN</SelectItem>
-              </SelectContent>
-            </Select>
-            <Button onClick={handleAssignRole} disabled={!selectedRole}>
-              Gán quyền
-            </Button>
+          <div className="py-4 space-y-4">
+            <div className="p-4 bg-muted rounded-2xl border border-border flex items-center gap-4">
+              <Avatar className="w-12 h-12 rounded-xl">
+                <AvatarImage src={selectedUser?.avatar} />
+              </Avatar>
+              <div>
+                <p className="font-bold">@{selectedUser?.username}</p>
+                <Badge variant="outline" className="text-[10px]">
+                  {selectedUser?.role}
+                </Badge>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label className="font-bold text-xs uppercase text-slate-400 dark:text-slate-500">
+                Chọn vai trò mới
+              </Label>
+              <Select value={selectedRole} onValueChange={setSelectedRole}>
+                <SelectTrigger className="h-12 rounded-xl bg-background border-border">
+                  <SelectValue placeholder="Chọn vai trò" />
+                </SelectTrigger>
+                <SelectContent className="rounded-xl">
+                  <SelectItem value="USER" className="focus:bg-primary/15 focus:text-primary cursor-pointer">
+                    USER - Người dùng phổ thông
+                  </SelectItem>
+                  <SelectItem value="MODERATOR" className="focus:bg-primary/15 focus:text-primary cursor-pointer">
+                    MODERATOR - Người kiểm duyệt
+                  </SelectItem>
+                  <SelectItem value="ADMIN" className="focus:bg-primary/15 focus:text-primary cursor-pointer">
+                    ADMIN - Quản trị viên hệ thống
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
+          <DialogFooter className="gap-2">
+            <Button
+              variant="ghost"
+              onClick={() => setAssignRoleOpen(false)}
+              className="rounded-xl"
+            >
+              Hủy
+            </Button>
+            <Button
+              onClick={handleAssignRole}
+              disabled={!selectedRole}
+              className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl px-8 shadow-lg shadow-indigo-500/20 dark:shadow-none"
+            >
+              Cập nhật quyền
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* User Stats Dialog */}
+      {/* MODAL CHI TIẾT HỒ SƠ */}
+      <Dialog open={detailsDialogOpen} onOpenChange={setDetailsDialogOpen}>
+        <DialogContent className="max-w-5xl h-[85vh] p-0 overflow-hidden border border-border/50 shadow-2xl rounded-[2.5rem] bg-card text-card-foreground">
+          {selectedUser && (
+            <div className="flex h-full">
+              {/* Sidebar Profile */}
+              <div className="w-[320px] bg-slate-900 text-white p-8 flex flex-col items-center">
+                <div className="relative mb-6 group">
+                  <Avatar className="w-32 h-32 rounded-[2.5rem] border-4 border-white/10 shadow-2xl transition-transform group-hover:scale-105 duration-500">
+                    <AvatarImage
+                      src={selectedUser.avatar}
+                      className="object-cover"
+                    />
+                    <AvatarFallback className="text-4xl bg-indigo-600">
+                      {selectedUser.username[0]}
+                    </AvatarFallback>
+                  </Avatar>
+                  {selectedUser.isVerified && (
+                    <div className="absolute -bottom-2 -right-2 bg-blue-500 p-2 rounded-2xl border-4 border-slate-900 shadow-xl">
+                      <BadgeCheck className="w-6 h-6 text-white" />
+                    </div>
+                  )}
+                </div>
+
+                <h3 className="text-2xl font-black text-center mb-1 leading-tight">
+                  {selectedUser.fullName}
+                </h3>
+                <p className="text-indigo-400 font-bold text-sm mb-4 tracking-tighter">
+                  @{selectedUser.username}
+                </p>
+                <p className="text-slate-400 text-xs mb-8 bg-white/5 px-4 py-2 rounded-xl border border-white/5">
+                  {selectedUser.email}
+                </p>
+
+                <div className="grid grid-cols-2 gap-3 w-full mb-10">
+                  <div className="bg-white/5 p-3 rounded-2xl border border-white/5 text-center">
+                    <p className="text-xs text-slate-500 font-bold uppercase tracking-widest">
+                      Vai trò
+                    </p>
+                    <p className="font-black text-xs text-indigo-300">
+                      {selectedUser.role}
+                    </p>
+                  </div>
+                  <div className="bg-white/5 p-3 rounded-2xl border border-white/5 text-center">
+                    <p className="text-xs text-slate-500 font-bold uppercase tracking-widest">
+                      Status
+                    </p>
+                    <p
+                      className={`font-black text-xs ${selectedUser.status === "active" ? "text-emerald-400" : "text-rose-400"}`}
+                    >
+                      {selectedUser.status.toUpperCase()}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="w-full space-y-3 mt-auto">
+                  {selectedUser.status !== "locked" ? (
+                    <Button
+                      variant="destructive"
+                      className="w-full h-11 justify-start bg-rose-600 hover:bg-rose-700 rounded-xl shadow-lg shadow-rose-900/20"
+                      onClick={() => setBanDialogOpen(true)}
+                    >
+                      <Ban className="w-4 h-4 mr-2" /> Khóa vĩnh viễn
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="default"
+                      className="w-full h-11 justify-start bg-emerald-600 hover:bg-emerald-700 rounded-xl"
+                      onClick={async () => {
+                        try {
+                          await unbanUser(selectedUser.username);
+                          toast({
+                            variant: "success",
+                            title: "Thành công",
+                            description: "Tài khoản đã được mở khóa",
+                          });
+                          // Cập nhật state tức thì ở local
+                          setUsers((prev) =>
+                            prev.map((u) =>
+                              u.username === selectedUser.username ? { ...u, status: "active" } : u
+                            )
+                          );
+                          setDetailsDialogOpen(false);
+                          setTimeout(() => {
+                            fetchUsers();
+                            fetchSummaryStats();
+                          }, 800);
+                        } catch (err) {
+                          toast({
+                            title: "Lỗi",
+                            description: "Không thể mở khóa tài khoản",
+                            variant: "destructive",
+                          });
+                        }
+                      }}
+                    >
+                      <Unlock className="w-4 h-4 mr-2" /> Mở khóa ngay
+                    </Button>
+                  )}
+                </div>
+              </div>
+
+              {/* Main Content Area */}
+              <div className="flex-1 flex flex-col bg-muted/30">
+                <div className="flex p-6 bg-card border-b border-border/50 gap-8">
+                  {[
+                    {
+                      id: "overview",
+                      label: "Hoạt động",
+                      icon: <TrendingUp className="w-4 h-4" />,
+                    },
+                    {
+                      id: "reports",
+                      label: "Vi phạm",
+                      icon: <AlertTriangle className="w-4 h-4" />,
+                    },
+                  ].map((tab) => (
+                    <button
+                      key={tab.id}
+                      onClick={() => setActiveTab(tab.id)}
+                      className={`flex items-center gap-2 pb-4 px-2 text-sm font-bold transition-all border-b-2 ${activeTab === tab.id ? "border-indigo-600 text-indigo-600" : "border-transparent text-slate-400 hover:text-foreground"}`}
+                    >
+                      {tab.icon} {tab.label}
+                    </button>
+                  ))}
+                </div>
+
+                <ScrollArea className="flex-1 p-8">
+                  {activeTab === "overview" && (
+                    <div className="space-y-8 animate-in slide-in-from-right-4 duration-500">
+                      <div className="grid grid-cols-2 gap-6">
+                        <Card className="rounded-3xl border border-border/50 bg-card text-card-foreground shadow-sm hover:shadow-md transition-shadow">
+                          <CardContent className="p-6">
+                            <p className="text-muted-foreground text-xs font-bold uppercase tracking-widest mb-1">
+                              Nội dung đã đăng
+                            </p>
+                            <div className="text-4xl font-black text-foreground">
+                              {selectedUser.posts}
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Bài viết & Thước phim
+                            </p>
+                          </CardContent>
+                        </Card>
+                        <Card className="rounded-3xl border border-border/50 bg-card text-card-foreground shadow-sm hover:shadow-md transition-shadow">
+                          <CardContent className="p-6">
+                            <p className="text-muted-foreground text-xs font-bold uppercase tracking-widest mb-1">
+                              Tổng lượt tương tác
+                            </p>
+                            <div className="text-4xl font-black text-foreground">
+                              {selectedUser.interactions}
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Tim, Bình luận, Chia sẻ
+                            </p>
+                          </CardContent>
+                        </Card>
+                      </div>
+                      <div className="space-y-4">
+                        <h4 className="font-black text-foreground flex items-center gap-2">
+                          <FileText className="w-5 h-5 text-indigo-500" /> Hoạt
+                          động mới nhất
+                        </h4>
+                        <div className="bg-card rounded-3xl p-10 border border-dashed border-border text-center">
+                          <div className="w-16 h-16 bg-muted rounded-2xl flex items-center justify-center mx-auto mb-4">
+                            <FileText className="w-8 h-8 text-muted-foreground/30" />
+                          </div>
+                          <p className="text-muted-foreground font-bold italic">
+                            Danh sách hoạt động đang được đồng bộ...
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {activeTab === "reports" && (
+                    <div className="space-y-6 animate-in slide-in-from-right-4 duration-500">
+                      <div className="bg-rose-500/10 border border-rose-500/25 p-6 rounded-3xl flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                          <div className="w-12 h-12 bg-rose-500 rounded-2xl flex items-center justify-center text-white shadow-lg dark:shadow-none">
+                            <AlertTriangle className="w-6 h-6" />
+                          </div>
+                          <div>
+                            <h4 className="text-xl font-black text-rose-500">
+                              Lịch sử vi phạm
+                            </h4>
+                            <p className="text-rose-500/80 text-sm font-medium">
+                              Người dùng này đã có {selectedUser.violations} báo
+                              cáo vi phạm.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="bg-card rounded-3xl p-10 border border-dashed border-border text-center">
+                        <p className="text-muted-foreground font-bold italic">
+                          Chi tiết các vi phạm đang được tải...
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </ScrollArea>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* MODAL KHÓA TÀI KHOẢN */}
+      <Dialog open={banDialogOpen} onOpenChange={setBanDialogOpen}>
+        <DialogContent className="rounded-3xl border border-border/50 shadow-2xl bg-card text-card-foreground">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-black text-rose-600 flex items-center gap-2">
+              <Ban className="w-6 h-6" /> Khóa tài khoản người dùng
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-5 py-4">
+            <div className="flex items-center gap-4 p-4 bg-rose-500/10 rounded-2xl border border-rose-500/20">
+              <Avatar className="w-12 h-12 rounded-xl">
+                <AvatarImage src={selectedUser?.avatar} />
+              </Avatar>
+              <div>
+                <p className="font-bold text-rose-500">
+                  {selectedUser?.fullName}
+                </p>
+                <p className="text-xs text-rose-500 opacity-70">
+                  @{selectedUser?.username}
+                </p>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-xs font-bold uppercase text-slate-400 dark:text-slate-500">
+                Thời gian đình chỉ
+              </Label>
+              <Select value={banDuration} onValueChange={setBanDuration}>
+                <SelectTrigger className="h-12 rounded-xl bg-background border-border">
+                  <SelectValue placeholder="Chọn thời gian" />
+                </SelectTrigger>
+                <SelectContent className="rounded-xl">
+                  <SelectItem value="3" className="focus:bg-primary/15 focus:text-primary cursor-pointer">Tạm đình chỉ 3 ngày</SelectItem>
+                  <SelectItem value="7" className="focus:bg-primary/15 focus:text-primary cursor-pointer">Tạm đình chỉ 7 ngày</SelectItem>
+                  <SelectItem value="30" className="focus:bg-primary/15 focus:text-primary cursor-pointer">Đình chỉ 1 tháng (30 ngày)</SelectItem>
+                  <SelectItem value="9999" className="focus:bg-primary/15 focus:text-primary cursor-pointer">
+                    Khóa vĩnh viễn (Permanent)
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-xs font-bold uppercase text-slate-400 dark:text-slate-500">
+                Lý do kỷ luật
+              </Label>
+              <Input
+                placeholder="Nhập lý do cụ thể..."
+                value={banReason}
+                onChange={(e) => setBanReason(e.target.value)}
+                className="h-12 rounded-xl bg-background border-border text-foreground focus:ring-rose-500"
+              />
+              <p className="text-[10px] text-slate-400 dark:text-slate-500">
+                * Lý do này sẽ được gửi tới email người dùng.
+              </p>
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button
+              variant="ghost"
+              onClick={() => setBanDialogOpen(false)}
+              className="rounded-xl"
+            >
+              Hủy
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleBanUserSubmit}
+              disabled={!banReason}
+              className="bg-rose-600 hover:bg-rose-700 text-white rounded-xl px-8 shadow-lg shadow-rose-500/20 dark:shadow-none"
+            >
+              Xác nhận kỷ luật
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* MODAL THỐNG KÊ */}
       {selectedUserForStats && (
         <UserStatsDialog
           open={statsDialogOpen}
           onOpenChange={setStatsDialogOpen}
           userId={selectedUserForStats.id}
-          userName={selectedUserForStats.name}
+          userName={selectedUserForStats.username}
           userEmail={selectedUserForStats.email}
           userRole={selectedUserForStats.role}
           userStatus={selectedUserForStats.status}
         />
       )}
     </div>
+  );
+}
+
+function TableSkeleton() {
+  return Array(10)
+    .fill(0)
+    .map((_, i) => (
+      <TableRow key={i} className="hover:bg-transparent border-none h-[88px]">
+        <TableCell className="pl-8 py-5">
+          <div className="flex items-center gap-4">
+            <Skeleton className="h-12 w-12 rounded-2xl" />
+            <div className="space-y-1">
+              <Skeleton className="h-4 w-32" />
+              <Skeleton className="h-3 w-20" />
+              <Skeleton className="h-2.5 w-40" />
+            </div>
+          </div>
+        </TableCell>
+        <TableCell>
+          <Skeleton className="h-4 w-24" />
+        </TableCell>
+        <TableCell>
+          <Skeleton className="h-6 w-16 rounded-lg" />
+        </TableCell>
+        <TableCell>
+          <Skeleton className="h-6 w-16 rounded-lg" />
+        </TableCell>
+        <TableCell>
+          <div className="space-y-1">
+            <Skeleton className="h-3 w-20" />
+            <Skeleton className="h-3 w-24" />
+          </div>
+        </TableCell>
+        <TableCell className="text-center">
+          <Skeleton className="h-8 w-8 rounded-full mx-auto" />
+        </TableCell>
+        <TableCell className="pr-8">
+          <Skeleton className="h-8 w-8 ml-auto rounded-full" />
+        </TableCell>
+      </TableRow>
+    ));
+}
+
+interface LabelProps {
+  children: React.ReactNode;
+  className?: string;
+}
+
+function Label({ children, className }: LabelProps) {
+  return (
+    <label className={`text-sm font-medium leading-none ${className}`}>
+      {children}
+    </label>
   );
 }

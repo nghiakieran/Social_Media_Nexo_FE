@@ -16,6 +16,7 @@ export interface StoryContent {
 // Story Types (for viewer)
 export interface Story {
   id: string
+  ownerId?: string
   username: string
   profileImage: string
   isVerified?: boolean
@@ -33,6 +34,7 @@ export interface StoryViewerProps {
   initialStoryIndex: number
   initialContentIndex?: number
   isArchivePage?: boolean
+  onLikeChange?: (storyId: string, contentId: string, isLiked: boolean) => void
 }
 
 // API Response Types

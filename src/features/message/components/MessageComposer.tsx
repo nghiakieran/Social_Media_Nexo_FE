@@ -1,16 +1,17 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import {
   Send,
   Smile,
-  Paperclip,
   Mic,
+  MicOff,
   Image,
   Camera,
   ShieldBan,
   X,
+  Square,
 } from "lucide-react";
 import {
   Popover,
@@ -51,12 +52,16 @@ export const MessageComposer: React.FC<MessageComposerProps> = ({
 }) => {
   const [message, setMessage] = useState("");
   const [isRecording, setIsRecording] = useState(false);
+  const [recordingSeconds, setRecordingSeconds] = useState(0);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout>();
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const recordingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Cleanup image preview URLs on unmount
   useEffect(() => {
@@ -218,14 +223,86 @@ export const MessageComposer: React.FC<MessageComposerProps> = ({
     setImagePreviews((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const toggleRecording = () => {
-    setIsRecording(!isRecording);
-    if (!isRecording) {
-      setTimeout(() => {
-        setIsRecording(false);
-        onSendMessage("Voice message", "voice");
-      }, 2000);
+  const startRecording = useCallback(async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
+        ? "audio/webm;codecs=opus"
+        : "audio/webm";
+
+      const recorder = new MediaRecorder(stream, { mimeType });
+      audioChunksRef.current = [];
+
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) audioChunksRef.current.push(e.data);
+      };
+
+      recorder.onstop = async () => {
+        stream.getTracks().forEach((t) => t.stop());
+        const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
+        if (audioBlob.size === 0) return;
+
+        setIsUploading(true);
+        try {
+          const formData = new FormData();
+          formData.append("files", audioBlob, `voice_${Date.now()}.webm`);
+          const uploadRes = await api.post("/files/upload", formData, {
+            headers: { "Content-Type": "multipart/form-data" },
+            timeout: 30000,
+          });
+          const mediaUrls = uploadRes.data.data;
+          const urls = Array.isArray(mediaUrls) ? mediaUrls : [mediaUrls];
+          onSendMessage("", "voice", urls);
+        } catch {
+          // silently fail
+        } finally {
+          setIsUploading(false);
+        }
+      };
+
+      recorder.start(250);
+      mediaRecorderRef.current = recorder;
+      setIsRecording(true);
+      setRecordingSeconds(0);
+      recordingTimerRef.current = setInterval(
+        () => setRecordingSeconds((s) => s + 1),
+        1000
+      );
+    } catch {
+      // microphone permission denied
     }
+  }, [onSendMessage]);
+
+  const stopRecording = useCallback(() => {
+    if (mediaRecorderRef.current?.state === "recording") {
+      mediaRecorderRef.current.stop();
+    }
+    if (recordingTimerRef.current) {
+      clearInterval(recordingTimerRef.current);
+      recordingTimerRef.current = null;
+    }
+    setIsRecording(false);
+    setRecordingSeconds(0);
+  }, []);
+
+  const cancelRecording = useCallback(() => {
+    if (mediaRecorderRef.current?.state === "recording") {
+      mediaRecorderRef.current.ondataavailable = null;
+      mediaRecorderRef.current.onstop = null;
+      mediaRecorderRef.current.stop();
+    }
+    if (recordingTimerRef.current) {
+      clearInterval(recordingTimerRef.current);
+      recordingTimerRef.current = null;
+    }
+    setIsRecording(false);
+    setRecordingSeconds(0);
+  }, []);
+
+  const formatRecordingTime = (secs: number) => {
+    const m = Math.floor(secs / 60).toString().padStart(2, "0");
+    const s = (secs % 60).toString().padStart(2, "0");
+    return `${m}:${s}`;
   };
 
   // Nếu mình block người ta
@@ -364,63 +441,59 @@ export const MessageComposer: React.FC<MessageComposerProps> = ({
 
           {}
           <div className="flex-1 relative">
-            <Textarea
-              ref={textareaRef}
-              value={message}
-              onChange={handleInputChange}
-              onKeyDown={handleKeyDown}
-              placeholder={placeholder}
-              className="min-h-[36px] md:min-h-[40px] max-h-[120px] resize-none pr-10 md:pr-12 py-2 text-sm md:text-base"
-              rows={1}
-            />
-
-            {}
-            <Popover>
-              <PopoverTrigger asChild>
+            {isRecording ? (
+              <div className="flex items-center gap-2 min-h-[36px] md:min-h-[40px] px-3 py-2 rounded-md border bg-muted/30">
+                <span className="inline-block h-2 w-2 rounded-full bg-destructive animate-pulse" />
+                <span className="text-sm text-muted-foreground">Đang ghi âm...</span>
+              </div>
+            ) : (
+              <>
+                <Textarea
+                  ref={textareaRef}
+                  value={message}
+                  onChange={handleInputChange}
+                  onKeyDown={handleKeyDown}
+                  placeholder={placeholder}
+                  className="min-h-[36px] md:min-h-[40px] max-h-[120px] resize-none pr-10 md:pr-12 py-2 text-sm md:text-base"
+                  rows={1}
+                />
                 <Button
                   variant="ghost"
                   size="icon"
                   className="absolute right-1 top-1 h-8 w-8"
+                  onClick={handleImageSelect}
                 >
-                  <Paperclip className="h-4 w-4" />
+                  <Image className="h-4 w-4" />
                 </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-48 p-2">
-                <div className="space-y-1">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="w-full justify-start"
-                    onClick={handleImageSelect}
-                  >
-                    <Image className="h-4 w-4 mr-2" />
-                    Ảnh
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="w-full justify-start"
-                    onClick={() => handleFileUpload("image")}
-                  >
-                    <Camera className="h-4 w-4 mr-2" />
-                    Camera
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="w-full justify-start"
-                    onClick={() => handleFileUpload("file")}
-                  >
-                    <Paperclip className="h-4 w-4 mr-2" />
-                    Tệp tin
-                  </Button>
-                </div>
-              </PopoverContent>
-            </Popover>
+              </>
+            )}
           </div>
 
-          {}
-          {message.trim() || selectedFiles.length > 0 ? (
+          {isRecording ? (
+            <div className="flex items-center gap-1 shrink-0">
+              <span className="text-xs font-mono text-destructive w-10 text-center">
+                {formatRecordingTime(recordingSeconds)}
+              </span>
+              <Button
+                onClick={cancelRecording}
+                size="icon"
+                variant="ghost"
+                className="h-8 w-8 md:h-10 md:w-10 text-muted-foreground"
+                title="Hủy"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+              <Button
+                onClick={stopRecording}
+                size="icon"
+                variant="destructive"
+                className="h-8 w-8 md:h-10 md:w-10 animate-pulse"
+                title="Dừng và gửi"
+              >
+                <Square className="h-4 w-4" />
+              </Button>
+            </div>
+          ) : message.trim() || selectedFiles.length > 0 ? (
             <Button
               onClick={handleSend}
               disabled={isUploading}
@@ -435,13 +508,11 @@ export const MessageComposer: React.FC<MessageComposerProps> = ({
             </Button>
           ) : (
             <Button
-              onClick={toggleRecording}
+              onClick={startRecording}
               size="icon"
-              variant={isRecording ? "destructive" : "ghost"}
-              className={cn(
-                "shrink-0 h-8 w-8 md:h-10 md:w-10",
-                isRecording && "animate-pulse"
-              )}
+              variant="ghost"
+              className="shrink-0 h-8 w-8 md:h-10 md:w-10"
+              title="Ghi âm"
             >
               <Mic className="h-4 w-4" />
             </Button>
@@ -456,6 +527,8 @@ export const MessageComposer: React.FC<MessageComposerProps> = ({
         accept="image/*"
         onChange={handleFileChange}
         className="hidden"
+        title="Chọn ảnh"
+        aria-label="Chọn ảnh"
       />
     </div>
   );

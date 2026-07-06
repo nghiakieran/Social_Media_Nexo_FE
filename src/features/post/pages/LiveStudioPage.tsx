@@ -197,7 +197,8 @@ export const LiveStudioPage = () => {
 
               <Button
                 onClick={startLive}
-                className="w-full bg-gradient-instagram hover:opacity-90"
+                variant="default"
+                className="w-full"
                 size="lg"
               >
                 Bắt đầu Live

@@ -5,13 +5,12 @@ import { ActionMenuDialog } from "./ActionMenuDialog";
 import { useToast } from "@/hooks/use-toast";
 import {
   MessageCircle,
-  Send,
   MoreVertical,
   Volume2,
   VolumeX,
 } from "lucide-react";
 import { Reel } from "../types";
-import { openCommentsDrawer, deleteReelThunk } from "../reelSlice";
+import { openCommentsDrawer, deleteReelThunk, updateReelLikeOptimistic } from "../reelSlice";
 import { LikeButton } from "@/features/interaction/components/LikeButton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ActionMenu } from "@/components/common/ActionMenu";
@@ -65,17 +64,17 @@ const ReelViewer = memo(
     const handleLikeChange = (newIsLiked: boolean, newCount: number) => {
       setIsLiked(newIsLiked);
       setLikesCount(newCount);
+      dispatch(updateReelLikeOptimistic({ reelId: reel.id, isLiked: newIsLiked, likesCount: newCount }));
     };
 
-    const handleComment = (e: React.MouseEvent) => {
-      e.stopPropagation();
+    const handleToggleComments = () => {
+      if (isDetail) {
+        window.dispatchEvent(new CustomEvent("focus-reel-comment-input"));
+      }
       dispatch(openCommentsDrawer(reel.id));
     };
 
-    const handleShare = (e: React.MouseEvent) => {
-      e.stopPropagation();
-      onShare?.(reel.id);
-    };
+
 
     const handleMoreClick = (e: React.MouseEvent) => {
       e.stopPropagation();
@@ -89,6 +88,7 @@ const ReelViewer = memo(
           await dispatch(deleteReelThunk(parseInt(reel.id))).unwrap();
 
           toast({
+            variant: "success",
             title: "Thành công",
             description: "Reel đã được xóa thành công!",
           });
@@ -224,10 +224,11 @@ const ReelViewer = memo(
               isLiked={isLiked}
               likesCount={likesCount}
               size="md"
-              variant="ghost"
               showCount={false}
               onLikeChange={handleLikeChange}
-              className="h-14 w-14 p-0 bg-transparent hover:bg-transparent text-white hover:text-white active:scale-90 transition-transform"
+              className={`h-14 w-14 p-0 bg-transparent hover:bg-transparent active:scale-90 transition-transform flex flex-col items-center gap-0.5 [&_svg]:w-7 [&_svg]:h-7 [&_svg]:drop-shadow-[0_2px_4px_rgba(0,0,0,0.6)] ${
+                isLiked ? "text-red-500 hover:text-red-600" : "text-white hover:text-white"
+              }`}
             >
               {likesCount > 0 && (
                 <span className="text-white text-[11px] font-semibold drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">
@@ -239,7 +240,7 @@ const ReelViewer = memo(
 
           {/* Comment */}
           <button
-            onClick={handleComment}
+            onClick={handleToggleComments}
             className="flex flex-col items-center gap-0.5 active:scale-90 transition-transform"
           >
             <MessageCircle className="w-7 h-7 text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.6)]" />
@@ -250,13 +251,7 @@ const ReelViewer = memo(
             )}
           </button>
 
-          {/* Share */}
-          <button
-            onClick={handleShare}
-            className="flex flex-col items-center gap-0.5 active:scale-90 transition-transform"
-          >
-            <Send className="w-7 h-7 text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.6)]" />
-          </button>
+
 
           {/* More */}
           <button
@@ -379,25 +374,27 @@ const ReelViewer = memo(
               isDestructive: true,
             },
             {
-              label: "Không quan tâm",
-              action: () => console.log("Not Interested"),
-            },
-            {
               label: "Sao chép liên kết",
               action: () => {
                 navigator.clipboard.writeText(
                   `${window.location.origin}/reels/${reel.id}`
-                );
-                console.log("Copy Link");
+                )
+                  .then(() => {
+                    toast({
+                      variant: "success",
+                      title: "Đã sao chép liên kết",
+                      description: "Liên kết thước phim đã được sao chép vào bộ nhớ tạm.",
+                    });
+                  })
+                  .catch(() => {
+                    toast({
+                      variant: "destructive",
+                      title: "Lỗi",
+                      description: "Không thể sao chép liên kết.",
+                    });
+                  });
+                setShowMore(false);
               },
-            },
-            {
-              label: "Chia sẻ đến...",
-              action: () => onShare?.(reel.id),
-            },
-            {
-              label: "Về tài khoản này",
-              action: () => console.log("About"),
             },
           ]}
         />

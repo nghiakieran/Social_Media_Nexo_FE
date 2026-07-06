@@ -12,6 +12,7 @@ interface LazyGridItem {
   commentsCount?: number;
   // For blur-to-sharp effect
   lowResThumbnail?: string;
+  ref?: (node: HTMLElement | null) => void;
 }
 
 interface LazyGridProps {
@@ -123,7 +124,12 @@ export const LazyGrid = ({
         return (
           <div
             key={item.id}
-            ref={(el) => setItemRef(item.id, el)}
+            ref={(el) => {
+              setItemRef(item.id, el);
+              if (item.ref) {
+                item.ref(el);
+              }
+            }}
             data-item-id={item.id}
             className={`relative aspect-square bg-muted cursor-pointer group overflow-hidden ${itemClassName}`}
             onClick={() => onItemClick?.(item)}

@@ -7,6 +7,7 @@ import {
   Hash,
   Heart,
   MessageCircle,
+  ShieldAlert,
   ThumbsUp,
   UserPlus,
 } from "lucide-react";
@@ -40,11 +41,14 @@ export const NotificationItem = ({
       case "COMMENT_POST":
       case "COMMENT_REEL":
       case "COMMENT_MENTION":
-        return <MessageCircle className="w-4 h-4 text-blue-500" />;
+        return <MessageCircle className="h-4 w-4 text-primary" />;
       case "FOLLOW":
-        return <UserPlus className="w-4 h-4 text-purple-500" />;
+        return <UserPlus className="h-4 w-4 text-primary" />;
       case "TAG":
         return <Hash className="w-4 h-4 text-green-500" />;
+      case "POST_REMOVED":
+      case "COMMENT_REMOVED":
+        return <ShieldAlert className="w-4 h-4 text-destructive" />;
       case "MESSAGE":
       case "SYSTEM":
       default:
@@ -67,8 +71,25 @@ export const NotificationItem = ({
         }
       }
 
+      if (
+        notification.notificationType === "POST_REMOVED" ||
+        notification.notificationType === "COMMENT_REMOVED"
+      ) {
+        navigate("/community-guidelines");
+        return;
+      }
+
       if (notification.targetUrl) {
-        navigateToPost2(navigate, notification.targetUrl);
+        let url = notification.targetUrl;
+        if (notification.notificationType === "LIKE_STORY" || url.includes("story")) {
+          const match = url.match(/\/(\d+)(?:\D|$)/);
+          if (match && match[1]) {
+            url = `/posts/story/view-detail/${match[1]}`;
+          } else {
+            url = url.replace(/^\/?api\//, "/");
+          }
+        }
+        navigateToPost2(navigate, url);
       }
     } catch (error) {
       console.error("Đánh dấu thông báo lỗi:", error);
@@ -91,9 +112,9 @@ export const NotificationItem = ({
       onClick={handleClick}
     >
       <CardContent className="p-4">
-        <div className="flex items-start gap-3">
+        <div className="flex items-center gap-3">
           {/* Icon */}
-          <div className="flex-shrink-0 mt-1">{getNotificationIcon()}</div>
+          <div className="flex-shrink-0">{getNotificationIcon()}</div>
 
           {/* Avatar */}
           <Avatar
@@ -109,7 +130,7 @@ export const NotificationItem = ({
 
           {/* Content */}
           <div className="flex-1 min-w-0">
-            <div className="flex items-start justify-between">
+            <div className="flex items-center justify-between">
               <div className="flex-1 min-w-0">
                 <p className="text-sm text-foreground">
                   {notification.userList.length > 0 && (

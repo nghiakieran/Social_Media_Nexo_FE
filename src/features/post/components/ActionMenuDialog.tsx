@@ -6,14 +6,12 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useState } from "react";
-import { EyeOff, Eye } from "lucide-react";
 
 interface ActionMenuDialogProps {
   isOpen: boolean;
   onClose: () => void;
   onAction: (action: string) => void;
   isOwnPost?: boolean;
-  isPostHidden?: boolean; // isActive = false
 }
 
 export const ActionMenuDialog = ({
@@ -21,7 +19,6 @@ export const ActionMenuDialog = ({
   onClose,
   onAction,
   isOwnPost = true,
-  isPostHidden = false,
 }: ActionMenuDialogProps) => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
@@ -79,52 +76,10 @@ export const ActionMenuDialog = ({
                     Chỉnh sửa
                   </Button>
 
-                  {/* Hide/Show Post - Only for own posts in profile */}
-                  <Button
-                    variant="ghost"
-                    onClick={() => handleAction("toggleHidePost")}
-                    className="block text-center w-full justify-start h-12"
-                  >
-                    <div className="flex items-center justify-center gap-2">
-                      {isPostHidden ? (
-                        <>
-                          <Eye className="w-4 h-4" />
-                          <span>Hiển thị bài viết</span>
-                        </>
-                      ) : (
-                        <>
-                          <EyeOff className="w-4 h-4" />
-                          <span>Ẩn bài viết khỏi trang cá nhân</span>
-                        </>
-                      )}
-                    </div>
-                  </Button>
-
-                  <Button
-                    variant="ghost"
-                    onClick={() => handleAction("hideLikes")}
-                    className="block text-center w-full justify-start h-12"
-                  >
-                    Ẩn số lượt thích với những người khác
-                  </Button>
-
-                  <Button
-                    variant="ghost"
-                    onClick={() => handleAction("disableComments")}
-                    className="block text-center w-full justify-start h-12"
-                  >
-                    Tắt tính năng bình luận
-                  </Button>
                 </>
               )}
 
-              <Button
-                variant="ghost"
-                onClick={() => handleAction("aboutAccount")}
-                className="block text-center w-full justify-start h-12"
-              >
-                Giới thiệu về tài khoản này
-              </Button>
+
             </div>
           </>
         ) : (

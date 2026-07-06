@@ -219,10 +219,37 @@ const reelSlice = createSlice({
         reel.likesCount += reel.isLiked ? 1 : -1;
       }
     },
+    updateReelLikeOptimistic: (
+      state,
+      action: PayloadAction<{ reelId: string; isLiked: boolean; likesCount: number }>
+    ) => {
+      const { reelId, isLiked, likesCount } = action.payload;
+      const reel = state.reels.find((r) => r.id === reelId);
+      if (reel) {
+        reel.isLiked = isLiked;
+        reel.likesCount = likesCount;
+      }
+      if (state.currentReel && state.currentReel.id === reelId) {
+        state.currentReel.isLiked = isLiked;
+        state.currentReel.likesCount = likesCount;
+      }
+    },
     incrementCommentsCount: (state, action: PayloadAction<string>) => {
       const reel = state.reels.find((r) => r.id === action.payload);
       if (reel) {
         reel.commentsCount += 1;
+      }
+      if (state.currentReel && state.currentReel.id === action.payload) {
+        state.currentReel.commentsCount += 1;
+      }
+    },
+    decrementCommentsCount: (state, action: PayloadAction<string>) => {
+      const reel = state.reels.find((r) => r.id === action.payload);
+      if (reel) {
+        reel.commentsCount = Math.max(0, reel.commentsCount - 1);
+      }
+      if (state.currentReel && state.currentReel.id === action.payload) {
+        state.currentReel.commentsCount = Math.max(0, state.currentReel.commentsCount - 1);
       }
     },
     setComments: (
@@ -309,10 +336,17 @@ const reelSlice = createSlice({
       })
       .addCase(getUserReelsThunk.fulfilled, (state, action) => {
         state.isLoading = false;
-        state.reels = action.payload.reels;
-        state.hasMore = action.payload.hasMore;
-        state.currentPage = action.payload.currentPage;
-        state.totalPages = action.payload.totalPages;
+        const { reels, hasMore, currentPage, totalPages } = action.payload;
+        if (currentPage === 0) {
+          state.reels = reels;
+        } else {
+          const existingIds = new Set(state.reels.map((r) => r.id));
+          const newReels = reels.filter((r) => !existingIds.has(r.id));
+          state.reels.push(...newReels);
+        }
+        state.hasMore = hasMore;
+        state.currentPage = currentPage;
+        state.totalPages = totalPages;
       })
       .addCase(getUserReelsThunk.rejected, (state, action) => {
         state.isLoading = false;
@@ -400,7 +434,9 @@ export const {
   setError,
   setHasMore,
   toggleLike,
+  updateReelLikeOptimistic,
   incrementCommentsCount,
+  decrementCommentsCount,
   setComments,
   addComment,
   toggleCommentLike,

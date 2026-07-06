@@ -16,14 +16,17 @@ export const Header = () => {
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
         {/* Logo */}
         <div className="flex items-center gap-8">
-          <h1 className="text-2xl font-bold bg-gradient-instagram bg-clip-text text-transparent">Nexo</h1>
+          <h1 className="text-2xl font-bold tracking-tight">
+            <span className="text-foreground">Nexo</span>{" "}
+            <span className="text-primary">Social</span>
+          </h1>
           
           {/* Search */}
           <div className="hidden md:block relative w-64">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input 
               placeholder="Tìm kiếm..." 
-              className="pl-10 bg-secondary border-0"
+              className="pl-10 bg-muted border-0"
             />
           </div>
         </div>
@@ -66,9 +69,9 @@ export const Header = () => {
           </Button>
           
           {/* Profile */}
-          <div className="w-8 h-8 rounded-full bg-gradient-story p-0.5">
-            <div className="w-full h-full rounded-full bg-background flex items-center justify-center">
-              <div className="w-6 h-6 rounded-full bg-gradient-instagram"></div>
+          <div className="h-8 w-8 rounded-full bg-gradient-to-br from-primary to-secondary p-0.5 shadow-sm">
+            <div className="flex h-full w-full items-center justify-center rounded-full bg-background">
+              <div className="h-6 w-6 rounded-full bg-primary" />
             </div>
           </div>
         </div>

@@ -40,8 +40,8 @@ export const StoryHighlights = ({ highlights, onAdd, onOpen, onEdit, onDelete, c
           aria-label="Thêm mục nổi bật"
         >
           <div className="relative">
-            <div className="w-[77px] h-[77px] rounded-full border-2 border-dashed border-muted flex items-center justify-center text-muted-foreground">
-              <svg viewBox="0 0 24 24" width="28" height="28" fill="currentColor" aria-hidden>
+            <div className="w-[56px] h-[56px] sm:w-[77px] sm:h-[77px] rounded-full border-2 border-dashed border-muted flex items-center justify-center text-muted-foreground">
+              <svg viewBox="0 0 24 24" className="w-5 h-5 sm:w-7 sm:h-7" fill="currentColor" aria-hidden>
                 <path d="M21 11h-8V3a1 1 0 1 0-2 0v8H3a1 1 0 1 0 0 2h8v8a1 1 0 1 0 2 0v-8h8a1 1 0 1 0 0-2Z"></path>
               </svg>
             </div>
@@ -59,7 +59,7 @@ export const StoryHighlights = ({ highlights, onAdd, onOpen, onEdit, onDelete, c
                 className="flex flex-col items-center gap-2 focus:outline-none"
                 aria-label={hl.title}
               >
-                <div className="w-[77px] h-[77px] rounded-full ring-1 ring-border overflow-hidden">
+                <div className="w-[56px] h-[56px] sm:w-[77px] sm:h-[77px] rounded-full ring-1 ring-border overflow-hidden">
                   {isVideo ? (
                     <VideoThumbnail
                       videoUrl={hl.cover}
@@ -75,7 +75,7 @@ export const StoryHighlights = ({ highlights, onAdd, onOpen, onEdit, onDelete, c
                     />
                   )}
                 </div>
-                <span className="text-xs truncate max-w-[77px]" title={hl.title}>{hl.title}</span>
+                <span className="text-xs truncate max-w-[56px] sm:max-w-[77px]" title={hl.title}>{hl.title}</span>
               </button>
 
             {/* Management menu - only show for owner */}
@@ -93,7 +93,7 @@ export const StoryHighlights = ({ highlights, onAdd, onOpen, onEdit, onDelete, c
                 <DropdownMenuContent align="end">
                   {onEdit && (
                     <DropdownMenuItem
-                      className="cursor-pointer"
+                      className="cursor-pointer focus:bg-primary/10 focus:text-primary dark:focus:bg-primary/20"
                       onClick={(e) => {
                         e.stopPropagation();
                         onEdit(hl.id);
@@ -105,7 +105,7 @@ export const StoryHighlights = ({ highlights, onAdd, onOpen, onEdit, onDelete, c
                   )}
                   {onDelete && (
                     <DropdownMenuItem
-                      className="text-red-600 focus:text-red-600 cursor-pointer"
+                      className="text-red-600 focus:text-red-600 focus:bg-red-500/10 dark:focus:bg-red-500/20 cursor-pointer"
                       onClick={(e) => {
                         e.stopPropagation();
                         onDelete(hl.id);

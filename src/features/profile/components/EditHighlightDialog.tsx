@@ -30,6 +30,7 @@ export const EditHighlightDialog = ({
   const [name, setName] = useState(initialName);
   const [stories, setStories] = useState<StoryContent[]>([]);
   const [selected, setSelected] = useState<Record<string, boolean>>({});
+  const [collectionStoryIds, setCollectionStoryIds] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -57,6 +58,7 @@ export const EditHighlightDialog = ({
       setName(initialName);
       setStories([]);
       setSelected({});
+      setCollectionStoryIds([]);
       setCurrentPage(0);
       setHasMore(true);
       hasMoreRef.current = true;
@@ -75,6 +77,7 @@ export const EditHighlightDialog = ({
         // Load collection detail to get current stories
         const collectionResponse = await getCollectionDetail(collectionId);
         const currentStoryIds = collectionResponse.data.stories.map(s => s.storyId.toString());
+        setCollectionStoryIds(currentStoryIds);
 
         // Load all user stories
         const storiesResponse = await getAllUserStories({ userId, pageNo: 0, pageSize: 10 });
@@ -168,7 +171,7 @@ export const EditHighlightDialog = ({
                     const newSelected = { ...prevSelected };
                     result.stories.forEach((story) => {
                       if (!(story.id in newSelected)) {
-                        newSelected[story.id] = false;
+                        newSelected[story.id] = collectionStoryIds.includes(story.id);
                       }
                     });
                     return newSelected;
@@ -201,7 +204,7 @@ export const EditHighlightDialog = ({
         observer.unobserve(currentTarget);
       }
     };
-  }, [isOpen, loadStories, toast]); // Setup only once when dialog opens
+  }, [isOpen, isLoading, collectionStoryIds, loadStories, toast]); // Re-setup when loading state or collectionStoryIds changes
 
   const handleSave = async () => {
     if (!canSave) return;
@@ -235,7 +238,7 @@ export const EditHighlightDialog = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="w-[90vw] max-w-[560px] p-0 overflow-hidden max-h-[90vh]">
+      <DialogContent className="w-[90vw] max-w-[480px] sm:max-w-[560px] p-0 overflow-hidden max-h-[90vh] rounded-xl">
         <DialogHeader className="p-4 border-b border-border">
           <DialogTitle className="text-center">Chỉnh sửa tin nổi bật</DialogTitle>
         </DialogHeader>
@@ -312,7 +315,7 @@ export const EditHighlightDialog = ({
             </div>
           )}
 
-          <div className="flex justify-end gap-2 pt-4 border-t">
+          <div className="flex justify-end gap-2 border-t border-primary/10 pt-4">
             <Button variant="ghost" onClick={onClose} disabled={isSaving}>
               Hủy
             </Button>

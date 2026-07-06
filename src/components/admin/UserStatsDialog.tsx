@@ -9,8 +9,9 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { BarChart3, ArrowUp, ArrowDown } from "lucide-react";
+import { BarChart3, ArrowUp, ArrowDown, FileText, Heart, UserCheck, Users } from "lucide-react";
 import { getUserStatistics } from "@/features/admin/api/userManagementAPI";
+import { Skeleton } from "../ui/skeleton";
 
 interface UserStatsDialogProps {
   open: boolean;
@@ -28,7 +29,7 @@ interface UserStats {
   totalFollowersCount: number;
   totalFollowingCount: number;
   newFollowersCount: number;
-  followersGrowthPercentage: number; 
+  followersGrowthPercentage: number;
 }
 
 export function UserStatsDialog({
@@ -45,28 +46,15 @@ export function UserStatsDialog({
 
   useEffect(() => {
     if (open && userId) {
-      setLoading(true);
       const fetchStats = async () => {
+        setLoading(true);
         try {
-          const response = await getUserStatistics(userId);
-
-          // Tính phần trăm tăng trưởng: (newFollowersCount / totalFollowersCount) * 100
-          const followersGrowthPercentage =
-            response.totalFollowersCount > 0
-              ? (response.newFollowersCount / response.totalFollowersCount) *
-                100
+          const res = await getUserStatistics(userId);
+          const growth =
+            res.totalFollowersCount > 0
+              ? (res.newFollowersCount / res.totalFollowersCount) * 100
               : 0;
-
-          setStats({
-            postsCount: response.postsCount,
-            interactionsCount: response.interactionsCount,
-            totalFollowersCount: response.totalFollowersCount,
-            totalFollowingCount: response.totalFollowingCount,
-            newFollowersCount: response.newFollowersCount,
-            followersGrowthPercentage: followersGrowthPercentage,
-          });
-        } catch (error) {
-          console.error("Lỗi khi tải thống kê:", error);
+          setStats({ ...res, followersGrowthPercentage: growth });
         } finally {
           setLoading(false);
         }
@@ -75,149 +63,105 @@ export function UserStatsDialog({
     }
   }, [open, userId]);
 
-  const getRoleBadge = (role: string) => {
-    const variants = {
-      ADMIN: "destructive" as const,
-      MODERATOR: "default" as const,
-      USER: "secondary" as const,
-    };
-    return variants[role as keyof typeof variants] || "secondary";
-  };
-
-  const getStatusBadge = (status: string) => {
-    const variants = {
-      active: "default" as const,
-      locked: "destructive" as const,
-      pending: "outline" as const,
-    };
-    return variants[status as keyof typeof variants] || "secondary";
-  };
-
-  if (loading || !stats) {
-    return (
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-6xl max-h-[90vh]">
-          <DialogHeader>
-            <DialogTitle>Đang tải thống kê...</DialogTitle>
-          </DialogHeader>
-          <div className="flex items-center justify-center py-12">
-            <div className="text-muted-foreground">Đang tải dữ liệu...</div>
-          </div>
-        </DialogContent>
-      </Dialog>
-    );
-  }
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-6xl max-h-[90vh]">
-        <DialogHeader>
-          <div className="flex items-center gap-4">
-            <Avatar className="w-12 h-12">
-              <AvatarFallback>{userName[0]?.toUpperCase()}</AvatarFallback>
+      <DialogContent className="max-w-4xl p-0 overflow-hidden border border-border/50 bg-card text-card-foreground shadow-2xl rounded-3xl [&>button]:text-white [&>button]:hover:text-white [&>button]:bg-white/10 hover:[&>button]:bg-white/20 [&>button]:rounded-full">
+        <DialogHeader className="p-8 bg-slate-900 text-white relative">
+          <div className="flex items-center gap-6">
+            <Avatar className="w-20 h-20 border-4 border-white/10 shadow-xl rounded-2xl">
+              <AvatarFallback className="bg-indigo-600 text-2xl font-black">
+                {userName[0]}
+              </AvatarFallback>
             </Avatar>
-            <div className="flex-1">
-              <DialogTitle className="text-xl">{userName}</DialogTitle>
-              <div className="flex items-center gap-2 mt-1">
-                <Badge variant={getRoleBadge(userRole)}>{userRole}</Badge>
-                <Badge variant={getStatusBadge(userStatus)}>
-                  {userStatus === "active" ? "Hoạt động" : userStatus}
+            <div className="space-y-2">
+              <DialogTitle className="text-3xl font-black">
+                {userName}
+              </DialogTitle>
+              <div className="flex gap-2">
+                <Badge className="bg-white/20 hover:bg-white/30 border-none text-white">
+                  {userRole}
+                </Badge>
+                <Badge
+                  className={`${userStatus === "active" ? "bg-emerald-500/20 text-emerald-400" : "bg-rose-500/20 text-rose-400"} border-none`}
+                >
+                  {userStatus === "active" ? "● Trực tuyến" : "○ Bị khóa"}
                 </Badge>
               </div>
-              <p className="text-sm text-muted-foreground mt-1">{userEmail}</p>
+              <p className="text-white/50 text-sm">{userEmail}</p>
             </div>
           </div>
         </DialogHeader>
 
-        <ScrollArea className="max-h-[calc(90vh-120px)]">
-          <div className="space-y-6 pr-4">
-            {/* Tổng quan */}
-            <div>
-              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                <BarChart3 className="w-5 h-5" />
-                Tổng quan
-              </h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                {/* Bài viết */}
-                <Card className="hover:shadow-md transition-shadow">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-sm font-medium text-muted-foreground">
-                      Tổng bài viết
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-3xl font-bold mb-2">
-                      {stats.postsCount.toLocaleString()}
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Tương tác */}
-                <Card className="hover:shadow-md transition-shadow">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-sm font-medium text-muted-foreground">
-                      Tổng tương tác
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-3xl font-bold mb-2">
-                      {stats.interactionsCount.toLocaleString()}
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Người theo dõi */}
-                <Card className="hover:shadow-md transition-shadow">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-sm font-medium text-muted-foreground">
-                      Người theo dõi
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-3xl font-bold mb-2">
-                      {stats.totalFollowersCount.toLocaleString()}
-                    </div>
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                      {stats.followersGrowthPercentage > 0 ? (
-                        <>
-                          <ArrowUp className="w-3 h-3 text-green-500" />
-                          <span className="text-green-500 font-medium">
-                            +{stats.followersGrowthPercentage.toFixed(2)}%
-                          </span>
-                        </>
-                      ) : (
-                        <>
-                          <ArrowDown className="w-3 h-3 text-red-500" />
-                          <span className="text-red-500 font-medium">
-                            {stats.followersGrowthPercentage.toFixed(2)}%
-                          </span>
-                        </>
-                      )}
-                      <span className="ml-1">tăng trưởng (30 ngày)</span>
-                    </div>
-                    <div className="text-xs text-muted-foreground mt-1">
-                      +{stats.newFollowersCount.toLocaleString()} người mới
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Đang theo dõi */}
-                <Card className="hover:shadow-md transition-shadow">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-sm font-medium text-muted-foreground">
-                      Đang theo dõi
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-3xl font-bold mb-2">
-                      {stats.totalFollowingCount.toLocaleString()}
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
+        <div className="p-8 bg-muted/30">
+          {loading ? (
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              {Array(4)
+                .fill(0)
+                .map((_, i) => (
+                  <Skeleton key={i} className="h-32 rounded-3xl" />
+                ))}
             </div>
-          </div>
-        </ScrollArea>
+          ) : (
+            stats && (
+              <div className="space-y-8 animate-in slide-in-from-bottom-4 duration-500">
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                  {[
+                    {
+                      label: "Bài viết",
+                      value: stats.postsCount,
+                      icon: FileText,
+                      color: "text-blue-600 dark:text-blue-400",
+                    },
+                    {
+                      label: "Tương tác",
+                      value: stats.interactionsCount,
+                      icon: Heart,
+                      color: "text-rose-600 dark:text-rose-400",
+                    },
+                    {
+                      label: "Followers",
+                      value: stats.totalFollowersCount,
+                      icon: Users,
+                      color: "text-indigo-600 dark:text-indigo-400",
+                      trend: stats.followersGrowthPercentage,
+                    },
+                    {
+                      label: "Following",
+                      value: stats.totalFollowingCount,
+                      icon: UserCheck,
+                      color: "text-slate-600 dark:text-slate-400",
+                    },
+                  ].map((item, i) => (
+                    <Card
+                      key={i}
+                      className="border border-border/50 bg-card text-card-foreground shadow-sm rounded-3xl group hover:shadow-md transition-all"
+                    >
+                      <CardContent className="p-6">
+                        <div className="flex items-center justify-between mb-2">
+                          <item.icon className={`w-5 h-5 ${item.color}`} />
+                          {item.trend !== undefined && (
+                            <span
+                              className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${item.trend >= 0 ? "bg-emerald-500/10 text-emerald-500" : "bg-rose-500/10 text-rose-500"}`}
+                            >
+                              {item.trend >= 0 ? "+" : ""}
+                              {item.trend.toFixed(1)}%
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-2xl font-black text-foreground">
+                          {item.value.toLocaleString()}
+                        </p>
+                        <p className="text-xs font-bold text-muted-foreground uppercase tracking-tighter mt-1">
+                          {item.label}
+                        </p>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            )
+          )}
+        </div>
       </DialogContent>
     </Dialog>
   );

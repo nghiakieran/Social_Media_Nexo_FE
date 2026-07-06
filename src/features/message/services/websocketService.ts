@@ -10,9 +10,18 @@ import type {
   ReadAllDTO,
   WebSocketErrorResponse,
   PresenceStatusDTO,
-  ReactionUpdateDTO,
+  ReactionWebSocketPayload,
   ReactMessageRequest,
   EReactionType,
+  CallNotificationDTO,
+  CallResponseDTO,
+  CallSignalDTO,
+  CallEndedDTO,
+  CallInitiateRequest,
+  CallResponseRequest,
+  CallSignalRequest,
+  CallEndRequest,
+  NicknameUpdateEvent,
 } from "../types";
 import { ACCESS_TOKEN_STORAGE_KEY } from "@/utils/constants";
 
@@ -20,23 +29,25 @@ type MessageCallback = (message: MessageDTO) => void;
 type TypingCallback = (notification: TypingNotificationDTO) => void;
 type ReadReceiptCallback = (receipt: ReadReceiptDTO) => void;
 type ReadAllCallback = (receipt: ReadAllDTO) => void;
-type ReactionUpdateCallback = (update: ReactionUpdateDTO) => void;
+type ReactionUpdateCallback = (update: ReactionWebSocketPayload) => void;
 type ErrorCallback = (error: WebSocketErrorResponse) => void;
 type PresenceCallback = (presence: PresenceStatusDTO) => void;
+type NicknameUpdateCallback = (event: NicknameUpdateEvent) => void;
 
 export class WebSocketService {
   private client: Client | null = null;
-  private subscriptions: Map<string, StompSubscription> = new Map();
+  private readonly subscriptions: Map<string, StompSubscription> = new Map();
   private reconnectAttempts = 0;
-  private maxReconnectAttempts = 5;
-  private reconnectDelay = 3000;
+  private readonly maxReconnectAttempts = 5;
+  private readonly reconnectDelay = 3000;
 
   private onConnectedCallback?: () => void;
   private onDisconnectedCallback?: () => void;
   private onErrorCallback?: (error: unknown) => void;
+  private readonly connectedListeners: Set<() => void> = new Set();
 
   constructor(
-    private baseUrl: string = import.meta.env.VITE_WS_URL ||
+    private readonly baseUrl: string = import.meta.env.VITE_WS_URL ||
       "http://localhost:8080"
   ) {}
 
@@ -72,9 +83,11 @@ export class WebSocketService {
       onConnect: () => {
         this.reconnectAttempts = 0;
         this.onConnectedCallback?.();
+        this.connectedListeners.forEach((cb) => cb());
       },
 
       onDisconnect: () => {
+        this.subscriptions.clear();
         this.onDisconnectedCallback?.();
       },
 
@@ -90,7 +103,15 @@ export class WebSocketService {
     this.client.activate();
   }
 
-  
+  addConnectedListener(cb: () => void) {
+    this.connectedListeners.add(cb);
+  }
+
+  removeConnectedListener(cb: () => void) {
+    this.connectedListeners.delete(cb);
+  }
+
+
   disconnect() {
     if (this.client?.active) {
       this.subscriptions.forEach((sub) => sub.unsubscribe());
@@ -113,13 +134,20 @@ export class WebSocketService {
     onTyping: TypingCallback,
     onReadReceipt: ReadReceiptCallback,
     onReadAll: ReadAllCallback,
-    onReactionUpdate?: ReactionUpdateCallback
+    onReactionUpdate?: ReactionUpdateCallback,
+    onNicknameUpdate?: NicknameUpdateCallback
   ) {
     if (!this.client?.connected) {
       return;
     }
 
     const baseTopic = `/topic/conversation/${conversationId}`;
+
+    const existingMessageSub = this.subscriptions.get(`${baseTopic}:message`);
+    if (existingMessageSub) {
+      existingMessageSub.unsubscribe();
+      this.subscriptions.delete(`${baseTopic}:message`);
+    }
 
     const messageSub = this.client.subscribe(baseTopic, (message: IMessage) => {
       const data: MessageDTO = JSON.parse(message.body);
@@ -158,19 +186,41 @@ export class WebSocketService {
       const reactionSub = this.client.subscribe(
         `${baseTopic}/reactions`,
         (message: IMessage) => {
-          const data: ReactionUpdateDTO = JSON.parse(message.body);
+          const data: ReactionWebSocketPayload = JSON.parse(message.body);
           onReactionUpdate(data);
         }
       );
       this.subscriptions.set(`${baseTopic}:reactions`, reactionSub);
     }
+
+    if (onNicknameUpdate) {
+      const nicknameSub = this.client.subscribe(
+        `${baseTopic}/nickname`,
+        (message: IMessage) => {
+          const data: NicknameUpdateEvent = JSON.parse(message.body);
+          onNicknameUpdate(data);
+        }
+      );
+      this.subscriptions.set(`${baseTopic}:nickname`, nicknameSub);
+    }
   }
 
   
+  subscribeToMessageOnly(conversationId: number, onMessage: MessageCallback) {
+    if (!this.client?.connected) return;
+    const key = `/topic/conversation/${conversationId}:messageOnly`;
+    if (this.subscriptions.has(key)) return;
+    const sub = this.client.subscribe(`/topic/conversation/${conversationId}`, (frame: IMessage) => {
+      const data: MessageDTO = JSON.parse(frame.body);
+      onMessage(data);
+    });
+    this.subscriptions.set(key, sub);
+  }
+
   unsubscribeFromConversation(conversationId: number) {
     const baseTopic = `/topic/conversation/${conversationId}`;
 
-    ["message", "typing", "read", "read-all", "reactions"].forEach((type) => {
+    ["message", "typing", "read", "read-all", "reactions", "nickname"].forEach((type) => {
       const key = `${baseTopic}:${type}`;
       const sub = this.subscriptions.get(key);
       if (sub) {
@@ -201,6 +251,23 @@ export class WebSocketService {
     if (sub) {
       sub.unsubscribe();
       this.subscriptions.delete("user-presence");
+    }
+  }
+
+  unsubscribeFromErrors(username?: string) {
+    if (username) {
+      const userKey = `user-errors:${username}`;
+      const userSub = this.subscriptions.get(userKey);
+      if (userSub) {
+        userSub.unsubscribe();
+        this.subscriptions.delete(userKey);
+      }
+    }
+
+    const globalSub = this.subscriptions.get("global-errors");
+    if (globalSub) {
+      globalSub.unsubscribe();
+      this.subscriptions.delete("global-errors");
     }
   }
 
@@ -320,6 +387,108 @@ export class WebSocketService {
         messageId,
         reactionType,
       }),
+    });
+  }
+
+  // ─── Call signaling ────────────────────────────────────────────────────────
+
+  subscribeToCallEvents(
+    onIncomingCall: (notification: CallNotificationDTO) => void,
+    onCallResponse: (response: CallResponseDTO) => void,
+    onCallSignal: (signal: CallSignalDTO) => void,
+    onCallEnded: (ended: CallEndedDTO) => void,
+    onCallInitiated?: (notification: CallNotificationDTO) => void
+  ) {
+    if (!this.client?.connected) return;
+
+    const incomingSub = this.client.subscribe(
+      "/user/queue/call/incoming",
+      (msg: IMessage) => onIncomingCall(JSON.parse(msg.body))
+    );
+    this.subscriptions.set("call:incoming", incomingSub);
+
+    const responseSub = this.client.subscribe(
+      "/user/queue/call/response",
+      (msg: IMessage) => onCallResponse(JSON.parse(msg.body))
+    );
+    this.subscriptions.set("call:response", responseSub);
+
+    const signalSub = this.client.subscribe(
+      "/user/queue/call/signal",
+      (msg: IMessage) => onCallSignal(JSON.parse(msg.body))
+    );
+    this.subscriptions.set("call:signal", signalSub);
+
+    const endedSub = this.client.subscribe(
+      "/user/queue/call/ended",
+      (msg: IMessage) => onCallEnded(JSON.parse(msg.body))
+    );
+    this.subscriptions.set("call:ended", endedSub);
+
+    const initiatedSub = this.client.subscribe(
+      "/user/queue/call/initiated",
+      (msg: IMessage) => onCallInitiated?.(JSON.parse(msg.body))
+    );
+    this.subscriptions.set("call:initiated", initiatedSub);
+  }
+
+  unsubscribeFromCallEvents() {
+    ["call:incoming", "call:response", "call:signal", "call:ended", "call:initiated"].forEach(
+      (key) => {
+        const sub = this.subscriptions.get(key);
+        if (sub) {
+          sub.unsubscribe();
+          this.subscriptions.delete(key);
+        }
+      }
+    );
+  }
+
+  initiateCall(request: CallInitiateRequest) {
+    if (!this.client?.connected) throw new Error("WebSocket not connected");
+    this.client.publish({
+      destination: "/app/call.initiate",
+      body: JSON.stringify(request),
+    });
+  }
+
+  respondToCall(request: CallResponseRequest) {
+    if (!this.client?.connected) throw new Error("WebSocket not connected");
+    this.client.publish({
+      destination: "/app/call.response",
+      body: JSON.stringify(request),
+    });
+  }
+
+  sendCallSignal(request: CallSignalRequest) {
+    if (!this.client?.connected) throw new Error("WebSocket not connected");
+    this.client.publish({
+      destination: "/app/call.signal",
+      body: JSON.stringify(request),
+    });
+  }
+
+  endCall(request: CallEndRequest) {
+    if (!this.client?.connected) throw new Error("WebSocket not connected");
+    this.client.publish({
+      destination: "/app/call.end",
+      body: JSON.stringify(request),
+    });
+  }
+
+  pingCall(request: CallSignalRequest) {
+    if (!this.client?.connected) throw new Error("WebSocket not connected");
+    this.client.publish({
+      destination: "/app/call.ping",
+      body: JSON.stringify(request),
+    });
+  }
+
+  joinCall(request: CallSignalRequest) {
+    if (!this.client?.connected) throw new Error("WebSocket not connected");
+    this.client.publish({
+      destination: "/app/call.join",
+      body: JSON.stringify(request),
     });
   }
 }

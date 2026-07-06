@@ -76,7 +76,7 @@ export const StoryTextEditor = ({ onClose, onSave }: StoryTextEditorProps) => {
         <h2 className="text-white font-semibold">Thêm văn bản</h2>
         <button
           onClick={handleSave}
-          className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-full font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="rounded-full bg-primary px-4 py-2 font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
           disabled={!text.trim()}
         >
           Xong

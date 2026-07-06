@@ -197,12 +197,8 @@ const adminSlice = createSlice({
         } else {
           // Post/Reel reports format
           state.reports = data.reportSummaries?.content || [];
-          state.totalPages = data.totalPages || 0;
-          state.totalElements =
-            data.pendingQuantity +
-              data.processingQuantity +
-              data.approvedQuantity +
-              data.rejectQuantity || 0;
+          state.totalPages = data.reportSummaries?.totalPages || 0;
+          state.totalElements = data.reportSummaries?.totalElements || 0;
           state.totalPending = data.pendingQuantity || 0;
           state.totalProcessing = data.processingQuantity || 0;
           state.totalApproved = data.approvedQuantity || 0;

@@ -8,12 +8,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
   Reply,
   Copy,
   Forward,
@@ -21,11 +15,19 @@ import {
   MoreVertical,
   Check,
   CheckCheck,
+  Play,
+  X,
+  Video as VideoIcon,
+  Mic,
+  Phone,
+  PhoneMissed,
+  PhoneOff,
 } from "lucide-react";
 import { TypingIndicator } from "./TypingIndicator";
 import { ReactionMessage } from "./ReactionMessage";
 import { ForwardMessageDialog } from "./ForwardMessageDialog";
 import { ReactionsDialog } from "./ReactionsDialog";
+import { MessageAudioPlayer } from "./MessageAudioPlayer";
 import { cn } from "@/lib/utils";
 import type {
   MessageDTO,
@@ -33,6 +35,7 @@ import type {
   ReactionDetailDTO,
 } from "../types";
 import { useAppSelector } from "@/store";
+import { formatChatSeparator } from "@/utils/timeFormat";
 
 interface ChatWindowProps {
   chat: ConversationResponseDTO;
@@ -49,6 +52,14 @@ interface ChatWindowProps {
   isLoadingMore?: boolean;
   className?: string;
 }
+
+const checkIsVideo = (url: string | null | undefined) => {
+  if (!url) return false;
+  return (
+    url.includes("/video/") ||
+    /\.(mp4|mov|webm|ogg|mkv|m3u8)$/i.test(url)
+  );
+};
 
 export const ChatWindow: React.FC<ChatWindowProps> = ({
   chat,
@@ -72,6 +83,8 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
   const topSentinelRef = useRef<HTMLDivElement>(null);
   const loadMoreObserverRef = useRef<IntersectionObserver | null>(null);
 
+  const [viewingStory, setViewingStory] = useState<string | null>(null);
+
   const [forwardDialog, setForwardDialog] = useState<{
     open: boolean;
     messageId: string;
@@ -89,11 +102,11 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
     [messageId: number]: number;
   }>({});
 
-  // Clear reactionsCount when message.reactions changes (optimistic updates)
+  const [highlightedMessageId, setHighlightedMessageId] = useState<number | null>(null);
+
   useEffect(() => {
     messages.forEach((message) => {
       if (message.reactions && message.reactions.length > 0) {
-        // Clear cached count when reactions are updated
         setReactionsCount((prev) => {
           const newCount = { ...prev };
           delete newCount[message.id];
@@ -113,25 +126,44 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
   const prevMessagesLengthRef = useRef<number>(0);
   const isLoadingMoreRef = useRef<boolean>(false);
   const lastLoadMoreScrollTopRef = useRef<number>(-1);
+  const prevFirstMessageIdRef = useRef<number | null>(null);
 
-  // Reset scroll flag when chat changes
+  useEffect(() => {
+    let timeout: NodeJS.Timeout;
+    if (viewingStory) {
+      const isVideo = checkIsVideo(viewingStory);
+      const duration = isVideo ? 15000 : 5000;
+      
+      timeout = setTimeout(() => {
+        setViewingStory(null);
+      }, duration);
+    }
+    return () => clearTimeout(timeout);
+  }, [viewingStory]);
+
   useEffect(() => {
     if (prevChatIdRef.current !== chat.id) {
       hasScrolledToBottomRef.current = false;
       prevChatIdRef.current = chat.id;
       prevMessagesLengthRef.current = 0;
+      prevFirstMessageIdRef.current = null;
       isLoadingMoreRef.current = false;
       lastLoadMoreScrollTopRef.current = -1;
+      
+      // Khi chuyển chat, luôn reset scroll xuống dưới cùng
+      if (scrollAreaRef.current) {
+        requestAnimationFrame(() => {
+            if(scrollAreaRef.current) {
+                scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight;
+            }
+        });
+      }
     }
   }, [chat.id]);
 
-  // Save scroll position before messages change
   useLayoutEffect(() => {
     const scrollArea = scrollAreaRef.current;
     if (scrollArea) {
-      prevScrollHeightRef.current = scrollArea.scrollHeight;
-      prevScrollTopRef.current = scrollArea.scrollTop;
-
       const distanceFromBottom =
         scrollArea.scrollHeight -
         scrollArea.scrollTop -
@@ -140,7 +172,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
     }
   }, [messages]);
 
-  // Adjust scroll position when messages change
+  // Logic scroll chính
   useLayoutEffect(() => {
     const scrollArea = scrollAreaRef.current;
     if (!scrollArea) return;
@@ -148,42 +180,47 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
     const currentScrollHeight = scrollArea.scrollHeight;
     const prevScrollHeight = prevScrollHeightRef.current;
     const prevScrollTop = prevScrollTopRef.current;
+    
+    const firstMessage = messages[0];
+    const lastMessage = messages[messages.length - 1];
+
     const messagesLengthChanged =
       messages.length !== prevMessagesLengthRef.current;
 
-    // Update messages length ref
-    prevMessagesLengthRef.current = messages.length;
+    // Xác định xem có phải là hành động tải tin nhắn cũ (prepend) hay không
+    const isPrepended =
+      prevMessagesLengthRef.current > 0 &&
+      firstMessage &&
+      firstMessage.id !== prevFirstMessageIdRef.current;
 
-    // If loading more messages at the top (scrollHeight increased and we're near top)
+    prevMessagesLengthRef.current = messages.length;
+    prevFirstMessageIdRef.current = firstMessage?.id || null;
+
     if (
-      messagesLengthChanged &&
-      currentScrollHeight > prevScrollHeight &&
-      prevScrollTop < 500 && // Near top of scroll
-      !isNearBottomRef.current // Not near bottom
+      isPrepended &&
+      prevScrollHeight > 0 &&
+      currentScrollHeight > prevScrollHeight
     ) {
-      // Calculate the height difference (new messages added at top)
       const heightDifference = currentScrollHeight - prevScrollHeight;
 
-      // Maintain scroll position by adjusting scrollTop
-      // This keeps the user's view stable when new messages are added above
-      // Sử dụng double requestAnimationFrame để đảm bảo DOM đã render xong
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
           if (scrollArea) {
             const newScrollTop = prevScrollTop + heightDifference;
             scrollArea.scrollTop = newScrollTop;
 
-            // Sau khi maintain scroll position, kiểm tra xem có cần load tiếp không
-            // Nếu scrollTop vẫn còn nhỏ (gần top) và có thêm messages, trigger load tiếp
+            // Cập nhật lại ref sau khi scroll để đồng bộ
+            prevScrollHeightRef.current = scrollArea.scrollHeight;
+            prevScrollTopRef.current = newScrollTop;
+
             setTimeout(() => {
+              // Logic check load more cũ
               if (scrollArea && scrollArea.scrollTop < 200) {
-                // Kiểm tra xem sentinel có trong viewport không
                 if (topSentinelRef.current && loadMoreObserverRef.current) {
-                  // Force check intersection
                   const rect = topSentinelRef.current.getBoundingClientRect();
                   const rootRect = scrollArea.getBoundingClientRect();
                   const isVisible =
-                    rect.top < rootRect.bottom + 150 && // rootMargin: 150px
+                    rect.top < rootRect.bottom + 150 &&
                     rect.bottom > rootRect.top - 150;
 
                   if (
@@ -214,24 +251,43 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
         });
       });
     } else if (
-      messagesLengthChanged &&
-      currentScrollHeight > prevScrollHeight &&
-      (isNearBottomRef.current ||
-        !hasScrolledToBottomRef.current ||
-        prevScrollTop > 100)
+      messagesLengthChanged ||
+      (!hasScrolledToBottomRef.current && messages.length > 0)
     ) {
-      // Scroll to bottom for new messages
-      requestAnimationFrame(() => {
-        if (scrollArea) {
-          scrollArea.scrollTop = scrollArea.scrollHeight;
-        }
-      });
+      // Logic cuộn xuống dưới:
+      // 1. Đang ở gần đáy
+      // 2. Hoặc lần đầu vào chưa cuộn
+      // 3. HOẶC tin nhắn mới nhất là CỦA MÌNH (isLastMessageMine) -> BẮT BUỘC CUỘN
+      const isInitialScroll = !hasScrolledToBottomRef.current;
+      const isLastMessageMine = user && lastMessage?.sender && String(lastMessage.sender.id) === String(user.id);
+
+      if (
+        isNearBottomRef.current ||
+        isInitialScroll ||
+        isLastMessageMine
+      ) {
+        requestAnimationFrame(() => {
+          if (scrollArea) {
+            scrollArea.scrollTo({
+                top: scrollArea.scrollHeight,
+                behavior: (isLastMessageMine && !isInitialScroll) ? "smooth" : "auto"
+            });
+            hasScrolledToBottomRef.current = true;
+            prevScrollHeightRef.current = scrollArea.scrollHeight;
+            prevScrollTopRef.current = scrollArea.scrollHeight;
+          }
+        });
+      }
     }
-  }, [messages, hasMoreMessages, isLoadingMore, onLoadMoreMessages]);
+  }, [messages, hasMoreMessages, isLoadingMore, onLoadMoreMessages, user]);
 
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
     const target = e.currentTarget;
     const scrollTop = target.scrollTop;
+
+    // Lưu vị trí scroll hiện tại trước khi có bất kỳ cập nhật DOM nào
+    prevScrollHeightRef.current = target.scrollHeight;
+    prevScrollTopRef.current = scrollTop;
 
     const distanceFromTop = scrollTop;
 
@@ -249,7 +305,6 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
       lastLoadMoreScrollTopRef.current = scrollTop;
       onLoadMoreMessages();
 
-      // Reset flag sau một khoảng thời gian để cho phép load tiếp
       setTimeout(() => {
         if (!isLoadingMore) {
           isLoadingMoreRef.current = false;
@@ -297,15 +352,12 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
     markedAsReadRef.current.clear();
   }, [chat.id]);
 
-  // IntersectionObserver để detect khi scroll đến top và load more
   useEffect(() => {
-    // Disconnect observer cũ nếu có
     if (loadMoreObserverRef.current) {
       loadMoreObserverRef.current.disconnect();
       loadMoreObserverRef.current = null;
     }
 
-    // Reset flags khi chat thay đổi
     isLoadingMoreRef.current = false;
     lastLoadMoreScrollTopRef.current = -1;
 
@@ -313,14 +365,12 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
       return;
     }
 
-    // Tạo observer mới với delay nhỏ để đảm bảo DOM đã render
     const timeoutId = setTimeout(() => {
       if (!topSentinelRef.current || !scrollAreaRef.current) return;
 
       loadMoreObserverRef.current = new IntersectionObserver(
         (entries) => {
           const entry = entries[0];
-          // Trigger khi sentinel bắt đầu xuất hiện hoặc vẫn đang trong viewport
           if (
             entry.isIntersecting &&
             !isLoadingMoreRef.current &&
@@ -332,24 +382,18 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
             if (!scrollArea) return;
 
             const currentScrollTop = scrollArea.scrollTop;
-
-            // Chỉ trigger nếu scroll position đã thay đổi đáng kể từ lần load trước
-            // hoặc đây là lần đầu tiên
             const shouldTrigger =
               lastLoadMoreScrollTopRef.current === -1 ||
               Math.abs(currentScrollTop - lastLoadMoreScrollTopRef.current) >
                 10 ||
-              currentScrollTop < 100; // Nếu đang ở rất gần top, luôn trigger
+              currentScrollTop < 100;
 
             if (shouldTrigger) {
               isLoadingMoreRef.current = true;
               lastLoadMoreScrollTopRef.current = currentScrollTop;
               onLoadMoreMessages();
 
-              // Reset flag sau một khoảng thời gian
-              // Nhưng không reset ngay để tránh trigger nhiều lần
               setTimeout(() => {
-                // Chỉ reset nếu không còn đang loading
                 if (!isLoadingMore) {
                   isLoadingMoreRef.current = false;
                 }
@@ -359,8 +403,8 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
         },
         {
           root: scrollAreaRef.current,
-          rootMargin: "200px", // Trigger sớm hơn 200px trước khi đến top để mượt mà hơn
-          threshold: [0, 0.1, 0.5, 1], // Trigger ở nhiều threshold để đảm bảo detect được
+          rootMargin: "200px",
+          threshold: [0, 0.1, 0.5, 1],
         }
       );
 
@@ -378,9 +422,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
     };
   }, [onLoadMoreMessages, hasMoreMessages, isLoadingMore, chat.id]);
 
-  // Tự động check và load tiếp sau khi loading xong nếu vẫn ở gần top
   useEffect(() => {
-    // Chỉ check khi vừa finish loading (isLoadingMore chuyển từ true sang false)
     if (isLoadingMore || !hasMoreMessages || !onLoadMoreMessages) {
       return;
     }
@@ -390,23 +432,18 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
       return;
     }
 
-    // Delay một chút để đảm bảo DOM đã update
     const timeoutId = setTimeout(() => {
       if (!scrollArea || !topSentinelRef.current) return;
 
       const scrollTop = scrollArea.scrollTop;
 
-      // Nếu vẫn ở gần top và chưa load gần đây
       if (scrollTop < 200 && !isLoadingMoreRef.current) {
-        // Kiểm tra xem sentinel có trong viewport không
         const rect = topSentinelRef.current.getBoundingClientRect();
         const rootRect = scrollArea.getBoundingClientRect();
         const isVisible =
-          rect.top < rootRect.bottom + 200 && // rootMargin: 200px
-          rect.bottom > rootRect.top - 200;
+          rect.top < rootRect.bottom + 200 && rect.bottom > rootRect.top - 200;
 
         if (isVisible) {
-          // Trigger load more tiếp
           isLoadingMoreRef.current = true;
           lastLoadMoreScrollTopRef.current = scrollTop;
           onLoadMoreMessages();
@@ -423,39 +460,6 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
     return () => clearTimeout(timeoutId);
   }, [isLoadingMore, hasMoreMessages, onLoadMoreMessages]);
 
-  // Scroll to bottom when chat changes
-  useEffect(() => {
-    const scrollArea = scrollAreaRef.current;
-    if (scrollArea) {
-      hasScrolledToBottomRef.current = false;
-      // Use requestAnimationFrame and setTimeout to ensure DOM is fully rendered
-      requestAnimationFrame(() => {
-        setTimeout(() => {
-          if (scrollArea) {
-            scrollArea.scrollTop = scrollArea.scrollHeight;
-            hasScrolledToBottomRef.current = true;
-          }
-        }, 100);
-      });
-    }
-  }, [chat.id]);
-
-  // Scroll to bottom when messages are first loaded for a conversation
-  useEffect(() => {
-    const scrollArea = scrollAreaRef.current;
-    if (scrollArea && messages.length > 0 && !hasScrolledToBottomRef.current) {
-      // Wait for DOM to render messages
-      requestAnimationFrame(() => {
-        setTimeout(() => {
-          if (scrollArea) {
-            scrollArea.scrollTop = scrollArea.scrollHeight;
-            hasScrolledToBottomRef.current = true;
-          }
-        }, 50);
-      });
-    }
-  }, [messages.length, chat.id]);
-
   const isCurrentUser = (senderId: string | number) =>
     user && String(senderId) === String(user.id);
 
@@ -471,6 +475,11 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
           icon: <Check className="h-3 w-3 inline text-muted-foreground" />,
           tooltip: "Đã gửi",
         };
+  };
+
+  const parseCallMessage = (content: string) => {
+    const [type, status, duration] = content.split("|");
+    return { type, status, duration };
   };
 
   const handleCopyMessage = (content: string) =>
@@ -544,6 +553,19 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
     setForwardDialog({ open: false, messageId: "", content: "" });
   };
 
+  const handleScrollToMessage = (messageId: number) => {
+    const element = messageRefs.current.get(messageId);
+    if (element) {
+      element.scrollIntoView({ behavior: "smooth", block: "center" });
+      setHighlightedMessageId(messageId);
+      setTimeout(() => {
+        setHighlightedMessageId(null);
+      }, 1500);
+    }
+  };
+
+  const isGroupChat = chat.isGroup || !!chat.groupName || chat.participants.length > 2;
+
   return (
     <>
       <div
@@ -557,7 +579,6 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
           data-scroll-area
         >
           <div className="space-y-4">
-            {/* Sentinel element để detect khi scroll đến top */}
             {hasMoreMessages && (
               <div
                 ref={topSentinelRef}
@@ -566,7 +587,6 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
               />
             )}
 
-            {/* Spinner hiển thị khi đang load tin cũ */}
             {isLoadingMore && (
               <div className="flex justify-center py-2 w-full">
                 <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary"></div>
@@ -581,11 +601,50 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
               const showDateSeparator =
                 !prevMessageDate ||
                 messageDate.toDateString() !== prevMessageDate.toDateString();
+              const isHighlighted = highlightedMessageId === message.id;
+              const repliedMessage =
+                message.replyToMessage ??
+                (message.replyToMessageId
+                  ? messages.find((m) => m.id === message.replyToMessageId)
+                  : undefined);
+
+              const reactionsLength = message.reactions?.length ?? 0;
+              const apiCount = reactionsCount[message.id];
+              const displayCount =
+                message.reactions !== undefined && message.reactions !== null
+                  ? reactionsLength
+                  : apiCount !== undefined
+                    ? apiCount
+                    : 0;
+              const hasReactions = displayCount > 0;
+
+              const renderTime = (className?: string) => (
+                <span
+                  className={cn(
+                    "text-[10px] select-none inline-flex items-center gap-1",
+                    className
+                  )}
+                >
+                  {new Date(message.createdAt).toLocaleTimeString("vi-VN", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    hour12: false,
+                  })}
+                  {isOwn && message.id === lastOwnMessageId && (
+                    <span title={getReadStatus(message, isOwn)?.tooltip}>
+                      {getReadStatus(message, isOwn)?.icon}
+                    </span>
+                  )}
+                </span>
+              );
 
               return (
                 <div
                   key={message.id}
-                  className="space-y-2 py-2"
+                  className={cn(
+                    "space-y-2 py-2 transition-colors duration-1000 rounded-lg px-2 -mx-2",
+                    isHighlighted ? "bg-primary/10" : "bg-transparent"
+                  )}
                   ref={(el) => {
                     if (el) messageRefs.current.set(message.id, el);
                     else messageRefs.current.delete(message.id);
@@ -594,26 +653,21 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                   data-sender-id={message.sender.id}
                 >
                   {showDateSeparator && (
-                    <div className="text-center my-4">
-                      <span className="text-xs text-muted-foreground bg-muted/50 px-3 py-1 rounded-full border">
-                        {messageDate.toLocaleDateString("vi-VN", {
-                          weekday: "short",
-                          day: "2-digit",
-                          month: "2-digit",
-                          year: "numeric",
-                        })}
+                    <div className="text-center my-6 sticky top-0 z-20 pointer-events-none">
+                      <span className="text-[11px] font-semibold text-muted-foreground bg-background/80 backdrop-blur-md px-4 py-1.5 rounded-full border border-border/50 shadow-sm inline-block">
+                        {formatChatSeparator(message.createdAt)}
                       </span>
                     </div>
                   )}
 
                   <div
                     className={cn(
-                      "group flex items-start gap-2",
+                      "group flex items-end gap-2",
                       isOwn ? "justify-end" : "justify-start"
                     )}
                   >
                     {!isOwn && (
-                      <Avatar className="h-8 w-8 flex-shrink-0 mt-1">
+                      <Avatar className="h-8 w-8 flex-shrink-0 mb-1">
                         <AvatarImage
                           src={message.sender.avatarUrl || chat.avatarUrl}
                           alt={message.sender.fullName}
@@ -626,103 +680,243 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
 
                     <div
                       className={cn(
-                        "flex flex-col gap-1 max-w-[85%] md:max-w-[70%] w-full",
+                        "flex flex-col max-w-[85%] md:max-w-[70%]",
                         isOwn ? "items-end" : "items-start"
                       )}
                     >
-                      <div
-                        className={cn(
-                          "relative group/msg",
-                          message.reactions?.length > 0 && "mb-6"
-                        )}
-                      >
-                        {/* Message Bubble */}
+                      {isGroupChat && !isOwn && (
+                        <span className="text-[11px] font-semibold text-muted-foreground mb-0.5 px-1 truncate max-w-full">
+                          {message.sender.nickname || message.sender.fullName}
+                        </span>
+                      )}
+
+                      {repliedMessage && (
                         <div
+                          onClick={() => handleScrollToMessage(repliedMessage.id)}
                           className={cn(
-                            "px-4 py-2 rounded-2xl relative break-words text-sm shadow-sm max-w-full",
+                            "mb-1 px-3 py-2 rounded-lg border-l-[3px] text-xs max-w-full w-fit cursor-pointer hover:opacity-80 transition-opacity",
                             isOwn
-                              ? "bg-primary text-primary-foreground rounded-br-sm"
-                              : "bg-muted text-foreground rounded-bl-sm border border-border/50"
+                              ? "bg-primary/5 border-primary/40 text-primary/80"
+                              : "bg-muted/50 border-muted-foreground/30 text-muted-foreground"
                           )}
                         >
-                          {/* Reply Message */}
-                          {message.replyToMessage && (
+                          <div className="font-semibold text-[11px] mb-0.5 opacity-90 flex items-center gap-1">
+                            <Reply className="w-3 h-3" />
+                            Trả lời {repliedMessage.sender.fullName}
+                          </div>
+                          <div className="break-words line-clamp-2 overflow-hidden italic opacity-80">
+                            {repliedMessage.messageType === "IMAGE" ? (
+                              <span className="flex items-center gap-1">
+                                📷 Hình ảnh
+                              </span>
+                            ) : repliedMessage.messageType === "STORY" ? (
+                              <span className="flex items-center gap-1">
+                                🎥 Story
+                              </span>
+                            ) : (
+                              repliedMessage.content
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      <div
+                        className={cn(
+                          "relative group/msg flex flex-col gap-1.5",
+                          hasReactions && "pb-2.5"
+                        )}
+                      >
+                        {message.messageType === "STORY" &&
+                          message.storyMediaUrl && (
                             <div
                               className={cn(
-                                "mb-2 px-3 py-2 rounded-lg border-l-2 text-xs max-w-full",
-                                isOwn
-                                  ? "bg-primary-foreground/10 border-primary-foreground/30 text-primary-foreground/80"
-                                  : "bg-background/50 border-border text-muted-foreground"
+                                "relative",
+                                isOwn ? "ml-auto" : "mr-auto"
                               )}
+                              onClick={() =>
+                                setViewingStory(message.storyMediaUrl)
+                              }
                             >
-                              <div className="font-medium text-xs mb-1">
-                                Trả lời {message.replyToMessage.sender.fullName}
-                              </div>
-                              <div className="break-words line-clamp-3 overflow-hidden">
-                                {message.replyToMessage.messageType === "IMAGE"
-                                  ? "📷 Hình ảnh"
-                                  : message.replyToMessage.content}
+                              <div
+                                className={cn(
+                                  "relative overflow-hidden rounded-xl bg-black border border-border/10 shadow-md",
+                                  "w-[140px] md:w-[160px] aspect-[9/16]",
+                                  "group/story cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all duration-300"
+                                )}
+                              >
+                                {checkIsVideo(message.storyMediaUrl) ? (
+                                  <video
+                                    src={message.storyMediaUrl}
+                                    className="w-full h-full object-cover opacity-90 transition-transform duration-700 group-hover/story:scale-105"
+                                    muted
+                                    playsInline
+                                    loop
+                                  />
+                                ) : (
+                                  <img
+                                    src={message.storyMediaUrl}
+                                    alt="Story media"
+                                    className="w-full h-full object-cover transition-transform duration-700 group-hover/story:scale-105 opacity-90"
+                                  />
+                                )}
+                                
+                                <div className="absolute inset-0 bg-black/20 pointer-events-none" />
+
+                                <div className="absolute inset-0 flex items-center justify-center pointer-events-none group-hover/story:scale-110 transition-transform">
+                                  <div className="bg-white/20 backdrop-blur-sm p-3 rounded-full shadow-lg border border-white/30">
+                                    <Play
+                                      className="w-5 h-5 text-white fill-white ml-0.5"
+                                      strokeWidth={2.5}
+                                    />
+                                  </div>
+                                </div>
+
+                                <div className="absolute top-3 left-3 px-2 py-0.5 rounded-full bg-black/40 backdrop-blur-md border border-white/10">
+                                  <span className="text-[9px] font-bold text-white uppercase tracking-wider flex items-center gap-1">
+                                    <div className="h-1.5 w-1.5 rounded-full bg-primary" />
+                                    Story
+                                  </span>
+                                </div>
+
+                                {!message.content?.trim() && (
+                                  <div className="absolute bottom-2 right-2 text-white/90 drop-shadow-md">
+                                    {renderTime("text-white/80")}
+                                  </div>
+                                )}
                               </div>
                             </div>
                           )}
 
-                          <div className="space-y-2">
-                            {message.content?.trim() && (
-                              <p className="whitespace-pre-wrap leading-relaxed text-right">
-                                {message.content}
-                              </p>
-                            )}
-                            {message.messageType === "IMAGE" && (
-                              <div className="space-y-2">
-                                {message.mediaList.map((media, index) => (
-                                  <img
-                                    key={media.id || index}
-                                    src={media.mediaUrl}
-                                    alt={`Sent image ${index + 1}`}
-                                    className="rounded-lg max-w-full h-auto"
-                                  />
-                                ))}
-                              </div>
-                            )}
-                          </div>
-
+                        {message.messageType === "IMAGE" && (
                           <div
                             className={cn(
-                              "text-[10px] opacity-70 mt-1 flex items-center gap-1 select-none",
-                              isOwn
-                                ? "justify-end text-primary-foreground/80"
-                                : "text-muted-foreground"
+                              "flex flex-col gap-1",
+                              isOwn ? "items-end" : "items-start"
                             )}
                           >
-                            <span>
-                              {new Date(message.createdAt).toLocaleTimeString(
-                                "vi-VN",
-                                {
-                                  hour: "2-digit",
-                                  minute: "2-digit",
-                                  hour12: false,
-                                }
-                              )}
-                            </span>
-                            {isOwn && message.id === lastOwnMessageId && (
-                              <span
-                                title={getReadStatus(message, isOwn)?.tooltip}
+                            {message.mediaList.map((media, idx) => (
+                              <div
+                                key={media.id || idx}
+                                className="relative rounded-lg overflow-hidden border border-border/10 shadow-sm max-w-full"
                               >
-                                {getReadStatus(message, isOwn)?.icon}
-                              </span>
-                            )}
+                                <img
+                                  src={media.mediaUrl}
+                                  alt="Image"
+                                  className="max-w-full h-auto max-h-[400px] object-cover"
+                                />
+                                {idx === message.mediaList.length - 1 &&
+                                  !message.content?.trim() && (
+                                    <div className="absolute bottom-1 right-1 px-1.5 py-0.5 bg-black/40 backdrop-blur-sm rounded-full text-white/90">
+                                      {renderTime("text-white")}
+                                    </div>
+                                  )}
+                              </div>
+                            ))}
                           </div>
-                        </div>
+                        )}
+
+                        {message.messageType === "AUDIO" &&
+                          message.mediaList.length > 0 && (
+                            <div
+                              className={cn(
+                                "flex flex-col gap-1",
+                                isOwn ? "items-end" : "items-start"
+                              )}
+                            >
+                              {message.mediaList.map((media, idx) => (
+                                <div
+                                  key={media.id || idx}
+                                  className={cn(
+                                    "px-3 py-2 rounded-2xl shadow-sm border border-border/10",
+                                    isOwn
+                                      ? "bg-primary text-primary-foreground"
+                                      : "bg-muted text-foreground"
+                                  )}
+                                >
+                                  <MessageAudioPlayer
+                                    src={media.mediaUrl}
+                                    isOwn={isOwn}
+                                    createdAt={message.createdAt}
+                                  />
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
+                        {message.messageType === "CALL" && message.content && (() => {
+                          const { type, status, duration } = parseCallMessage(message.content);
+                          const isMissed = status === "MISSED" || status === "REJECTED";
+                          const isVideo = type.toLowerCase().includes("video");
+                          return (
+                            <div className={cn(
+                              "flex items-center gap-3 px-4 py-3 rounded-2xl shadow-sm w-fit",
+                              isOwn ? "ml-auto" : "mr-auto",
+                              isMissed
+                                ? "bg-destructive/10 text-destructive"
+                                : isOwn
+                                  ? "bg-primary text-primary-foreground"
+                                  : "bg-muted text-foreground"
+                            )}>
+                              <div className={cn(
+                                "flex items-center justify-center w-9 h-9 rounded-full shrink-0",
+                                isMissed ? "bg-destructive/20" : isOwn ? "bg-primary-foreground/20" : "bg-primary/15"
+                              )}>
+                                {isMissed
+                                  ? <PhoneMissed className="w-4 h-4" />
+                                  : isVideo
+                                    ? <VideoIcon className="w-4 h-4" />
+                                    : <Phone className="w-4 h-4" />}
+                              </div>
+                              <div className="flex flex-col min-w-0">
+                                <span className="text-sm font-medium leading-tight">
+                                  {isMissed
+                                    ? (isVideo ? "Video call nhỡ" : "Cuộc gọi nhỡ")
+                                    : (isVideo ? "Video call" : "Cuộc gọi thoại")}
+                                </span>
+                                <span className="text-xs opacity-70 mt-0.5">
+                                  {isMissed
+                                    ? (isOwn ? "Không có người nghe" : "Bạn đã bỏ lỡ")
+                                    : duration && duration !== "0" ? duration : ""}
+                                </span>
+                              </div>
+                              {renderTime("opacity-60 ml-1 self-end")}
+                            </div>
+                          );
+                        })()}
+
+                        {message.messageType !== "CALL" && message.content?.trim() && (
+                          <div
+                            className={cn(
+                              "px-4 py-2 rounded-2xl relative break-words text-sm shadow-sm w-fit",
+                              isOwn
+                                ? "bg-primary text-primary-foreground rounded-br-sm ml-auto"
+                                : "bg-muted text-foreground rounded-bl-sm mr-auto"
+                            )}
+                          >
+                            <p className="whitespace-pre-wrap leading-relaxed">
+                              {message.content}
+                            </p>
+                            <div
+                              className={cn(
+                                "mt-1 text-right opacity-70",
+                                isOwn
+                                  ? "text-primary-foreground/80"
+                                  : "text-muted-foreground"
+                              )}
+                            >
+                              {renderTime()}
+                            </div>
+                          </div>
+                        )}
 
                         <div
                           className={cn(
-                            "absolute top-1/2 -translate-y-1/2 opacity-0 group-hover/msg:opacity-100 transition-all duration-200 z-10 flex items-center gap-1 px-2 py-1 bg-background/95 backdrop-blur-sm rounded-full shadow-sm border border-border/50",
+                            "absolute z-10 flex items-center gap-1 rounded-full border border-border/50 bg-background/95 px-2 py-1 opacity-0 shadow-sm backdrop-blur-sm transition-all duration-200 group-hover/msg:opacity-100 max-sm:bottom-full max-sm:left-1/2 max-sm:top-auto max-sm:mb-1 max-sm:-translate-x-1/2 sm:top-1/2 sm:-translate-y-1/2",
                             isOwn
-                              ? "-left-12 md:-left-20"
-                              : "-right-12 md:-right-20"
+                              ? "sm:-left-12 md:-left-20"
+                              : "sm:-right-12 md:-right-20"
                           )}
                         >
-                          {/* Reaction Bar */}
                           <div className="flex items-center">
                             <ReactionMessage
                               messageId={String(message.id)}
@@ -751,7 +945,6 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                             />
                           </div>
 
-                          {/* Menu Dropdown */}
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button
@@ -766,6 +959,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                               align={isOwn ? "end" : "start"}
                             >
                               <DropdownMenuItem
+                                className="cursor-pointer hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground data-[highlighted]:bg-primary data-[highlighted]:text-primary-foreground"
                                 onClick={() => {
                                   if (onReplyToMessage) {
                                     onReplyToMessage(message);
@@ -776,6 +970,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                                 Trả lời
                               </DropdownMenuItem>
                               <DropdownMenuItem
+                                className="cursor-pointer hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground data-[highlighted]:bg-primary data-[highlighted]:text-primary-foreground"
                                 onClick={() =>
                                   handleCopyMessage(message.content)
                                 }
@@ -783,93 +978,57 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                                 <Copy className="h-4 w-4 mr-2" />
                                 Sao chép
                               </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() =>
-                                  handleForwardMessage(
-                                    String(message.id),
-                                    message.content
-                                  )
-                                }
-                              >
-                                <Forward className="h-4 w-4 mr-2" />
-                                Chuyển tiếp
-                              </DropdownMenuItem>
-                              {isOwn && (
-                                <DropdownMenuItem
-                                  onClick={() =>
-                                    onDeleteMessage(String(message.id))
-                                  }
-                                  className="text-destructive"
-                                >
-                                  <Trash2 className="h-4 w-4 mr-2" />
-                                  Xóa
-                                </DropdownMenuItem>
-                              )}
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </div>
 
-                        {/* Reactions Display */}
-                        {(() => {
-                          const reactionsLength =
-                            message.reactions?.length ?? 0;
-                          const apiCount = reactionsCount[message.id];
-                          const displayCount =
-                            message.reactions !== undefined &&
-                            message.reactions !== null
-                              ? reactionsLength
-                              : apiCount !== undefined
-                              ? apiCount
-                              : 0;
-                          const hasReactions = displayCount > 0;
-
-                          return hasReactions ? (
-                            <button
-                              className={cn(
-                                "absolute -bottom-2 translate-y-full flex flex-row items-center gap-0.5 border rounded-full px-2 py-1 bg-background shadow-sm hover:scale-105 transition-transform cursor-pointer",
-                                isOwn ? "right-0" : "left-0"
-                              )}
-                              onClick={() =>
-                                handleOpenReactionsDialog(String(message.id))
+                        {hasReactions ? (
+                          <button
+                            type="button"
+                            className={cn(
+                              "absolute bottom-0 z-20 flex translate-y-1/2 flex-row items-center gap-0.5 rounded-full border border-border/60 bg-background/95 px-1.5 py-0.5 text-xs shadow-md backdrop-blur-sm transition-transform hover:scale-[1.02]",
+                              isOwn ? "right-1.5" : "left-1.5"
+                            )}
+                            onClick={() =>
+                              handleOpenReactionsDialog(String(message.id))
+                            }
+                            onMouseEnter={() => {
+                              if (reactionsCount[message.id] === undefined) {
+                                fetchReactionsCount(message.id);
                               }
-                              onMouseEnter={() => {
-                                if (reactionsCount[message.id] === undefined) {
-                                  fetchReactionsCount(message.id);
-                                }
-                              }}
-                            >
-                              {Object.keys(
-                                message.reactions.reduce((acc, r) => {
-                                  acc[r.reactionType] = true;
-                                  return acc;
-                                }, {} as { [reactionType: string]: boolean })
-                              ).map((reactionType) => {
-                                const emoji =
-                                  reactionType === "LIKE"
-                                    ? "👍"
-                                    : reactionType === "LOVE"
+                            }}
+                          >
+                            {Object.keys(
+                              (message.reactions ?? []).reduce((acc, r) => {
+                                acc[r.reactionType] = true;
+                                return acc;
+                              }, {} as { [reactionType: string]: boolean })
+                            ).map((reactionType) => {
+                              const emoji =
+                                reactionType === "LIKE"
+                                  ? "👍"
+                                  : reactionType === "LOVE"
                                     ? "❤️"
                                     : reactionType === "HAHA"
-                                    ? "😂"
-                                    : reactionType === "WOW"
-                                    ? "😮"
-                                    : reactionType === "SAD"
-                                    ? "😢"
-                                    : reactionType === "ANGRY"
-                                    ? "😡"
-                                    : "🔥";
-                                return (
-                                  <span key={reactionType} className="text-sm">
-                                    {emoji}
-                                  </span>
-                                );
-                              })}
-                              <span className="text-xs text-muted-foreground ml-1">
-                                {displayCount}
-                              </span>
-                            </button>
-                          ) : null;
-                        })()}
+                                      ? "😂"
+                                      : reactionType === "WOW"
+                                        ? "😮"
+                                        : reactionType === "SAD"
+                                          ? "😢"
+                                          : reactionType === "ANGRY"
+                                            ? "😡"
+                                            : "🔥";
+                              return (
+                                <span key={reactionType} className="text-sm">
+                                  {emoji}
+                                </span>
+                              );
+                            })}
+                            <span className="text-muted-foreground ml-0.5 text-[11px] tabular-nums">
+                              {displayCount}
+                            </span>
+                          </button>
+                        ) : null}
                       </div>
                     </div>
                   </div>
@@ -892,7 +1051,54 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
         </div>
       </div>
 
-      {/* Dialogs components (ForwardDialog, ReactionsDialog) giữ nguyên như cũ */}
+      {viewingStory && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 animate-in fade-in duration-300">
+          <div className="relative w-full h-full md:w-auto md:h-[85vh] md:aspect-[9/16] bg-black flex flex-col animate-in zoom-in-95 duration-300">
+            <div className="absolute top-0 left-0 right-0 z-20 p-4 space-y-2">
+              <div className="flex gap-1 h-1">
+                <div className="flex-1 bg-white/30 rounded-full overflow-hidden">
+                  <div className="h-full bg-white animate-[progress_5s_linear_forwards] w-0 origin-left" />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Avatar className="w-8 h-8 border border-white/20">
+                    <AvatarImage src={chat.avatarUrl} />
+                    <AvatarFallback>...</AvatarFallback>
+                  </Avatar>
+                  <span className="text-white text-sm font-medium shadow-sm">
+                    {chat.fullname || "Story"}
+                  </span>
+                </div>
+                <button
+                  onClick={() => setViewingStory(null)}
+                  className="p-1 rounded-full hover:bg-white/20 transition-colors text-white"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+            </div>
+
+            {checkIsVideo(viewingStory) ? (
+              <video
+                src={viewingStory}
+                className="w-full h-full object-contain md:object-cover md:rounded-lg"
+                autoPlay
+                controls
+                playsInline
+              />
+            ) : (
+              <img
+                src={viewingStory}
+                alt="Viewing Story"
+                className="w-full h-full object-contain md:object-cover md:rounded-lg"
+              />
+            )}
+          </div>
+        </div>
+      )}
+
       <ForwardMessageDialog
         open={forwardDialog.open}
         onOpenChange={(open) => setForwardDialog((p) => ({ ...p, open }))}
@@ -918,6 +1124,13 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
         userId={user?.id}
         messageId={reactionsDialog.messageId}
       />
+
+      <style>{`
+        @keyframes progress {
+          from { width: 0%; }
+          to { width: 100%; }
+        }
+      `}</style>
     </>
   );
 };

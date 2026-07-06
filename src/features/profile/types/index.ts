@@ -27,6 +27,7 @@ export interface UserProfile {
   avatar: string;
   bio: string;
   isPrivate: boolean;
+  onlineStatus?: boolean;
   postsCount: number;
   followersCount: number;
   followingCount: number;
@@ -142,6 +143,23 @@ export interface BlockedUsersResponse {
   content: BlockedUser[];
 }
 
+// Activity Log Types
+export interface ActivityLog {
+  id: number;
+  action: string;
+  detailsJson: string;
+  createdAt: string;
+}
+
+export interface ActivityLogsResponse {
+  pageNo: number;
+  pageSize: number;
+  totalElements: number;
+  totalPages: number;
+  last: boolean;
+  content: ActivityLog[];
+}
+
 // API Request Types
 export interface GetProfileRequest {
   username?: string; // Optional - if not provided, gets current user's profile
@@ -170,6 +188,7 @@ export const transformProfileData = (apiData: ProfileData): UserProfile => ({
   avatar: apiData.avatar || "",
   bio: apiData.bio || "",
   isPrivate: apiData.isPrivate,
+  onlineStatus: apiData.onlineStatus,
   postsCount: 0, // Will be fetched separately
   followersCount: apiData.followers,
   followingCount: apiData.following,

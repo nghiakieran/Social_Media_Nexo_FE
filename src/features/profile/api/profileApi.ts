@@ -14,6 +14,7 @@ import type {
   CloseFriendUser,
   BlockedUsersResponse,
   BlockedUser,
+  ActivityLogsResponse,
 } from "../types";
 
 /**
@@ -59,7 +60,7 @@ export const getFollowersByUsername = async (
   pageSize: number = 10,
   search?: string
 ): Promise<FollowersResponse> => {
-  const params: Record<string, string | number> = { pageNo, pageSize };
+  const params: Record<string, string | number> = { page: pageNo, size: pageSize };
   if (search) {
     params.search = encodeURIComponent(search);
   }
@@ -87,7 +88,7 @@ export const getFollowingByUsername = async (
   pageSize: number = 10,
   search?: string
 ): Promise<FollowingResponse> => {
-  const params: Record<string, string | number> = { pageNo, pageSize };
+  const params: Record<string, string | number> = { page: pageNo, size: pageSize };
   if (search) {
     params.search = encodeURIComponent(search);
   }
@@ -230,7 +231,7 @@ export const getBlockedUsers = async (
   limit: number = 10,
   search?: string
 ): Promise<BlockedUsersResponse> => {
-  const params: Record<string, string | number> = { page, limit };
+  const params: Record<string, string | number> = { page, size: limit };
   if (search) {
     params.search = encodeURIComponent(search);
   }
@@ -315,6 +316,18 @@ export interface ReportUserApiResponse {
   message: string;
   data: ReportUserResponse;
 }
+
+export const getActivityLogs = async (
+  pageNo: number = 0,
+  pageSize: number = 20
+): Promise<ActivityLogsResponse> => {
+  const response = await api.get<{
+    status: number;
+    message: string;
+    data: ActivityLogsResponse;
+  }>("/users/activity-logs", { params: { pageNo, pageSize } });
+  return response.data.data;
+};
 
 export const reportUser = async (
   username: string,

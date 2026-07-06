@@ -4,6 +4,8 @@ import { useAppSelector, useAppDispatch } from '../../../store';
 import { LazyGrid } from '../../../components/common/LazyGrid';
 import { Bookmark, MoreHorizontal } from 'lucide-react';
 import { Button } from '../../../components/ui/button';
+import { useNavigate } from 'react-router-dom';
+import { useIsMobile } from '../../../hooks/use-mobile';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -16,12 +18,11 @@ import { CommentDialog } from '../../post/components/CommentDialog';
 import { ShareDialog } from '../../post/components/ShareDialog';
 import { useBookmark } from '../hooks/useBookmark';
 import { useToast } from '../../../hooks/use-toast';
-import { bookmarkPostThunk } from '../../post/postSlice';
+import { bookmarkPostThunk, likePostThunk } from '../../post/postSlice';
 import {
   getPostCommentsThunk,
   createCommentThunk,
   likeCommentThunk,
-  likePostThunk,
   clearComments,
 } from '@/features/interaction/interactionSlice';
 import { useEffect, useMemo } from 'react';
@@ -36,6 +37,8 @@ export const SavedCollectionDetailContent: React.FC<SavedCollectionDetailContent
   onBack
 }) => {
   const dispatch = useAppDispatch();
+  const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const { toast } = useToast();
   const { isBookmarked, toggleBookmark } = useBookmark();
   const { posts, collections } = useAppSelector((state) => state.saved);
@@ -97,8 +100,12 @@ export const SavedCollectionDetailContent: React.FC<SavedCollectionDetailContent
   const handlePostClick = (item: { id: string; thumbnail: string; type?: string; caption?: string; likesCount?: number; commentsCount?: number }) => {
     const post = collectionPosts.find(p => p.id === item.id);
     if (post) {
-      setSelectedPost(post.post);
-      setShowCommentDialog(true);
+      if (isMobile) {
+        navigate(`/posts/${post.post.id}`);
+      } else {
+        setSelectedPost(post.post);
+        setShowCommentDialog(true);
+      }
     }
   };
 
@@ -187,9 +194,8 @@ export const SavedCollectionDetailContent: React.FC<SavedCollectionDetailContent
 
   const handleLikePost = async (postId: string) => {
     try {
-      await dispatch(likePostThunk(parseInt(postId))).unwrap();
-      const post = allPosts.find(p => p.id === postId);
-      if (post && selectedPost) {
+      await dispatch(likePostThunk(postId)).unwrap();
+      if (selectedPost) {
         setSelectedPost((prev: any) => prev ? { ...prev, isLiked: !prev.isLiked, likesCount: prev.likesCount + (prev.isLiked ? -1 : 1) } : prev);
       }
     } catch (error) {
@@ -203,6 +209,7 @@ export const SavedCollectionDetailContent: React.FC<SavedCollectionDetailContent
 
   const handleShare = (postId: string, userIds: string[], message: string) => {
     toast({
+      variant: "success",
       title: "Đã chia sẻ bài viết!",
       description: `Chia sẻ với ${userIds.length} người dùng.`,
       duration: 2000,
@@ -222,6 +229,7 @@ export const SavedCollectionDetailContent: React.FC<SavedCollectionDetailContent
       [userId]: nextIsFollowing
     }));
     toast({
+      variant: "success",
       title: nextIsFollowing ? "Đã theo dõi!" : "Đã bỏ theo dõi!",
       duration: 1500,
     });
@@ -340,23 +348,8 @@ export const SavedCollectionDetailContent: React.FC<SavedCollectionDetailContent
                   </div>
                 )}
                 
-                {/* Hover overlay with stats */}
-                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
-                  <div className="flex items-center gap-4 text-white">
-                    <div className="flex items-center gap-1">
-                      <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
-                        <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
-                      </svg>
-                      <span className="font-semibold">{item.likesCount}</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
-                        <path d="M21.99 4c0-1.1-.89-2-2-2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h14l4 4-.01-18zM18 14H6v-2h12v2zm0-3H6V9h12v2zm0-3H6V6h12v2z"/>
-                      </svg>
-                      <span className="font-semibold">{item.commentsCount}</span>
-                    </div>
-                  </div>
-                </div>
+                {/* Hover overlay */}
+                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
               </>
             );
           }}
@@ -406,6 +399,11 @@ export const SavedCollectionDetailContent: React.FC<SavedCollectionDetailContent
           onShare={handleShare}
           onOpenShareDialog={handleOpenShareDialog}
           isPostLiked={selectedPost.isLiked || false}
+          onPostLikeChange={(newIsLiked, newCount) => {
+            setSelectedPost((prev: any) =>
+              prev ? { ...prev, isLiked: newIsLiked, likesCount: newCount } : prev
+            );
+          }}
           isAuthorFollowed={isAuthorFollowed[selectedPost.author?.id] || false}
           onToggleFollowAuthor={handleToggleFollowAuthor}
         />

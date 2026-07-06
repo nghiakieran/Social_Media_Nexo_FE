@@ -5,8 +5,9 @@ import React, {
   useCallback,
   useRef,
 } from "react";
-import { useLocation } from "react-router-dom";
-import { useWebSocket } from "../hooks/useWebSocket";
+import { useDebouncedSearch } from "@/hooks/use-debounce-search";
+import { useLocation, useNavigate } from "react-router-dom";
+ import { useWebSocket } from "../hooks/useWebSocket";
 import { useBatchPresence } from "../hooks/usePresence";
 import { useAppDispatch, useAppSelector } from "@/store";
 import { ChatList } from "../components/ChatList";
@@ -15,8 +16,11 @@ import { MessageComposer } from "../components/MessageComposer";
 import { MessageRequestActions } from "../components/MessageRequestActions";
 import { InstagramInboxHeader } from "../components/InstagramInboxHeader";
 import { InstagramChatHeader } from "../components/InstagramChatHeader";
+import { CreateGroupDialog } from "../components/CreateGroupDialog";
 import { QuickActionsBar } from "../components/QuickActionsBar";
+import { useCallContext } from "../contexts/CallContext";
 import { Button } from "@/components/ui/button";
+import { playIncomingChatAlertIfNeeded } from "@/utils/inAppAlertSounds";
 import {
   setConversations,
   upsertConversation,
@@ -42,17 +46,21 @@ import {
   EMessageType,
   EReactionType,
   EConversationStatus,
+  ECallType,
   PresenceStatusDTO,
   ReadAllDTO,
   TypingNotificationDTO,
-  ReactionUpdateDTO,
+  ReactionWebSocketPayload,
+  ReactionUpdateLegacyDTO,
 } from "../types";
+
 import { MessageSquarePlus } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export const InboxPage: React.FC = () => {
   const dispatch = useAppDispatch();
   const location = useLocation();
+  const navigate = useNavigate();
   const {
     conversations,
     messages,
@@ -60,16 +68,18 @@ export const InboxPage: React.FC = () => {
     typingUsers,
     messagesPagination,
     replyingTo,
+    pendingRequestsCount,
   } = useAppSelector((state) => state.message);
   const { user } = useAppSelector((state) => state.auth);
 
-  const [searchQuery, setSearchQuery] = useState("");
+  const { searchValue: searchQuery, debouncedValue: debouncedSearch, setSearchValue: setSearchQuery } = useDebouncedSearch("", 400);
   const [activeFilter, setActiveFilter] = useState("all");
   const [activeView, setActiveView] = useState<"primary" | "requests">(
     "primary"
   );
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [createGroupDialogOpen, setCreateGroupDialogOpen] = useState(false);
   const [presenceUpdates, setPresenceUpdates] = useState<
     Record<number, { isOnline: boolean; lastSeen?: string }>
   >({});
@@ -107,6 +117,9 @@ export const InboxPage: React.FC = () => {
       } else {
         dispatch(addMessage(message));
       }
+      const sid = message.sender?.id;
+      if (sid != null)
+        playIncomingChatAlertIfNeeded(message.id, sid, user?.id);
     },
     onTyping: (typing: TypingNotificationDTO) => {
       dispatch(handleTypingNotification(typing));
@@ -114,7 +127,7 @@ export const InboxPage: React.FC = () => {
     onReadAll: (readAllEvent: ReadAllDTO) => {
       dispatch(handleReadAll({ ...readAllEvent, currentUserId: user.id }));
     },
-    onReactionUpdate: (update: ReactionUpdateDTO) => {
+    onReactionUpdate: (update: ReactionWebSocketPayload) => {
       if ("reactions" in update && Array.isArray(update.reactions)) {
         const conversationId = Object.keys(messages).find((convId) =>
           messages[Number(convId)]?.some((msg) => msg.id === update.messageId)
@@ -130,21 +143,21 @@ export const InboxPage: React.FC = () => {
           );
         }
       } else if ("action" in update && "reaction" in update) {
-        // Legacy format: single reaction with action
-        if (update.action === "ADD") {
+        const legacy = update as ReactionUpdateLegacyDTO;
+        if (legacy.action === "ADD") {
           dispatch(
             addReaction({
-              messageId: update.messageId,
-              conversationId: update.conversationId,
-              reaction: update.reaction,
+              messageId: legacy.messageId,
+              conversationId: legacy.conversationId,
+              reaction: legacy.reaction,
             })
           );
-        } else if (update.action === "REMOVE") {
+        } else if (legacy.action === "REMOVE") {
           dispatch(
             removeReaction({
-              messageId: update.messageId,
-              conversationId: update.conversationId,
-              userId: update.reaction.userId,
+              messageId: legacy.messageId,
+              conversationId: legacy.conversationId,
+              userId: legacy.reaction.userId,
             })
           );
         }
@@ -162,27 +175,34 @@ export const InboxPage: React.FC = () => {
     autoConnect: true,
   });
 
+  const loadingChatIdRef = useRef<number | null>(null);
+
   const handleChatSelect = useCallback(
     async (chatId: string) => {
-      dispatch(setActiveConversation(Number(chatId)));
+      const numericId = Number(chatId);
+      if (numericId === activeConversationId) return;
+      if (loadingChatIdRef.current === numericId) return;
+
+      loadingChatIdRef.current = numericId;
+      dispatch(setActiveConversation(numericId));
 
       try {
         const { messageApi } = await import("../services/messageApi");
         const response = await messageApi.getMessages({
-          conversationId: Number(chatId),
+          conversationId: numericId,
           page: 1,
           size: 8,
         });
-        if (response?.data?.content) {
+        if (response?.data?.content && loadingChatIdRef.current === numericId) {
           dispatch(
             setMessages({
-              conversationId: Number(chatId),
+              conversationId: numericId,
               messages: response.data.content,
             })
           );
           dispatch(
             updateMessagesPagination({
-              conversationId: Number(chatId),
+              conversationId: numericId,
               pagination: {
                 page: 1,
                 size: response.data.size,
@@ -195,9 +215,13 @@ export const InboxPage: React.FC = () => {
         }
       } catch (error) {
         // Error handled silently
+      } finally {
+        if (loadingChatIdRef.current === numericId) {
+          loadingChatIdRef.current = null;
+        }
       }
     },
-    [dispatch]
+    [dispatch, activeConversationId]
   );
 
   useEffect(() => {
@@ -211,16 +235,17 @@ export const InboxPage: React.FC = () => {
       setIsLoading(true);
       try {
         const { conversationApi } = await import("../services/messageApi");
+        const searchParam = debouncedSearch.trim() || undefined;
         let response;
 
         if (activeView === "requests") {
-          response = await conversationApi.getConversationRequests({});
+          response = await conversationApi.getConversationRequests({ search: searchParam });
         } else if (activeFilter === "unread") {
-          response = await conversationApi.getUnreadConversations({});
+          response = await conversationApi.getUnreadConversations({ search: searchParam });
         } else if (activeFilter === "archived") {
-          response = await conversationApi.getArchivedConversations({});
+          response = await conversationApi.getArchivedConversations({ search: searchParam });
         } else {
-          response = await conversationApi.getConversations({});
+          response = await conversationApi.getConversations({ search: searchParam });
         }
 
         if (response?.data?.content) {
@@ -234,7 +259,7 @@ export const InboxPage: React.FC = () => {
     };
 
     fetchConversations();
-  }, [dispatch, activeFilter, activeView]);
+  }, [dispatch, activeFilter, activeView, debouncedSearch]);
 
   useEffect(() => {
     if (targetConversationId && conversations.length > 0) {
@@ -256,7 +281,8 @@ export const InboxPage: React.FC = () => {
   }, [refetchPresence]);
 
   const filteredChats = conversations.filter((conv) => {
-    if (!conv.lastMessage && conv.id !== targetConversationId) {
+    const isGroup = conv.isGroup || !!conv.groupName || conv.participants.length > 2;
+    if (!conv.lastMessage && conv.id !== targetConversationId && !isGroup) {
       return false;
     }
 
@@ -283,7 +309,7 @@ export const InboxPage: React.FC = () => {
       }
     }
 
-    return conv.fullname.toLowerCase().includes(searchQuery.toLowerCase());
+    return true;
   });
 
   const currentMessages = activeConversationId
@@ -344,9 +370,23 @@ export const InboxPage: React.FC = () => {
   }, [dispatch]);
 
   useEffect(() => {
+    if (!ws.isConnected || conversations.length === 0) return;
+    conversations.forEach((conv) => {
+      ws.subscribeToMessageOnly(conv.id, (message: MessageDTO) => {
+        if (user?.id) {
+          dispatch(addMessageWithUnreadUpdate({ message, currentUserId: user.id }));
+        } else {
+          dispatch(addMessage(message));
+        }
+        const sid = message.sender?.id;
+        if (sid != null) playIncomingChatAlertIfNeeded(message.id, sid, user?.id);
+      });
+    });
+  }, [ws.isConnected, conversations.length]);
+
+  useEffect(() => {
     if (activeConversationId && ws) {
       ws.subscribeToConversation(Number(activeConversationId));
-
       ws.markConversationAsRead(Number(activeConversationId));
     }
   }, [activeConversationId, ws]);
@@ -449,8 +489,6 @@ export const InboxPage: React.FC = () => {
     [dispatch]
   );
 
-  const handleNewMessage = () => {};
-
   const handleViewChange = (view: "primary" | "requests") => {
     setActiveView(view);
     if (view === "requests") {
@@ -458,7 +496,54 @@ export const InboxPage: React.FC = () => {
     }
   };
 
-  const handleCallAction = (type: "voice" | "video") => {};
+  const { startCall } = useCallContext();
+
+  const otherParticipant = useMemo(
+    () => currentChat?.participants.find((p) => p.id !== user?.id),
+    [currentChat, user?.id]
+  );
+
+  const handleCallAction = useCallback(
+    (type: "voice" | "video") => {
+      if (!currentChat) return;
+      const callType = type === "video" ? ECallType.VIDEO_CALL : ECallType.AUDIO_CALL;
+
+      let callTarget;
+      if (currentChat.isGroup) {
+        callTarget = {
+          id: currentChat.id,
+          name: currentChat.groupName || "Nhóm",
+          avatarUrl: currentChat.groupAvatarUrl || "",
+          isGroupCall: true,
+        };
+      } else {
+        if (!otherParticipant) return;
+        callTarget = {
+          id: otherParticipant.id,
+          name: otherParticipant.fullName,
+          avatarUrl: otherParticipant.avatarUrl,
+        };
+      }
+
+      startCall(currentChat.id, callType, callTarget);
+    },
+    [currentChat, otherParticipant, startCall]
+  );
+
+  const handleCreateGroup = async (
+    groupName: string,
+    memberIds: number[]
+  ) => {
+    const { conversationApi } = await import("../services/messageApi");
+    const response = await conversationApi.createGroup({
+      groupName,
+      memberUserIds: memberIds,
+    });
+    if (response?.data) {
+      dispatch(upsertConversation(response.data));
+      dispatch(setActiveConversation(response.data.id));
+    }
+  };
 
   const handleAcceptRequest = async (conversationId: number) => {
     try {
@@ -482,16 +567,17 @@ export const InboxPage: React.FC = () => {
   const handleRefreshConversations = async () => {
     try {
       const { conversationApi } = await import("../services/messageApi");
+      const searchParam = debouncedSearch.trim() || undefined;
       let response;
 
       if (activeView === "requests") {
-        response = await conversationApi.getConversationRequests({});
+        response = await conversationApi.getConversationRequests({ search: searchParam });
       } else if (activeFilter === "unread") {
-        response = await conversationApi.getUnreadConversations({});
+        response = await conversationApi.getUnreadConversations({ search: searchParam });
       } else if (activeFilter === "archived") {
-        response = await conversationApi.getArchivedConversations({});
+        response = await conversationApi.getArchivedConversations({ search: searchParam });
       } else {
-        response = await conversationApi.getConversations({});
+        response = await conversationApi.getConversations({ search: searchParam });
       }
 
       if (response?.data?.content) {
@@ -535,20 +621,21 @@ export const InboxPage: React.FC = () => {
   }, [activeConversationId, dispatch, isLoadingMore, messagesPagination]);
 
   return (
-    <div className="h-screen flex bg-background overflow-hidden">
-      {/* Chat List - Hidden on mobile when viewing chat */}
+    <div className="flex h-full min-h-0 w-full flex-col overflow-hidden bg-background md:flex-row">
+      {/* Danh sách: full width mobile; ẩn khi đang xem chat trên mobile */}
       <div
         className={cn(
-          "w-80 border-r border-border flex flex-col bg-background shrink-0 transition-transform duration-300",
-          activeConversationId ? "hidden md:flex" : "flex"
+          "flex min-h-0 w-full shrink-0 flex-col border-border bg-background transition-transform duration-300 md:flex md:h-full md:w-80 md:max-w-[20rem] md:border-r",
+          activeConversationId ? "hidden md:flex" : "flex flex-1 md:flex-none"
         )}
       >
         <InstagramInboxHeader
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
-          onNewMessage={handleNewMessage}
+          onCreateGroup={() => setCreateGroupDialogOpen(true)}
           activeView={activeView}
           onViewChange={handleViewChange}
+          pendingRequestsCount={pendingRequestsCount}
         />
 
         {activeView === "primary" && (
@@ -558,24 +645,32 @@ export const InboxPage: React.FC = () => {
           />
         )}
 
-        <div className="flex-1 overflow-hidden">
+        <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
           {isLoading ? (
-            <div className="flex items-center justify-center h-full">
-              <div className="text-center space-y-2">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+            <div className="flex h-full min-h-[12rem] items-center justify-center">
+              <div className="space-y-2 text-center">
+                <div className="mx-auto h-8 w-8 animate-spin rounded-full border-b-2 border-primary" />
                 <p className="text-sm text-muted-foreground">Đang tải...</p>
               </div>
             </div>
           ) : filteredChats.length === 0 ? (
-            <div className="flex items-center justify-center h-full p-8">
-              <div className="text-center space-y-2">
-                <MessageSquarePlus className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
-                <h3 className="font-semibold text-foreground">
-                  Không có tin nhắn nào
-                </h3>
-                <p className="text-sm text-muted-foreground max-w-[200px]">
-                  Tin nhắn mới sẽ hiển thị tại đây
-                </p>
+            <div className="flex min-h-[min(100%,20rem)] flex-col items-center justify-center px-4 py-8 md:py-12">
+              <div className="mx-auto w-full max-w-sm space-y-5 text-center">
+                <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-primary/15 text-primary shadow-sm ring-1 ring-primary/20">
+                  <MessageSquarePlus className="h-9 w-9" strokeWidth={1.75} />
+                </div>
+                <div className="space-y-2">
+                  <h3 className="text-lg font-semibold text-foreground md:text-xl">
+                    {activeView === "requests"
+                      ? "Không có yêu cầu nào"
+                      : "Chưa có cuộc trò chuyện"}
+                  </h3>
+                  <p className="text-sm leading-relaxed text-muted-foreground">
+                    {activeView === "requests"
+                      ? "Yêu cầu nhắn tin mới sẽ hiện ở đây."
+                      : "Kết bạn hoặc bắt đầu chat — tin nhắn sẽ hiển thị trong danh sách này."}
+                  </p>
+                </div>
               </div>
             </div>
           ) : (
@@ -583,7 +678,7 @@ export const InboxPage: React.FC = () => {
               chats={filteredChats}
               activeChat={String(activeConversationId)}
               onChatSelect={handleChatSelect}
-              className="p-2"
+              className="px-3 py-2 md:p-2"
               presenceMap={{
                 ...presenceMap,
                 ...Object.fromEntries(
@@ -599,8 +694,15 @@ export const InboxPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Chat Window - Full width on mobile */}
-      <div className="flex-1 flex flex-col w-full md:w-auto">
+      {/* Desktop: cột phải (empty / chat). Mobile: chỉ hiện khi đã chọn hội thoại — tránh 2 empty state chồng nhau */}
+      <div
+        className={cn(
+          "min-h-0 w-full flex-col md:w-auto",
+          activeConversationId
+            ? "flex flex-1"
+            : "hidden md:flex md:flex-1"
+        )}
+      >
         {activeConversationId && currentChat ? (
           <>
             <InstagramChatHeader
@@ -608,7 +710,11 @@ export const InboxPage: React.FC = () => {
               onCall={handleCallAction}
               onNicknameUpdated={handleRefreshConversations}
               onBlockStatusChanged={handleRefreshConversations}
-              className="border-b border-border"
+              onGroupUpdated={handleRefreshConversations}
+              onGroupLeft={() => dispatch(setActiveConversation(null))}
+              showBackButton={!!activeConversationId}
+              mobileOnlyBack
+              onBack={() => dispatch(setActiveConversation(null))}
               isOnline={currentChatPresence?.isOnline || false}
               lastSeen={currentChatPresence?.lastSeen}
               currentUserId={user?.id}
@@ -628,7 +734,7 @@ export const InboxPage: React.FC = () => {
                 messagesPagination[activeConversationId]?.hasMore || false
               }
               isLoadingMore={isLoadingMore}
-              className="flex-1"
+              className="min-h-0 flex-1"
             />
             {currentChat.status === EConversationStatus.PENDING &&
             currentChat.lastMessage &&
@@ -641,6 +747,7 @@ export const InboxPage: React.FC = () => {
               />
             ) : (
               <MessageComposer
+                className="shrink-0 border-primary/10 bg-background/95 backdrop-blur-sm"
                 onSendMessage={handleSendMessage}
                 onTyping={handleTyping}
                 isBlockedByMe={currentChat.blockedByMe || false}
@@ -674,31 +781,43 @@ export const InboxPage: React.FC = () => {
             )}
           </>
         ) : (
-          <div className="flex-1 flex items-center justify-center bg-gradient-subtle">
-            <div className="text-center space-y-4">
-              <div className="w-24 h-24 mx-auto rounded-full instagram-gradient flex items-center justify-center">
-                <MessageSquarePlus className="h-12 w-12 text-white" />
+          <div className="flex min-h-0 flex-1 items-center justify-center overflow-y-auto bg-gradient-subtle px-6 py-10">
+            <div className="mx-auto max-w-md space-y-5 text-center">
+              <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-glow">
+                <MessageSquarePlus className="h-12 w-12" strokeWidth={1.5} />
               </div>
-              <div>
-                <h2 className="text-2xl font-semibold mb-2">Your Messages</h2>
-                <p className="text-muted-foreground mb-6 max-w-md">
-                  Send private photos and messages to a friend or group
+              <div className="space-y-2">
+                <h2 className="text-2xl font-semibold text-foreground">
+                  Chọn một cuộc trò chuyện
+                </h2>
+                <p className="text-sm text-muted-foreground md:text-base">
+                  Chọn người ở danh sách bên trái để xem tin nhắn, hoặc tìm bạn
+                  mới để bắt đầu chat.
                 </p>
-                <Button
-                  onClick={() =>
-                    filteredChats[0] &&
-                    handleChatSelect(String(filteredChats[0].id))
-                  }
-                  className="bg-primary hover:bg-primary/90"
-                  disabled={!filteredChats[0]}
-                >
-                  Send Message
-                </Button>
+              </div>
+              <div className="flex flex-wrap items-center justify-center gap-2">
+                {filteredChats[0] && (
+                  <Button
+                    onClick={() =>
+                      handleChatSelect(String(filteredChats[0].id))
+                    }
+                  >
+                    Mở chat gần nhất
+                  </Button>
+                )}
               </div>
             </div>
           </div>
         )}
       </div>
+
+      <CreateGroupDialog
+        open={createGroupDialogOpen}
+        onOpenChange={setCreateGroupDialogOpen}
+        conversations={conversations}
+        currentUserId={user?.id}
+        onCreate={handleCreateGroup}
+      />
     </div>
   );
 };

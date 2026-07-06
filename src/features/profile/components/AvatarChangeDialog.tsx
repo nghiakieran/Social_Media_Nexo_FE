@@ -93,7 +93,7 @@ export const AvatarChangeDialog = ({
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="max-w-[88vw] sm:max-w-md rounded-xl">
           <DialogHeader>
             <DialogTitle className="text-center text-lg font-semibold">
               Thay đổi ảnh đại diện

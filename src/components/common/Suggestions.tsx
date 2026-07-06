@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -6,159 +6,15 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useAppSelector } from "@/store";
 import { SwitchAccountDialog } from "@/features/auth";
 import { getAvatarUrl, getAvatarInitials } from "@/utils/avatar";
+import { api } from "@/lib/axios";
+import { followUser } from "@/features/profile/api/profileApi";
+import type { PageModelResponse } from "@/features/message/types";
+import type { ProfileData } from "@/features/profile/types";
+import { useToast } from "@/components/ui/use-toast";
+import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
+import { Loader2 } from "lucide-react";
 
-interface SuggestionUser {
-  id: string;
-  username: string;
-  displayName: string;
-  avatar: string;
-  mutualFollowers?: string;
-  isFollowing?: boolean;
-  posts?: number;
-  followers?: number;
-  following?: number;
-  bio?: string;
-  profileImages?: string[];
-}
-
-const mockSuggestions: SuggestionUser[] = [
-  {
-    id: "1",
-    username: "_zikiu_",
-    displayName: "Hoàng Nhi",
-    avatar: "https://picsum.photos/44/44?random=1",
-    mutualFollowers: "Có nvaannhi và 3 người khác theo dõi",
-    posts: 11,
-    followers: 464,
-    following: 72,
-    bio: "✨ Lifestyle & Fashion",
-    profileImages: [
-      "https://picsum.photos/200/200?random=11",
-      "https://picsum.photos/200/200?random=12",
-      "https://picsum.photos/200/200?random=13",
-      "https://picsum.photos/200/200?random=14",
-      "https://picsum.photos/200/200?random=15",
-      "https://picsum.photos/200/200?random=16",
-    ],
-  },
-  {
-    id: "2",
-    username: "dd_phuongg",
-    displayName: "Phương Đoàn",
-    avatar: "https://picsum.photos/44/44?random=2",
-    mutualFollowers: "Đang theo dõi z.lam2384",
-    posts: 23,
-    followers: 892,
-    following: 156,
-    profileImages: [
-      "https://picsum.photos/200/200?random=21",
-      "https://picsum.photos/200/200?random=22",
-      "https://picsum.photos/200/200?random=23",
-    ],
-  },
-  {
-    id: "3",
-    username: "treasure_inocean",
-    displayName: "Quỳnh Nhi",
-    avatar: "https://picsum.photos/44/44?random=3",
-    mutualFollowers: "Gợi ý cho bạn",
-    posts: 45,
-    followers: 1234,
-    following: 89,
-    profileImages: [
-      "https://picsum.photos/200/200?random=31",
-      "https://picsum.photos/200/200?random=32",
-      "https://picsum.photos/200/200?random=33",
-    ],
-  },
-  {
-    id: "4",
-    username: "att.w.ig",
-    displayName: "Anh Tho",
-    avatar: "https://picsum.photos/44/44?random=4",
-    mutualFollowers: "Gợi ý cho bạn",
-    posts: 67,
-    followers: 567,
-    following: 234,
-    profileImages: [
-      "https://picsum.photos/200/200?random=41",
-      "https://picsum.photos/200/200?random=42",
-    ],
-  },
-  {
-    id: "5",
-    username: "nn_mai0110",
-    displayName: "Ngọc Mai",
-    avatar: "https://picsum.photos/44/44?random=5",
-    mutualFollowers: "Có nvaannhi và 1 người khác theo dõi",
-    posts: 89,
-    followers: 345,
-    following: 123,
-    profileImages: [
-      "https://picsum.photos/200/200?random=51",
-      "https://picsum.photos/200/200?random=52",
-      "https://picsum.photos/200/200?random=53",
-    ],
-  },
-  {
-    id: "6",
-    username: "att.w.ig",
-    displayName: "Anh Tho",
-    avatar: "https://picsum.photos/44/44?random=4",
-    mutualFollowers: "Gợi ý cho bạn",
-    posts: 67,
-    followers: 567,
-    following: 234,
-    profileImages: [
-      "https://picsum.photos/200/200?random=41",
-      "https://picsum.photos/200/200?random=42",
-    ],
-  },
-  {
-    id: "7",
-    username: "nn_mai0110",
-    displayName: "Ngọc Mai",
-    avatar: "https://picsum.photos/44/44?random=5",
-    mutualFollowers: "Có nvaannhi và 1 người khác theo dõi",
-    posts: 89,
-    followers: 345,
-    following: 123,
-    profileImages: [
-      "https://picsum.photos/200/200?random=51",
-      "https://picsum.photos/200/200?random=52",
-      "https://picsum.photos/200/200?random=53",
-    ],
-  },
-  {
-    id: "8",
-    username: "att.w.ig",
-    displayName: "Anh Tho",
-    avatar: "https://picsum.photos/44/44?random=4",
-    mutualFollowers: "Gợi ý cho bạn",
-    posts: 67,
-    followers: 567,
-    following: 234,
-    profileImages: [
-      "https://picsum.photos/200/200?random=41",
-      "https://picsum.photos/200/200?random=42",
-    ],
-  },
-  {
-    id: "9",
-    username: "nn_mai0110",
-    displayName: "Ngọc Mai",
-    avatar: "https://picsum.photos/44/44?random=5",
-    mutualFollowers: "Có nvaannhi và 1 người khác theo dõi",
-    posts: 89,
-    followers: 345,
-    following: 123,
-    profileImages: [
-      "https://picsum.photos/200/200?random=51",
-      "https://picsum.photos/200/200?random=52",
-      "https://picsum.photos/200/200?random=53",
-    ],
-  },
-];
+type SuggestionUser = ProfileData & { isFollowing?: boolean; isLoading?: boolean };
 
 interface AllSuggestionsModalProps {
   isOpen: boolean;
@@ -170,8 +26,107 @@ const AllSuggestionsModal = ({
   isOpen,
   onClose,
   onUserClick,
-}: AllSuggestionsModalProps) => {
+  onFollowSuccess,
+}: AllSuggestionsModalProps & {
+  onFollowSuccess: () => void;
+}) => {
+  const [modalSuggestions, setModalSuggestions] = useState<SuggestionUser[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [pageNo, setPageNo] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
   const [hoveredUser, setHoveredUser] = useState<string | null>(null);
+  const { toast } = useToast();
+  const isLoadingRef = useRef(false);
+
+  const loadPage = useCallback(async (page: number) => {
+    if (isLoadingRef.current) return;
+    isLoadingRef.current = true;
+    setIsLoading(true);
+    try {
+      const res = await api.get<{ data: PageModelResponse<ProfileData> }>(
+        "/users/suggestions",
+        {
+          params: {
+            pageNo: page,
+            pageSize: 15,
+          },
+        }
+      );
+      const data = res.data.data;
+      const content = data.content || [];
+      const mapped = content.map((u) => ({
+        ...u,
+        isFollowing: false,
+        isLoading: false,
+      }));
+
+      setModalSuggestions((prev) => (page === 0 ? mapped : [...prev, ...mapped]));
+      setHasMore(!data.last);
+      setPageNo(page);
+    } catch (err) {
+      toast({
+        title: "Lỗi",
+        description: "Không thể tải danh sách gợi ý. Vui lòng thử lại!",
+        variant: "destructive",
+      });
+    } finally {
+      isLoadingRef.current = false;
+      setIsLoading(false);
+    }
+  }, [toast]);
+
+  useEffect(() => {
+    if (isOpen) {
+      loadPage(0);
+    } else {
+      setModalSuggestions([]);
+      setPageNo(0);
+      setHasMore(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
+
+  const { lastElementRef } = useInfiniteScroll(() => {
+    if (!isLoading && hasMore) {
+      loadPage(pageNo + 1);
+    }
+  }, {
+    hasMore,
+    isLoading,
+    threshold: 100,
+  });
+
+  const handleFollow = async (user: SuggestionUser, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const uid = user.id.toString();
+
+    setModalSuggestions((prev) =>
+      prev.map((u) => (u.id === user.id ? { ...u, isLoading: true } : u))
+    );
+
+    try {
+      await followUser(user.username);
+      setModalSuggestions((prev) =>
+        prev.map((u) =>
+          u.id === user.id ? { ...u, isFollowing: true, isLoading: false } : u
+        )
+      );
+      toast({
+        title: "Đã gửi yêu cầu theo dõi",
+        description: `Bạn đã gửi yêu cầu theo dõi đến @${user.username}`,
+      });
+      onFollowSuccess();
+    } catch (err) {
+      setModalSuggestions((prev) =>
+        prev.map((u) => (u.id === user.id ? { ...u, isLoading: false } : u))
+      );
+      toast({
+        title: "Lỗi",
+        description: "Không thể gửi yêu cầu theo dõi. Vui lòng thử lại!",
+        variant: "destructive",
+      });
+    }
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -181,69 +136,98 @@ const AllSuggestionsModal = ({
           <div className="p-4 border-b border-border text-center flex-shrink-0">
             <h2 className="text-lg font-bold text-foreground">Gợi ý cho bạn</h2>
           </div>
-
           {/* Scrollable User List */}
           <div className="flex-1 overflow-y-auto p-4 scrollbar-thin scrollbar-thumb-border scrollbar-track-muted min-h-0">
-            <div className="space-y-3">
-              {mockSuggestions.map((user) => (
-                <div
-                  key={user.id}
-                  className="flex items-center justify-between group cursor-pointer p-3 rounded-xl hover:bg-gradient-to-r hover:from-muted/30 hover:to-muted/10 transition-all duration-300 hover:shadow-glow border border-transparent hover:border-border/30"
-                  onMouseEnter={() => setHoveredUser(user.id)}
-                  onMouseLeave={() => setHoveredUser(null)}
-                  onClick={() => {
-                    onUserClick(user);
-                    onClose();
-                  }}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="relative">
-                      <Avatar
-                        className={`h-12 w-12 transition-all duration-300 ${
-                          hoveredUser === user.id
-                            ? "ring-2 ring-gradient-instagram scale-110"
-                            : ""
-                        }`}
-                      >
-                        <AvatarImage src={getAvatarUrl(user.avatar)} />
-                        <AvatarFallback className="bg-gradient-to-br from-muted to-secondary text-foreground font-semibold">
-                          {getAvatarInitials(user.username)}
-                        </AvatarFallback>
-                      </Avatar>
-                      {hoveredUser === user.id && (
-                        <div className="absolute -top-1 -right-1 w-3 h-3 bg-gradient-story rounded-full border-2 border-background animate-pulse" />
-                      )}
-                    </div>
-                    <div className="flex-1">
-                      <p className="font-bold text-sm text-foreground group-hover:bg-gradient-instagram group-hover:bg-clip-text group-hover:text-transparent transition-all duration-300">
-                        {user.username}
-                      </p>
-                      <p className="text-muted-foreground text-xs">
-                        {user.displayName}
-                      </p>
-                      <p className="text-muted-foreground text-xs">
-                        {user.mutualFollowers}
-                      </p>
-                    </div>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className={`font-bold text-sm px-4 py-2 rounded-lg transition-all duration-300 ${
-                      hoveredUser === user.id
-                        ? "bg-gradient-instagram text-white hover:opacity-90 scale-110 shadow-glow"
-                        : "text-blue-500 hover:text-blue-600 hover:bg-blue-50"
-                    }`}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      // Handle follow action
+            {modalSuggestions.length === 0 && isLoading ? (
+              <div className="flex justify-center items-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              </div>
+            ) : modalSuggestions.length === 0 ? (
+              <div className="text-center text-muted-foreground py-8">
+                Không có gợi ý nào
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {modalSuggestions.map((user) => (
+                  <div
+                    key={user.id.toString()}
+                    className="flex items-center justify-between group cursor-pointer p-3 rounded-xl hover:bg-gradient-to-r hover:from-muted/30 hover:to-muted/10 transition-all duration-300 hover:shadow-glow border border-transparent hover:border-border/30"
+                    onMouseEnter={() => setHoveredUser(user.id.toString())}
+                    onMouseLeave={() => setHoveredUser(null)}
+                    onClick={() => {
+                      onUserClick(user);
+                      onClose();
                     }}
                   >
-                    Theo dõi
-                  </Button>
-                </div>
-              ))}
-            </div>
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      <div className="relative">
+                        <Avatar
+                          className={`h-12 w-12 transition-all duration-300 ${
+                            hoveredUser === user.id.toString()
+                              ? "ring-2 ring-primary scale-110"
+                              : ""
+                          }`}
+                        >
+                          <AvatarImage src={getAvatarUrl(user.avatar)} />
+                          <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/40 text-primary font-semibold">
+                            {getAvatarInitials(user.username)}
+                          </AvatarFallback>
+                        </Avatar>
+                        {hoveredUser === user.id.toString() && (
+                          <div className="absolute -top-1 -right-1 h-3 w-3 animate-pulse rounded-full border-2 border-background bg-primary" />
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-bold text-sm text-foreground group-hover:text-primary transition-all duration-300 truncate">
+                          {user.username}
+                        </p>
+                        <p className="text-muted-foreground text-xs truncate">
+                          {user.fullName}
+                        </p>
+                      </div>
+                    </div>
+
+                    {user.isFollowing ? (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled
+                        className="font-bold text-sm px-4 py-2 rounded-lg border-border text-muted-foreground bg-transparent"
+                      >
+                        Đang theo dõi
+                      </Button>
+                    ) : (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        disabled={user.isLoading}
+                        className={`font-bold text-sm px-4 py-2 rounded-lg transition-all duration-300 ${
+                          hoveredUser === user.id.toString()
+                            ? "bg-primary text-white hover:bg-primary/90 hover:text-white scale-110 shadow-md"
+                            : "text-primary hover:bg-primary/10 hover:text-white dark:hover:bg-primary/20"
+                        }`}
+                        onClick={(e) => handleFollow(user, e)}
+                      >
+                        {user.isLoading ? (
+                          <Loader2 className="h-4 w-5 animate-spin" />
+                        ) : (
+                          "Theo dõi"
+                        )}
+                      </Button>
+                    )}
+                  </div>
+                ))}
+
+                {hasMore && (
+                  <div
+                    ref={lastElementRef as unknown as (node: HTMLDivElement | null) => void}
+                    className="flex justify-center items-center py-4"
+                  >
+                    {isLoading && <Loader2 className="h-5 w-5 animate-spin text-primary" />}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </DialogContent>
@@ -256,9 +240,29 @@ export const Suggestions = () => {
   const [hoveredUser, setHoveredUser] = useState<string | null>(null);
   const [showAllSuggestions, setShowAllSuggestions] = useState(false);
   const [isSwitchAccountOpen, setIsSwitchAccountOpen] = useState(false);
+  const [suggestions, setSuggestions] = useState<SuggestionUser[]>([]);
+  const [loading, setLoading] = useState(true);
   const user = useAppSelector((state) => state.auth.user);
+  const { toast } = useToast();
 
-  const displayedSuggestions = mockSuggestions.slice(0, 5);
+  const fetchSuggestions = async () => {
+    setLoading(true);
+    try {
+      const res = await api.get<{ data: PageModelResponse<SuggestionUser> }>(
+        "/users/suggestions"
+      );
+      setSuggestions(res.data.data.content || []);
+    } catch (err) {
+      setSuggestions([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+  useEffect(() => {
+    fetchSuggestions();
+  }, []);
+
+  const displayedSuggestions = suggestions.slice(0, 5);
 
   const handleSeeAll = () => {
     setShowAllSuggestions(true);
@@ -278,23 +282,23 @@ export const Suggestions = () => {
         {/* Current User Profile */}
         <div className="flex items-center justify-between p-3 rounded-xl bg-gradient-to-r from-muted/50 to-background border border-border/50 shadow-glow">
           <div
-            className="flex items-center gap-3 cursor-pointer flex-1 hover:opacity-80 transition-opacity"
+            className="flex items-center gap-3 cursor-pointer flex-1 min-w-0 hover:opacity-80 transition-opacity"
             onClick={() => user?.username && navigate(`/${user.username}`)}
           >
             <div className="relative">
-              <Avatar className="h-14 w-14 ring-2 ring-gradient-instagram">
+              <Avatar className="h-14 w-14 ring-2 ring-primary">
                 <AvatarImage src={getAvatarUrl(user?.avatar)} />
-                <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white font-semibold">
+                <AvatarFallback className="bg-primary font-semibold text-primary-foreground">
                   {getAvatarInitials(user?.username)}
                 </AvatarFallback>
               </Avatar>
-              <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-gradient-story rounded-full border-2 border-background"></div>
+              <div className="absolute -bottom-1 -right-1 h-4 w-4 rounded-full border-2 border-background bg-primary" />
             </div>
-            <div className="flex-1">
-              <p className="font-bold text-sm text-foreground hover:underline">
+            <div className="flex-1 min-w-0">
+              <p className="font-bold text-sm text-foreground hover:underline truncate">
                 {user?.username || "username"}
               </p>
-              <p className="text-muted-foreground text-sm">
+              <p className="text-muted-foreground text-sm truncate">
                 {user?.fullName || "Full Name"}
               </p>
             </div>
@@ -302,7 +306,7 @@ export const Suggestions = () => {
           <Button
             variant="ghost"
             size="sm"
-            className="text-blue-500 hover:text-blue-600 font-bold hover:bg-blue-50 transition-all duration-200 hover:scale-105"
+            className="font-bold text-primary transition-all duration-200 hover:scale-105 hover:bg-primary/10 hover:text-primary dark:hover:bg-primary/20"
             onClick={handleSwitchAccount}
           >
             Chuyển
@@ -326,64 +330,86 @@ export const Suggestions = () => {
           </div>
 
           <div className="space-y-2">
-            {displayedSuggestions.map((user) => (
-              <div
-                key={user.id}
-                className="flex items-center justify-between group cursor-pointer p-3 rounded-xl hover:bg-gradient-to-r hover:from-muted/30 hover:to-muted/10 transition-all duration-300 hover:shadow-glow border border-transparent hover:border-border/30"
-                onMouseEnter={() => setHoveredUser(user.id)}
-                onMouseLeave={() => setHoveredUser(null)}
-                onClick={() => handleUserClick(user)}
-              >
-                <div className="flex items-center gap-3">
-                  <div className="relative">
-                    <Avatar
-                      className={`h-11 w-11 transition-all duration-300 ${
-                        hoveredUser === user.id
-                          ? "ring-2 ring-gradient-instagram scale-110"
-                          : ""
-                      }`}
-                    >
-                      <AvatarImage src={getAvatarUrl(user.avatar)} />
-                      <AvatarFallback className="bg-gradient-to-br from-muted to-secondary text-foreground font-semibold">
-                        {getAvatarInitials(user.username)}
-                      </AvatarFallback>
-                    </Avatar>
-                    {hoveredUser === user.id && (
-                      <div className="absolute -top-1 -right-1 w-3 h-3 bg-gradient-story rounded-full border-2 border-background animate-pulse" />
-                    )}
-                  </div>
-                  <div className="flex-1">
-                    <p className="font-bold text-sm text-foreground group-hover:bg-gradient-instagram group-hover:bg-clip-text group-hover:text-transparent transition-all duration-300">
-                      {user.username}
-                    </p>
-                    <p className="text-muted-foreground text-xs">
-                      {user.mutualFollowers}
-                    </p>
-                  </div>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className={`font-bold text-sm px-4 py-2 rounded-lg transition-all duration-300 ${
-                    hoveredUser === user.id
-                      ? "bg-gradient-instagram text-white hover:opacity-90 scale-110 shadow-glow"
-                      : "text-blue-500 hover:text-blue-600 hover:bg-blue-50"
-                  }`}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    // Handle follow action
-                  }}
-                >
-                  Theo dõi
-                </Button>
+            {loading ? (
+              <div className="text-center text-muted-foreground py-8">
+                Đang tải gợi ý...
               </div>
-            ))}
+            ) : displayedSuggestions.length === 0 ? (
+              <div className="text-center text-muted-foreground py-8">
+                Không có gợi ý nào
+              </div>
+            ) : (
+              displayedSuggestions.map((user) => (
+                <div
+                  key={user.id.toString()}
+                  className="flex items-center justify-between group cursor-pointer p-3 rounded-xl hover:bg-gradient-to-r hover:from-muted/30 hover:to-muted/10 transition-all duration-300 hover:shadow-glow border border-transparent hover:border-border/30"
+                  onMouseEnter={() => setHoveredUser(user.id.toString())}
+                  onMouseLeave={() => setHoveredUser(null)}
+                  onClick={() => handleUserClick(user)}
+                >
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <div className="relative">
+                      <Avatar
+                        className={`h-11 w-11 transition-all duration-300 ${hoveredUser === user.id.toString()
+                          ? "ring-2 ring-primary scale-110"
+                          : ""
+                          }`}
+                      >
+                        <AvatarImage src={getAvatarUrl(user.avatar)} />
+                        <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/40 text-primary font-semibold">
+                          {getAvatarInitials(user.username)}
+                        </AvatarFallback>
+                      </Avatar>
+                      {hoveredUser === user.id.toString() && (
+                        <div className="absolute -top-1 -right-1 h-3 w-3 animate-pulse rounded-full border-2 border-background bg-primary" />
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-bold text-sm text-foreground group-hover:text-primary transition-all duration-300 truncate">
+                        {user.username}
+                      </p>
+                      <p className="text-muted-foreground text-xs truncate">
+                        {user.fullName}
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className={`font-bold text-sm px-4 py-2 rounded-lg transition-all duration-300 ${hoveredUser === user.id.toString()
+                      ? "bg-primary text-white hover:bg-primary/90 hover:text-white scale-110 shadow-md"
+                      : "text-primary hover:bg-primary/10 hover:text-white dark:hover:bg-primary/20"
+                      }`}
+                    onClick={async (e) => {
+                      e.stopPropagation();
+                      try {
+                        await followUser(user.username);
+                        toast({
+                          title: "Đã gửi yêu cầu theo dõi",
+                          description: `Bạn đã gửi yêu cầu theo dõi đến @${user.username}`,
+                        });
+                        await fetchSuggestions();
+                      } catch (err) {
+                        toast({
+                          title: "Lỗi",
+                          description:
+                            "Không thể gửi yêu cầu theo dõi. Vui lòng thử lại!",
+                          variant: "destructive",
+                        });
+                      }
+                    }}
+                  >
+                    Theo dõi
+                  </Button>
+                </div>
+              ))
+            )}
           </div>
         </div>
 
         {/* Footer Links */}
         <div className="space-y-4 pt-4 border-t border-border/50">
-          <div className="text-xs text-muted-foreground space-y-2">
+          {/* <div className="text-xs text-muted-foreground space-y-2">
             <div className="flex flex-wrap gap-x-3 gap-y-1">
               <a
                 href="/about"
@@ -428,21 +454,27 @@ export const Suggestions = () => {
                 Ngôn ngữ
               </a>
             </div>
-          </div>
-          <p className="text-xs text-muted-foreground font-medium">
-            © 2025 Nexo
+          </div> */}
+          <p className="text-xs text-muted-foreground font-medium flex items-center gap-1.5 flex-wrap">
+            © 2026 Nexo
+            <span>·</span>
+            <a
+              href="/community-guidelines"
+              className="hover:underline hover:text-foreground transition-colors"
+            >
+              Chính sách cộng đồng
+            </a>
           </p>
         </div>
       </div>
 
-      {/* AllSuggestionsModal for "Xem tất cả" functionality */}
       <AllSuggestionsModal
         isOpen={showAllSuggestions}
         onClose={() => setShowAllSuggestions(false)}
         onUserClick={handleUserClick}
+        onFollowSuccess={fetchSuggestions}
       />
 
-      {/* Switch Account Dialog */}
       <SwitchAccountDialog
         isOpen={isSwitchAccountOpen}
         onClose={() => setIsSwitchAccountOpen(false)}

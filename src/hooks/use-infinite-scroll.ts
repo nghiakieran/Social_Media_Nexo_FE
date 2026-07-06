@@ -27,10 +27,15 @@ export const useInfiniteScroll = (
   } = options;
   const observer = useRef<IntersectionObserver>();
   const isLoadingRef = useRef(isLoading);
+  const onLoadMoreRef = useRef(onLoadMore);
 
   useEffect(() => {
     isLoadingRef.current = isLoading;
   }, [isLoading]);
+
+  useEffect(() => {
+    onLoadMoreRef.current = onLoadMore;
+  }, [onLoadMore]);
 
   const lastElementRef = useCallback(
     (node: HTMLElement | null) => {
@@ -50,7 +55,7 @@ export const useInfiniteScroll = (
             !error &&
             !isLoadingRef.current
           ) {
-            onLoadMore();
+            onLoadMoreRef.current();
           }
         },
         {
@@ -60,7 +65,7 @@ export const useInfiniteScroll = (
       );
       observer.current.observe(node);
     },
-    [hasMore, onLoadMore, threshold, error, root, rootRef]
+    [hasMore, isLoading, threshold, error, root, rootRef]
   );
 
   useEffect(() => {

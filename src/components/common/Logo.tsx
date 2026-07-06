@@ -22,7 +22,7 @@ export const Logo = ({ size = 'md', showText = true, className = '' }: LogoProps
         className={`${sizeClasses[size]} object-contain`}
       />
       {showText && (
-        <span className="text-xl font-bold bg-gradient-to-r from-orange-400 via-pink-500 to-purple-600 bg-clip-text text-transparent">
+        <span className="text-xl font-bold bg-gradient-primary bg-clip-text text-transparent">
           NEXO
         </span>
       )}

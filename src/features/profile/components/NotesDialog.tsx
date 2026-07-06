@@ -128,23 +128,23 @@ export const NotesDialog: React.FC<NotesDialogProps> = ({
         onWheel={(e) => e.stopPropagation()}
         onTouchMove={(e) => e.stopPropagation()}
       >
-        <div className="bg-white rounded-2xl w-full max-w-md overflow-hidden max-h-[90vh] overflow-y-auto">
+        <div className="max-h-[90vh] w-full max-w-md overflow-hidden overflow-y-auto rounded-2xl border border-border bg-card text-card-foreground shadow-lg">
           {/* Header */}
-          <div className="flex items-center justify-between p-4 border-b border-gray-200">
+          <div className="flex items-center justify-between border-b border-border p-4">
             <button
               onClick={handleClose}
-              className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+              className="rounded-full p-1.5 text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary"
               role="button"
               tabIndex={0}
             >
-              <X className="w-4 h-4" />
+              <X className="h-4 w-4" />
             </button>
-            <h2 className="text-lg font-semibold text-center flex-1 ml-8">Ghi chú mới</h2>
+            <h2 className="ml-8 flex-1 text-center text-lg font-semibold">Ghi chú mới</h2>
             <Button
               onClick={handlePublish}
               disabled={!content.trim() || isPublishing}
               variant="ghost"
-              className="text-blue-600 hover:text-blue-700 font-medium disabled:opacity-50 disabled:text-gray-400"
+              className="font-medium text-primary hover:bg-primary/10 hover:text-primary disabled:text-muted-foreground"
               role="button"
               tabIndex={!content.trim() ? -1 : 0}
               aria-disabled={!content.trim() || isPublishing}
@@ -158,14 +158,14 @@ export const NotesDialog: React.FC<NotesDialogProps> = ({
             {/* Text Input Area */}
             <div className="mb-4">
               <div className="relative">
-                <div className="bg-gray-100 rounded-2xl p-4 relative min-h-[80px]">
-                  <div className="absolute bottom-0 left-4 transform translate-y-full">
-                    <div className="w-0 h-0 border-l-[8px] border-r-[8px] border-t-[8px] border-l-transparent border-r-transparent border-t-gray-100"></div>
+                <div className="relative min-h-[80px] rounded-2xl bg-muted p-4">
+                  <div className="absolute bottom-0 left-4 translate-y-full transform">
+                    <div className="h-0 w-0 border-l-[8px] border-r-[8px] border-t-[8px] border-l-transparent border-r-transparent border-t-muted" />
                   </div>
                   <div className="relative">
                   <div 
                     ref={contentEditableRef}
-                    className="min-h-[60px] resize-none border-0 focus:outline-none text-base p-0 placeholder:text-gray-500 bg-transparent"
+                    className="min-h-[60px] resize-none border-0 bg-transparent p-0 text-base placeholder:text-muted-foreground focus:outline-none"
                     contentEditable
                     role="textbox"
                     spellCheck
@@ -184,7 +184,7 @@ export const NotesDialog: React.FC<NotesDialogProps> = ({
                     dir="ltr"
                   />
                     {!content && (
-                      <div className="absolute top-0 left-0 pointer-events-none text-gray-500 text-base p-0">
+                      <div className="pointer-events-none absolute left-0 top-0 p-0 text-base text-muted-foreground">
                         Chia sẻ suy nghĩ...
                       </div>
                     )}
@@ -208,7 +208,7 @@ export const NotesDialog: React.FC<NotesDialogProps> = ({
                 ref={emojiButtonRef}
                 variant="ghost" 
                 size="sm" 
-                className="p-2.5 bg-gray-200 hover:bg-gray-400 rounded-full" 
+                className="rounded-full bg-primary/15 p-2.5 text-primary hover:bg-primary/25" 
                 role="button" 
                 tabIndex={0}
                 onClick={() => setShowEmojiPicker(!showEmojiPicker)}
@@ -218,14 +218,14 @@ export const NotesDialog: React.FC<NotesDialogProps> = ({
             </div>
 
             {/* Action Bar */}
-            <div className="flex items-center justify-between pt-3 border-t border-gray-200">
+            <div className="flex items-center justify-between border-t border-border pt-3">
               <div className="flex items-center gap-3">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button 
                       variant="ghost" 
                       size="sm" 
-                      className="gap-2 text-sm hover:bg-gray-400 rounded-full px-3 py-2"
+                      className="gap-2 rounded-full px-3 py-2 text-sm hover:bg-primary/10 hover:text-primary"
                       role="button"
                       tabIndex={0}
                       aria-expanded={false}

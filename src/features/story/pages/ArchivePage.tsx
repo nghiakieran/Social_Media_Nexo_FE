@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Archive as ArchiveIcon } from "lucide-react";
 import { StoryViewer } from "../components/StoryViewer";
 import { cn } from "@/lib/utils";
-import type { Story } from "../types";
+import type { Story, StoryContent } from "../types";
 import { useAppDispatch, useAppSelector } from "@/store";
 import { getAllUserStoriesThunk } from "../storySlice";
 import { Loader } from "@/components/common/Loader";
@@ -68,35 +68,55 @@ export const ArchivePage = () => {
 
   const handleOpenArchive = (story: Story) => {
     // Find the index in the grouped stories
-    const storyIndex = archivedStories.findIndex(s => s.id === story.id);
+    const storyIndex = groupedStories.findIndex(s => s.id === story.id);
     setInitialStoryIndex(storyIndex >= 0 ? storyIndex : 0);
     setOpenViewer(true);
   };
 
   // Group archived stories by date (day level) - memoized to prevent re-compute
   const groupedStories = useMemo(() => {
-    const groups: { [key: string]: Story } = {};
+    const groups: { [key: string]: StoryContent[] } = {};
     
+    // First, collect and group all story content items by day
     archivedStories.forEach(story => {
-      if (!story.content || story.content.length === 0) return;
+      if (!story.content) return;
       
-      // Use first content's date to represent the group
-      const dateStr = story.content[0]?.createdAt || story.timeAgo;
-      const date = new Date(dateStr);
-      const dateKey = `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`;
-      
-      if (!groups[dateKey]) {
-        groups[dateKey] = story;
-      } else {
-        // Merge content from same day
-        groups[dateKey] = {
-          ...groups[dateKey],
-          content: [...groups[dateKey].content, ...story.content]
-        };
-      }
+      story.content.forEach(contentItem => {
+        const dateStr = contentItem.createdAt || story.timeAgo;
+        const date = new Date(dateStr);
+        if (isNaN(date.getTime())) return;
+        
+        const dateKey = `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`;
+        
+        if (!groups[dateKey]) {
+          groups[dateKey] = [];
+        }
+        groups[dateKey].push(contentItem);
+      });
     });
     
-    return Object.values(groups);
+    // Convert the day groups back to Story objects
+    const storyGroups = Object.entries(groups).map(([dateKey, contentItems]) => {
+      const firstItem = contentItems[0];
+      
+      return {
+        id: dateKey, // Use dateKey as the unique ID for this day group
+        ownerId: archivedStories[0]?.id,
+        username: archivedStories[0]?.username || "User",
+        profileImage: archivedStories[0]?.profileImage || "/placeholder.svg",
+        timeAgo: firstItem?.createdAt || new Date().toISOString(),
+        content: contentItems,
+        isViewed: contentItems.every(item => item.isSeen),
+        isOwnStory: true
+      };
+    });
+
+    // Sort by date descending so the newest day is shown first
+    return storyGroups.sort((a, b) => {
+      const dateA = new Date(a.timeAgo).getTime();
+      const dateB = new Date(b.timeAgo).getTime();
+      return dateB - dateA;
+    });
   }, [archivedStories]);
 
   // Attach/detach observer when ref or conditions change
@@ -115,22 +135,18 @@ export const ArchivePage = () => {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-background border-b">
-        <div className="max-w-4xl mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <button
-                onClick={() => navigate(-1)}
-                className="p-2 hover:bg-accent hover:text-white rounded-full transition-colors"
-                aria-label="Quay lại"
-              >
-                <ArrowLeft className="w-5 h-5" />
-              </button>
-              <div>
-                <h1 className="text-xl font-semibold">Kho lưu trữ</h1>
-              </div>
-            </div>
-          </div>
+      <div className="sticky top-16 lg:top-0 z-30 bg-background border-b border-border">
+        <div className="flex items-center justify-center px-4 py-3 relative min-h-[48px] max-w-4xl mx-auto">
+          <button
+            onClick={() => navigate(-1)}
+            className="absolute left-4 top-1/2 -translate-y-1/2 p-2 hover:bg-primary hover:text-white rounded-full transition-colors"
+            aria-label="Quay lại"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </button>
+          <h1 className="text-lg font-semibold text-foreground text-center">
+            Kho lưu trữ
+          </h1>
         </div>
       </div>
 
@@ -255,9 +271,10 @@ export const ArchivePage = () => {
       {/* Story Viewer */}
       {openViewer && (
         <StoryViewer
+          key={`archive-viewer-${initialStoryIndex}`}
           isOpen={openViewer}
           onClose={() => setOpenViewer(false)}
-          stories={archivedStories}
+          stories={groupedStories}
           initialStoryIndex={initialStoryIndex}
           isArchivePage={true}
         />

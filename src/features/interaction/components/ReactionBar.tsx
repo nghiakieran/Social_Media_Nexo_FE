@@ -10,7 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 
 const reactions = [
   { emoji: "❤️", label: "Thích", icon: Heart, color: "text-red-500" },
-  { emoji: "👍", label: "Tuyệt", icon: ThumbsUp, color: "text-blue-500" },
+  { emoji: "👍", label: "Tuyệt", icon: ThumbsUp, color: "text-primary" },
   { emoji: "😂", label: "Haha", icon: Laugh, color: "text-yellow-500" },
   { emoji: "😮", label: "Wow", icon: Smile, color: "text-orange-500" },
   { emoji: "😢", label: "Buồn", icon: Frown, color: "text-gray-500" },

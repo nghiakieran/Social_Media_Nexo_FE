@@ -114,10 +114,10 @@ export const FollowRequestsDialog = ({
                   <div
                     key={request.userName}
                     ref={isLastItem ? lastElementRef : null}
-                    className="flex items-center justify-between px-2 py-3 hover:bg-muted/40 rounded-lg transition-colors"
+                    className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-lg px-2 py-3 transition-colors hover:bg-primary/10 dark:hover:bg-primary/15 border-b border-border/40 sm:border-none"
                   >
-                    <div className="flex items-center gap-3">
-                      <Avatar className="w-11 h-11">
+                    <div className="flex items-center gap-3 w-full sm:w-auto min-w-0">
+                      <Avatar className="w-11 h-11 shrink-0">
                         <AvatarImage
                           src={request.avatar}
                           alt={request.userName}
@@ -127,24 +127,24 @@ export const FollowRequestsDialog = ({
                         </AvatarFallback>
                       </Avatar>
                       <div className="flex-1 min-w-0">
-                        <div className="font-semibold text-sm leading-5">
+                        <div className="font-semibold text-sm leading-5 truncate">
                           {request.userName}
                         </div>
-                        <div className="text-sm text-muted-foreground">
+                        <div className="text-sm text-muted-foreground truncate">
                           {request.fullName}
                         </div>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 w-full sm:w-auto grid grid-cols-2 sm:flex">
                       <Button
-                        variant="instagram"
+                        variant="default"
                         size="sm"
                         onClick={() => handleAccept(request.userName)}
                         disabled={isLoading}
-                        className="text-xs gap-1"
+                        className="text-xs gap-1 w-full justify-center"
                       >
-                        <UserCheck className="w-3 h-3" />
+                        <UserCheck className="w-3.5 h-3.5" />
                         Chấp nhận
                       </Button>
                       <Button
@@ -152,20 +152,21 @@ export const FollowRequestsDialog = ({
                         size="sm"
                         onClick={() => handleReject(request.userName)}
                         disabled={isLoading}
-                        className="text-xs gap-1"
+                        className="text-xs gap-1 w-full justify-center"
                       >
-                        <UserX className="w-3 h-3" />
+                        <UserX className="w-3.5 h-3.5" />
                         Từ chối
                       </Button>
                     </div>
                   </div>
+
                 );
               })}
 
               {/* Loading indicator */}
               {isLoading && localRequests.length > 0 && (
                 <div className="flex items-center justify-center py-4">
-                  <Loader2 className="w-5 h-5 animate-spin" />
+                  <Loader2 className="h-5 w-5 animate-spin text-primary" />
                   <span className="ml-2 text-sm text-muted-foreground">
                     Đang tải...
                   </span>

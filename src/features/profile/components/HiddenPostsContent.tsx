@@ -59,6 +59,7 @@ export const HiddenPostsContent = () => {
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
   const [isShareOpen, setIsShareOpen] = useState(false);
   const [isPostLiked, setIsPostLiked] = useState<Record<string, boolean>>({});
+  const [postLikesCount, setPostLikesCount] = useState<Record<string, number>>({});
   
   // Get comments from Redux state
   const { comments: reduxComments } = useAppSelector(
@@ -388,7 +389,7 @@ export const HiddenPostsContent = () => {
             avatarUrl: selectedPost.avatarUrl,
             caption: selectedPost.caption,
             media: selectedPost.media || [],
-            likesCount: selectedPost.likesCount,
+            likesCount: postLikesCount[selectedPost.id] ?? selectedPost.likesCount,
             commentsCount: selectedPost.commentsCount,
             createdAt: selectedPost.createdAt,
             updatedAt: selectedPost.updatedAt,
@@ -400,6 +401,10 @@ export const HiddenPostsContent = () => {
           onReplyComment={handleReplyCommentAPI}
           onLikePost={handleLikePostAPI}
           isPostLiked={isPostLiked[selectedPost.id] ?? selectedPost.isLiked ?? false}
+          onPostLikeChange={(newIsLiked, newCount) => {
+            setIsPostLiked((prev) => ({ ...prev, [selectedPost.id]: newIsLiked }));
+            setPostLikesCount((prev) => ({ ...prev, [selectedPost.id]: newCount }));
+          }}
           onOpenShareDialog={() => setIsShareOpen(true)}
           isShareDialogOpen={isShareOpen}
           onNavigateToProfile={(userName) => navigate(`/${userName}`)}
@@ -410,7 +415,6 @@ export const HiddenPostsContent = () => {
               action: () => handleRestorePost(selectedPost.id, selectedPost.isActive) 
             },
             { label: 'Đi đến bài viết', action: () => { navigate(`/posts/${selectedPost.id}`); } },
-            { label: 'Giới thiệu về tài khoản này', action: () => {} },
             { label: 'Hủy', action: () => {} },
           ]}
         />
@@ -428,7 +432,7 @@ export const HiddenPostsContent = () => {
             avatarUrl: selectedPost.avatarUrl,
             caption: selectedPost.caption,
             media: selectedPost.media || [],
-            likesCount: selectedPost.likesCount,
+            likesCount: postLikesCount[selectedPost.id] ?? selectedPost.likesCount,
             commentsCount: selectedPost.commentsCount,
             createdAt: selectedPost.createdAt,
             isActive: selectedPost.isActive,
@@ -439,6 +443,10 @@ export const HiddenPostsContent = () => {
           onReplyComment={handleReplyCommentAPI}
           onLikePost={handleLikePostAPI}
           isPostLiked={isPostLiked[selectedPost.id] ?? selectedPost.isLiked ?? false}
+          onPostLikeChange={(newIsLiked, newCount) => {
+            setIsPostLiked((prev) => ({ ...prev, [selectedPost.id]: newIsLiked }));
+            setPostLikesCount((prev) => ({ ...prev, [selectedPost.id]: newCount }));
+          }}
           actionMenuItems={[
             { 
               label: '👁️ Hiển thị lại bài viết', 

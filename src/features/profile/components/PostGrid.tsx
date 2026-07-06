@@ -10,7 +10,6 @@ import { useNavigate } from "react-router-dom";
 import { LazyGrid } from "@/components/common/LazyGrid";
 import {
   deletePostThunk,
-  togglePostActiveThunk,
   getPostsThunk,
   updatePostThunk,
 } from "@/features/post/postSlice";
@@ -55,6 +54,7 @@ export const PostGrid = ({
   const isMobile = useIsMobile();
   const [isShareOpen, setIsShareOpen] = useState(false);
   const [isPostLiked, setIsPostLiked] = useState<Record<string, boolean>>({});
+  const [postLikesCount, setPostLikesCount] = useState<Record<string, number>>({});
   const [isBookmarkedById, setIsBookmarkedById] = useState<
     Record<string, boolean>
   >({});
@@ -86,6 +86,7 @@ export const PostGrid = ({
       await reportPost(postId, reason, details);
 
       toast({
+        variant: "success",
         title: "Đã gửi báo cáo",
         description:
           "Cảm ơn bạn đã báo cáo. Chúng tôi sẽ xem xét bài viết này.",
@@ -242,14 +243,19 @@ export const PostGrid = ({
   };
 
   const handlePostClick = (post: ProfilePost) => {
-    setSelectedPost(post);
-    onPostClick?.(post);
+    if (isMobile) {
+      navigate(`/posts/${post.id}`);
+    } else {
+      setSelectedPost(post);
+      onPostClick?.(post);
+    }
   };
 
   const handleDeletePost = async (postId: string) => {
     try {
       await dispatch(deletePostThunk(parseInt(postId))).unwrap();
       toast({
+        variant: "success",
         title: "Đã xóa",
         description: "Bài viết đã được xóa thành công.",
       });
@@ -259,32 +265,6 @@ export const PostGrid = ({
       toast({
         title: "Lỗi",
         description: "Không thể xóa bài viết. Vui lòng thử lại.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleToggleHidePost = async (postId: string, isActive: boolean) => {
-    try {
-      await dispatch(togglePostActiveThunk(parseInt(postId))).unwrap();
-      const isNowHidden = !isActive;
-      toast({
-        title: isNowHidden ? "Đã ẩn bài viết" : "Đã hiển thị bài viết",
-        description: isNowHidden
-          ? "Bài viết sẽ không hiển thị trên trang cá nhân của bạn."
-          : "Bài viết đã được hiển thị lại trên trang cá nhân.",
-      });
-      setSelectedPost(null);
-
-      // Refresh posts to update the list
-      if (profile) {
-        const userId = parseInt(profile.id);
-        dispatch(getPostsThunk({ userId, pageNo: 0, pageSize: 10 }));
-      }
-    } catch (error) {
-      toast({
-        title: "Lỗi",
-        description: "Không thể thay đổi trạng thái bài viết.",
         variant: "destructive",
       });
     }
@@ -310,6 +290,7 @@ export const PostGrid = ({
       ).unwrap();
 
       toast({
+        variant: "success",
         title: "Đã cập nhật",
         description: "Bài viết đã được cập nhật thành công.",
       });
@@ -399,19 +380,8 @@ export const PostGrid = ({
                 </div>
               )}
 
-              {/* Hover overlay with stats */}
-              <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
-                <div className="flex items-center gap-4 text-white">
-                  <div className="flex items-center gap-1">
-                    <Heart className="w-5 h-5 fill-current" />
-                    <span className="font-semibold">{item.likesCount}</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <MessageCircle className="w-5 h-5 fill-current" />
-                    <span className="font-semibold">{item.commentsCount}</span>
-                  </div>
-                </div>
-              </div>
+              {/* Hover overlay */}
+              <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
             </>
           );
         }}
@@ -428,7 +398,7 @@ export const PostGrid = ({
             avatarUrl: selectedPost.avatarUrl,
             caption: selectedPost.caption,
             media: selectedPost.media || [],
-            likesCount: selectedPost.likesCount,
+            likesCount: postLikesCount[selectedPost.id] ?? selectedPost.likesCount,
             commentsCount: selectedPost.commentsCount,
             createdAt: selectedPost.createdAt,
             updatedAt: selectedPost.updatedAt,
@@ -442,6 +412,10 @@ export const PostGrid = ({
           isPostLiked={
             isPostLiked[selectedPost.id] ?? selectedPost.isLiked ?? false
           }
+          onPostLikeChange={(newIsLiked, newCount) => {
+            setIsPostLiked((prev) => ({ ...prev, [selectedPost.id]: newIsLiked }));
+            setPostLikesCount((prev) => ({ ...prev, [selectedPost.id]: newCount }));
+          }}
           onOpenShareDialog={() => setIsShareOpen(true)}
           isShareDialogOpen={isShareOpen}
           onNavigateToProfile={(userName) => navigate(`/${userName}`)}
@@ -461,30 +435,9 @@ export const PostGrid = ({
                     action: () => handleEditPost(selectedPost),
                   },
                   {
-                    label: selectedPost.isActive
-                      ? "🙈 Ẩn bài viết khỏi trang cá nhân"
-                      : "👁️ Hiển thị bài viết",
-                    action: () =>
-                      handleToggleHidePost(
-                        selectedPost.id,
-                        selectedPost.isActive
-                      ),
-                  },
-                  {
-                    label: "Ẩn số lượt thích với những người khác",
-                    action: () => {},
-                  },
-                  { label: "Tắt tính năng bình luận", action: () => {} },
-                  {
                     label: "Đi đến bài viết",
                     action: () => {
                       navigate(`/posts/${selectedPost.id}`);
-                    },
-                  },
-                  {
-                    label: "Giới thiệu về tài khoản này",
-                    action: () => {
-                      console.log("Navigating to post:", selectedPost.id);
                     },
                   },
                   { label: "Hủy", action: () => {} },
@@ -499,12 +452,6 @@ export const PostGrid = ({
                     label: "Đi đến bài viết",
                     action: () => {
                       navigate(`/posts/${selectedPost.id}`);
-                    },
-                  },
-                  {
-                    label: "Giới thiệu về tài khoản này",
-                    action: () => {
-                      console.log("Navigating to post:", selectedPost.id);
                     },
                   },
                   { label: "Hủy", action: () => {} },
@@ -525,7 +472,7 @@ export const PostGrid = ({
             avatarUrl: selectedPost.avatarUrl,
             caption: selectedPost.caption,
             media: selectedPost.media || [],
-            likesCount: selectedPost.likesCount,
+            likesCount: postLikesCount[selectedPost.id] ?? selectedPost.likesCount,
             commentsCount: selectedPost.commentsCount,
             createdAt: selectedPost.createdAt,
             isActive: selectedPost.isActive,
@@ -538,6 +485,10 @@ export const PostGrid = ({
           isPostLiked={
             isPostLiked[selectedPost.id] ?? selectedPost.isLiked ?? false
           }
+          onPostLikeChange={(newIsLiked, newCount) => {
+            setIsPostLiked((prev) => ({ ...prev, [selectedPost.id]: newIsLiked }));
+            setPostLikesCount((prev) => ({ ...prev, [selectedPost.id]: newCount }));
+          }}
           actionMenuItems={
             currentUser && selectedPost.userId === currentUser.id.toString()
               ? [
@@ -548,16 +499,6 @@ export const PostGrid = ({
                   {
                     label: "Chỉnh sửa",
                     action: () => handleEditPost(selectedPost),
-                  },
-                  {
-                    label: selectedPost.isActive
-                      ? "🙈 Ẩn bài viết khỏi trang cá nhân"
-                      : "👁️ Hiển thị bài viết",
-                    action: () =>
-                      handleToggleHidePost(
-                        selectedPost.id,
-                        selectedPost.isActive
-                      ),
                   },
                   {
                     label: "Đi đến bài viết",

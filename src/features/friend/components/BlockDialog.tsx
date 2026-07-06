@@ -57,7 +57,7 @@ export const BlockDialog = ({
         <div className="flex items-center space-x-3 p-4 bg-muted/50 rounded-lg">
           <Avatar className="w-12 h-12">
             <AvatarImage src={user.avatar} alt={user.name} />
-            <AvatarFallback className="bg-gradient-instagram text-white font-medium">
+            <AvatarFallback className="bg-primary font-medium text-primary-foreground">
               {user.name.charAt(0)}
             </AvatarFallback>
           </Avatar>

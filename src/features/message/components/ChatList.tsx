@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 import type { ConversationResponseDTO } from "../types";
 import { format, isToday, isYesterday, isThisYear } from "date-fns";
 import { vi } from "date-fns/locale";
-import { MessageCircle, Check, CheckCheck } from "lucide-react";
+import { MessageCircle, Check, CheckCheck, Users, Phone, Video as VideoIcon, PhoneMissed } from "lucide-react";
 
 interface ChatListProps {
   chats: ConversationResponseDTO[];
@@ -47,54 +47,124 @@ export const ChatList: React.FC<ChatListProps> = ({
   return (
     <div className={cn("space-y-1", className)}>
       {chats.map((chat) => {
-        const otherUser = chat.participants.find((p) => p.id !== currentUserId);
+        const isGroup = chat.isGroup || !!chat.groupName || chat.participants.length > 2;
+        const otherUser = isGroup
+          ? null
+          : chat.participants.find((p) => p.id !== currentUserId);
         const isOnline = otherUser ? presenceMap[otherUser.id] || false : false;
+        const displayName = isGroup
+          ? (chat.groupName || chat.fullname || "Nhóm")
+          : (chat.fullname || otherUser?.fullName || "");
 
         return (
           <div
             key={chat.id}
             className={cn(
-              "flex items-center p-3 rounded-xl cursor-pointer transition-all duration-200 hover:bg-muted/50 group",
-              activeChat === String(chat.id) && "bg-muted"
+              "group flex cursor-pointer items-center rounded-xl p-3 transition-all duration-200 hover:bg-primary/10 dark:hover:bg-primary/15",
+              activeChat === String(chat.id) &&
+                "bg-primary/10 ring-1 ring-primary/20 dark:bg-primary/15"
             )}
             onClick={() => onChatSelect(String(chat.id))}
           >
-            <InstagramStoryRing
-              src={chat.avatarUrl}
-              alt={chat.fullname}
-              size="md"
-              hasStory={true}
-              hasUnread={chat.unreadCount > 0}
-              className="shrink-0"
-            >
-              <OnlineIndicator
-                isOnline={isOnline}
+            {isGroup ? (
+              <div className="relative shrink-0 h-10 w-10 md:h-11 md:w-11">
+                {chat.groupAvatarUrl ? (
+                  <Avatar className="h-full w-full">
+                    <AvatarImage src={chat.groupAvatarUrl} alt={chat.groupName} />
+                    <AvatarFallback className="bg-primary/10 text-primary">
+                      <Users className="h-5 w-5" />
+                    </AvatarFallback>
+                  </Avatar>
+                ) : (() => {
+                  const members = chat.participants.filter((p) => p.id !== currentUserId).slice(0, 4);
+                  if (members.length === 0) {
+                    return (
+                      <div className="h-full w-full rounded-full bg-primary/10 flex items-center justify-center">
+                        <Users className="h-5 w-5 text-primary" />
+                      </div>
+                    );
+                  }
+                  if (members.length === 1) {
+                    return (
+                      <Avatar className="h-full w-full">
+                        <AvatarImage src={members[0].avatarUrl} alt={members[0].fullName} />
+                        <AvatarFallback className="bg-primary/15 text-primary text-xs">
+                          {members[0].fullName.charAt(0)}
+                        </AvatarFallback>
+                      </Avatar>
+                    );
+                  }
+                  return (
+                    <div className="relative h-full w-full">
+                      {members.slice(0, 2).map((m, i) => (
+                        <Avatar
+                          key={m.id}
+                          className={cn(
+                            "absolute border-2 border-background",
+                            i === 0 ? "h-6 w-6 md:h-7 md:w-7 bottom-0 left-0 z-10" : "h-6 w-6 md:h-7 md:w-7 top-0 right-0 z-20"
+                          )}
+                        >
+                          <AvatarImage src={m.avatarUrl} alt={m.fullName} />
+                          <AvatarFallback className="bg-primary/15 text-primary text-[9px]">
+                            {m.fullName.charAt(0)}
+                          </AvatarFallback>
+                        </Avatar>
+                      ))}
+                    </div>
+                  );
+                })()}
+                {chat.unreadCount > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-primary border-2 border-background" />
+                )}
+              </div>
+            ) : (
+              <InstagramStoryRing
+                src={chat.avatarUrl}
+                alt={chat.fullname}
                 size="md"
-                className="absolute -bottom-0.5 -right-0.5"
-              />
-            </InstagramStoryRing>
+                hasStory={true}
+                hasUnread={chat.unreadCount > 0}
+                className="shrink-0"
+              >
+                <OnlineIndicator
+                  isOnline={isOnline}
+                  size="md"
+                  className="absolute -bottom-0.5 -right-0.5"
+                />
+              </InstagramStoryRing>
+            )}
 
             <div className="flex-1 ml-3 min-w-0">
-              <div className="flex items-center justify-between mb-1">
-                <h3
-                  className={cn(
-                    "font-medium text-sm truncate",
-                    chat.unreadCount > 0 && "font-semibold"
-                  )}
-                >
-                  {chat.fullname}
-                </h3>
-                <div className="flex items-center space-x-1">
+              <div className="flex items-center justify-between mb-0.5">
+                <div className="flex-1 min-w-0">
+                  <h3
+                    className={cn(
+                      "font-medium text-sm truncate",
+                      chat.unreadCount > 0 && "font-semibold"
+                    )}
+                  >
+                    {displayName}
+                  </h3>
+                  {isGroup && (() => {
+                    const others = chat.participants.filter((p) => p.id !== currentUserId);
+                    const names = others.map((p) => p.nickname || p.fullName.split(" ").pop() || p.fullName);
+                    const preview = names.slice(0, 3).join(", ");
+                    const extra = names.length > 3 ? ` +${names.length - 3}` : "";
+                    return (
+                      <p className="text-[11px] text-muted-foreground truncate">
+                        {preview}{extra}
+                      </p>
+                    );
+                  })()}
+                </div>
+                <div className="flex items-center space-x-1 shrink-0 ml-1">
                   {chat.lastMessage && (
                     <span className="text-xs text-muted-foreground">
-                      {chat.lastMessage && chat.lastMessage.createdAt
-                        ? formatLastMessageTime(
-                            new Date(chat.lastMessage.createdAt)
-                          )
+                      {chat.lastMessage.createdAt
+                        ? formatLastMessageTime(new Date(chat.lastMessage.createdAt))
                         : ""}
                     </span>
                   )}
-                  {}
                 </div>
               </div>
 
@@ -129,13 +199,29 @@ export const ChatList: React.FC<ChatListProps> = ({
                           truncateMessage(chat.lastMessage.content, 30)
                         ) : (
                           <span className="flex items-center">
-                            <MessageCircle className="h-3 w-3 mr-1" />
+                            {chat.lastMessage.messageType === "CALL" ? (
+                              (() => {
+                                const parts = chat.lastMessage.content?.split("|") || [];
+                                const type = parts[0]?.toLowerCase() || "";
+                                const status = parts[1] || "";
+                                const isMissed = status === "MISSED" || status === "REJECTED";
+                                if (isMissed) return <PhoneMissed className="h-3 w-3 mr-1 text-destructive" />;
+                                if (type.includes("video")) return <VideoIcon className="h-3 w-3 mr-1" />;
+                                return <Phone className="h-3 w-3 mr-1" />;
+                              })()
+                            ) : (
+                              <MessageCircle className="h-3 w-3 mr-1" />
+                            )}
                             {chat.lastMessage.messageType === "IMAGE" &&
                               "Đã gửi một ảnh"}
                             {chat.lastMessage.messageType === "AUDIO" &&
                               "Đã gửi tin nhắn thoại"}
                             {chat.lastMessage.messageType === "FILE" &&
                               "Đã gửi tệp đính kèm"}
+                            {chat.lastMessage.messageType === "STORY" &&
+                              "Đã trả lời tin "}
+                            {chat.lastMessage.messageType === "CALL" &&
+                              (chat.lastMessage.content?.split("|")[0] || "Cuộc gọi")}
                           </span>
                         )}
                       </p>
@@ -148,8 +234,7 @@ export const ChatList: React.FC<ChatListProps> = ({
                 </div>
                 {chat.unreadCount > 0 && (
                   <Badge
-                    variant="destructive"
-                    className="min-w-[18px] h-[18px] text-xs flex items-center justify-center ml-2"
+                    className="ml-2 flex h-[18px] min-w-[18px] items-center justify-center border-0 bg-primary text-[10px] text-primary-foreground"
                   >
                     {chat.unreadCount > 99 ? "99+" : chat.unreadCount}
                   </Badge>

@@ -126,7 +126,7 @@ export const getFeed = async (
       data: GetFeedResponse;
     }>(`/feeds/posts/${userId}`, {
       params: {
-        page,
+        pageNo: page,
         limit,
       },
     });
@@ -332,9 +332,9 @@ export const getMutualFollowers = async (
   params: GetMutualFollowersRequest = {}
 ): Promise<GetMutualFollowersResponse> => {
   try {
-    const { pageNo = 0, pageSize = 10, search } = params;
+    const { pageNo = 1, pageSize = 10, search } = params;
 
-    const apiParams: Record<string, string | number> = { pageNo, pageSize };
+    const apiParams: Record<string, string | number> = { page: pageNo, size: pageSize };
     if (search) {
       apiParams.search = encodeURIComponent(search);
     }

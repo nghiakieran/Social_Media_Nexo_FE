@@ -1,11 +1,13 @@
 import { Button } from "@/components/ui/button";
 import { Loader } from "@/components/common/Loader";
 import { useState } from "react";
+import { cn } from "@/lib/utils";
 
 interface OAuthButtonProps {
   provider: "google" | "facebook";
   onAuth: (provider: string) => Promise<void>;
   disabled?: boolean;
+  className?: string;
 }
 
 const providerConfig = {
@@ -52,6 +54,7 @@ export const OAuthButton = ({
   provider,
   onAuth,
   disabled,
+  className,
 }: OAuthButtonProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const config = providerConfig[provider];
@@ -72,11 +75,17 @@ export const OAuthButton = ({
   return (
     <Button
       variant="outline"
-      className={`
-        w-full h-11 gap-3 font-medium transition-all duration-200
-        ${config.bgColor} ${config.textColor} ${config.borderColor}
-        disabled:opacity-50 disabled:cursor-not-allowed
-      `}
+      className={cn(
+        "h-11 w-full gap-3 font-medium transition-all duration-200",
+        config.bgColor,
+        config.textColor,
+        config.borderColor,
+        "disabled:cursor-not-allowed disabled:opacity-50",
+        className,
+        // Google: luôn nền sáng + chữ tối (kể cả dark) để không bị className cha ghi đè bg-card
+        provider === "google" &&
+          "!border-neutral-300 !bg-white !text-neutral-900 hover:!border-neutral-400 hover:!bg-neutral-50 hover:!text-neutral-900 dark:!border-neutral-300 dark:!bg-white dark:!text-neutral-900 dark:hover:!bg-neutral-100 dark:hover:!text-neutral-900"
+      )}
       onClick={handleAuth}
       disabled={disabled || isLoading}
     >

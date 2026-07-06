@@ -70,18 +70,17 @@ export const HiddenPostsPage = () => {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-background border-b border-border">
-        <div className="flex items-center justify-between px-4 py-3">
-          <div className="flex items-center gap-3">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => navigate(-1)}
-            >
-              <ArrowLeft className="w-4 h-4" />
-            </Button>
-            <h1 className="text-lg font-semibold">Ẩn tin</h1>
-          </div>
+      <div className="sticky top-16 lg:top-0 z-30 bg-background border-b border-border">
+        <div className="flex items-center justify-center px-4 py-3 relative min-h-[48px] max-w-4xl mx-auto">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => navigate(-1)}
+            className="absolute left-4 top-1/2 -translate-y-1/2 p-2"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </Button>
+          <h1 className="text-lg font-semibold text-foreground text-center">Ẩn tin</h1>
         </div>
       </div>
 
@@ -126,10 +125,10 @@ export const HiddenPostsPage = () => {
                   <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
                     <div className="flex items-center gap-2">
                       <Button
-                        variant="secondary"
+                        variant="outline"
                         size="sm"
                         onClick={() => handleUnhide(post.id)}
-                        className="gap-1"
+                        className="gap-1 border-primary/25 bg-background/90 hover:bg-primary/10 hover:text-primary"
                       >
                         <Eye className="w-4 h-4" />
                         Hiện lại

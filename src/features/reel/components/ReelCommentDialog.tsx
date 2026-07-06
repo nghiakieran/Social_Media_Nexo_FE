@@ -6,7 +6,8 @@ import {
   MoreHorizontal,
   Smile,
   ArrowLeft,
-  Bookmark,
+  Globe,
+  Lock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -33,12 +34,14 @@ import { cn } from "@/lib/utils";
 import { useInfiniteScroll } from "@/hooks/use-infinite-scroll";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
-import { useBookmark } from "@/features/saved/hooks/useBookmark";
 import { getAvatarUrl, getAvatarInitials } from "@/utils/avatar";
 import { parseMentions } from "@/utils/mentions";
 import { navigateToProfile } from "@/utils/navigation";
 import { ReportPostDialog } from "@/features/post/components/ReportPostDialog";
 import { reportReel } from "@/features/reel/api/reelApi";
+import { reportComment } from "@/features/post/api/postApi";
+
+import { updateReelLikeOptimistic, incrementCommentsCount, decrementCommentsCount } from "@/features/reel/reelSlice";
 
 interface Comment {
   id: string;
@@ -74,8 +77,6 @@ const ReelCommentDialog = () => {
     currentPage: commentsCurrentPage,
     isCreating,
   } = useAppSelector((s) => s.interaction.comments);
-
-  const { isBookmarked, toggleBookmark } = useBookmark();
 
   const dialogRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -128,7 +129,10 @@ const ReelCommentDialog = () => {
     targetType: "reel" | "comment" | "reply";
   }>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [reportingCommentId, setReportingCommentId] = useState<string | null>(null);
   const [hoveredItemId, setHoveredItemId] = useState<string | null>(null);
+
+
   const [isReelLikedLocal, setIsReelLikedLocal] = useState(
     currentReel?.isLiked || false
   );
@@ -145,7 +149,15 @@ const ReelCommentDialog = () => {
       setHasFetchedLikePreview(false);
       setLatestLikeName(null);
     }
-  }, [currentReel?.id, currentReel?.isLiked, currentReel?.likesCount]);
+  }, [currentReel?.id]);
+
+  useEffect(() => {
+    if (currentReel) {
+      setIsReelLikedLocal(currentReel.isLiked);
+      setReelLikesCount(currentReel.likesCount || 0);
+    }
+  }, [currentReel?.isLiked, currentReel?.likesCount]);
+
 
   useEffect(() => {
     if (isCommentsDrawerOpen && selectedReelId) {
@@ -183,7 +195,7 @@ const ReelCommentDialog = () => {
           setLatestLikeName(null);
         }
       } catch (_) {
-        setHasFetchedLikePreview(false);
+        // Keep flag as true to prevent infinite retry
       }
     };
     run();
@@ -298,7 +310,8 @@ const ReelCommentDialog = () => {
         showEmojiPicker ||
         showActionMenu ||
         showLikesDialog ||
-        showDeleteConfirm
+        showDeleteConfirm ||
+        showReportDialog
       ) {
         return;
       }
@@ -312,8 +325,15 @@ const ReelCommentDialog = () => {
     };
 
     const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === "Escape") dispatch({ type: "reel/closeCommentsDrawer" });
+      if (e.key === "Escape") {
+        if (showReportDialog) {
+          setShowReportDialog(false);
+          return;
+        }
+        dispatch({ type: "reel/closeCommentsDrawer" });
+      }
     };
+
 
     if (isCommentsDrawerOpen) {
       document.addEventListener("mousedown", handleClickOutside);
@@ -358,6 +378,7 @@ const ReelCommentDialog = () => {
       ).unwrap();
 
       setCommentText("");
+      dispatch(incrementCommentsCount(selectedReelId));
       dispatch(
         getReelCommentsThunk({
           reelId: parseInt(selectedReelId),
@@ -395,7 +416,7 @@ const ReelCommentDialog = () => {
 
       setReplyContent("");
       setReplyingTo(null);
-
+      dispatch(incrementCommentsCount(selectedReelId));
       dispatch(
         getReelCommentsThunk({
           reelId: parseInt(selectedReelId),
@@ -441,12 +462,16 @@ const ReelCommentDialog = () => {
     setLikesCountById((prev) => ({ ...prev, [commentId]: newCount }));
   };
 
-  const handleReelLikeChange = async (
+  const handleReelLikeChange = (
     newIsLiked: boolean,
     newCount: number
   ) => {
     setIsReelLikedLocal(newIsLiked);
-    setReelLikesCount((prev) => prev + (newIsLiked ? 1 : -1));
+    setReelLikesCount(newCount);
+    dispatch(updateReelLikeOptimistic({ reelId: selectedReelId!, isLiked: newIsLiked, likesCount: newCount }));
+  };
+
+  const handleReelLikeSuccess = async () => {
     try {
       const data = await dispatch(
         getReelLikeDetailThunk({
@@ -461,7 +486,9 @@ const ReelCommentDialog = () => {
       } else {
         setLatestLikeName(null);
       }
-    } catch (_) {}
+    } catch (error) {
+      console.error("Failed to refresh reel like preview:", error);
+    }
   };
 
   const getTotalRepliesCount = (commentId: string): number => {
@@ -554,14 +581,20 @@ const ReelCommentDialog = () => {
   };
 
   const handleReportSubmit = async (
-    reelId: string,
+    targetId: string,
     reason: string,
     details?: string
   ) => {
     try {
-      await reportReel(reelId, reason, details);
+      if (reportingCommentId) {
+        await reportComment(reportingCommentId, reason, details);
+      } else {
+        await reportReel(targetId, reason, details);
+      }
       setShowReportDialog(false);
+      setReportingCommentId(null);
       toast({
+        variant: "success",
         title: "Đã gửi báo cáo",
         description: "Cảm ơn bạn đã báo cáo.",
       });
@@ -573,6 +606,7 @@ const ReelCommentDialog = () => {
       });
     }
   };
+
 
   const openLikesDialog = (
     targetId: string,
@@ -635,6 +669,9 @@ const ReelCommentDialog = () => {
   const handleDeleteComment = async (commentId: string) => {
     try {
       await dispatch(deleteCommentThunk(parseInt(commentId))).unwrap();
+      if (selectedReelId) {
+        dispatch(decrementCommentsCount(selectedReelId));
+      }
       dispatch(
         getReelCommentsThunk({
           reelId: parseInt(selectedReelId!),
@@ -704,8 +741,11 @@ const ReelCommentDialog = () => {
               handleProfileClick(username);
             })}
           </p>
-          <div className="flex items-center gap-4">
-            <span className="text-[11px] text-gray-500">
+          <div className="flex items-center flex-wrap gap-x-3 gap-y-1 mt-1">
+            <span 
+              className="text-[11px] text-gray-500"
+              style={{ whiteSpace: "nowrap" }}
+            >
               {formatTimeAgo(reply.createdAt)}
             </span>
             {getLikesCount(reply.id, reply.likesCount) > 0 && (
@@ -713,26 +753,28 @@ const ReelCommentDialog = () => {
                 type="button"
                 onClick={() => openLikesDialog(reply.id, "reply")}
                 className="text-[11px] text-gray-500 hover:underline"
+                style={{ whiteSpace: "nowrap" }}
               >
-                {formatNumber(getLikesCount(reply.id, reply.likesCount))} lượt
-                thích
+                {formatNumber(getLikesCount(reply.id, reply.likesCount))} lượt thích
               </button>
             )}
             <button
               onClick={() => setReplyingTo(reply.id)}
-              className="text-[11px] text-gray-500 hover:text-gray-600 transition-colors"
+              className="text-[11px] text-gray-500 hover:text-gray-600 transition-colors font-semibold"
               type="button"
+              style={{ whiteSpace: "nowrap" }}
             >
               Trả lời
             </button>
             <button
               onClick={(e) => handleOpenActionMenu(reply.id, e)}
               className={cn(
-                "inline-flex items-center justify-center w-5 h-5 p-1 ml-1 transition-opacity",
+                "inline-flex items-center justify-center w-5 h-5 p-1 transition-opacity",
                 hoveredItemId === reply.id ? "opacity-100" : "opacity-0"
               )}
               aria-label="Tùy chọn"
               type="button"
+              style={{ whiteSpace: "nowrap" }}
             >
               <MoreHorizontal className="w-3 h-3 text-gray-500 hover:text-gray-700" />
             </button>
@@ -793,13 +835,31 @@ const ReelCommentDialog = () => {
                 </Avatar>
               </div>
               <div className="flex-1">
-                <div className="flex items-center gap-2 mb-1">
+                <div className="flex items-center gap-2 mb-1 flex-wrap">
                   <span
-                    className="font-semibold text-sm cursor-pointer hover:underline"
+                    className="font-semibold text-sm cursor-pointer hover:underline text-foreground"
                     onClick={(e) => handleProfileClick(currentReel.userName, e)}
                   >
                     {currentReel.userName}
                   </span>
+                  {currentReel.visibility && (
+                    <span
+                      className={cn(
+                        "inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[9px] font-medium",
+                        currentReel.visibility.toUpperCase() === "PUBLIC"
+                          ? "bg-green-500/10 text-green-600 dark:text-green-400"
+                          : "bg-orange-500/10 text-orange-600 dark:text-orange-400"
+                      )}
+                      title={`Quyền riêng tư: ${currentReel.visibility.toUpperCase() === "PUBLIC" ? "Công khai" : "Riêng tư"}`}
+                    >
+                      {currentReel.visibility.toUpperCase() === "PUBLIC" ? (
+                        <Globe className="h-2.5 w-2.5" />
+                      ) : (
+                        <Lock className="h-2.5 w-2.5" />
+                      )}
+                      {currentReel.visibility.toUpperCase() === "PUBLIC" ? "Công khai" : "Riêng tư"}
+                    </span>
+                  )}
                 </div>
                 <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">
                   {parseMentions(currentReel.caption, (username) => {
@@ -867,31 +927,29 @@ const ReelCommentDialog = () => {
                           handleProfileClick(username);
                         })}
                       </p>
-                      <div className="flex items-center gap-4">
+                      <div className="flex items-center flex-wrap gap-x-3 gap-y-1 mt-2">
                         {getLikesCount(comment.id, comment.likesCount) > 0 && (
                           <button
                             type="button"
-                            onClick={() =>
-                              openLikesDialog(comment.id, "comment")
-                            }
+                            onClick={() => openLikesDialog(comment.id, "comment")}
                             className="text-xs text-gray-500 hover:underline"
+                            style={{ whiteSpace: "nowrap" }}
                           >
-                            {formatNumber(
-                              getLikesCount(comment.id, comment.likesCount)
-                            )}{" "}
-                            lượt thích
+                            {formatNumber(getLikesCount(comment.id, comment.likesCount))} lượt thích
                           </button>
                         )}
                         <button
                           onClick={() => setReplyingTo(comment.id)}
-                          className="text-xs text-gray-500 hover:text-gray-600 transition-colors"
+                          className="text-xs text-gray-500 hover:text-gray-600 transition-colors font-semibold"
+                          style={{ whiteSpace: "nowrap" }}
                         >
                           Trả lời
                         </button>
                         <button
                           onClick={(e) => handleOpenActionMenu(comment.id, e)}
-                          className="text-gray-500 hover:text-gray-700 p-1 ml-2"
+                          className="text-gray-500 hover:text-gray-700 p-1"
                           aria-label="Tùy chọn"
+                          style={{ whiteSpace: "nowrap" }}
                         >
                           <MoreHorizontal className="w-4 h-4" />
                         </button>
@@ -920,7 +978,7 @@ const ReelCommentDialog = () => {
                     </div>
                   </div>
                   {(comment.replies && comment.replies.length > 0) ||
-                  comment.hasMoreReplies ? (
+                    comment.hasMoreReplies ? (
                     <div className="mt-2 ml-11">
                       {!expandedReplies[comment.id] ? (
                         <button
@@ -928,7 +986,7 @@ const ReelCommentDialog = () => {
                           onClick={() => toggleReplies(comment.id)}
                           className="text-xs text-gray-500 hover:text-gray-700"
                         >
-                          Xem câu trả lời ({getTotalRepliesCount(comment.id)})
+                          Xem câu trả lời
                         </button>
                       ) : (
                         <>
@@ -988,7 +1046,7 @@ const ReelCommentDialog = () => {
                 <button
                   type="button"
                   onClick={() => setReplyingTo(null)}
-                  className="text-xs text-blue-500 hover:text-blue-700"
+                  className="text-xs text-primary hover:text-primary/90"
                 >
                   Hủy
                 </button>
@@ -1089,12 +1147,32 @@ const ReelCommentDialog = () => {
                   </AvatarFallback>
                 </Avatar>
               </div>
-              <h3
-                className="font-semibold text-sm cursor-pointer hover:underline"
-                onClick={(e) => handleProfileClick(currentReel.userName, e)}
-              >
-                {currentReel.userName}
-              </h3>
+              <div className="flex items-center gap-2.5 flex-wrap">
+                <h3
+                  className="font-semibold text-sm cursor-pointer hover:underline text-foreground"
+                  onClick={(e) => handleProfileClick(currentReel.userName, e)}
+                >
+                  {currentReel.userName}
+                </h3>
+                {currentReel.visibility && (
+                  <span
+                    className={cn(
+                      "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium",
+                      currentReel.visibility.toUpperCase() === "PUBLIC"
+                        ? "bg-green-500/10 text-green-600 dark:text-green-400"
+                        : "bg-orange-500/10 text-orange-600 dark:text-orange-400"
+                    )}
+                    title={`Quyền riêng tư: ${currentReel.visibility.toUpperCase() === "PUBLIC" ? "Công khai" : "Riêng tư"}`}
+                  >
+                    {currentReel.visibility.toUpperCase() === "PUBLIC" ? (
+                      <Globe className="h-3 w-3" />
+                    ) : (
+                      <Lock className="h-3 w-3" />
+                    )}
+                    {currentReel.visibility.toUpperCase() === "PUBLIC" ? "Công khai" : "Riêng tư"}
+                  </span>
+                )}
+              </div>
             </div>
             <div className="flex items-center gap-2">
               <button
@@ -1227,19 +1305,19 @@ const ReelCommentDialog = () => {
                           <div className="flex items-center gap-4">
                             {getLikesCount(comment.id, comment.likesCount) >
                               0 && (
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  openLikesDialog(comment.id, "comment")
-                                }
-                                className="text-xs text-gray-500 hover:underline"
-                              >
-                                {formatNumber(
-                                  getLikesCount(comment.id, comment.likesCount)
-                                )}{" "}
-                                lượt thích
-                              </button>
-                            )}
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    openLikesDialog(comment.id, "comment")
+                                  }
+                                  className="text-xs text-gray-500 hover:underline"
+                                >
+                                  {formatNumber(
+                                    getLikesCount(comment.id, comment.likesCount)
+                                  )}{" "}
+                                  lượt thích
+                                </button>
+                              )}
                             <button
                               className="text-xs text-gray-500 hover:text-gray-600 transition-colors"
                               onClick={() => setReplyingTo(comment.id)}
@@ -1262,7 +1340,7 @@ const ReelCommentDialog = () => {
                             </button>
                           </div>
                           {(comment.replies && comment.replies.length > 0) ||
-                          comment.hasMoreReplies ? (
+                            comment.hasMoreReplies ? (
                             <div className="mt-2">
                               {!expandedReplies[comment.id] ? (
                                 <button
@@ -1270,8 +1348,7 @@ const ReelCommentDialog = () => {
                                   onClick={() => toggleReplies(comment.id)}
                                   className="text-xs text-gray-500 hover:text-gray-700"
                                 >
-                                  Xem câu trả lời (
-                                  {getTotalRepliesCount(comment.id)})
+                                  Xem câu trả lời
                                 </button>
                               ) : (
                                 <>
@@ -1357,39 +1434,33 @@ const ReelCommentDialog = () => {
                 targetType="reel"
                 isLiked={isReelLikedLocal}
                 likesCount={reelLikesCount}
-                size="default"
-                variant="ghost"
-                showCount={false}
+                size="md"
+                showCount={true}
                 onLikeChange={handleReelLikeChange}
+                onLikeSuccess={handleReelLikeSuccess}
                 className="h-auto p-0"
               />
-              <button className="text-gray-500 hover:text-gray-700 transition-colors">
+              <button
+                onClick={() => {
+                  if (textareaRef.current) {
+                    textareaRef.current.focus();
+                  }
+                }}
+                className="text-gray-500 hover:text-gray-700 transition-colors"
+                type="button"
+                aria-label="Tập trung ô bình luận"
+              >
                 <MessageCircle className="w-6 h-6" />
               </button>
+              {/* Temporarily hidden share button
               <button
                 className="text-gray-500 hover:text-gray-700 transition-colors"
                 type="button"
               >
                 <Send className="w-6 h-6" />
               </button>
+              */}
               <div className="flex-1" />
-              <button
-                className="text-gray-500 hover:text-gray-700 transition-colors"
-                type="button"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  toggleBookmark(currentReel.id);
-                }}
-              >
-                <Bookmark
-                  className={cn(
-                    "w-6 h-6",
-                    isBookmarked(currentReel.id) &&
-                      "fill-current text-gray-800 dark:text-gray-100"
-                  )}
-                />
-              </button>
             </div>
 
             {reelLikesCount > 0 && (
@@ -1437,9 +1508,7 @@ const ReelCommentDialog = () => {
               </div>
             )}
 
-            <div className="mb-4 text-xs text-gray-500">
-              <time>{formatTimeAgo(currentReel.createdAt)}</time>
-            </div>
+
 
             {replyingTo ? (
               <form onSubmit={handleSubmitReply} className="space-y-2">
@@ -1448,7 +1517,7 @@ const ReelCommentDialog = () => {
                   <button
                     type="button"
                     onClick={() => setReplyingTo(null)}
-                    className="text-xs text-blue-500 hover:text-blue-700"
+                    className="text-xs text-primary hover:text-primary/90"
                   >
                     Hủy
                   </button>
@@ -1474,7 +1543,7 @@ const ReelCommentDialog = () => {
                     size="sm"
                     disabled={!replyContent.trim()}
                     variant="ghost"
-                    className="px-4 text-blue-500 hover:text-blue-700 disabled:text-gray-400"
+                    className="px-4 text-primary hover:text-primary/90 disabled:text-gray-400"
                   >
                     Gửi
                   </Button>
@@ -1503,7 +1572,7 @@ const ReelCommentDialog = () => {
                   size="sm"
                   disabled={!commentText.trim() || isCreating}
                   variant="ghost"
-                  className="px-4 text-blue-500 hover:text-blue-700 disabled:text-gray-400"
+                  className="px-4 text-primary hover:text-primary/90 disabled:text-gray-400"
                 >
                   Gửi
                 </Button>
@@ -1528,67 +1597,71 @@ const ReelCommentDialog = () => {
           items={
             currentCommentForAction === "reel"
               ? (() => {
-                  const isReelOwner =
-                    currentReel.userId === user?.id.toString();
-                  const items: ActionMenuItem[] = [];
-                  if (isReelOwner) {
-                    items.push({
-                      label: "Xóa",
-                      action: handleDeleteReelClick,
-                      isDestructive: true,
-                    });
-                  }
+                const isReelOwner =
+                  currentReel.userId === user?.id.toString();
+                const items: ActionMenuItem[] = [];
+                if (isReelOwner) {
                   items.push({
-                    label: "Báo cáo",
-                    action: () => setShowReportDialog(true),
+                    label: "Xóa",
+                    action: handleDeleteReelClick,
                     isDestructive: true,
                   });
-                  items.push({ label: "Hủy", action: handleCloseActionMenu });
-                  return items;
-                })()
+                }
+                items.push({
+                  label: "Báo cáo",
+                  action: () => setShowReportDialog(true),
+                  isDestructive: true,
+                });
+                items.push({ label: "Hủy", action: handleCloseActionMenu });
+                return items;
+              })()
               : (() => {
-                  let comment: Comment | undefined = displayComments.find(
-                    (c) => c.id === currentCommentForAction
-                  );
-                  if (!comment) {
-                    for (const root of displayComments) {
-                      if (root.replies) {
-                        const r = root.replies.find(
-                          (x) => x.id === currentCommentForAction
-                        );
-                        if (r) {
-                          comment = r;
-                          break;
-                        }
+                let comment: Comment | undefined = displayComments.find(
+                  (c) => c.id === currentCommentForAction
+                );
+                if (!comment) {
+                  for (const root of displayComments) {
+                    if (root.replies) {
+                      const r = root.replies.find(
+                        (x) => x.id === currentCommentForAction
+                      );
+                      if (r) {
+                        comment = r;
+                        break;
                       }
                     }
                   }
-                  if (!comment)
-                    return [{ label: "Hủy", action: handleCloseActionMenu }];
+                }
+                if (!comment)
+                  return [{ label: "Hủy", action: handleCloseActionMenu }];
 
-                  const isCommentOwner = comment.userId === user?.id.toString();
-                  const isReelOwner =
-                    currentReel.userId === user?.id.toString();
-                  const canDelete = isCommentOwner || isReelOwner;
+                const isCommentOwner = comment.userId === user?.id.toString();
+                const isReelOwner =
+                  currentReel.userId === user?.id.toString();
+                const canDelete = isCommentOwner || isReelOwner;
 
-                  const items: ActionMenuItem[] = [];
-                  if (canDelete) {
-                    items.push({
-                      label: "Xóa",
-                      action: () => handleDeleteComment(comment!.id),
-                      isDestructive: true,
-                    });
-                  }
+                const items: ActionMenuItem[] = [];
+                if (canDelete) {
                   items.push({
-                    label: "Báo cáo",
-                    action: () => {
-                      /* report comment */
-                    },
+                    label: "Xóa",
+                    action: () => handleDeleteComment(comment!.id),
                     isDestructive: true,
                   });
-                  items.push({ label: "Hủy", action: handleCloseActionMenu });
-                  return items;
-                })()
+                }
+                items.push({
+                  label: "Báo cáo",
+                  action: () => {
+                    if (comment) {
+                      setReportingCommentId(comment.id);
+                      setShowReportDialog(true);
+                    }
+                    handleCloseActionMenu();
+                  },
+                  isDestructive: true,
+                });
+                items.push({ label: "Hủy", action: handleCloseActionMenu });
+                return items;
+              })()
           }
         />
       )}
@@ -1596,9 +1669,18 @@ const ReelCommentDialog = () => {
       <LikesDialog
         isOpen={!!showLikesDialog}
         onClose={closeLikesDialog}
-        targetType={showLikesDialog?.targetType === "reel" ? "reel" : undefined}
+        targetType={
+          showLikesDialog?.targetType === "reel"
+            ? "reel"
+            : showLikesDialog?.targetType === "comment" ||
+              showLikesDialog?.targetType === "reply"
+              ? "comment"
+              : undefined
+        }
         targetId={
-          showLikesDialog?.targetId
+          showLikesDialog?.targetType === "reel" ||
+          showLikesDialog?.targetType === "comment" ||
+          showLikesDialog?.targetType === "reply"
             ? parseInt(showLikesDialog.targetId)
             : undefined
         }
@@ -1636,9 +1718,13 @@ const ReelCommentDialog = () => {
       {showReportDialog && (
         <ReportPostDialog
           isOpen={showReportDialog}
-          onClose={() => setShowReportDialog(false)}
-          postId={currentReel.id}
+          onClose={() => {
+            setShowReportDialog(false);
+            setReportingCommentId(null);
+          }}
+          postId={reportingCommentId || currentReel.id}
           onReport={handleReportSubmit}
+          title={reportingCommentId ? "Báo cáo bình luận" : "Báo cáo thước phim"}
         />
       )}
     </div>

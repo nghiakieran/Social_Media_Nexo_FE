@@ -1,9 +1,8 @@
 import React from "react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { Check, Plus, Verified, Hash, Grid3X3 } from "lucide-react";
+import { Verified, Hash, Grid3X3 } from "lucide-react";
 import { SearchResult } from "../exploreSlice";
 import { HashtagChip } from "./HashtagChip";
 
@@ -13,7 +12,6 @@ interface SearchResultListProps {
   onUserClick?: (userId: string) => void;
   onHashtagClick?: (hashtagId: string) => void;
   onPostClick?: (postId: string) => void;
-  onFollowUser?: (userId: string) => void;
   onFollowHashtag?: (hashtagId: string) => void;
   className?: string;
 }
@@ -24,7 +22,6 @@ export const SearchResultList: React.FC<SearchResultListProps> = ({
   onUserClick,
   onHashtagClick,
   onPostClick,
-  onFollowUser,
   onFollowHashtag,
   className,
 }) => {
@@ -58,28 +55,28 @@ export const SearchResultList: React.FC<SearchResultListProps> = ({
           )}
           <div className="space-y-3">
             {results.users
-              .slice(0, activeFilter === "users" ? undefined : 3)
+              .slice(0, activeFilter === "all" || activeFilter === "users" ? undefined : 3)
               .map((user) => (
                 <div
                   key={user.id}
                   className="flex items-center justify-between p-3 hover:bg-muted/50 rounded-lg cursor-pointer transition-colors"
                   onClick={() => onUserClick?.(user.id)}
                 >
-                  <div className="flex items-center space-x-3">
-                    <Avatar className="h-12 w-12">
+                  <div className="flex items-center space-x-3 flex-1 min-w-0">
+                    <Avatar className="h-12 w-12 shrink-0">
                       <AvatarImage src={user.avatar} alt={user.username} />
                       <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
                     </Avatar>
-                    <div>
-                      <div className="flex items-center space-x-1">
-                        <span className="font-semibold text-sm">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center space-x-1 min-w-0">
+                        <span className="font-semibold text-sm truncate">
                           {user.username}
                         </span>
                         {user.isVerified && (
-                          <Verified className="h-4 w-4 text-primary fill-primary" />
+                          <Verified className="h-4 w-4 text-primary fill-primary shrink-0" />
                         )}
                       </div>
-                      <p className="text-sm text-muted-foreground">
+                      <p className="text-sm text-muted-foreground truncate">
                         {user.name}
                       </p>
                       {/* <p className="text-xs text-muted-foreground">
@@ -87,27 +84,6 @@ export const SearchResultList: React.FC<SearchResultListProps> = ({
                       </p> */}
                     </div>
                   </div>
-                  <Button
-                    variant={user.isFollowing ? "secondary" : "default"}
-                    size="sm"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onFollowUser?.(user.id);
-                    }}
-                    className="h-8 px-4"
-                  >
-                    {user.isFollowing ? (
-                      <>
-                        <Check className="h-3 w-3 mr-1" />
-                        Đang theo dõi
-                      </>
-                    ) : (
-                      <>
-                        <Plus className="h-3 w-3 mr-1" />
-                        Theo dõi
-                      </>
-                    )}
-                  </Button>
                 </div>
               ))}
           </div>
@@ -201,7 +177,7 @@ export const SearchResultList: React.FC<SearchResultListProps> = ({
               Không tìm thấy kết quả
             </h3>
             <p className="text-muted-foreground">
-              Hãy thử tìm kiếm nội dung khác hoặc kiểm tra lại chính tả.
+              Hãy thử tìm kiếm tài khoản khác hoặc kiểm tra lại chính tả.
             </p>
           </div>
         )}
