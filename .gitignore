@@ -26,5 +26,4 @@ skills
 env
 .env
 
-*.md
 .kiro
